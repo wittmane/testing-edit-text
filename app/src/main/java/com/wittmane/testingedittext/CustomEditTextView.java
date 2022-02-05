@@ -19,13 +19,16 @@ import android.text.BoringLayout;
 import android.text.DynamicLayout;
 import android.text.Editable;
 import android.text.Layout;
+import android.text.ParcelableSpan;
 import android.text.Selection;
+import android.text.SpanWatcher;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.method.KeyListener;
 import android.text.method.MetaKeyKeyListener;
@@ -33,6 +36,10 @@ import android.text.method.MovementMethod;
 import android.text.method.SingleLineTransformationMethod;
 import android.text.method.TextKeyListener;
 import android.text.method.TransformationMethod;
+import android.text.style.CharacterStyle;
+import android.text.style.ParagraphStyle;
+import android.text.style.SuggestionSpan;
+import android.text.style.UpdateAppearance;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
@@ -48,6 +55,8 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
@@ -63,6 +72,7 @@ import androidx.core.content.ContextCompat;
 import com.wittmane.testingedittext.method.CustomArrowKeyMovementMethod;
 import com.wittmane.testingedittext.method.CustomMovementMethod;
 
+import java.util.ArrayList;
 import java.util.Collections;
 
 public class CustomEditTextView extends View implements ICustomTextView {
@@ -93,6 +103,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
     static final int BLINK = 500;
     private static final int UNSET_X_VALUE = -1;
     private static final int UNSET_LINE = -1;
+    private static final int CHANGE_WATCHER_PRIORITY = 100;
 
     private TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private Paint mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -110,6 +121,10 @@ public class CustomEditTextView extends View implements ICustomTextView {
     private int mCursorDrawableRes;
     private Drawable mDrawableForCursor = null;
     private Rect mTempRect;
+
+    private ArrayList<TextWatcher> mListeners;
+
+    private ChangeWatcher mChangeWatcher;
 
     //TODO: I think the scroller is null by default, so it probably can be removed
     private Scroller mScroller;
@@ -157,14 +172,6 @@ public class CustomEditTextView extends View implements ICustomTextView {
     private static final int KEY_DOWN_HANDLED_BY_KEY_LISTENER = 1;
     private static final int KEY_DOWN_HANDLED_BY_MOVEMENT_METHOD = 2;
 
-    //TODO: maybe remove - was used when specifying inputMethod (deprecated),
-    // digits (prioritized over inputType, DigitsKeyListener),
-    // phoneNumber (deprecated, DialerKeyListener), numeric (deprecated, DigitsKeyListener),
-    // autoText/capitalize (deprecated, TextKeyListener), editable (deprecated, TextKeyListener)
-    // actually it looks like this is used by inputType (see TextView#setInputType). setting default
-    // for now, but probably should update
-    private KeyListener mKeyListener = TextKeyListener.getInstance();
-
     // A flag to prevent repeated movements from escaping the enclosing text view. The idea here is
     // that if a user is holding down a movement key to traverse text, we shouldn't also traverse
     // the view hierarchy. On the other hand, if the user is using the movement key to traverse
@@ -176,6 +183,8 @@ public class CustomEditTextView extends View implements ICustomTextView {
     // Cursor Controllers.
 //    InsertionPointCursorController mInsertionPointCursorController;
 //    SelectionModifierCursorController mSelectionModifierCursorController;
+
+    private final Editor mEditor = new Editor(this);
 
     public CustomEditTextView(Context context) {
         this(context, null);
@@ -656,6 +665,8 @@ public class CustomEditTextView extends View implements ICustomTextView {
         makeNewLayout(width, physicalWidth);
     }
     public void makeNewLayout(int wantWidth, int hintWidth) {
+        mHighlightPathBogus = true;
+
         if (wantWidth < 0) {
             wantWidth = 0;
         }
@@ -893,6 +904,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
             text = "";
         }
         Editable t = Editable.Factory.getInstance().newEditable(text);
+        text = t;
 
         InputMethodManager imm = getInputMethodManager();
         if (imm != null) {
@@ -917,19 +929,19 @@ public class CustomEditTextView extends View implements ICustomTextView {
         if (text instanceof Spannable) {
             Spannable sp = (Spannable) text;
 
-//            // Remove any ChangeWatchers that might have come from other TextViews.
-//            final ChangeWatcher[] watchers = sp.getSpans(0, sp.length(), ChangeWatcher.class);
-//            final int count = watchers.length;
-//            for (int i = 0; i < count; i++) {
-//                sp.removeSpan(watchers[i]);
-//            }
-//
-//            if (mChangeWatcher == null) mChangeWatcher = new ChangeWatcher();
-//
-//            sp.setSpan(mChangeWatcher, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE |
-//                    (CHANGE_WATCHER_PRIORITY << Spanned.SPAN_PRIORITY_SHIFT));
-//
-//            if (mEditor != null) mEditor.addSpanWatchers(sp);
+            // Remove any ChangeWatchers that might have come from other TextViews.
+            final ChangeWatcher[] watchers = sp.getSpans(0, sp.length(), ChangeWatcher.class);
+            final int count = watchers.length;
+            for (int i = 0; i < count; i++) {
+                sp.removeSpan(watchers[i]);
+            }
+
+            if (mChangeWatcher == null) mChangeWatcher = new ChangeWatcher();
+
+            sp.setSpan(mChangeWatcher, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE |
+                    (CHANGE_WATCHER_PRIORITY << Spanned.SPAN_PRIORITY_SHIFT));
+
+            if (mEditor != null) mEditor.addSpanWatchers(sp);
 
             if (mTransformation != null) {
                 sp.setSpan(mTransformation, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
@@ -946,6 +958,24 @@ public class CustomEditTextView extends View implements ICustomTextView {
                 /*if (mEditor != null) mEditor.*/mSelectionMoved = false;
             }
         }
+
+        if (mLayout != null) {
+//            checkForRelayout();
+        }
+
+        sendOnTextChanged(text, 0, /*oldlen*/0, textLength);
+        onTextChanged(text, 0, /*oldlen*/0, textLength);
+
+//        notifyViewAccessibilityStateChangedIfNeeded(AccessibilityEvent.CONTENT_CHANGE_TYPE_TEXT);
+//
+//        if (needEditableForNotification) {
+//            sendAfterTextChanged((Editable) text);
+//        } else {
+//            notifyListeningManagersAfterTextChanged();
+//        }
+//
+//        // SelectionModifierCursorController depends on textCanBeSelected, which depends on text
+//        if (mEditor != null) mEditor.prepareCursorControllers();
     }
 
     /**
@@ -1413,8 +1443,8 @@ public class CustomEditTextView extends View implements ICustomTextView {
 //        }
 
 //        if (mEditor != null) mEditor.onFocusChanged(focused, direction);
-//        mShowCursor = SystemClock.uptimeMillis();
-//        ensureEndedBatchEdit();
+        mShowCursor = SystemClock.uptimeMillis();
+        mEditor.ensureEndedBatchEdit();
         if (focused) {
             int selStart = getSelectionStart();
             int selEnd = getSelectionEnd();
@@ -1481,7 +1511,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
 //                hideError();
 //            }
             // Don't leave us in the middle of a batch edit.
-//            onEndBatchEdit();
+            onEndBatchEdit();
 
 //            if (mTextView.isInExtractedMode()) {
 //                hideCursorAndSpanControllers();
@@ -2018,12 +2048,12 @@ public class CustomEditTextView extends View implements ICustomTextView {
 //                break;
         }
 
-        if (/*mEditor != null &&*/ /*mEditor.*/mKeyListener != null) {
+        if (/*mEditor != null &&*/ mEditor.mKeyListener != null) {
             boolean doDown = true;
             if (otherEvent != null) {
                 try {
                     beginBatchEdit();
-                    final boolean handled = /*mEditor.*/mKeyListener.onKeyOther(this, (Editable) mText,
+                    final boolean handled = mEditor.mKeyListener.onKeyOther(this, (Editable) mText,
                             otherEvent);
 //                    hideErrorIfUnchanged();
                     doDown = false;
@@ -2040,7 +2070,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
 
             if (doDown) {
                 beginBatchEdit();
-                final boolean handled = /*mEditor.*/mKeyListener.onKeyDown(this, (Editable) mText,
+                final boolean handled = mEditor.mKeyListener.onKeyDown(this, (Editable) mText,
                         keyCode, event);
                 endBatchEdit();
 //                hideErrorIfUnchanged();
@@ -2178,8 +2208,8 @@ public class CustomEditTextView extends View implements ICustomTextView {
                 break;
         }
 
-        if (/*mEditor != null && mEditor.*/mKeyListener != null) {
-            if (/*mEditor.*/mKeyListener.onKeyUp(this, (Editable) mText, keyCode, event)) {
+        if (/*mEditor != null && */mEditor.mKeyListener != null) {
+            if (mEditor.mKeyListener.onKeyUp(this, (Editable) mText, keyCode, event)) {
                 return true;
             }
         }
@@ -2550,7 +2580,6 @@ public class CustomEditTextView extends View implements ICustomTextView {
     }
 
 
-    //TODO: (EW) hook this up
     void updateAfterEdit() {
         invalidate();
         int curs = getSelectionStart();
@@ -2567,6 +2596,196 @@ public class CustomEditTextView extends View implements ICustomTextView {
             /*if (mEditor != null) mEditor.*/makeBlink();
             bringPointIntoView(curs);
         }
+    }
+
+    /**
+     * Not private so it can be called from an inner class without going
+     * through a thunk.
+     */
+    void handleTextChanged(CharSequence buffer, int start, int before, int after) {
+//        sLastCutCopyOrTextChangedTime = 0;
+
+        final Editor.InputMethodState ims = mEditor == null ? null : mEditor.mInputMethodState;
+        if (ims == null || ims.mBatchEditNesting == 0) {
+            updateAfterEdit();
+        }
+        if (ims != null) {
+            ims.mContentChanged = true;
+            if (ims.mChangedStart < 0) {
+                ims.mChangedStart = start;
+                ims.mChangedEnd = start + before;
+            } else {
+                ims.mChangedStart = Math.min(ims.mChangedStart, start);
+                ims.mChangedEnd = Math.max(ims.mChangedEnd, start + before - ims.mChangedDelta);
+            }
+            ims.mChangedDelta += after - before;
+        }
+//        resetErrorChangedFlag();
+        sendOnTextChanged(buffer, start, before, after);
+        onTextChanged(buffer, start, before, after);
+    }
+
+    /**
+     * Not private so it can be called from an inner class without going
+     * through a thunk.
+     */
+    void spanChange(Spanned buf, Object what, int oldStart, int newStart, int oldEnd, int newEnd) {
+        // XXX Make the start and end move together if this ends up
+        // spending too much time invalidating.
+
+        boolean selChanged = false;
+        int newSelStart = -1, newSelEnd = -1;
+
+        final Editor.InputMethodState ims = mEditor == null ? null : mEditor.mInputMethodState;
+
+        if (what == Selection.SELECTION_END) {
+            selChanged = true;
+            newSelEnd = newStart;
+
+            if (oldStart >= 0 || newStart >= 0) {
+                invalidateCursor(Selection.getSelectionStart(buf), oldStart, newStart);
+                checkForResize();
+//                registerForPreDraw();
+                /*if (mEditor != null) mEditor.*/makeBlink();
+            }
+        }
+
+        if (what == Selection.SELECTION_START) {
+            selChanged = true;
+            newSelStart = newStart;
+
+            if (oldStart >= 0 || newStart >= 0) {
+                int end = Selection.getSelectionEnd(buf);
+                invalidateCursor(end, oldStart, newStart);
+            }
+        }
+
+        if (selChanged) {
+            mHighlightPathBogus = true;
+            if (mEditor != null && !isFocused()) /*mEditor.*/mSelectionMoved = true;
+
+            if ((buf.getSpanFlags(what) & Spanned.SPAN_INTERMEDIATE) == 0) {
+                if (newSelStart < 0) {
+                    newSelStart = Selection.getSelectionStart(buf);
+                }
+                if (newSelEnd < 0) {
+                    newSelEnd = Selection.getSelectionEnd(buf);
+                }
+
+                if (mEditor != null) {
+//                    mEditor.refreshTextActionMode();
+//                    if (!hasSelection()
+//                            && mEditor.getTextActionMode() == null && hasTransientState()) {
+//                        // User generated selection has been removed.
+//                        setHasTransientState(false);
+//                    }
+                }
+                onSelectionChanged(newSelStart, newSelEnd);
+            }
+        }
+
+        if (what instanceof UpdateAppearance || what instanceof ParagraphStyle
+                || what instanceof CharacterStyle) {
+            if (ims == null || ims.mBatchEditNesting == 0) {
+                invalidate();
+                mHighlightPathBogus = true;
+                checkForResize();
+            } else {
+                ims.mContentChanged = true;
+            }
+            if (mEditor != null) {
+////                if (oldStart >= 0) mEditor.invalidateTextDisplayList(mLayout, oldStart, oldEnd);
+////                if (newStart >= 0) mEditor.invalidateTextDisplayList(mLayout, newStart, newEnd);
+//                mEditor.invalidateHandlesAndActionMode();
+            }
+        }
+
+        if (MetaKeyKeyListener.isMetaTracker(buf, what)) {
+            mHighlightPathBogus = true;
+            if (ims != null && MetaKeyKeyListener.isSelectingMetaTracker(buf, what)) {
+                ims.mSelectionModeChanged = true;
+            }
+
+            if (Selection.getSelectionStart(buf) >= 0) {
+                if (ims == null || ims.mBatchEditNesting == 0) {
+                    invalidateCursor();
+                } else {
+                    ims.mCursorChanged = true;
+                }
+            }
+        }
+
+        if (what instanceof ParcelableSpan) {
+            // If this is a span that can be sent to a remote process,
+            // the current extract editor would be interested in it.
+            if (ims != null && ims.mExtractedTextRequest != null) {
+                if (ims.mBatchEditNesting != 0) {
+                    if (oldStart >= 0) {
+                        if (ims.mChangedStart > oldStart) {
+                            ims.mChangedStart = oldStart;
+                        }
+                        if (ims.mChangedStart > oldEnd) {
+                            ims.mChangedStart = oldEnd;
+                        }
+                    }
+                    if (newStart >= 0) {
+                        if (ims.mChangedStart > newStart) {
+                            ims.mChangedStart = newStart;
+                        }
+                        if (ims.mChangedStart > newEnd) {
+                            ims.mChangedStart = newEnd;
+                        }
+                    }
+                } else {
+                    if (DEBUG_EXTRACT) {
+                        Log.v(LOG_TAG, "Span change outside of batch: "
+                                + oldStart + "-" + oldEnd + ","
+                                + newStart + "-" + newEnd + " " + what);
+                    }
+                    ims.mContentChanged = true;
+                }
+            }
+        }
+
+//        if (mEditor != null && mEditor.mSpellChecker != null && newStart < 0
+//                && what instanceof SpellCheckSpan) {
+//            mEditor.mSpellChecker.onSpellCheckSpanRemoved((SpellCheckSpan) what);
+//        }
+    }
+
+    /**
+     * This method is called when the text is changed, in case any subclasses
+     * would like to know.
+     *
+     * Within <code>text</code>, the <code>lengthAfter</code> characters
+     * beginning at <code>start</code> have just replaced old text that had
+     * length <code>lengthBefore</code>. It is an error to attempt to make
+     * changes to <code>text</code> from this callback.
+     *
+     * @param text The text the TextView is displaying
+     * @param start The offset of the start of the range of the text that was
+     * modified
+     * @param lengthBefore The length of the former text that has been replaced
+     * @param lengthAfter The length of the replacement modified text
+     */
+    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+        // intentionally empty, template pattern method can be overridden by subclasses
+    }
+
+    /**
+     * This method is called when the selection has changed, in case any
+     * subclasses would like to know.
+     * </p>
+     * <p class="note"><strong>Note:</strong> Always call the super implementation, which informs
+     * the accessibility subsystem about the selection change.
+     * </p>
+     *
+     * @param selStart The new selection start location.
+     * @param selEnd The new selection end location.
+     */
+//    @CallSuper
+    protected void onSelectionChanged(int selStart, int selEnd) {
+        sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED);
     }
 
     /**
@@ -2608,6 +2827,173 @@ public class CustomEditTextView extends View implements ICustomTextView {
     }
 
 
+    /**
+     * Adds a TextWatcher to the list of those whose methods are called
+     * whenever this TextView's text changes.
+     * <p>
+     * In 1.0, the {@link TextWatcher#afterTextChanged} method was erroneously
+     * not called after {@link #setText} calls.  Now, doing {@link #setText}
+     * if there are any text changed listeners forces the buffer type to
+     * Editable if it would not otherwise be and does call this method.
+     */
+    public void addTextChangedListener(TextWatcher watcher) {
+        if (mListeners == null) {
+            mListeners = new ArrayList<TextWatcher>();
+        }
+
+        mListeners.add(watcher);
+    }
+
+    /**
+     * Removes the specified TextWatcher from the list of those whose
+     * methods are called
+     * whenever this TextView's text changes.
+     */
+    public void removeTextChangedListener(TextWatcher watcher) {
+        if (mListeners != null) {
+            int i = mListeners.indexOf(watcher);
+
+            if (i >= 0) {
+                mListeners.remove(i);
+            }
+        }
+    }
+
+    private void sendBeforeTextChanged(CharSequence text, int start, int before, int after) {
+        if (mListeners != null) {
+            final ArrayList<TextWatcher> list = mListeners;
+            final int count = list.size();
+            for (int i = 0; i < count; i++) {
+                list.get(i).beforeTextChanged(text, start, before, after);
+            }
+        }
+
+        // The spans that are inside or intersect the modified region no longer make sense
+//        removeIntersectingNonAdjacentSpans(start, start + before, SpellCheckSpan.class);
+//        removeIntersectingNonAdjacentSpans(start, start + before, SuggestionSpan.class);
+    }
+
+    /**
+     * Not private so it can be called from an inner class without going
+     * through a thunk.
+     */
+    void sendAfterTextChanged(Editable text) {
+        if (mListeners != null) {
+            final ArrayList<TextWatcher> list = mListeners;
+            final int count = list.size();
+            for (int i = 0; i < count; i++) {
+                list.get(i).afterTextChanged(text);
+            }
+        }
+
+//        notifyListeningManagersAfterTextChanged();
+
+//        hideErrorIfUnchanged();
+    }
+
+    /**
+     * Not private so it can be called from an inner class without going
+     * through a thunk.
+     */
+    void sendOnTextChanged(CharSequence text, int start, int before, int after) {
+        if (mListeners != null) {
+            final ArrayList<TextWatcher> list = mListeners;
+            final int count = list.size();
+            for (int i = 0; i < count; i++) {
+                list.get(i).onTextChanged(text, start, before, after);
+            }
+        }
+
+        /*if (mEditor != null) mEditor.*/sendOnTextChanged(start, before, after);
+    }
+
+    void sendOnTextChanged(int start, int before, int after) {
+//        getSelectionActionModeHelper().onTextChanged(start, start + before);
+//        updateSpellCheckSpans(start, start + after, false);
+
+        // Flip flag to indicate the word iterator needs to have the text reset.
+//        mUpdateWordIteratorText = true;
+
+        // Hide the controllers as soon as text is modified (typing, procedural...)
+        // We do not hide the span controllers, since they can be added when a new text is
+        // inserted into the text view (voice IME).
+//        hideCursorControllers();
+        // Reset drag accelerator.
+//        if (mSelectionModifierCursorController != null) {
+//            mSelectionModifierCursorController.resetTouchOffsets();
+//        }
+//        stopTextActionMode();
+    }
+
+    static final String LOG_TAG = ChangeWatcher.class.getSimpleName();
+    static final boolean DEBUG_EXTRACT = false;
+    private class ChangeWatcher implements TextWatcher, SpanWatcher {
+
+        private CharSequence mBeforeText;
+
+        public void beforeTextChanged(CharSequence buffer, int start,
+                                      int before, int after) {
+            if (DEBUG_EXTRACT) {
+                Log.v(LOG_TAG, "beforeTextChanged start=" + start
+                        + " before=" + before + " after=" + after + ": " + buffer);
+            }
+
+//            if (AccessibilityManager.getInstance(mContext).isEnabled() && (mTransformed != null)) {
+//                mBeforeText = mTransformed.toString();
+//            }
+
+            CustomEditTextView.this.sendBeforeTextChanged(buffer, start, before, after);
+        }
+
+        public void onTextChanged(CharSequence buffer, int start, int before, int after) {
+            if (DEBUG_EXTRACT) {
+                Log.v(LOG_TAG, "onTextChanged start=" + start
+                        + " before=" + before + " after=" + after + ": " + buffer);
+            }
+            CustomEditTextView.this.handleTextChanged(buffer, start, before, after);
+
+//            if (AccessibilityManager.getInstance(mContext).isEnabled()
+//                    && (isFocused() || isSelected() && isShown())) {
+//                sendAccessibilityEventTypeViewTextChanged(mBeforeText, start, before, after);
+//                mBeforeText = null;
+//            }
+        }
+
+        public void afterTextChanged(Editable buffer) {
+            if (DEBUG_EXTRACT) {
+                Log.v(LOG_TAG, "afterTextChanged: " + buffer);
+            }
+            CustomEditTextView.this.sendAfterTextChanged(buffer);
+
+//            if (MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SELECTING) != 0) {
+//                MetaKeyKeyListener.stopSelecting(CustomEditTextView.this, buffer);
+//            }
+        }
+
+        public void onSpanChanged(Spannable buf, Object what, int s, int e, int st, int en) {
+            if (DEBUG_EXTRACT) {
+                Log.v(LOG_TAG, "onSpanChanged s=" + s + " e=" + e
+                        + " st=" + st + " en=" + en + " what=" + what + ": " + buf);
+            }
+            CustomEditTextView.this.spanChange(buf, what, s, st, e, en);
+        }
+
+        public void onSpanAdded(Spannable buf, Object what, int s, int e) {
+            if (DEBUG_EXTRACT) {
+                Log.v(LOG_TAG, "onSpanAdded s=" + s + " e=" + e + " what=" + what + ": " + buf);
+            }
+            CustomEditTextView.this.spanChange(buf, what, -1, s, -1, e);
+        }
+
+        public void onSpanRemoved(Spannable buf, Object what, int s, int e) {
+            if (DEBUG_EXTRACT) {
+                Log.v(LOG_TAG, "onSpanRemoved s=" + s + " e=" + e + " what=" + what + ": " + buf);
+            }
+            CustomEditTextView.this.spanChange(buf, what, s, -1, e, -1);
+        }
+    }
+
+
 
     public Layout getLayout() {
         return mLayout;
@@ -2643,13 +3029,14 @@ public class CustomEditTextView extends View implements ICustomTextView {
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
         if (onCheckIsTextEditor() && isEnabled()) {
+            mEditor.createInputMethodStateIfNeeded();
             return new CustomInputConnection2(this);
         }
 
         return null;
     }
 
-    private InputMethodManager getInputMethodManager() {
+    public InputMethodManager getInputMethodManager() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             return getContext().getSystemService(InputMethodManager.class);
         }
@@ -2662,6 +3049,26 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return mText;
     }
 
+    /**
+     * Returns the hint that is displayed when the text of the TextView
+     * is empty.
+     *
+     * @attr ref android.R.styleable#TextView_hint
+     */
+    public CharSequence getHint() {
+        return mHint;
+    }
+
+    /**
+     * Returns if the text is constrained to a single horizontally scrolling line ignoring new
+     * line characters instead of letting it wrap onto multiple lines.
+     *
+     * @attr ref android.R.styleable#TextView_singleLine
+     */
+    public boolean isSingleLine() {
+        return mSingleLine;
+    }
+
 
     @Override
     public Editable getEditableText() {
@@ -2671,16 +3078,28 @@ public class CustomEditTextView extends View implements ICustomTextView {
     @Override
     public void beginBatchEdit() {
         Log.w(TAG, "beginBatchEdit");
-//        if (mEditor != null) mEditor.beginBatchEdit();
+        mEditor.beginBatchEdit();
     }
 
     @Override
     public void endBatchEdit() {
         Log.w(TAG, "endBatchEdit");
-//        if (mEditor != null) mEditor.endBatchEdit();
-        updateCursorPosition();
-        //TODO: (EW) probably should only call requestLayout based on certain text changes
-        requestLayout();
-        invalidate();
+        mEditor.endBatchEdit();
+    }
+
+    /**
+     * Called by the framework in response to a request to begin a batch
+     * of edit operations through a call to link {@link #beginBatchEdit()}.
+     */
+    public void onBeginBatchEdit() {
+        // intentionally empty
+    }
+
+    /**
+     * Called by the framework in response to a request to end a batch
+     * of edit operations through a call to link {@link #endBatchEdit}.
+     */
+    public void onEndBatchEdit() {
+        // intentionally empty
     }
 }
