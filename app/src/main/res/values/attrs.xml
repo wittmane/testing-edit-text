@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomSimpleTextView2">
+        <attr name="android:text" />
+<!--        <attr name="android:layout_width" />-->
+<!--        <attr name="android:layout_height" />-->
+        <attr name="android:inputType" />
+        <attr name="android:gravity" />
+        <attr name="android:hint" />
+        <!-- Reference to a drawable that will be drawn under the insertion cursor. -->
+        <attr name="android:textCursorDrawable" />
+    </declare-styleable>
+<!--    &lt;!&ndash; Reference to a drawable that will be drawn under the insertion cursor. &ndash;&gt;-->
+<!--    <attr name="textCursorDrawable" format="reference" />-->
+</resources>

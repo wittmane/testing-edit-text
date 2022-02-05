@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.wittmane.testingedittext"
-        minSdkVersion /*16*/19
+        minSdkVersion /*16*//*19*/21
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 30
         versionCode 1
