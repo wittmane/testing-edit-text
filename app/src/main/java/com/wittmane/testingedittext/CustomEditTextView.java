@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
@@ -14,6 +15,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.LocaleList;
 import android.os.SystemClock;
 import android.text.BoringLayout;
 import android.text.DynamicLayout;
@@ -61,12 +63,17 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.view.textclassifier.TextClassificationContext;
+import android.view.textclassifier.TextClassificationManager;
+import android.view.textclassifier.TextClassifier;
 import android.widget.EditText;
 import android.widget.PopupWindow;
 import android.widget.Scroller;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.Size;
 import androidx.core.content.ContextCompat;
 
 import com.wittmane.testingedittext.method.CustomArrowKeyMovementMethod;
@@ -74,8 +81,9 @@ import com.wittmane.testingedittext.method.CustomMovementMethod;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Locale;
 
-public class CustomEditTextView extends View implements ICustomTextView {
+public class CustomEditTextView extends View implements ICustomTextView, ViewTreeObserver.OnPreDrawListener {
     static final String TAG = CustomEditTextView.class.getSimpleName();
 
     private int textColor = Color.BLACK;
@@ -118,9 +126,23 @@ public class CustomEditTextView extends View implements ICustomTextView {
     private CharSequence mHint;
     private Layout mLayout;
     private Layout mHintLayout;
-    private int mCursorDrawableRes;
-    private Drawable mDrawableForCursor = null;
+    public Drawable mDrawableForCursor = null;
     private Rect mTempRect;
+
+    // Although these fields are specific to editable text, they are not added to Editor because
+    // they are defined by the TextView's style and are theme-dependent.
+    int mCursorDrawableRes;
+    // These six fields, could be moved to Editor, since we know their default values and we
+    // could condition the creation of the Editor to a non standard value. This is however
+    // brittle since the hardcoded values here (such as
+    // com.android.internal.R.drawable.text_select_handle_left) would have to be updated if the
+    // default style is modified.
+    public int mTextSelectHandleLeftRes;
+    public int mTextSelectHandleRightRes;
+    public int mTextSelectHandleRes;
+    public int mTextEditSuggestionItemLayout;
+    public int mTextEditSuggestionContainerLayout;
+    public int mTextEditSuggestionHighlightStyle;
 
     private ArrayList<TextWatcher> mListeners;
 
@@ -145,6 +167,9 @@ public class CustomEditTextView extends View implements ICustomTextView {
     private int mDesiredHeightAtMeasure = -1;
     private int mDeferScroll = -1;
 
+    private boolean mPreDrawRegistered;
+    private boolean mPreDrawListenerDetached;
+
     private static final RectF TEMP_RECTF = new RectF();
 
     private boolean mCursorVisible = true;
@@ -161,8 +186,8 @@ public class CustomEditTextView extends View implements ICustomTextView {
     boolean mDiscardNextActionUp;
     boolean mIgnoreActionUpEvent;
 
-    private final EditorTouchState mTouchState = new EditorTouchState();
-    private final SimpleTouchManager mTouchManager = new SimpleTouchManager(this);
+    public final EditorTouchState mTouchState = new EditorTouchState();
+    public final SimpleTouchManager mTouchManager = new SimpleTouchManager(this);
 
     /**
      *  Return code of {@link #doKeyDown}.
@@ -171,6 +196,9 @@ public class CustomEditTextView extends View implements ICustomTextView {
     private static final int KEY_EVENT_HANDLED = -1;
     private static final int KEY_DOWN_HANDLED_BY_KEY_LISTENER = 1;
     private static final int KEY_DOWN_HANDLED_BY_MOVEMENT_METHOD = 2;
+
+    // System wide time for last cut, copy or text changed action.
+    public static long sLastCutCopyOrTextChangedTime;
 
     // A flag to prevent repeated movements from escaping the enclosing text view. The idea here is
     // that if a user is holding down a movement key to traverse text, we shouldn't also traverse
@@ -184,7 +212,20 @@ public class CustomEditTextView extends View implements ICustomTextView {
 //    InsertionPointCursorController mInsertionPointCursorController;
 //    SelectionModifierCursorController mSelectionModifierCursorController;
 
-    private final Editor mEditor = new Editor(this);
+
+    public static final int ID_SELECT_ALL = android.R.id.selectAll;
+    public static final int ID_UNDO = android.R.id.undo;
+    public static final int ID_REDO = android.R.id.redo;
+    public static final int ID_CUT = android.R.id.cut;
+    public static final int ID_COPY = android.R.id.copy;
+    public static final int ID_PASTE = android.R.id.paste;
+    public static final int ID_SHARE = android.R.id.shareText;
+    public static final int ID_PASTE_AS_PLAIN_TEXT = android.R.id.pasteAsPlainText;
+    public static final int ID_REPLACE = android.R.id.replaceText;
+    public static final int ID_ASSIST = android.R.id.textAssist;
+    public static final int ID_AUTOFILL = android.R.id.autofill;
+
+    public final Editor mEditor = new Editor(this);
 
     public CustomEditTextView(Context context) {
         this(context, null);
@@ -282,6 +323,15 @@ public class CustomEditTextView extends View implements ICustomTextView {
             } else if (attr == R.styleable.CustomSimpleTextView2_android_textCursorDrawable) {
                 mCursorDrawableRes = typedArray.getResourceId(attr, 0);
                 Log.w(TAG, "mCursorDrawableRes=" + mCursorDrawableRes);
+            } else if (attr == R.styleable.CustomSimpleTextView2_android_textSelectHandleLeft) {
+                mTextSelectHandleLeftRes = typedArray.getResourceId(attr, 0);
+                Log.w(TAG, "mTextSelectHandleLeftRes=" + mTextSelectHandleLeftRes);
+            } else if (attr == R.styleable.CustomSimpleTextView2_android_textSelectHandleRight) {
+                mTextSelectHandleRightRes = typedArray.getResourceId(attr, 0);
+                Log.w(TAG, "mTextSelectHandleRightRes=" + mTextSelectHandleRightRes);
+            } else if (attr == R.styleable.CustomSimpleTextView2_android_textSelectHandle) {
+                mTextSelectHandleRes = typedArray.getResourceId(attr, 0);
+                Log.w(TAG, "mTextSelectHandleRes=" + mTextSelectHandleRes);
             }
         }
 
@@ -304,6 +354,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         setFocusable(true);
         setClickable(true);
         setLongClickable(true);
+        mEditor.prepareCursorControllers();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Log.w(TAG, "getFocusable=" + getFocusable());
         }
@@ -395,7 +446,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         int hintWidth = (mHintLayout == null) ? hintWant : mHintLayout.getWidth();
 
         if (mLayout == null) {
-            makeNewLayout(want, hintWant);
+            makeNewLayout(want, hintWant, false);
         } else {
             final boolean layoutChanged = (mLayout.getWidth() != want) || (hintWidth != hintWant)
                     || (mLayout.getEllipsizedWidth()
@@ -411,7 +462,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
 //                if (!maximumChanged && widthChanged) {
 //                    mLayout.increaseWidthTo(want);
 //                } else {
-                    makeNewLayout(want, hintWant);
+                    makeNewLayout(want, hintWant, false);
 //                }
             } else {
                 // Nothing has changed
@@ -448,7 +499,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         if (mMovement != null
                 || mLayout.getWidth() > unpaddedWidth
                 || mLayout.getHeight() > unpaddedHeight) {
-//            registerForPreDraw();
+            registerForPreDraw();
         } else {
 //            scrollTo(0, 0);
         }
@@ -640,7 +691,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         canvas.restore();
     }
     private void drawCursor(Canvas canvas, int cursorOffsetVertical) {
-        Log.w(TAG, "drawCursor: selectionStart=" + getSelectionStart() + ", selectionEnd=" + getSelectionEnd());
+//        Log.w(TAG, "drawCursor: selectionStart=" + getSelectionStart() + ", selectionEnd=" + getSelectionEnd());
         final boolean translate = cursorOffsetVertical != 0;
         if (translate) canvas.translate(0, cursorOffsetVertical);
         if (mDrawableForCursor != null) {
@@ -648,6 +699,76 @@ public class CustomEditTextView extends View implements ICustomTextView {
         }
         if (translate) canvas.translate(0, -cursorOffsetVertical);
     }
+
+
+
+
+
+    private void registerForPreDraw() {
+        if (!mPreDrawRegistered) {
+            getViewTreeObserver().addOnPreDrawListener(this);
+            mPreDrawRegistered = true;
+        }
+    }
+
+    private void unregisterForPreDraw() {
+        getViewTreeObserver().removeOnPreDrawListener(this);
+        mPreDrawRegistered = false;
+        mPreDrawListenerDetached = false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean onPreDraw() {
+        if (mLayout == null) {
+            assumeLayout();
+        }
+
+        if (mMovement != null) {
+            /* This code also provides auto-scrolling when a cursor is moved using a
+             * CursorController (insertion point or selection limits).
+             * For selection, ensure start or end is visible depending on controller's state.
+             */
+            int curs = getSelectionEnd();
+            // Do not create the controller if it is not already created.
+//            if (mEditor != null && mEditor.mSelectionModifierCursorController != null
+//                    && mEditor.mSelectionModifierCursorController.isSelectionStartDragged()) {
+//                curs = getSelectionStart();
+//            }
+
+            /*
+             * TODO: This should really only keep the end in view if
+             * it already was before the text changed.  I'm not sure
+             * of a good way to tell from here if it was.
+             */
+            if (curs < 0 && (mGravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.BOTTOM) {
+                curs = mText.length();
+            }
+
+            if (curs >= 0) {
+                bringPointIntoView(curs);
+            }
+        } else {
+            bringTextIntoView();
+        }
+
+        // This has to be checked here since:
+        // - onFocusChanged cannot start it when focus is given to a view with selected text (after
+        //   a screen rotation) since layout is not yet initialized at that point.
+//        if (mEditor != null && mEditor.mCreatedWithASelection) {
+//            mEditor.refreshTextActionMode();
+//            mEditor.mCreatedWithASelection = false;
+//        }
+
+        unregisterForPreDraw();
+
+        return true;
+    }
+
+
+
 
     private void assumeLayout() {
         int width = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
@@ -662,9 +783,9 @@ public class CustomEditTextView extends View implements ICustomTextView {
             width = VERY_WIDE;
         }
 
-        makeNewLayout(width, physicalWidth);
+        makeNewLayout(width, physicalWidth, false);
     }
-    public void makeNewLayout(int wantWidth, int hintWidth) {
+    public void makeNewLayout(int wantWidth, int hintWidth, boolean bringIntoView) {
         mHighlightPathBogus = true;
 
         if (wantWidth < 0) {
@@ -674,7 +795,12 @@ public class CustomEditTextView extends View implements ICustomTextView {
             hintWidth = 0;
         }
 
-        Layout.Alignment alignment = Layout.Alignment.ALIGN_NORMAL;
+        Layout.Alignment alignment = getLayoutAlignment();
+        final boolean testDirChange = mSingleLine && mLayout != null
+                && (alignment == Layout.Alignment.ALIGN_NORMAL
+                || alignment == Layout.Alignment.ALIGN_OPPOSITE);
+        int oldDir = 0;
+        if (testDirChange) oldDir = mLayout.getParagraphDirection(0);
 
         mLayout = new DynamicLayout(mText, /*mTransformed*/mText, mTextPaint, wantWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
 
@@ -683,9 +809,69 @@ public class CustomEditTextView extends View implements ICustomTextView {
         } else {
             mHintLayout = null;
         }
+
+        if (bringIntoView || (testDirChange && oldDir != mLayout.getParagraphDirection(0))) {
+            registerForPreDraw();
+        }
+        // CursorControllers need a non-null mLayout
+        if (mEditor != null) mEditor.prepareCursorControllers();
     }
     public void nullLayouts() {
         mLayout = mHintLayout = null;
+        // Since it depends on the value of mLayout
+        if (mEditor != null) mEditor.prepareCursorControllers();
+    }
+
+    private Layout.Alignment getLayoutAlignment() {
+        Layout.Alignment alignment;
+        switch (getTextAlignment()) {
+            case TEXT_ALIGNMENT_GRAVITY:
+                switch (mGravity & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) {
+                    case Gravity.START:
+                        alignment = Layout.Alignment.ALIGN_NORMAL;
+                        break;
+                    case Gravity.END:
+                        alignment = Layout.Alignment.ALIGN_OPPOSITE;
+                        break;
+//                    case Gravity.LEFT:
+//                        alignment = Layout.Alignment.ALIGN_LEFT;
+//                        break;
+//                    case Gravity.RIGHT:
+//                        alignment = Layout.Alignment.ALIGN_RIGHT;
+//                        break;
+                    case Gravity.CENTER_HORIZONTAL:
+                        alignment = Layout.Alignment.ALIGN_CENTER;
+                        break;
+                    default:
+                        alignment = Layout.Alignment.ALIGN_NORMAL;
+                        break;
+                }
+                break;
+            case TEXT_ALIGNMENT_TEXT_START:
+                alignment = Layout.Alignment.ALIGN_NORMAL;
+                break;
+            case TEXT_ALIGNMENT_TEXT_END:
+                alignment = Layout.Alignment.ALIGN_OPPOSITE;
+                break;
+            case TEXT_ALIGNMENT_CENTER:
+                alignment = Layout.Alignment.ALIGN_CENTER;
+                break;
+//            case TEXT_ALIGNMENT_VIEW_START:
+//                alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
+//                        ? Layout.Alignment.ALIGN_RIGHT : Layout.Alignment.ALIGN_LEFT;
+//                break;
+//            case TEXT_ALIGNMENT_VIEW_END:
+//                alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
+//                        ? Layout.Alignment.ALIGN_LEFT : Layout.Alignment.ALIGN_RIGHT;
+//                break;
+            case TEXT_ALIGNMENT_INHERIT:
+                // This should never happen as we have already resolved the text alignment
+                // but better safe than sorry so we just fall through
+            default:
+                alignment = Layout.Alignment.ALIGN_NORMAL;
+                break;
+        }
+        return alignment;
     }
 
     public int getCompoundPaddingTop() {
@@ -973,9 +1159,9 @@ public class CustomEditTextView extends View implements ICustomTextView {
 //        } else {
 //            notifyListeningManagersAfterTextChanged();
 //        }
-//
-//        // SelectionModifierCursorController depends on textCanBeSelected, which depends on text
-//        if (mEditor != null) mEditor.prepareCursorControllers();
+
+        // SelectionModifierCursorController depends on textCanBeSelected, which depends on text
+        if (mEditor != null) mEditor.prepareCursorControllers();
     }
 
     /**
@@ -1049,8 +1235,8 @@ public class CustomEditTextView extends View implements ICustomTextView {
 
         // Will change text color
 //        if (mEditor != null) {
-////            mEditor.invalidateTextDisplayList();
-//            mEditor.prepareCursorControllers();
+//            mEditor.invalidateTextDisplayList();
+            mEditor.prepareCursorControllers();
 
             // start or stop the cursor blinking as appropriate
             /*mEditor.*/makeBlink();
@@ -1064,110 +1250,185 @@ public class CustomEditTextView extends View implements ICustomTextView {
 
 
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-//        if (DEBUG_CURSOR) {
-//            logCursor("onTouchEvent", "%d: %s (%f,%f)",
-//                    event.getSequenceNumber(),
-//                    MotionEvent.actionToString(event.getActionMasked()),
-//                    event.getX(), event.getY());
-//        }
-        Log.w(TAG, String.format("onTouchEvent: %s (%f,%f)",
-                MotionEvent.actionToString(event.getActionMasked()),
-                event.getX(), event.getY()));
-//        if (!isFromPrimePointer(event, false)) {
+//    @Override
+//    public boolean onTouchEvent(MotionEvent event) {
+////        if (DEBUG_CURSOR) {
+////            logCursor("onTouchEvent", "%d: %s (%f,%f)",
+////                    event.getSequenceNumber(),
+////                    MotionEvent.actionToString(event.getActionMasked()),
+////                    event.getX(), event.getY());
+////        }
+//        Log.w(TAG, String.format("onTouchEvent: %s (%f,%f)",
+//                MotionEvent.actionToString(event.getActionMasked()),
+//                event.getX(), event.getY()));
+////        if (!isFromPrimePointer(event, false)) {
+////            return true;
+////        }
+////
+//        final int action = event.getActionMasked();
+//////        if (mEditor != null) {
+//////            mEditor.onTouchEvent(event);
+////        editorOnTouchEvent(event);
+//////
+//////            if (mEditor.mInsertionPointCursorController != null
+//////                    && mEditor.mInsertionPointCursorController.isCursorBeingModified()) {
+//////                return true;
+//////            }
+////            if (/*mEditor.*/mSelectionModifierCursorController != null
+////                    && /*mEditor.*/mSelectionModifierCursorController.isDragAcceleratorActive()) {
+////                return true;
+////            }
+//////        }
+//////
+//        if (mTouchManager.onTouchEventPre2(event)) {
 //            return true;
 //        }
 //
-        final int action = event.getActionMasked();
-////        if (mEditor != null) {
-////            mEditor.onTouchEvent(event);
-//        editorOnTouchEvent(event);
-////
-////            if (mEditor.mInsertionPointCursorController != null
-////                    && mEditor.mInsertionPointCursorController.isCursorBeingModified()) {
-////                return true;
-////            }
-//            if (/*mEditor.*/mSelectionModifierCursorController != null
-//                    && /*mEditor.*/mSelectionModifierCursorController.isDragAcceleratorActive()) {
-//                return true;
-//            }
+//        final boolean superResult = super.onTouchEvent(event);
+//////        if (DEBUG_CURSOR) {
+//////            logCursor("onTouchEvent", "superResult=%s", superResult);
+//////        }
+//////
+//////        /*
+//////         * Don't handle the release after a long press, because it will move the selection away from
+//////         * whatever the menu action was trying to affect. If the long press should have triggered an
+//////         * insertion action mode, we can now actually show it.
+//////         */
+//////        if (mEditor != null && mEditor.mDiscardNextActionUp && action == MotionEvent.ACTION_UP) {
+//////            mEditor.mDiscardNextActionUp = false;
+//////            if (DEBUG_CURSOR) {
+//////                logCursor("onTouchEvent", "release after long press detected");
+//////            }
+//////            if (mEditor.mIsInsertionActionModeStartPending) {
+//////                mEditor.startInsertionActionMode();
+//////                mEditor.mIsInsertionActionModeStartPending = false;
+//////            }
+//////            return superResult;
+//////        }
+//////
+////        final boolean touchIsFinished = (action == MotionEvent.ACTION_UP)
+////                /*&& (mEditor == null || !mEditor.mIgnoreActionUpEvent)*/ && isFocused();
+//////
+//////        if ((mMovement != null || onCheckIsTextEditor()) && isEnabled()
+//////                && mText instanceof Spannable && mLayout != null) {
+////        boolean handled = false;
+//////
+//////            if (mMovement != null) {
+//////                handled |= mMovement.onTouchEvent(this, mSpannable, event);
+//////            }
+//////
+////        final boolean textIsSelectable = /*isTextSelectable()*/true;
+//////            if (touchIsFinished && mLinksClickable && mAutoLinkMask != 0 && textIsSelectable) {
+//////                // The LinkMovementMethod which should handle taps on links has not been installed
+//////                // on non editable text that support text selection.
+//////                // We reproduce its behavior here to open links for these.
+//////                ClickableSpan[] links = mSpannable.getSpans(getSelectionStart(),
+//////                        getSelectionEnd(), ClickableSpan.class);
+//////
+//////                if (links.length > 0) {
+//////                    links[0].onClick(this);
+//////                    handled = true;
+//////                }
+//////            }
+//////
+////        if (touchIsFinished && (/*isTextEditable()*/true || textIsSelectable)) {
+////            // Show the IME, except when selecting in read-only text.
+//////            final InputMethodManager imm = getInputMethodManager();
+//////            viewClicked(imm);
+//////            if (/*isTextEditable()*/true && /*mEditor.mShowSoftInputOnFocus*/true && imm != null) {
+//////                imm.showSoftInput(this, 0);
+//////            }
+//////
+//////                // The above condition ensures that the mEditor is not null
+//////                editorOnTouchUpEvent(event);
+//////
+//////            handled = true;
 ////        }
 ////
-        if (mTouchManager.onTouchEventPre(event)) {
-            return true;
+////        if (handled) {
+////            return true;
+////        }
+//////        }
+//////
+//        Log.w(TAG, "onTouchEvent: isFocused=" + isFocused());
+//
+////        return superResult;
+//        return mTouchManager.onTouchEventPost(event, superResult);
+//    }
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        final int action = event.getActionMasked();
+        if (mEditor != null) {
+            mEditor.onTouchEvent(event);
+
+//            if (mEditor.mSelectionModifierCursorController != null
+//                    && mEditor.mSelectionModifierCursorController.isDragAcceleratorActive()) {
+//                return true;
+//            }
         }
 
         final boolean superResult = super.onTouchEvent(event);
-////        if (DEBUG_CURSOR) {
-////            logCursor("onTouchEvent", "superResult=%s", superResult);
-////        }
-////
-////        /*
-////         * Don't handle the release after a long press, because it will move the selection away from
-////         * whatever the menu action was trying to affect. If the long press should have triggered an
-////         * insertion action mode, we can now actually show it.
-////         */
-////        if (mEditor != null && mEditor.mDiscardNextActionUp && action == MotionEvent.ACTION_UP) {
-////            mEditor.mDiscardNextActionUp = false;
-////            if (DEBUG_CURSOR) {
-////                logCursor("onTouchEvent", "release after long press detected");
-////            }
-////            if (mEditor.mIsInsertionActionModeStartPending) {
-////                mEditor.startInsertionActionMode();
-////                mEditor.mIsInsertionActionModeStartPending = false;
-////            }
-////            return superResult;
-////        }
-////
-//        final boolean touchIsFinished = (action == MotionEvent.ACTION_UP)
-//                /*&& (mEditor == null || !mEditor.mIgnoreActionUpEvent)*/ && isFocused();
-////
-////        if ((mMovement != null || onCheckIsTextEditor()) && isEnabled()
-////                && mText instanceof Spannable && mLayout != null) {
-//        boolean handled = false;
-////
-////            if (mMovement != null) {
-////                handled |= mMovement.onTouchEvent(this, mSpannable, event);
-////            }
-////
-//        final boolean textIsSelectable = /*isTextSelectable()*/true;
-////            if (touchIsFinished && mLinksClickable && mAutoLinkMask != 0 && textIsSelectable) {
-////                // The LinkMovementMethod which should handle taps on links has not been installed
-////                // on non editable text that support text selection.
-////                // We reproduce its behavior here to open links for these.
-////                ClickableSpan[] links = mSpannable.getSpans(getSelectionStart(),
-////                        getSelectionEnd(), ClickableSpan.class);
-////
-////                if (links.length > 0) {
-////                    links[0].onClick(this);
-////                    handled = true;
-////                }
-////            }
-////
-//        if (touchIsFinished && (/*isTextEditable()*/true || textIsSelectable)) {
-//            // Show the IME, except when selecting in read-only text.
-////            final InputMethodManager imm = getInputMethodManager();
-////            viewClicked(imm);
-////            if (/*isTextEditable()*/true && /*mEditor.mShowSoftInputOnFocus*/true && imm != null) {
-////                imm.showSoftInput(this, 0);
-////            }
-////
-////                // The above condition ensures that the mEditor is not null
-////                editorOnTouchUpEvent(event);
-////
-////            handled = true;
-//        }
-//
-//        if (handled) {
-//            return true;
-//        }
-////        }
-////
-        Log.w(TAG, "onTouchEvent: isFocused=" + isFocused());
 
-//        return superResult;
-        return mTouchManager.onTouchEventPost(event, superResult);
+        /*
+         * Don't handle the release after a long press, because it will move the selection away from
+         * whatever the menu action was trying to affect. If the long press should have triggered an
+         * insertion action mode, we can now actually show it.
+         */
+        if (mEditor != null && mEditor.mDiscardNextActionUp && action == MotionEvent.ACTION_UP) {
+            mEditor.mDiscardNextActionUp = false;
+
+            if (mEditor.mIsInsertionActionModeStartPending) {
+                mEditor.startInsertionActionMode();
+                mEditor.mIsInsertionActionModeStartPending = false;
+            }
+            return superResult;
+        }
+
+        final boolean touchIsFinished = (action == MotionEvent.ACTION_UP)
+                && (mEditor == null || !mEditor.mIgnoreActionUpEvent) && isFocused();
+
+        if ((mMovement != null || onCheckIsTextEditor()) && isEnabled()
+                && mText instanceof Spannable && mLayout != null) {
+            boolean handled = false;
+
+            if (mMovement != null) {
+                handled |= mMovement.onTouchEvent(this, mSpannable, event);
+            }
+
+            final boolean textIsSelectable = isTextSelectable();
+//            if (touchIsFinished && mLinksClickable && mAutoLinkMask != 0 && textIsSelectable) {
+//                // The LinkMovementMethod which should handle taps on links has not been installed
+//                // on non editable text that support text selection.
+//                // We reproduce its behavior here to open links for these.
+//                ClickableSpan[] links = mSpannable.getSpans(getSelectionStart(),
+//                        getSelectionEnd(), ClickableSpan.class);
+//
+//                if (links.length > 0) {
+//                    links[0].onClick(this);
+//                    handled = true;
+//                }
+//            }
+
+            if (touchIsFinished && (isTextEditable() || textIsSelectable)) {
+                // Show the IME, except when selecting in read-only text.
+                final InputMethodManager imm = /*InputMethodManager.peekInstance()*/getInputMethodManager();
+                viewClicked(imm);
+                if (isTextEditable() /*&& mEditor.mShowSoftInputOnFocus*/ && imm != null) {
+                    imm.showSoftInput(this, 0);
+                }
+
+                // The above condition ensures that the mEditor is not null
+                mEditor.onTouchUpEvent(event);
+
+                handled = true;
+            }
+
+            if (handled) {
+                return true;
+            }
+        }
+
+        return superResult;
     }
 
     public void onTouchFinished() {
@@ -1176,6 +1437,67 @@ public class CustomEditTextView extends View implements ICustomTextView {
         if (/*isTextEditable()*/true && /*mEditor.mShowSoftInputOnFocus*/true && imm != null) {
             imm.showSoftInput(this, 0);
         }
+    }
+
+    @Override
+    public boolean performLongClick() {
+        Log.w(TAG, "performLongClick");
+        boolean handled = false;
+        boolean performedHapticFeedback = false;
+
+        if (mEditor != null) {
+            mEditor.mIsBeingLongClicked = true;
+        }
+
+        if (super.performLongClick()) {
+            handled = true;
+            performedHapticFeedback = true;
+        }
+
+        if (mEditor != null) {
+            handled |= mEditor.performLongClick(handled);
+            mEditor.mIsBeingLongClicked = false;
+        }
+
+        if (handled) {
+            if (!performedHapticFeedback) {
+                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+            }
+            if (mEditor != null) mEditor.mDiscardNextActionUp = true;
+        } else {
+//            MetricsLogger.action(
+//                    mContext,
+//                    MetricsEvent.TEXT_LONGPRESS,
+//                    TextViewMetrics.SUBTYPE_LONG_PRESS_OTHER);
+        }
+
+        return handled;
+    }
+
+    @Override
+    protected void onScrollChanged(int horiz, int vert, int oldHoriz, int oldVert) {
+        super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
+        Log.w(TAG, "onScrollChanged: horiz=" + horiz + ", vert=" + vert + ", oldHoriz=" + oldHoriz + ", oldVert=" + oldVert);
+        if (mEditor != null) {
+            mEditor.onScrollChanged();
+        }
+    }
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        Log.w(TAG, "onGenericMotionEvent: " + event);
+        if (mMovement != null && mText instanceof Spannable && mLayout != null) {
+            try {
+                if (mMovement.onGenericMotionEvent(this, mSpannable, event)) {
+                    return true;
+                }
+            } catch (AbstractMethodError ex) {
+                // onGenericMotionEvent was added to the MovementMethod interface in API 12.
+                // Ignore its absence in case third party applications implemented the
+                // interface directly.
+            }
+        }
+        return super.onGenericMotionEvent(event);
     }
 
     /**
@@ -1304,48 +1626,6 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return false;
     }
 
-    private static final int NO_POINTER_ID = -1;
-    /**
-     * The prime (the 1st finger) pointer id which is used as a lock to prevent multi touch among
-     * TextView and the handle views which are rendered on popup windows.
-     */
-    private int mPrimePointerId = NO_POINTER_ID;
-    /**
-     * Whether the prime pointer is from the event delivered to selection handle or insertion
-     * handle.
-     */
-    private boolean mIsPrimePointerFromHandleView;
-    /**
-     * Called from onTouchEvent() to prevent the touches by secondary fingers.
-     * Dragging on handles can revise cursor/selection, so can dragging on the text view.
-     * This method is a lock to avoid processing multiple fingers on both text view and handles.
-     * Note: multiple fingers on handles (e.g. 2 fingers on the 2 selection handles) should work.
-     *
-     * @param event The motion event that is being handled and carries the pointer info.
-     * @param fromHandleView true if the event is delivered to selection handle or insertion
-     * handle; false if this event is delivered to TextView.
-     * @return Returns true to indicate that onTouchEvent() can continue processing the motion
-     * event, otherwise false.
-     *  - Always returns true for the first finger.
-     *  - For secondary fingers, if the first or current finger is from TextView, returns false.
-     *    This is to make touch mutually exclusive between the TextView and the handles, but
-     *    not among the handles.
-     */
-    boolean isFromPrimePointer(MotionEvent event, boolean fromHandleView) {
-        boolean res = true;
-        if (mPrimePointerId == NO_POINTER_ID)  {
-            mPrimePointerId = event.getPointerId(0);
-            mIsPrimePointerFromHandleView = fromHandleView;
-        } else if (mPrimePointerId != event.getPointerId(0)) {
-            res = mIsPrimePointerFromHandleView && fromHandleView;
-        }
-        if (event.getActionMasked() == MotionEvent.ACTION_UP
-                || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-            mPrimePointerId = -1;
-        }
-        return res;
-    }
-
     protected void viewClicked(InputMethodManager imm) {
         if (imm != null) {
             imm.viewClicked(this);
@@ -1392,7 +1672,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return offset;
     }
 
-    float convertToLocalHorizontalCoordinate(float x) {
+    public float convertToLocalHorizontalCoordinate(float x) {
         x -= getTotalPaddingLeft();
         // Clamp the position to inside of the view.
         x = Math.max(0.0f, x);
@@ -1401,7 +1681,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return x;
     }
 
-    int getLineAtCoordinate(float y) {
+    public int getLineAtCoordinate(float y) {
         y -= getTotalPaddingTop();
         // Clamp the position to inside of the view.
         y = Math.max(0.0f, y);
@@ -1410,7 +1690,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return getLayout().getLineForVertical((int) y);
     }
 
-    private int getOffsetAtCoordinate(int line, float x) {
+    public int getOffsetAtCoordinate(int line, float x) {
         x = convertToLocalHorizontalCoordinate(x);
         return getLayout().getOffsetForHorizontal(line, x);
     }
@@ -1432,29 +1712,161 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return true;
     }
 
-
+//
+//    @Override
+//    protected void onFocusChanged(boolean focused, int direction, Rect previouslyFocusedRect) {
+//        Log.w(TAG, "onFocusChanged: focused=" + focused + ", direction=" + direction);
+////        if (mTemporaryDetach) {
+////            // If we are temporarily in the detach state, then do nothing.
+////            super.onFocusChanged(focused, direction, previouslyFocusedRect);
+////            return;
+////        }
+//
+////        if (mEditor != null) mEditor.onFocusChanged(focused, direction);
+//        mShowCursor = SystemClock.uptimeMillis();
+//        mEditor.ensureEndedBatchEdit();
+//        if (focused) {
+//            int selStart = getSelectionStart();
+//            int selEnd = getSelectionEnd();
+//
+//            // SelectAllOnFocus fields are highlighted and not selected. Do not start text selection
+//            // mode for these, unless there was a specific selection already started.
+//            final boolean isFocusHighlighted = mSelectAllOnFocus && selStart == 0
+//                    && selEnd == mText.length();
+//
+//            mCreatedWithASelection = mFrozenWithFocus && hasSelection()
+//                    && !isFocusHighlighted;
+//
+//            if (!mFrozenWithFocus || (selStart < 0 || selEnd < 0)) {
+//                // If a tap was used to give focus to that view, move cursor at tap position.
+//                // Has to be done before onTakeFocus, which can be overloaded.
+//                final int lastTapPosition = getLastTapPosition();
+//                if (lastTapPosition >= 0) {
+//                    Log.w(TAG, String.format("onFocusChanged: setting cursor position: %d", lastTapPosition));
+//                    Selection.setSelection((Spannable) mText, lastTapPosition);
+//                }
+//
+//                // Note this may have to be moved out of the Editor class
+////                MovementMethod mMovement = mTextView.getMovementMethod();
+//                if (mMovement != null) {
+//                    mMovement.onTakeFocus(this, (Spannable) mText, direction);
+//                }
+//
+//                // The DecorView does not have focus when the 'Done' ExtractEditText button is
+//                // pressed. Since it is the ViewAncestor's mView, it requests focus before
+//                // ExtractEditText clears focus, which gives focus to the ExtractEditText.
+//                // This special case ensure that we keep current selection in that case.
+//                // It would be better to know why the DecorView does not have focus at that time.
+//                if (((isInExtractedMode()) || mSelectionMoved)
+//                        && selStart >= 0 && selEnd >= 0) {
+//                    /*
+//                     * Someone intentionally set the selection, so let them
+//                     * do whatever it is that they wanted to do instead of
+//                     * the default on-focus behavior.  We reset the selection
+//                     * here instead of just skipping the onTakeFocus() call
+//                     * because some movement methods do something other than
+//                     * just setting the selection in theirs and we still
+//                     * need to go through that path.
+//                     */
+//                    Selection.setSelection((Spannable) mText, selStart, selEnd);
+//                }
+//
+//                if (mSelectAllOnFocus) {
+//                    selectAllText();
+//                }
+//
+//                mTouchFocusSelected = true;
+//            }
+//
+//            mFrozenWithFocus = false;
+//            mSelectionMoved = false;
+////
+////            if (mError != null) {
+////                showError();
+////            }
+////
+//            makeBlink();
+//        } else {
+////            if (mError != null) {
+////                hideError();
+////            }
+//            // Don't leave us in the middle of a batch edit.
+//            onEndBatchEdit();
+//
+////            if (mTextView.isInExtractedMode()) {
+////                hideCursorAndSpanControllers();
+////                stopTextActionModeWithPreservingSelection();
+////            } else {
+////                hideCursorAndSpanControllers();
+////                if (mTextView.isTemporarilyDetached()) {
+////                    stopTextActionModeWithPreservingSelection();
+////                } else {
+////                    stopTextActionMode();
+////                }
+////                downgradeEasyCorrectionSpans();
+////            }
+////            // No need to create the controller
+////            if (mSelectionModifierCursorController != null) {
+////                mSelectionModifierCursorController.resetTouchOffsets();
+////            }
+////
+////            ensureNoSelectionIfNonSelectable();
+//        }
+//
+//        if (focused) {
+//            if (mText instanceof Spannable) {
+//                Spannable sp = (Spannable) mText;
+//                MetaKeyKeyListener.resetMetaState(sp);
+//            }
+//        }
+//
+//        if (mTransformation != null) {
+//            mTransformation.onFocusChanged(this, mText, focused, direction, previouslyFocusedRect);
+//        }
+//
+//        super.onFocusChanged(focused, direction, previouslyFocusedRect);
+//    }
     @Override
     protected void onFocusChanged(boolean focused, int direction, Rect previouslyFocusedRect) {
-        Log.w(TAG, "onFocusChanged: focused=" + focused + ", direction=" + direction);
-//        if (mTemporaryDetach) {
-//            // If we are temporarily in the detach state, then do nothing.
-//            super.onFocusChanged(focused, direction, previouslyFocusedRect);
-//            return;
-//        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            if (isTemporarilyDetached()) {
+                // If we are temporarily in the detach state, then do nothing.
+                super.onFocusChanged(focused, direction, previouslyFocusedRect);
+                return;
+            }
+        }
 
-//        if (mEditor != null) mEditor.onFocusChanged(focused, direction);
+        if (mEditor != null) /*mEditor.*/onFocusChanged(focused, direction);
+
+        if (focused) {
+            if (mSpannable != null) {
+                MetaKeyKeyListener.resetMetaState(mSpannable);
+            }
+        }
+
+//        startStopMarquee(focused);
+
+        if (mTransformation != null) {
+            mTransformation.onFocusChanged(this, mText, focused, direction, previouslyFocusedRect);
+        }
+
+        super.onFocusChanged(focused, direction, previouslyFocusedRect);
+    }
+    //TODO: (EW) move to editor to line up with aosp for better comparison
+    void onFocusChanged(boolean focused, int direction) {
         mShowCursor = SystemClock.uptimeMillis();
         mEditor.ensureEndedBatchEdit();
+
         if (focused) {
-            int selStart = getSelectionStart();
-            int selEnd = getSelectionEnd();
+            int selStart = /*mTextView.*/getSelectionStart();
+            int selEnd = /*mTextView.*/getSelectionEnd();
 
             // SelectAllOnFocus fields are highlighted and not selected. Do not start text selection
             // mode for these, unless there was a specific selection already started.
             final boolean isFocusHighlighted = mSelectAllOnFocus && selStart == 0
-                    && selEnd == mText.length();
+                    && selEnd == /*mTextView.*/getText().length();
 
-            mCreatedWithASelection = mFrozenWithFocus && hasSelection()
+            mCreatedWithASelection = mFrozenWithFocus && /*mTextView.*/hasSelection()
                     && !isFocusHighlighted;
 
             if (!mFrozenWithFocus || (selStart < 0 || selEnd < 0)) {
@@ -1462,14 +1874,13 @@ public class CustomEditTextView extends View implements ICustomTextView {
                 // Has to be done before onTakeFocus, which can be overloaded.
                 final int lastTapPosition = getLastTapPosition();
                 if (lastTapPosition >= 0) {
-                    Log.w(TAG, String.format("onFocusChanged: setting cursor position: %d", lastTapPosition));
-                    Selection.setSelection((Spannable) mText, lastTapPosition);
+                    Selection.setSelection((Spannable) /*mTextView.*/getText(), lastTapPosition);
                 }
 
                 // Note this may have to be moved out of the Editor class
-//                MovementMethod mMovement = mTextView.getMovementMethod();
+                CustomMovementMethod mMovement = /*mTextView.*/getMovementMethod();
                 if (mMovement != null) {
-                    mMovement.onTakeFocus(this, (Spannable) mText, direction);
+                    mMovement.onTakeFocus(/*mTextView*/this, (Spannable) /*mTextView.*/getText(), direction);
                 }
 
                 // The DecorView does not have focus when the 'Done' ExtractEditText button is
@@ -1477,7 +1888,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
                 // ExtractEditText clears focus, which gives focus to the ExtractEditText.
                 // This special case ensure that we keep current selection in that case.
                 // It would be better to know why the DecorView does not have focus at that time.
-                if (((isInExtractedMode()) || mSelectionMoved)
+                if (((/*mTextView.*/isInExtractedMode()) || mSelectionMoved)
                         && selStart >= 0 && selEnd >= 0) {
                     /*
                      * Someone intentionally set the selection, so let them
@@ -1488,11 +1899,11 @@ public class CustomEditTextView extends View implements ICustomTextView {
                      * just setting the selection in theirs and we still
                      * need to go through that path.
                      */
-                    Selection.setSelection((Spannable) mText, selStart, selEnd);
+                    Selection.setSelection((Spannable) /*mTextView.*/getText(), selStart, selEnd);
                 }
 
                 if (mSelectAllOnFocus) {
-                    selectAllText();
+                    /*mTextView.*/selectAllText();
                 }
 
                 mTouchFocusSelected = true;
@@ -1500,51 +1911,40 @@ public class CustomEditTextView extends View implements ICustomTextView {
 
             mFrozenWithFocus = false;
             mSelectionMoved = false;
-//
+
 //            if (mError != null) {
 //                showError();
 //            }
-//
+
             makeBlink();
         } else {
 //            if (mError != null) {
 //                hideError();
 //            }
             // Don't leave us in the middle of a batch edit.
-            onEndBatchEdit();
+            /*mTextView.*/onEndBatchEdit();
 
-//            if (mTextView.isInExtractedMode()) {
-//                hideCursorAndSpanControllers();
+            if (/*mTextView.*/isInExtractedMode()) {
+                mEditor.hideCursorAndSpanControllers();
 //                stopTextActionModeWithPreservingSelection();
-//            } else {
-//                hideCursorAndSpanControllers();
-//                if (mTextView.isTemporarilyDetached()) {
-//                    stopTextActionModeWithPreservingSelection();
-//                } else {
-//                    stopTextActionMode();
-//                }
+            } else {
+                mEditor.hideCursorAndSpanControllers();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    if (/*mTextView.*/isTemporarilyDetached()) {
+//                        stopTextActionModeWithPreservingSelection();
+                    } else {
+                        mEditor.stopTextActionMode();
+                    }
+                }
 //                downgradeEasyCorrectionSpans();
-//            }
-//            // No need to create the controller
+            }
+            // No need to create the controller
 //            if (mSelectionModifierCursorController != null) {
 //                mSelectionModifierCursorController.resetTouchOffsets();
 //            }
-//
+
 //            ensureNoSelectionIfNonSelectable();
         }
-
-        if (focused) {
-            if (mText instanceof Spannable) {
-                Spannable sp = (Spannable) mText;
-                MetaKeyKeyListener.resetMetaState(sp);
-            }
-        }
-
-        if (mTransformation != null) {
-            mTransformation.onFocusChanged(this, mText, focused, direction, previouslyFocusedRect);
-        }
-
-        super.onFocusChanged(focused, direction, previouslyFocusedRect);
     }
 
     /**
@@ -1810,7 +2210,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         mDrawableForCursor.setBounds(left, top - mTempRect.top, left + width,
                 bottom + mTempRect.bottom);
     }
-    void updateCursorPosition() {
+    public void updateCursorPosition() {
         loadCursorDrawable();
         if (mDrawableForCursor == null) {
             return;
@@ -1895,7 +2295,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return selectionStart >= 0 && selectionEnd > 0 && selectionStart != selectionEnd;
     }
 
-    boolean canSelectAllText() {
+    public boolean canSelectAllText() {
         return /*canSelectText() &&*//* !hasPasswordTransformationMethod()
                 &&*/ !(getSelectionStart() == 0 && getSelectionEnd() == mText.length());
     }
@@ -2272,6 +2672,99 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return TextUtils.isEmpty(mText) && !TextUtils.isEmpty(mHint);
     }
 
+    //TODO: (EW) copied from Layout - see if this can be removed
+    private enum Alignment {
+        ALIGN_NORMAL,
+        ALIGN_OPPOSITE,
+        ALIGN_CENTER,
+        /** @hide */
+        ALIGN_LEFT,
+        /** @hide */
+        ALIGN_RIGHT,
+    }
+    private Alignment convertAlignment(Layout.Alignment alignment) {
+        switch (alignment) {
+            case ALIGN_NORMAL:
+                return Alignment.ALIGN_NORMAL;
+            case ALIGN_OPPOSITE:
+                return Alignment.ALIGN_OPPOSITE;
+            case ALIGN_CENTER:
+                return Alignment.ALIGN_CENTER;
+        }
+        //TODO: (EW) could this ever happen?
+        Log.e(TAG, "convertAlignment: " + alignment);
+        return Alignment.ALIGN_LEFT;
+    }
+    /**
+     * Returns true if anything changed.
+     */
+    private boolean bringTextIntoView() {
+        Layout layout = isShowingHint() ? mHintLayout : mLayout;
+        int line = 0;
+        if ((mGravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.BOTTOM) {
+            line = layout.getLineCount() - 1;
+        }
+
+        /*Layout.*/Alignment a = convertAlignment(layout.getParagraphAlignment(line));
+        int dir = layout.getParagraphDirection(line);
+        int hspace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
+        int vspace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
+        int ht = layout.getHeight();
+
+        int scrollx, scrolly;
+
+        // Convert to left, center, or right alignment.
+        if (a == /*Layout.*/Alignment.ALIGN_NORMAL) {
+            a = dir == Layout.DIR_LEFT_TO_RIGHT
+                    ? /*Layout.*/Alignment.ALIGN_LEFT : /*Layout.*/Alignment.ALIGN_RIGHT;
+        } else if (a == /*Layout.*/Alignment.ALIGN_OPPOSITE) {
+            a = dir == Layout.DIR_LEFT_TO_RIGHT
+                    ? /*Layout.*/Alignment.ALIGN_RIGHT : /*Layout.*/Alignment.ALIGN_LEFT;
+        }
+
+        if (a == /*Layout.*/Alignment.ALIGN_CENTER) {
+            /*
+             * Keep centered if possible, or, if it is too wide to fit,
+             * keep leading edge in view.
+             */
+
+            int left = (int) Math.floor(layout.getLineLeft(line));
+            int right = (int) Math.ceil(layout.getLineRight(line));
+
+            if (right - left < hspace) {
+                scrollx = (right + left) / 2 - hspace / 2;
+            } else {
+                if (dir < 0) {
+                    scrollx = right - hspace;
+                } else {
+                    scrollx = left;
+                }
+            }
+        } else if (a == /*Layout.*/Alignment.ALIGN_RIGHT) {
+            int right = (int) Math.ceil(layout.getLineRight(line));
+            scrollx = right - hspace;
+        } else { // a == Layout.Alignment.ALIGN_LEFT (will also be the default)
+            scrollx = (int) Math.floor(layout.getLineLeft(line));
+        }
+
+        if (ht < vspace) {
+            scrolly = 0;
+        } else {
+            if ((mGravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.BOTTOM) {
+                scrolly = ht - vspace;
+            } else {
+                scrolly = 0;
+            }
+        }
+
+        if (scrollx != getScrollX() || scrolly != getScrollY()) {
+            scrollTo(scrollx, scrolly);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * Move the point, specified by the offset, into the view if it is needed.
      * This has to be called after layout. Returns true if anything changed.
@@ -2537,6 +3030,47 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return false;
     }
 
+    private static final float[] TEMP_POSITION = new float[2];
+    public boolean isPositionVisible(final float positionX, final float positionY) {
+        synchronized (TEMP_POSITION) {
+            final float[] position = TEMP_POSITION;
+            position[0] = positionX;
+            position[1] = positionY;
+            View view = this;
+
+            while (view != null) {
+                if (view != this) {
+                    // Local scroll is already taken into account in positionX/Y
+                    position[0] -= view.getScrollX();
+                    position[1] -= view.getScrollY();
+                }
+
+                if (position[0] < 0 || position[1] < 0 || position[0] > view.getWidth()
+                        || position[1] > view.getHeight()) {
+                    return false;
+                }
+
+                if (!view.getMatrix().isIdentity()) {
+                    view.getMatrix().mapPoints(position);
+                }
+
+                position[0] += view.getLeft();
+                position[1] += view.getTop();
+
+                final ViewParent parent = view.getParent();
+                if (parent instanceof View) {
+                    view = (View) parent;
+                } else {
+                    // We've reached the ViewRoot, stop iterating
+                    view = null;
+                }
+            }
+        }
+
+        // We've been able to walk up the view hierarchy and the position was never clipped
+        return true;
+    }
+
     /**
      * Returns true, only while processing a touch gesture, if the initial
      * touch down event caused focus to move to the text view and as a result
@@ -2567,11 +3101,11 @@ public class CustomEditTextView extends View implements ICustomTextView {
         r.bottom += verticalOffset;
     }
 
-    int viewportToContentHorizontalOffset() {
+    public int viewportToContentHorizontalOffset() {
         return getCompoundPaddingLeft() - getScrollX();
     }
 
-    int viewportToContentVerticalOffset() {
+    public int viewportToContentVerticalOffset() {
         int offset = getExtendedPaddingTop() - getScrollY();
         if ((mGravity & Gravity.VERTICAL_GRAVITY_MASK) != Gravity.TOP) {
             offset += getVerticalOffset(false);
@@ -2580,13 +3114,134 @@ public class CustomEditTextView extends View implements ICustomTextView {
     }
 
 
+
+
+//    private Locale getTextServicesLocale(boolean allowNullLocale) {
+//        // Start fetching the text services locale asynchronously.
+//        updateTextServicesLocaleAsync();
+//        // If !allowNullLocale and there is no cached text services locale, just return the default
+//        // locale.
+//        return (mCurrentSpellCheckerLocaleCache == null && !allowNullLocale) ? Locale.getDefault()
+//                : mCurrentSpellCheckerLocaleCache;
+//    }
+
+    /**
+     * This is a temporary method. Future versions may support multi-locale text.
+     * Caveat: This method may not return the latest text services locale, but this should be
+     * acceptable and it's more important to make this method asynchronous.
+     *
+     * @return The locale that should be used for a word iterator
+     * in this TextView, based on the current spell checker settings,
+     * the current IME's locale, or the system default locale.
+     * Please note that a word iterator in this TextView is different from another word iterator
+     * used by SpellChecker.java of TextView. This method should be used for the former.
+     * @hide
+     */
+    // TODO: Support multi-locale
+    // TODO: Update the text services locale immediately after the keyboard locale is switched
+    // by catching intent of keyboard switch event
+    public Locale getTextServicesLocale() {
+//        return getTextServicesLocale(false /* allowNullLocale */);
+        return new Locale("en", "US");
+    }
+
+    /**
+     * Get the default primary {@link Locale} of the text in this TextView. This will always be
+     * the first member of {@link #getTextLocales()}.
+     * @return the default primary {@link Locale} of the text in this TextView.
+     */
+    @NonNull
+    public Locale getTextLocale() {
+        return mTextPaint.getTextLocale();
+    }
+
+    /**
+     * Get the default {@link LocaleList} of the text in this TextView.
+     * @return the default {@link LocaleList} of the text in this TextView.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    @NonNull @Size(min = 1)
+    public LocaleList getTextLocales() {
+        return mTextPaint.getTextLocales();
+    }
+
+    /**
+     * Returns the {@link TextClassifier} used by this TextView.
+     * If no TextClassifier has been set, this TextView uses the default set by the
+     * {@link TextClassificationManager}.
+     */
+    @NonNull
+    public TextClassifier getTextClassifier() {
+//        if (mTextClassifier == null) {
+//            final TextClassificationManager tcm =
+//                    mContext.getSystemService(TextClassificationManager.class);
+//            if (tcm != null) {
+//                return tcm.getTextClassifier();
+//            }
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                return TextClassifier.NO_OP;
+//            } else {
+//                //TODO: handle
+//                return null;
+//            }
+//        }
+//        return mTextClassifier;
+        return TextClassifier.NO_OP;
+    }
+
+    /**
+     * Returns a session-aware text classifier.
+     * This method creates one if none already exists or the current one is destroyed.
+     */
+    @NonNull
+    public TextClassifier getTextClassificationSession() {
+//        if (mTextClassificationSession == null || mTextClassificationSession.isDestroyed()) {
+//            final TextClassificationManager tcm =
+//                    mContext.getSystemService(TextClassificationManager.class);
+//            if (tcm != null) {
+//                final String widgetType;
+//                if (isTextEditable()) {
+//                    widgetType = TextClassifier.WIDGET_TYPE_EDITTEXT;
+//                } else if (isTextSelectable()) {
+//                    widgetType = TextClassifier.WIDGET_TYPE_TEXTVIEW;
+//                } else {
+//                    widgetType = TextClassifier.WIDGET_TYPE_UNSELECTABLE_TEXTVIEW;
+//                }
+//                final TextClassificationContext textClassificationContext =
+//                        new TextClassificationContext.Builder(
+//                                mContext.getPackageName(), widgetType)
+//                                .build();
+//                if (mTextClassifier != null) {
+//                    mTextClassificationSession = tcm.createTextClassificationSession(
+//                            textClassificationContext, mTextClassifier);
+//                } else {
+//                    mTextClassificationSession = tcm.createTextClassificationSession(
+//                            textClassificationContext);
+//                }
+//            } else {
+//                mTextClassificationSession = TextClassifier.NO_OP;
+//            }
+//        }
+//        return mTextClassificationSession;
+        return TextClassifier.NO_OP;
+    }
+
+    /**
+     * Returns true if this TextView uses a no-op TextClassifier.
+     */
+    public boolean usesNoOpTextClassifier() {
+        return getTextClassifier() == TextClassifier.NO_OP;
+    }
+
+
+
     void updateAfterEdit() {
         invalidate();
         int curs = getSelectionStart();
 
         if (curs >= 0 || (mGravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.BOTTOM) {
             //TODO: (EW) is this necessary?
-//            registerForPreDraw();
+            registerForPreDraw();
         }
 
         checkForResize();
@@ -2645,7 +3300,7 @@ public class CustomEditTextView extends View implements ICustomTextView {
             if (oldStart >= 0 || newStart >= 0) {
                 invalidateCursor(Selection.getSelectionStart(buf), oldStart, newStart);
                 checkForResize();
-//                registerForPreDraw();
+                registerForPreDraw();
                 /*if (mEditor != null) mEditor.*/makeBlink();
             }
         }
@@ -2673,12 +3328,12 @@ public class CustomEditTextView extends View implements ICustomTextView {
                 }
 
                 if (mEditor != null) {
-//                    mEditor.refreshTextActionMode();
-//                    if (!hasSelection()
-//                            && mEditor.getTextActionMode() == null && hasTransientState()) {
-//                        // User generated selection has been removed.
-//                        setHasTransientState(false);
-//                    }
+                    mEditor.refreshTextActionMode();
+                    if (!hasSelection()
+                            && mEditor.getTextActionMode() == null && hasTransientState()) {
+                        // User generated selection has been removed.
+                        setHasTransientState(false);
+                    }
                 }
                 onSelectionChanged(newSelStart, newSelEnd);
             }
@@ -3069,6 +3724,85 @@ public class CustomEditTextView extends View implements ICustomTextView {
         return mSingleLine;
     }
 
+    /**
+     * @return True iff this TextView contains a text that can be edited, or if this is
+     * a selectable TextView.
+     */
+    public boolean isTextEditable() {
+        return mText instanceof Editable && onCheckIsTextEditor() && isEnabled();
+    }
+
+    /**
+     * Unlike {@link #textCanBeSelected()}, this method is based on the <i>current</i> state of the
+     * TextView. {@link #textCanBeSelected()} has to be true (this is one of the conditions to have
+     * a selection controller (see {@link Editor#prepareCursorControllers()}), but this is not
+     * sufficient.
+     */
+    boolean canSelectText() {
+        return mText.length() != 0 && mEditor != null && mEditor.hasSelectionController();
+    }
+
+    /**
+     * Test based on the <i>intrinsic</i> charateristics of the TextView.
+     * The text must be spannable and the movement method must allow for arbitary selection.
+     *
+     * See also {@link #canSelectText()}.
+     */
+    boolean textCanBeSelected() {
+        // prepareCursorController() relies on this method.
+        // If you change this condition, make sure prepareCursorController is called anywhere
+        // the value of this condition might be changed.
+        if (mMovement == null || !mMovement.canSelectArbitrarily()) return false;
+        return isTextEditable()
+                || (isTextSelectable() && mText instanceof Spannable && isEnabled());
+    }
+
+    /**
+     *
+     * Returns the state of the {@code textIsSelectable} flag (See
+     * { @link #setTextIsSelectable setTextIsSelectable()}). Although you have to set this flag
+     * to allow users to select and copy text in a non-editable TextView, the content of an
+     * {@link EditText} can always be selected, independently of the value of this flag.
+     * <p>
+     *
+     * @return True if the text displayed in this TextView can be selected by the user.
+     *
+     * @attr ref android.R.styleable#TextView_textIsSelectable
+     */
+    public boolean isTextSelectable() {
+        return mEditor == null ? false : mEditor.mTextIsSelectable;
+    }
+
+    public final CustomMovementMethod getMovementMethod() {
+        return mMovement;
+    }
+
+    public boolean canProcessText() {
+        if (getId() == View.NO_ID) {
+            return false;
+        }
+        return canShare();
+    }
+
+    boolean canShare() {
+//        if (!getContext().canStartActivityForResult() || !isDeviceProvisioned()) {
+//            return false;
+//        }
+        return canCopy();
+    }
+
+    boolean canCopy() {
+//        if (hasPasswordTransformationMethod()) {
+//            return false;
+//        }
+
+        if (mText.length() > 0 && hasSelection() && mEditor != null) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     @Override
     public Editable getEditableText() {
@@ -3101,5 +3835,97 @@ public class CustomEditTextView extends View implements ICustomTextView {
      */
     public void onEndBatchEdit() {
         // intentionally empty
+    }
+
+    public boolean isInBatchEditMode() {
+        if (mEditor == null) return false;
+        final Editor.InputMethodState ims = mEditor.mInputMethodState;
+        if (ims != null) {
+            return ims.mBatchEditNesting > 0;
+        }
+        return mEditor.mInBatchEditControllers;
+    }
+
+
+
+
+
+    // from View
+    /** @hide */
+    public void transformFromViewToWindowSpace(@Size(2) int[] inOutLocation) {
+        if (inOutLocation == null || inOutLocation.length < 2) {
+            throw new IllegalArgumentException("inOutLocation must be an array of two integers");
+        }
+
+        if (!isAttachedToWindow()) {
+            // When the view is not attached to a window, this method does not make sense
+            inOutLocation[0] = inOutLocation[1] = 0;
+            return;
+        }
+
+        float position[] = /*mAttachInfo.mTmpTransformLocation*/new float[2];
+        position[0] = inOutLocation[0];
+        position[1] = inOutLocation[1];
+
+        //TODO: (EW) figure out what to do with this
+//        if (!hasIdentityMatrix()) {
+//            getMatrix().mapPoints(position);
+//        }
+
+        position[0] += getLeft();
+        position[1] += getTop();
+
+        ViewParent viewParent = getParent();
+        while (viewParent instanceof View) {
+            final View view = (View) viewParent;
+
+            position[0] -= view.getScrollX();
+            position[1] -= view.getScrollY();
+
+            //TODO: (EW) figure out what to do with this
+//            if (!view.hasIdentityMatrix()) {
+//                view.getMatrix().mapPoints(position);
+//            }
+
+            position[0] += view.getLeft();
+            position[1] += view.getTop();
+
+            viewParent = view.getParent();
+        }
+
+        //TODO: (EW) figure out what to do with this
+//        if (viewParent instanceof ViewRootImpl) {
+//            // *cough*
+//            final ViewRootImpl vr = (ViewRootImpl) viewParent;
+//            position[1] -= vr.mCurScrollY;
+//        }
+
+        inOutLocation[0] = Math.round(position[0]);
+        inOutLocation[1] = Math.round(position[1]);
+    }
+
+    // from View
+    /**
+     * Transforms a motion event from on-screen coordinates to view-local
+     * coordinates.
+     *
+     * @param ev the on-screen motion event
+     * @return false if the transformation could not be applied
+     * @hide
+     */
+    public boolean toLocalMotionEvent(MotionEvent ev) {
+////        final AttachInfo info = mAttachInfo;
+//        if (/*info == null*/!isAttachedToWindow()) {
+//            return false;
+//        }
+//
+//        final Matrix m = info.mTmpMatrix;
+//        m.set(Matrix.IDENTITY_MATRIX);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            transformMatrixToLocal(m);
+//        }
+//        ev.transform(m);
+//        return true;
+        return false;
     }
 }

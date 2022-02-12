@@ -2,6 +2,7 @@ package com.wittmane.testingedittext.method;
 
 import android.text.Layout;
 import android.text.Spannable;
+import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -12,6 +13,7 @@ import com.wittmane.testingedittext.CustomEditTextView;
  * Base classes for movement methods.
  */
 public class CustomBaseMovementMethod implements CustomMovementMethod {
+    static final String TAG = CustomBaseMovementMethod.class.getSimpleName();
     @Override
     public boolean canSelectArbitrarily() {
         return false;
@@ -79,6 +81,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
         if ((event.getSource() & InputDevice.SOURCE_CLASS_POINTER) != 0) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_SCROLL: {
+                    Log.w(TAG, "onGenericMotionEvent ACTION_SCROLL");
                     final float vscroll;
                     final float hscroll;
                     if ((event.getMetaState() & KeyEvent.META_SHIFT_ON) != 0) {

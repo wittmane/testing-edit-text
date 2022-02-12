@@ -10,7 +10,7 @@ import android.view.ViewConfiguration;
 
 public class SimpleTouchManager {
     static final String TAG = SimpleTouchManager.class.getSimpleName();
-    private final boolean DEBUG_CURSOR = true;
+    public static final boolean DEBUG_CURSOR = true;
 
     private static final int NO_POINTER_ID = -1;
 
@@ -212,6 +212,55 @@ public class SimpleTouchManager {
         }
 
         return false;
+    }
+    public boolean onTouchEventPre2(MotionEvent event) {
+        if (!isFromPrimePointer(event, false)) {
+            return true;
+        }
+
+        editorOnTouchEventPre(event);
+
+        if (mTextView.mEditor.mInsertionPointCursorController != null
+                && mTextView.mEditor.mInsertionPointCursorController.isCursorBeingModified()) {
+            return true;
+        }
+//        if (mTextView.mEditor.mSelectionModifierCursorController != null
+//                && mTextView.mEditor.mSelectionModifierCursorController.isDragAcceleratorActive()) {
+//            return true;
+//        }
+        return false;
+    }
+    private void editorOnTouchEventPre(MotionEvent event) {
+        final boolean filterOutEvent = shouldFilterOutTouchEvent(event);
+        mLastButtonState = event.getButtonState();
+        if (filterOutEvent) {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                mDiscardNextActionUp = true;
+            }
+            return;
+        }
+        ViewConfiguration viewConfiguration = ViewConfiguration.get(mTextView.getContext());
+        mTouchState.update(event, viewConfiguration);
+//        updateFloatingToolbarVisibility(event);
+
+//        if (mTextView.mEditor.hasInsertionController()) {
+//            mTextView.mEditor.getInsertionController().onTouchEvent(event);
+//        }
+//        if (hasSelectionController()) {
+//            getSelectionController().onTouchEvent(event);
+//        }
+
+//        if (mShowSuggestionRunnable != null) {
+//            mTextView.removeCallbacks(mShowSuggestionRunnable);
+//            mShowSuggestionRunnable = null;
+//        }
+
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            // Reset this state; it will be re-set if super.onTouchEvent
+            // causes focus to move to the view.
+            mTouchFocusSelected = false;
+            mIgnoreActionUpEvent = false;
+        }
     }
     public boolean onTouchEventPost(MotionEvent event, boolean superResult) {
         // this is from TextView#onTouchEvent
@@ -421,7 +470,7 @@ public class SimpleTouchManager {
      *    This is to make touch mutually exclusive between the TextView and the handles, but
      *    not among the handles.
      */
-    boolean isFromPrimePointer(MotionEvent event, boolean fromHandleView) {
+    public boolean isFromPrimePointer(MotionEvent event, boolean fromHandleView) {
         boolean res = true;
         if (mPrimePointerId == NO_POINTER_ID)  {
             mPrimePointerId = event.getPointerId(0);

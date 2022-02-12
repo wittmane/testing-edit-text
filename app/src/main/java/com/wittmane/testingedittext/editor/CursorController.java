@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.editor;
 
 import android.view.ViewTreeObserver;
 

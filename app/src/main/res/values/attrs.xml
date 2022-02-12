@@ -9,7 +9,19 @@
         <attr name="android:hint" />
         <!-- Reference to a drawable that will be drawn under the insertion cursor. -->
         <attr name="android:textCursorDrawable" />
+
+        <attr name="android:textSelectHandleLeft" />
+        <attr name="android:textSelectHandleRight" />
+        <attr name="android:textSelectHandle" />
     </declare-styleable>
 <!--    &lt;!&ndash; Reference to a drawable that will be drawn under the insertion cursor. &ndash;&gt;-->
 <!--    <attr name="textCursorDrawable" format="reference" />-->
+
+
+    <!-- These are the standard attributes that make up a complete theme. -->
+    <declare-styleable name="Theme">
+        <!-- Reference to a style that will be used for the window containing a text
+             selection anchor. -->
+        <attr name="textSelectHandleWindowStyle" format="reference" />
+    </declare-styleable>
 </resources>

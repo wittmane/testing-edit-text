@@ -1,4 +1,4 @@
-//package com.wittmane.testingedittext;
+//package com.wittmane.testingedittext.editor;
 //
 //
 //import android.graphics.Canvas;
@@ -9,6 +9,8 @@
 //import android.graphics.drawable.Drawable;
 //import android.os.Build;
 //import android.os.SystemClock;
+//import android.text.Layout;
+//import android.util.Log;
 //import android.util.TypedValue;
 //import android.view.Gravity;
 //import android.view.HapticFeedbackConstants;
@@ -18,13 +20,24 @@
 //import android.view.ViewGroup;
 //import android.view.ViewParent;
 //import android.view.WindowManager;
+//import android.widget.PopupWindow;
 //
 //import androidx.annotation.NonNull;
 //import androidx.annotation.Nullable;
 //
+//import com.wittmane.testingedittext.CustomEditTextView;
+//import com.wittmane.testingedittext.Editor;
+//import com.wittmane.testingedittext.R;
+//import com.wittmane.testingedittext.SimpleTouchManager;
+//
 //import java.util.Collections;
 //
 //public abstract class HandleView extends View implements TextViewPositionListener {
+//    static final String TAG = HandleView.class.getSimpleName();
+//
+//    public static final int UNSET_X_VALUE = -1;
+//    public static final int UNSET_LINE = -1;
+//
 //    protected Drawable mDrawable;
 //    protected Drawable mDrawableLtr;
 //    protected Drawable mDrawableRtl;
@@ -70,14 +83,19 @@
 //     */
 //    private final int mIdealFingerToCursorOffset;
 //
-//    private HandleView(Drawable drawableLtr, Drawable drawableRtl, final int id) {
-//        super(mTextView.getContext());
+//    protected final CustomEditTextView mTextView;
+//
+//    HandleView(Drawable drawableLtr, Drawable drawableRtl, final int id, CustomEditTextView textView) {
+//        super(textView.getContext());
+//        mTextView = textView;
 //        setId(id);
 //        mContainer = new PopupWindow(mTextView.getContext(), null,
 //                /*com.android.internal.*/R.attr.textSelectHandleWindowStyle);
 //        mContainer.setSplitTouchEnabled(true);
 //        mContainer.setClippingEnabled(false);
-//        mContainer.setWindowLayoutType(WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            mContainer.setWindowLayoutType(WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
+//        }
 //        mContainer.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
 //        mContainer.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
 //        mContainer.setContentView(this);
@@ -89,9 +107,9 @@
 //
 //        final int handleHeight = getPreferredHeight();
 //        mTouchOffsetY = -0.3f * handleHeight;
-//        final int distance = AppGlobals.getIntCoreSetting(
-//                WidgetFlags.KEY_FINGER_TO_CURSOR_DISTANCE,
-//                WidgetFlags.FINGER_TO_CURSOR_DISTANCE_DEFAULT);
+//        final int distance = /*AppGlobals.getIntCoreSetting(
+//                WidgetFlags.KEY_FINGER_TO_CURSOR_DISTANCE,*/
+//                WidgetFlags.FINGER_TO_CURSOR_DISTANCE_DEFAULT/*)*/;
 //        if (distance < 0 || distance > 100) {
 //            mIdealVerticalOffset = 0.7f * handleHeight;
 //            mIdealFingerToCursorOffset = (int)(mIdealVerticalOffset - mTouchOffsetY);
@@ -208,14 +226,14 @@
 //    }
 //
 //    public void show() {
-//        if (TextView.DEBUG_CURSOR) {
+//        if (SimpleTouchManager.DEBUG_CURSOR) {
 //            logCursor(getClass().getSimpleName() + ": HandleView: show()", "offset=%s",
 //                    getCurrentCursorOffset());
 //        }
 //
 //        if (isShowing()) return;
 //
-//        getPositionListener().addSubscriber(this, true /* local position may change */);
+//        mTextView.mEditor.getPositionListener().addSubscriber(this, true /* local position may change */);
 //
 //        // Make sure the offset is always considered new, even when focusing at same position
 //        mPreviousOffset = -1;
@@ -229,14 +247,14 @@
 //    }
 //
 //    public void hide() {
-//        if (TextView.DEBUG_CURSOR) {
+//        if (SimpleTouchManager.DEBUG_CURSOR) {
 //            logCursor(getClass().getSimpleName() + ": HandleView: hide()", "offset=%s",
 //                    getCurrentCursorOffset());
 //        }
 //
 //        dismiss();
 //
-//        getPositionListener().removeSubscriber(this);
+//        mTextView.mEditor.getPositionListener().removeSubscriber(this);
 //    }
 //
 //    public boolean isShowing() {
@@ -267,14 +285,14 @@
 //
 //    protected abstract void updatePosition(float x, float y, boolean fromTouchScreen);
 //
-//    @MagnifierHandleTrigger
+////    @MagnifierHandleTrigger
 //    protected abstract int getMagnifierHandleTrigger();
 //
 //    protected boolean isAtRtlRun(@NonNull Layout layout, int offset) {
 //        return layout.isRtlCharAt(offset);
 //    }
 //
-//    @VisibleForTesting
+////    @VisibleForTesting
 //    public float getHorizontal(@NonNull Layout layout, int offset) {
 //        return layout.getPrimaryHorizontal(offset);
 //    }
@@ -296,7 +314,7 @@
 //        Layout layout = mTextView.getLayout();
 //        if (layout == null) {
 //            // Will update controllers' state, hiding them and stopping selection mode if needed
-//            prepareCursorControllers();
+//            mTextView.mEditor.prepareCursorControllers();
 //            return;
 //        }
 //        layout = mTextView.getLayout();
@@ -305,7 +323,7 @@
 //        if (offsetChanged || forceUpdatePosition) {
 //            if (offsetChanged) {
 //                updateSelection(offset);
-//                if (fromTouchScreen && mHapticTextHandleEnabled) {
+//                if (fromTouchScreen && mTextView.mEditor.mHapticTextHandleEnabled) {
 //                    mTextView.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
 //                }
 //                addPositionToTouchUpFilter(offset);
@@ -315,7 +333,7 @@
 //
 //            mPositionX = getCursorHorizontalPosition(layout, offset) - mHotspotX
 //                    - getHorizontalOffset() + getCursorOffset();
-//            mPositionY = layout.getLineBottomWithoutSpacing(line);
+//            mPositionY = layout.getLineBottom/*WithoutSpacing*/(line);//TODO: (EW) validate this is fine
 //
 //            // Take TextView's padding and scroll into account.
 //            mPositionX += mTextView.viewportToContentHorizontalOffset();
@@ -357,7 +375,7 @@
 //            if (shouldShow()) {
 //                // Transform to the window coordinates to follow the view tranformation.
 //                final int[] pts = { mPositionX + mHotspotX + getHorizontalOffset(), mPositionY};
-//                mTextView.transformFromViewToWindowSpace(pts);//TODO: (EW) figure out how to do this (blocked with @hide)
+//                mTextView.transformFromViewToWindowSpace(pts);
 //                pts[0] -= mHotspotX + getHorizontalOffset();
 //
 //                if (isShowing()) {
@@ -408,18 +426,19 @@
 //    }
 //
 //    private boolean tooLargeTextForMagnifier() {
-//        if (mNewMagnifierEnabled) {
-//            Layout layout = mTextView.getLayout();
-//            final int line = layout.getLineForOffset(getCurrentCursorOffset());
-//            return layout.getLineBottomWithoutSpacing(line) - layout.getLineTop(line)
-//                    >= mMaxLineHeightForMagnifier;
-//        }
-//        final float magnifierContentHeight = Math.round(
-//                mMagnifierAnimator.mMagnifier.getHeight()
-//                        / mMagnifierAnimator.mMagnifier.getZoom());
-//        final Paint.FontMetrics fontMetrics = mTextView.getPaint().getFontMetrics();
-//        final float glyphHeight = fontMetrics.descent - fontMetrics.ascent;
-//        return glyphHeight * mTextViewScaleY > magnifierContentHeight;
+////        if (mNewMagnifierEnabled) {
+////            Layout layout = mTextView.getLayout();
+////            final int line = layout.getLineForOffset(getCurrentCursorOffset());
+////            return layout.getLineBottomWithoutSpacing(line) - layout.getLineTop(line)
+////                    >= mMaxLineHeightForMagnifier;
+////        }
+////        final float magnifierContentHeight = Math.round(
+////                mMagnifierAnimator.mMagnifier.getHeight()
+////                        / mMagnifierAnimator.mMagnifier.getZoom());
+////        final Paint.FontMetrics fontMetrics = mTextView.getPaint().getFontMetrics();
+////        final float glyphHeight = fontMetrics.descent - fontMetrics.ascent;
+////        return glyphHeight * mTextViewScaleY > magnifierContentHeight;
+//        return true;
 //    }
 //
 //    /**
@@ -431,10 +450,10 @@
 //     * @return whether the text view is rotated
 //     */
 //    private boolean checkForTransforms() {
-//        if (mMagnifierAnimator.mMagnifierIsShowing) {
-//            // Do not check again when the magnifier is currently showing.
-//            return true;
-//        }
+////        if (mMagnifierAnimator.mMagnifierIsShowing) {
+////            // Do not check again when the magnifier is currently showing.
+////            return true;
+////        }
 //
 //        if (mTextView.getRotation() != 0f || mTextView.getRotationX() != 0f
 //                || mTextView.getRotationY() != 0f) {
@@ -468,195 +487,198 @@
 //    private boolean obtainMagnifierShowCoordinates(@NonNull final MotionEvent event,
 //                                                   final PointF showPosInView) {
 //
-//        final int trigger = getMagnifierHandleTrigger();
-//        final int offset;
-//        final int otherHandleOffset;
-//        switch (trigger) {
-//            case MagnifierHandleTrigger.INSERTION:
-//                offset = mTextView.getSelectionStart();
-//                otherHandleOffset = -1;
-//                break;
-//            case MagnifierHandleTrigger.SELECTION_START:
-//                offset = mTextView.getSelectionStart();
-//                otherHandleOffset = mTextView.getSelectionEnd();
-//                break;
-//            case MagnifierHandleTrigger.SELECTION_END:
-//                offset = mTextView.getSelectionEnd();
-//                otherHandleOffset = mTextView.getSelectionStart();
-//                break;
-//            default:
-//                offset = -1;
-//                otherHandleOffset = -1;
-//                break;
-//        }
-//
-//        if (offset == -1) {
-//            return false;
-//        }
-//
-//        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-//            mCurrentDragInitialTouchRawX = event.getRawX();
-//        } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-//            mCurrentDragInitialTouchRawX = UNSET_X_VALUE;
-//        }
-//
-//        final Layout layout = mTextView.getLayout();
-//        final int lineNumber = layout.getLineForOffset(offset);
-//        // Compute whether the selection handles are currently on the same line, and,
-//        // in this particular case, whether the selected text is right to left.
-//        final boolean sameLineSelection = otherHandleOffset != -1
-//                && lineNumber == layout.getLineForOffset(otherHandleOffset);
-//        final boolean rtl = sameLineSelection
-//                && (offset < otherHandleOffset)
-//                != (getHorizontal(mTextView.getLayout(), offset)
-//                < getHorizontal(mTextView.getLayout(), otherHandleOffset));
-//
-//        // Horizontally move the magnifier smoothly, clamp inside the current line / selection.
-//        final int[] textViewLocationOnScreen = new int[2];
-//        mTextView.getLocationOnScreen(textViewLocationOnScreen);
-//        final float touchXInView = event.getRawX() - textViewLocationOnScreen[0];
-//        float leftBound = mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
-//        float rightBound = mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
-//        if (sameLineSelection && ((trigger == MagnifierHandleTrigger.SELECTION_END) ^ rtl)) {
-//            leftBound += getHorizontal(mTextView.getLayout(), otherHandleOffset);
-//        } else {
-//            leftBound += mTextView.getLayout().getLineLeft(lineNumber);
-//        }
-//        if (sameLineSelection && ((trigger == MagnifierHandleTrigger.SELECTION_START) ^ rtl)) {
-//            rightBound += getHorizontal(mTextView.getLayout(), otherHandleOffset);
-//        } else {
-//            rightBound += mTextView.getLayout().getLineRight(lineNumber);
-//        }
-//        leftBound *= mTextViewScaleX;
-//        rightBound *= mTextViewScaleX;
-//        final float contentWidth = Math.round(mMagnifierAnimator.mMagnifier.getWidth()
-//                / mMagnifierAnimator.mMagnifier.getZoom());
-//        if (touchXInView < leftBound - contentWidth / 2
-//                || touchXInView > rightBound + contentWidth / 2) {
-//            // The touch is too far from the current line / selection, so hide the magnifier.
-//            return false;
-//        }
-//
-//        final float scaledTouchXInView;
-//        if (mTextViewScaleX == 1f) {
-//            // In the common case, do not use mCurrentDragInitialTouchRawX to compute this
-//            // coordinate, although the formula on the else branch should be equivalent.
-//            // Since the formula relies on mCurrentDragInitialTouchRawX being set on
-//            // MotionEvent.ACTION_DOWN, this makes us more defensive against cases when
-//            // the sequence of events might not look as expected: for example, a sequence of
-//            // ACTION_MOVE not preceded by ACTION_DOWN.
-//            scaledTouchXInView = touchXInView;
-//        } else {
-//            scaledTouchXInView = (event.getRawX() - mCurrentDragInitialTouchRawX)
-//                    * mTextViewScaleX + mCurrentDragInitialTouchRawX
-//                    - textViewLocationOnScreen[0];
-//        }
-//        showPosInView.x = Math.max(leftBound, Math.min(rightBound, scaledTouchXInView));
-//
-//        // Vertically snap to middle of current line.
-//        showPosInView.y = ((mTextView.getLayout().getLineTop(lineNumber)
-//                + mTextView.getLayout().getLineBottomWithoutSpacing(lineNumber)) / 2.0f
-//                + mTextView.getTotalPaddingTop() - mTextView.getScrollY()) * mTextViewScaleY;
-//        return true;
+////        final int trigger = getMagnifierHandleTrigger();
+////        final int offset;
+////        final int otherHandleOffset;
+////        switch (trigger) {
+////            case MagnifierHandleTrigger.INSERTION:
+////                offset = mTextView.getSelectionStart();
+////                otherHandleOffset = -1;
+////                break;
+////            case MagnifierHandleTrigger.SELECTION_START:
+////                offset = mTextView.getSelectionStart();
+////                otherHandleOffset = mTextView.getSelectionEnd();
+////                break;
+////            case MagnifierHandleTrigger.SELECTION_END:
+////                offset = mTextView.getSelectionEnd();
+////                otherHandleOffset = mTextView.getSelectionStart();
+////                break;
+////            default:
+////                offset = -1;
+////                otherHandleOffset = -1;
+////                break;
+////        }
+////
+////        if (offset == -1) {
+////            return false;
+////        }
+////
+////        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+////            mCurrentDragInitialTouchRawX = event.getRawX();
+////        } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+////            mCurrentDragInitialTouchRawX = UNSET_X_VALUE;
+////        }
+////
+////        final Layout layout = mTextView.getLayout();
+////        final int lineNumber = layout.getLineForOffset(offset);
+////        // Compute whether the selection handles are currently on the same line, and,
+////        // in this particular case, whether the selected text is right to left.
+////        final boolean sameLineSelection = otherHandleOffset != -1
+////                && lineNumber == layout.getLineForOffset(otherHandleOffset);
+////        final boolean rtl = sameLineSelection
+////                && (offset < otherHandleOffset)
+////                != (getHorizontal(mTextView.getLayout(), offset)
+////                < getHorizontal(mTextView.getLayout(), otherHandleOffset));
+////
+////        // Horizontally move the magnifier smoothly, clamp inside the current line / selection.
+////        final int[] textViewLocationOnScreen = new int[2];
+////        mTextView.getLocationOnScreen(textViewLocationOnScreen);
+////        final float touchXInView = event.getRawX() - textViewLocationOnScreen[0];
+////        float leftBound = mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
+////        float rightBound = mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
+////        if (sameLineSelection && ((trigger == MagnifierHandleTrigger.SELECTION_END) ^ rtl)) {
+////            leftBound += getHorizontal(mTextView.getLayout(), otherHandleOffset);
+////        } else {
+////            leftBound += mTextView.getLayout().getLineLeft(lineNumber);
+////        }
+////        if (sameLineSelection && ((trigger == MagnifierHandleTrigger.SELECTION_START) ^ rtl)) {
+////            rightBound += getHorizontal(mTextView.getLayout(), otherHandleOffset);
+////        } else {
+////            rightBound += mTextView.getLayout().getLineRight(lineNumber);
+////        }
+////        leftBound *= mTextViewScaleX;
+////        rightBound *= mTextViewScaleX;
+////        final float contentWidth = Math.round(mMagnifierAnimator.mMagnifier.getWidth()
+////                / mMagnifierAnimator.mMagnifier.getZoom());
+////        if (touchXInView < leftBound - contentWidth / 2
+////                || touchXInView > rightBound + contentWidth / 2) {
+////            // The touch is too far from the current line / selection, so hide the magnifier.
+////            return false;
+////        }
+////
+////        final float scaledTouchXInView;
+////        if (mTextViewScaleX == 1f) {
+////            // In the common case, do not use mCurrentDragInitialTouchRawX to compute this
+////            // coordinate, although the formula on the else branch should be equivalent.
+////            // Since the formula relies on mCurrentDragInitialTouchRawX being set on
+////            // MotionEvent.ACTION_DOWN, this makes us more defensive against cases when
+////            // the sequence of events might not look as expected: for example, a sequence of
+////            // ACTION_MOVE not preceded by ACTION_DOWN.
+////            scaledTouchXInView = touchXInView;
+////        } else {
+////            scaledTouchXInView = (event.getRawX() - mCurrentDragInitialTouchRawX)
+////                    * mTextViewScaleX + mCurrentDragInitialTouchRawX
+////                    - textViewLocationOnScreen[0];
+////        }
+////        showPosInView.x = Math.max(leftBound, Math.min(rightBound, scaledTouchXInView));
+////
+////        // Vertically snap to middle of current line.
+////        showPosInView.y = ((mTextView.getLayout().getLineTop(lineNumber)
+////                + mTextView.getLayout().getLineBottomWithoutSpacing(lineNumber)) / 2.0f
+////                + mTextView.getTotalPaddingTop() - mTextView.getScrollY()) * mTextViewScaleY;
+////        return true;
+//        return false;
 //    }
 //
 //    private boolean handleOverlapsMagnifier(@NonNull final HandleView handle,
 //                                            @NonNull final Rect magnifierRect) {
-//        final PopupWindow window = handle.mContainer;
-//        if (!window.hasDecorView()) {
-//            return false;
-//        }
-//        final Rect handleRect = new Rect(
-//                window.getDecorViewLayoutParams().x,
-//                window.getDecorViewLayoutParams().y,
-//                window.getDecorViewLayoutParams().x + window.getContentView().getWidth(),
-//                window.getDecorViewLayoutParams().y + window.getContentView().getHeight());
-//        return Rect.intersects(handleRect, magnifierRect);
+////        final PopupWindow window = handle.mContainer;
+////        if (!window.hasDecorView()) {
+////            return false;
+////        }
+////        final Rect handleRect = new Rect(
+////                window.getDecorViewLayoutParams().x,
+////                window.getDecorViewLayoutParams().y,
+////                window.getDecorViewLayoutParams().x + window.getContentView().getWidth(),
+////                window.getDecorViewLayoutParams().y + window.getContentView().getHeight());
+////        return Rect.intersects(handleRect, magnifierRect);
+//        return false;
 //    }
 //
-//    private @Nullable
-//    HandleView getOtherSelectionHandle() {
-//        final SelectionModifierCursorController controller = getSelectionController();
-//        if (controller == null || !controller.isActive()) {
-//            return null;
-//        }
-//        return controller.mStartHandle != this
-//                ? controller.mStartHandle
-//                : controller.mEndHandle;
+//    private @Nullable HandleView getOtherSelectionHandle() {
+//        //TODO: (EW) is this necessary?
+////        final SelectionModifierCursorController controller = getSelectionController();
+////        if (controller == null || !controller.isActive()) {
+////            return null;
+////        }
+////        return controller.mStartHandle != this
+////                ? controller.mStartHandle
+////                : controller.mEndHandle;
+//        return null;
 //    }
 //
 //    private void updateHandlesVisibility() {
-//        final Point magnifierTopLeft = mMagnifierAnimator.mMagnifier.getPosition();
-//        if (magnifierTopLeft == null) {
-//            return;
-//        }
-//        final Rect magnifierRect = new Rect(magnifierTopLeft.x, magnifierTopLeft.y,
-//                magnifierTopLeft.x + mMagnifierAnimator.mMagnifier.getWidth(),
-//                magnifierTopLeft.y + mMagnifierAnimator.mMagnifier.getHeight());
-//        setVisible(!handleOverlapsMagnifier(HandleView.this, magnifierRect));
-//        final HandleView otherHandle = getOtherSelectionHandle();
-//        if (otherHandle != null) {
-//            otherHandle.setVisible(!handleOverlapsMagnifier(otherHandle, magnifierRect));
-//        }
+////        final Point magnifierTopLeft = mMagnifierAnimator.mMagnifier.getPosition();
+////        if (magnifierTopLeft == null) {
+////            return;
+////        }
+////        final Rect magnifierRect = new Rect(magnifierTopLeft.x, magnifierTopLeft.y,
+////                magnifierTopLeft.x + mMagnifierAnimator.mMagnifier.getWidth(),
+////                magnifierTopLeft.y + mMagnifierAnimator.mMagnifier.getHeight());
+////        setVisible(!handleOverlapsMagnifier(HandleView.this, magnifierRect));
+////        final HandleView otherHandle = getOtherSelectionHandle();
+////        if (otherHandle != null) {
+////            otherHandle.setVisible(!handleOverlapsMagnifier(otherHandle, magnifierRect));
+////        }
 //    }
 //
 //    protected final void updateMagnifier(@NonNull final MotionEvent event) {
-//        if (getMagnifierAnimator() == null) {
-//            return;
-//        }
-//
-//        final PointF showPosInView = new PointF();
-//        final boolean shouldShow = checkForTransforms() /*check not rotated and compute scale*/
-//                && !tooLargeTextForMagnifier()
-//                && obtainMagnifierShowCoordinates(event, showPosInView);
-//        if (shouldShow) {
-//            // Make the cursor visible and stop blinking.
-//            mRenderCursorRegardlessTiming = true;
-//            mTextView.invalidateCursorPath();
-//            suspendBlink();
-//
-//            if (mNewMagnifierEnabled) {
-//                // Calculates the line bounds as the content source bounds to the magnifier.
-//                Layout layout = mTextView.getLayout();
-//                int line = layout.getLineForOffset(getCurrentCursorOffset());
-//                int lineLeft = (int) layout.getLineLeft(line);
-//                lineLeft += mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
-//                int lineRight = (int) layout.getLineRight(line);
-//                lineRight += mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
-//                mMagnifierAnimator.mMagnifier.setSourceHorizontalBounds(lineLeft, lineRight);
-//                final int lineHeight =
-//                        layout.getLineBottomWithoutSpacing(line) - layout.getLineTop(line);
-//                float zoom = mInitialZoom;
-//                if (lineHeight < mMinLineHeightForMagnifier) {
-//                    zoom = zoom * mMinLineHeightForMagnifier / lineHeight;
-//                }
-//                mMagnifierAnimator.mMagnifier.updateSourceFactors(lineHeight, zoom);
-//                mMagnifierAnimator.mMagnifier.show(showPosInView.x, showPosInView.y);
-//            } else {
-//                mMagnifierAnimator.show(showPosInView.x, showPosInView.y);
-//            }
-//            updateHandlesVisibility();
-//        } else {
-//            dismissMagnifier();
-//        }
+////        if (getMagnifierAnimator() == null) {
+////            return;
+////        }
+////
+////        final PointF showPosInView = new PointF();
+////        final boolean shouldShow = checkForTransforms() /*check not rotated and compute scale*/
+////                && !tooLargeTextForMagnifier()
+////                && obtainMagnifierShowCoordinates(event, showPosInView);
+////        if (shouldShow) {
+////            // Make the cursor visible and stop blinking.
+////            mRenderCursorRegardlessTiming = true;
+////            mTextView.invalidateCursorPath();
+////            suspendBlink();
+////
+////            if (mNewMagnifierEnabled) {
+////                // Calculates the line bounds as the content source bounds to the magnifier.
+////                Layout layout = mTextView.getLayout();
+////                int line = layout.getLineForOffset(getCurrentCursorOffset());
+////                int lineLeft = (int) layout.getLineLeft(line);
+////                lineLeft += mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
+////                int lineRight = (int) layout.getLineRight(line);
+////                lineRight += mTextView.getTotalPaddingLeft() - mTextView.getScrollX();
+////                mMagnifierAnimator.mMagnifier.setSourceHorizontalBounds(lineLeft, lineRight);
+////                final int lineHeight =
+////                        layout.getLineBottomWithoutSpacing(line) - layout.getLineTop(line);
+////                float zoom = mInitialZoom;
+////                if (lineHeight < mMinLineHeightForMagnifier) {
+////                    zoom = zoom * mMinLineHeightForMagnifier / lineHeight;
+////                }
+////                mMagnifierAnimator.mMagnifier.updateSourceFactors(lineHeight, zoom);
+////                mMagnifierAnimator.mMagnifier.show(showPosInView.x, showPosInView.y);
+////            } else {
+////                mMagnifierAnimator.show(showPosInView.x, showPosInView.y);
+////            }
+////            updateHandlesVisibility();
+////        } else {
+////            dismissMagnifier();
+////        }
 //    }
 //
 //    protected final void dismissMagnifier() {
-//        if (mMagnifierAnimator != null) {
-//            mMagnifierAnimator.dismiss();
-//            mRenderCursorRegardlessTiming = false;
-//            resumeBlink();
-//            setVisible(true);
-//            final HandleView otherHandle = getOtherSelectionHandle();
-//            if (otherHandle != null) {
-//                otherHandle.setVisible(true);
-//            }
-//        }
+////        if (mMagnifierAnimator != null) {
+////            mMagnifierAnimator.dismiss();
+////            mRenderCursorRegardlessTiming = false;
+////            resumeBlink();
+////            setVisible(true);
+////            final HandleView otherHandle = getOtherSelectionHandle();
+////            if (otherHandle != null) {
+////                otherHandle.setVisible(true);
+////            }
+////        }
 //    }
 //
 //    @Override
 //    public boolean onTouchEvent(MotionEvent ev) {
-//        if (TextView.DEBUG_CURSOR) {
+//        if (SimpleTouchManager.DEBUG_CURSOR) {
 ////                logCursor(this.getClass().getSimpleName() + ": HandleView: onTouchEvent",
 ////                        "%d: %s (%f,%f)",
 ////                        ev.getSequenceNumber(),
@@ -664,13 +686,13 @@
 ////                        ev.getX(), ev.getY());
 //        }
 //
-//        updateFloatingToolbarVisibility(ev);
+////        updateFloatingToolbarVisibility(ev);
 //
 //        switch (ev.getActionMasked()) {
 //            case MotionEvent.ACTION_DOWN: {
 //                startTouchUpFilter(getCurrentCursorOffset());
 //
-//                final PositionListener positionListener = getPositionListener();
+//                final PositionListener positionListener = mTextView.mEditor.getPositionListener();
 //                mLastParentX = positionListener.getPositionX();
 //                mLastParentY = positionListener.getPositionY();
 //                mLastParentXOnScreen = positionListener.getPositionXOnScreen();
@@ -738,6 +760,14 @@
 //            setSystemGestureExclusionRects(Collections.singletonList(new Rect(0, 0, w, h)));
 //        } else {
 //            //TODO: (EW) does something ned to be done?
+//        }
+//    }
+//
+//    static void logCursor(String location, @Nullable String msgFormat, Object ... msgArgs) {
+//        if (msgFormat == null) {
+//            Log.d(TAG, location);
+//        } else {
+//            Log.d(TAG, location + ": " + String.format(msgFormat, msgArgs));
 //        }
 //    }
 //}
