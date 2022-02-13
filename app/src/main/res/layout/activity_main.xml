@@ -57,6 +57,18 @@
             <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:paddingLeft="0dp"
+                android:singleLine="false"
+                android:gravity="top"
+                android:inputType="text"
+                android:includeFontPadding="true"
+                android:textIsSelectable="false"
+                android:lineHeight="100sp"
+                android:firstBaselineToTopHeight="40sp"
+                android:text="example text with extra content to see how this scrolls"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:paddingLeft="4dp"
                 android:fontVariationSettings="'ital' 1"
                 android:singleLine="false"
@@ -82,14 +94,14 @@
             <EditText
                 android:layout_width="wrap_content"
                 android:layout_height="100dp"
-                android:digits="true"
+                android:digits="123z"
                 android:selectAllOnFocus="true"
-                android:autoLink="web"
+                android:autoLink="all"
                 android:linksClickable="true"
                 android:paddingLeft="10dp"
                 android:singleLine="false"
                 android:inputType="textMultiLine"
-                android:text="example text http://www.example.com asdf"/>
+                android:text="example text http://www.example.com asdf\nmyemail@example.com 9205551234"/>
             <EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -209,6 +221,30 @@
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine"
                 android:text="example text with extra content to see how this wraps automatically"/>
+            <com.wittmane.testingedittext.CustomEditTextView
+                android:layout_width="wrap_content"
+                android:layout_height="100dp"
+                android:digits="true"
+                android:selectAllOnFocus="true"
+                android:autoLink="web"
+                android:linksClickable="true"
+                android:paddingLeft="10dp"
+                android:singleLine="false"
+                android:inputType="textMultiLine"
+                android:text="example text http://www.example.com asdf"/>
+            <com.wittmane.testingedittext.CustomEditTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="0dp"
+                android:singleLine="false"
+                android:gravity="top"
+                android:inputType="text"
+                android:includeFontPadding="true"
+                android:textIsSelectable="false"
+                android:enabled="false"
+                android:lineHeight="100sp"
+                android:firstBaselineToTopHeight="40sp"
+                android:text="example text with extra content to see how this scrolls"/>
 
 
         </LinearLayout>

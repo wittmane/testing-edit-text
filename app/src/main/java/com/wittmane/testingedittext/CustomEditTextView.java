@@ -406,7 +406,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             } else if (attr == R.styleable.TextView_android_numeric) {
                 // skipping - numeric is deprecated: Use inputType instead
             } else if (attr == R.styleable.TextView_android_digits) {
-                //TODO: consider implementing
+                //TODO: probably implement - this supports more than just numbers (unsure if this is
+                // intended functionality or just a hack). if this isn't added, at least add some
+                // other means to filter input to only allow certain characters
                 // If set, specifies that this TextView has a numeric input method and that these
                 // specific characters are the ones that it will accept. If this is set, numeric is
                 // implied to be true. The default is false.
@@ -423,9 +425,11 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 //TODO: consider implementing
                 // If the text is selectable, select it all when the view takes focus.
             } else if (attr == R.styleable.TextView_android_autoLink) {
-                // probably skip - Controls whether links such as urls and email addresses are
-                // automatically found and converted to clickable links. The default value is
-                // "none", disabling this feature.
+                // probably skip - EditText doesn't update the links as you type, so this doesn't
+                // seem very beneficial
+                // Controls whether links such as urls and email addresses are automatically found
+                // and converted to clickable links. The default value is "none", disabling this
+                // feature.
             } else if (attr == R.styleable.TextView_android_linksClickable) {
                 // probably skip - If set to false, keeps the movement method from being set to the
                 // link movement method even if autoLink causes links to be found.
@@ -534,12 +538,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 // {@link android.widget.EditText} it is always enabled, regardless of the value of
                 // the attribute.
             } else if (attr == R.styleable.TextView_android_enabled) {
-                //TODO: implement
-                // Specifies whether the widget is enabled. The interpretation of the enabled state
-                // varies by subclass. For example, a non-enabled EditText prevents the user from
-                // editing the contained text, and a non-enabled Button prevents the user from
-                // tapping the button. The appearance of enabled and non-enabled widgets may differ,
-                // if the drawables referenced from evaluating state_enabled differ.
+                setEnabled(typedArray.getBoolean(attr, isEnabled()));
             } else if (attr == R.styleable.TextView_android_password) {
                 //skipping - deprecated: Use inputType instead
             } else if (attr == R.styleable.TextView_android_lineSpacingExtra) {
