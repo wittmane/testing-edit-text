@@ -23,6 +23,7 @@ import android.util.Log;
 import android.view.ActionMode;
 import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -42,6 +43,7 @@ import com.wittmane.testingedittext.editor.CursorController;
 //import com.wittmane.testingedittext.editor.InsertionPointCursorController;
 import com.wittmane.testingedittext.editor.InsertionPointCursorController28;
 import com.wittmane.testingedittext.editor.PositionListener;
+import com.wittmane.testingedittext.editor.ProcessTextIntentActionsHandler28;
 import com.wittmane.testingedittext.editor.SelectionModifierCursorController28;
 import com.wittmane.testingedittext.editor.TextActionModeCallback28;
 import com.wittmane.testingedittext.method.WordIterator28;
@@ -56,10 +58,12 @@ public class Editor {
     static final int EXTRACT_NOTHING = -2;
     static final int EXTRACT_UNKNOWN = -1;
 
-    private final CustomEditTextView mTextView;
+    public final CustomEditTextView mTextView;
     private final EditorTouchState mTouchState;
     InputMethodState mInputMethodState;
     boolean mInBatchEditControllers;
+
+    public final ProcessTextIntentActionsHandler28 mProcessTextIntentActionsHandler;
 
     boolean mTouchFocusSelected;
 
@@ -161,8 +165,35 @@ public class Editor {
         int TEXT_LINK = 2;
     }
 
+    // Ordering constants used to place the Action Mode or context menu items in their menu.
+    public static final int MENU_ITEM_ORDER_ASSIST = 0;
+    public static final int MENU_ITEM_ORDER_UNDO = 2;
+    public static final int MENU_ITEM_ORDER_REDO = 3;
+    public static final int MENU_ITEM_ORDER_CUT = 4;
+    public static final int MENU_ITEM_ORDER_COPY = 5;
+    public static final int MENU_ITEM_ORDER_PASTE = 6;
+    public static final int MENU_ITEM_ORDER_SHARE = 7;
+    public static final int MENU_ITEM_ORDER_SELECT_ALL = 8;
+    public static final int MENU_ITEM_ORDER_REPLACE = 9;
+    public static final int MENU_ITEM_ORDER_AUTOFILL = 10;
+    public static final int MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT = 11;
+    public static final int MENU_ITEM_ORDER_SECONDARY_ASSIST_ACTIONS_START = 50;
+    public static final int MENU_ITEM_ORDER_PROCESS_TEXT_INTENT_ACTIONS_START = 100;
+
+    public final MenuItem.OnMenuItemClickListener mOnContextMenuItemClickListener =
+            new MenuItem.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    if (mProcessTextIntentActionsHandler.performMenuItemAction(item)) {
+                        return true;
+                    }
+                    return mTextView.onTextContextMenuItem(item.getItemId());
+                }
+            };
+
     public Editor(CustomEditTextView textView) {
         mTextView = textView;
+        mProcessTextIntentActionsHandler = new ProcessTextIntentActionsHandler28(this);
         mTouchState = mTextView.mTouchState;
         mHapticTextHandleEnabled = /*mTextView.getContext().getResources().getBoolean(
                 R.bool.config_enableHapticTextHandle)*/false;
@@ -402,6 +433,44 @@ public class Editor {
         }
     }
 
+
+
+    /**
+     * Forgets all undo and redo operations for this Editor.
+     */
+    void forgetUndoRedo() {
+//        UndoOwner[] owners = { mUndoOwner };
+//        mUndoManager.forgetUndos(owners, -1 /* all */);
+//        mUndoManager.forgetRedos(owners, -1 /* all */);
+    }
+
+    boolean canUndo() {
+//        UndoOwner[] owners = { mUndoOwner };
+//        return mAllowUndo && mUndoManager.countUndos(owners) > 0;
+        return false;
+    }
+
+    boolean canRedo() {
+//        UndoOwner[] owners = { mUndoOwner };
+//        return mAllowUndo && mUndoManager.countRedos(owners) > 0;
+        return false;
+    }
+
+    void undo() {
+//        if (!mAllowUndo) {
+//            return;
+//        }
+//        UndoOwner[] owners = { mUndoOwner };
+//        mUndoManager.undo(owners, 1);  // Undo 1 action.
+    }
+
+    void redo() {
+//        if (!mAllowUndo) {
+//            return;
+//        }
+//        UndoOwner[] owners = { mUndoOwner };
+//        mUndoManager.redo(owners, 1);  // Redo 1 action.
+    }
 
 
     public void addSpanWatchers(Spannable text) {
@@ -744,7 +813,7 @@ public class Editor {
         SelectionModifierCursorController28 selectionController = getSelectionController();
         final int minOffset = selectionController.getMinTouchOffset();
         final int maxOffset = selectionController.getMaxTouchOffset();
-        return /*TextUtils.*/packRangeInLong(minOffset, maxOffset);
+        return HiddenTextUtils.packRangeInLong(minOffset, maxOffset);
     }
 
     private boolean shouldFilterOutTouchEvent(MotionEvent event) {
@@ -966,8 +1035,8 @@ public class Editor {
 //        }
 
         long lastTouchOffsets = getLastTouchOffsets();
-        final int minOffset = /*TextUtils.*/unpackRangeStartFromLong(lastTouchOffsets);
-        final int maxOffset = /*TextUtils.*/unpackRangeEndFromLong(lastTouchOffsets);
+        final int minOffset = HiddenTextUtils.unpackRangeStartFromLong(lastTouchOffsets);
+        final int maxOffset = HiddenTextUtils.unpackRangeEndFromLong(lastTouchOffsets);
 
         // Safety check in case standard touch event handling has been bypassed
 //        if (minOffset < 0 || minOffset > mTextView.getText().length()) return false;
@@ -1003,8 +1072,8 @@ public class Editor {
                     || selectionStart == selectionEnd) {
                 // Possible when the word iterator does not properly handle the text's language
                 long range = getCharClusterRange(minOffset);
-                selectionStart = /*TextUtils.*/unpackRangeStartFromLong(range);
-                selectionEnd = /*TextUtils.*/unpackRangeEndFromLong(range);
+                selectionStart = HiddenTextUtils.unpackRangeStartFromLong(range);
+                selectionEnd = HiddenTextUtils.unpackRangeEndFromLong(range);
                 Log.w(TAG, "selectCurrentWord: selectionStart2=" + selectionStart + ", selectionEnd2=" + selectionEnd);
             }
         }
@@ -1238,6 +1307,13 @@ public class Editor {
         }
     }
 
+    /**
+     * Asynchronously invalidates an action mode using the TextClassifier.
+     */
+    void invalidateActionModeAsync() {
+        getSelectionActionModeHelper().invalidateActionModeAsync();
+    }
+
     public boolean extractedTextModeWillBeStarted() {
         if (!(mTextView.isInExtractedMode())) {
             final InputMethodManager imm = getInputMethodManager();
@@ -1468,15 +1544,15 @@ public class Editor {
         final int textLength = mTextView.getText().length();
         if (offset < textLength) {
             final int clusterEndOffset = getNextCursorOffset(offset, true);
-            return /*TextUtils.*/packRangeInLong(
+            return HiddenTextUtils.packRangeInLong(
                     getNextCursorOffset(clusterEndOffset, false), clusterEndOffset);
         }
         if (offset - 1 >= 0) {
             final int clusterStartOffset = getNextCursorOffset(offset, false);
-            return /*TextUtils.*/packRangeInLong(clusterStartOffset,
+            return HiddenTextUtils.packRangeInLong(clusterStartOffset,
                     getNextCursorOffset(clusterStartOffset, true));
         }
-        return /*TextUtils.*/packRangeInLong(offset, offset);
+        return HiddenTextUtils.packRangeInLong(offset, offset);
     }
 
 
@@ -1499,34 +1575,5 @@ public class Editor {
         } else {
             Log.d(TAG, location + ": " + String.format(msgFormat, msgArgs));
         }
-    }
-
-    // from TextUtils
-    /**
-     * Pack 2 int values into a long, useful as a return value for a range
-     * @see #unpackRangeStartFromLong(long)
-     * @see #unpackRangeEndFromLong(long)
-     * @hide
-     */
-    public static long packRangeInLong(int start, int end) {
-        return (((long) start) << 32) | end;
-    }
-    /**
-     * Get the start value from a range packed in a long by {@link #packRangeInLong(int, int)}
-     * @see #unpackRangeEndFromLong(long)
-     * @see #packRangeInLong(int, int)
-     * @hide
-     */
-    public static int unpackRangeStartFromLong(long range) {
-        return (int) (range >>> 32);
-    }
-    /**
-     * Get the end value from a range packed in a long by {@link #packRangeInLong(int, int)}
-     * @see #unpackRangeStartFromLong(long)
-     * @see #packRangeInLong(int, int)
-     * @hide
-     */
-    public static int unpackRangeEndFromLong(long range) {
-        return (int) (range & 0x00000000FFFFFFFFL);
     }
 }

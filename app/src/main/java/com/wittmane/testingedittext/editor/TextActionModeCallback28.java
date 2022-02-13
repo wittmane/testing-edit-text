@@ -39,6 +39,7 @@ import java.util.Map;
 public class TextActionModeCallback28 extends ActionMode.Callback2 {
     static final String TAG = TextActionModeCallback28.class.getSimpleName();
 
+
     private final Path mSelectionPath = new Path();
     private final RectF mSelectionBounds = new RectF();
     private final boolean mHasSelection;
@@ -110,33 +111,33 @@ public class TextActionModeCallback28 extends ActionMode.Callback2 {
     }
 
     private void populateMenuWithItems(Menu menu) {
-//        if (mTextView.canCut()) {
-//            menu.add(Menu.NONE, CustomEditTextView.ID_CUT, MENU_ITEM_ORDER_CUT,
-//                    com.android.internal.R.string.cut)
-//                    .setAlphabeticShortcut('x')
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-//        }
-//
-//        if (mTextView.canCopy()) {
-//            menu.add(Menu.NONE, CustomEditTextView.ID_COPY, MENU_ITEM_ORDER_COPY,
-//                    com.android.internal.R.string.copy)
-//                    .setAlphabeticShortcut('c')
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-//        }
-//
-//        if (mTextView.canPaste()) {
-//            menu.add(Menu.NONE, CustomEditTextView.ID_PASTE, MENU_ITEM_ORDER_PASTE,
-//                    com.android.internal.R.string.paste)
-//                    .setAlphabeticShortcut('v')
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-//        }
-//
+        if (mTextView.canCut()) {
+            menu.add(Menu.NONE, CustomEditTextView.ID_CUT, Editor.MENU_ITEM_ORDER_CUT,
+                    /*com.android.internal.R.string.cut*/android.R.string.cut)
+                    .setAlphabeticShortcut('x')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+
+        if (mTextView.canCopy()) {
+            menu.add(Menu.NONE, CustomEditTextView.ID_COPY, Editor.MENU_ITEM_ORDER_COPY,
+                    /*com.android.internal.R.string.copy*/android.R.string.copy)
+                    .setAlphabeticShortcut('c')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+
+        if (mTextView.canPaste()) {
+            menu.add(Menu.NONE, CustomEditTextView.ID_PASTE, Editor.MENU_ITEM_ORDER_PASTE,
+                    /*com.android.internal.R.string.paste*/android.R.string.paste)
+                    .setAlphabeticShortcut('v')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+
 //        if (mTextView.canShare()) {
 //            menu.add(Menu.NONE, CustomEditTextView.ID_SHARE, MENU_ITEM_ORDER_SHARE,
 //                    com.android.internal.R.string.share)
 //                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
 //        }
-//
+
 //        if (mTextView.canRequestAutofill()) {
 //            final String selected = mTextView.getSelectedText();
 //            if (selected == null || selected.isEmpty()) {
@@ -145,15 +146,15 @@ public class TextActionModeCallback28 extends ActionMode.Callback2 {
 //                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
 //            }
 //        }
-//
-//        if (mTextView.canPasteAsPlainText()) {
-//            menu.add(
-//                    Menu.NONE,
-//                    CustomEditTextView.ID_PASTE_AS_PLAIN_TEXT,
-//                    MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
-//                    com.android.internal.R.string.paste_as_plain_text)
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        }
+
+        if (mTextView.canPasteAsPlainText()) {
+            menu.add(
+                    Menu.NONE,
+                    CustomEditTextView.ID_PASTE_AS_PLAIN_TEXT,
+                    Editor.MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
+                    /*com.android.internal.R.string.paste_as_plain_text*/android.R.string.paste_as_plain_text)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        }
 
         updateSelectAllItem(menu);
         updateReplaceItem(menu);
@@ -312,20 +313,19 @@ public class TextActionModeCallback28 extends ActionMode.Callback2 {
 
     @Override
     public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-//        mTextView.mEditor.getSelectionActionModeHelper().onSelectionAction(item.getItemId());
-//
-//        if (mTextView.mEditor.mProcessTextIntentActionsHandler.performMenuItemAction(item)) {
-//            return true;
-//        }
-//        Callback customCallback = getCustomCallback();
-//        if (customCallback != null && customCallback.onActionItemClicked(mode, item)) {
-//            return true;
-//        }
-//        if (item.getGroupId() == CustomEditTextView.ID_ASSIST && onAssistMenuItemClicked(item)) {
-//            return true;
-//        }
-//        return mTextView.onTextContextMenuItem(item.getItemId());
-        return false;
+        mTextView.mEditor.getSelectionActionModeHelper().onSelectionAction(item.getItemId());
+
+        if (mTextView.mEditor.mProcessTextIntentActionsHandler.performMenuItemAction(item)) {
+            return true;
+        }
+        Callback customCallback = getCustomCallback();
+        if (customCallback != null && customCallback.onActionItemClicked(mode, item)) {
+            return true;
+        }
+        if (item.getGroupId() == CustomEditTextView.ID_ASSIST && onAssistMenuItemClicked(item)) {
+            return true;
+        }
+        return mTextView.onTextContextMenuItem(item.getItemId());
     }
 
     @Override

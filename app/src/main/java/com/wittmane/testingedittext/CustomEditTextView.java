@@ -1,6 +1,10 @@
 package com.wittmane.testingedittext;
 
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
@@ -73,6 +77,7 @@ import android.view.textclassifier.TextClassifier;
 import android.widget.EditText;
 import android.widget.PopupWindow;
 import android.widget.Scroller;
+import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.IntDef;
@@ -126,6 +131,10 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     private static final int UNSET_LINE = -1;
     private static final int CHANGE_WATCHER_PRIORITY = 100;
 
+    // Accessibility action start id for "process text" actions.
+    public static final int ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID = 0x10000100;
+
+    public static final int PROCESS_TEXT_REQUEST_CODE = 100;
 
     // Enum for the "typeface" XML parameter.
     // TODO: How can we get this from the XML instead of hardcoding it here?
@@ -3337,9 +3346,116 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         return selectionStart >= 0 && selectionEnd > 0 && selectionStart != selectionEnd;
     }
 
+    public String getSelectedText() {
+        if (!hasSelection()) {
+            return null;
+        }
+
+        final int start = getSelectionStart();
+        final int end = getSelectionEnd();
+        return String.valueOf(
+                start > end ? mText.subSequence(end, start) : mText.subSequence(start, end));
+    }
+
     public boolean canSelectAllText() {
         return /*canSelectText() &&*//* !hasPasswordTransformationMethod()
                 &&*/ !(getSelectionStart() == 0 && getSelectionEnd() == mText.length());
+    }
+
+    /**
+     * @return {@code true} if this TextView is specialized for showing and interacting with the
+     * extracted text in a full-screen input method.
+     * @hide
+     */
+    public boolean isInExtractedMode() {
+        return false;
+    }
+
+
+
+
+
+
+    protected void stopTextActionMode() {
+        if (mEditor != null) {
+            mEditor.stopTextActionMode();
+        }
+    }
+
+    boolean canUndo() {
+        return mEditor != null && mEditor.canUndo();
+    }
+
+    boolean canRedo() {
+        return mEditor != null && mEditor.canRedo();
+    }
+
+    public boolean canCut() {
+//        if (hasPasswordTransformationMethod()) {
+//            return false;
+//        }
+
+        if (mText.length() > 0 && hasSelection() && mText instanceof Editable && mEditor != null
+                && mEditor.mKeyListener != null) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean canCopy() {
+//        if (hasPasswordTransformationMethod()) {
+//            return false;
+//        }
+
+        if (mText.length() > 0 && hasSelection() && mEditor != null) {
+            return true;
+        }
+
+        return false;
+    }
+
+    boolean canShare() {
+//        if (!getContext().canStartActivityForResult() || !isDeviceProvisioned()) {
+//            return false;
+//        }
+        return canCopy();
+    }
+
+    public boolean canPaste() {
+        return (mText instanceof Editable
+                && mEditor != null && mEditor.mKeyListener != null
+                && getSelectionStart() >= 0
+                && getSelectionEnd() >= 0
+                && ((ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE))
+                .hasPrimaryClip());
+    }
+
+    public boolean canPasteAsPlainText() {
+        if (!canPaste()) {
+            return false;
+        }
+
+        final ClipData clipData =
+                ((ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE))
+                        .getPrimaryClip();
+        final ClipDescription description = clipData.getDescription();
+        final boolean isPlainType = description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
+        final CharSequence text = clipData.getItemAt(0).getText();
+        if (isPlainType && (text instanceof Spanned)) {
+            Spanned spanned = (Spanned) text;
+            if (HiddenTextUtils.hasStyleSpan(spanned)) {
+                return true;
+            }
+        }
+        return description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML);
+    }
+
+    public boolean canProcessText() {
+        if (getId() == View.NO_ID) {
+            return false;
+        }
+        return canShare();
     }
 
     boolean selectAllText() {
@@ -3352,13 +3468,66 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         return length > 0;
     }
 
+    void replaceSelectionWithText(CharSequence text) {
+        ((Editable) mText).replace(getSelectionStart(), getSelectionEnd(), text);
+    }
+
     /**
-     * @return {@code true} if this TextView is specialized for showing and interacting with the
-     * extracted text in a full-screen input method.
-     * @hide
+     * Paste clipboard content between min and max positions.
      */
-    public boolean isInExtractedMode() {
-        return false;
+    private void paste(int min, int max, boolean withFormatting) {
+        ClipboardManager clipboard =
+                (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = clipboard.getPrimaryClip();
+        if (clip != null) {
+            boolean didFirst = false;
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                final CharSequence paste;
+                if (withFormatting) {
+                    paste = clip.getItemAt(i).coerceToStyledText(getContext());
+                } else {
+                    // Get an item as text and remove all spans by toString().
+                    final CharSequence text = clip.getItemAt(i).coerceToText(getContext());
+                    paste = (text instanceof Spanned) ? text.toString() : text;
+                }
+                if (paste != null) {
+                    if (!didFirst) {
+                        Selection.setSelection(mSpannable, max);
+                        ((Editable) mText).replace(min, max, paste);
+                        didFirst = true;
+                    } else {
+                        ((Editable) mText).insert(getSelectionEnd(), "\n");
+                        ((Editable) mText).insert(getSelectionEnd(), paste);
+                    }
+                }
+            }
+            sLastCutCopyOrTextChangedTime = 0;
+        }
+    }
+
+    private void shareSelectedText() {
+        String selectedText = getSelectedText();
+        if (selectedText != null && !selectedText.isEmpty()) {
+            Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
+            sharingIntent.setType("text/plain");
+            sharingIntent.removeExtra(android.content.Intent.EXTRA_TEXT);
+            selectedText = HiddenTextUtils.trimToParcelableSize(selectedText);
+            sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, selectedText);
+            getContext().startActivity(Intent.createChooser(sharingIntent, null));
+            Selection.setSelection(mSpannable, getSelectionEnd());
+        }
+    }
+
+    private boolean setPrimaryClip(ClipData clip) {
+        ClipboardManager clipboard =
+                (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        try {
+            clipboard.setPrimaryClip(clip);
+        } catch (Throwable t) {
+            return false;
+        }
+        sLastCutCopyOrTextChangedTime = SystemClock.uptimeMillis();
+        return true;
     }
 
 
@@ -4692,6 +4861,114 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
 
 
+
+    /**
+     * Called when a context menu option for the text view is selected.  Currently
+     * this will be one of {@link android.R.id#selectAll}, {@link android.R.id#cut},
+     * {@link android.R.id#copy}, {@link android.R.id#paste} or {@link android.R.id#shareText}.
+     *
+     * @return true if the context menu item action was performed.
+     */
+    public boolean onTextContextMenuItem(int id) {
+        int min = 0;
+        int max = mText.length();
+
+        if (isFocused()) {
+            final int selStart = getSelectionStart();
+            final int selEnd = getSelectionEnd();
+
+            min = Math.max(0, Math.min(selStart, selEnd));
+            max = Math.max(0, Math.max(selStart, selEnd));
+        }
+
+        switch (id) {
+            case ID_SELECT_ALL:
+                final boolean hadSelection = hasSelection();
+                selectAllText();
+                if (mEditor != null && hadSelection) {
+                    mEditor.invalidateActionModeAsync();
+                }
+                return true;
+
+            case ID_UNDO:
+                if (mEditor != null) {
+                    mEditor.undo();
+                }
+                return true;  // Returns true even if nothing was undone.
+
+            case ID_REDO:
+                if (mEditor != null) {
+                    mEditor.redo();
+                }
+                return true;  // Returns true even if nothing was undone.
+
+            case ID_PASTE:
+                paste(min, max, true /* withFormatting */);
+                return true;
+
+            case ID_PASTE_AS_PLAIN_TEXT:
+                paste(min, max, false /* withFormatting */);
+                return true;
+
+            case ID_CUT:
+                final ClipData cutData = ClipData.newPlainText(null, getTransformedText(min, max));
+                if (setPrimaryClip(cutData)) {
+                    deleteText_internal(min, max);
+                } else {
+                    Toast.makeText(getContext(),
+                            R.string.failed_to_copy_to_clipboard,
+                            Toast.LENGTH_SHORT).show();
+                }
+                return true;
+
+            case ID_COPY:
+                // For link action mode in a non-selectable/non-focusable TextView,
+                // make sure that we set the appropriate min/max.
+                final int selStart = getSelectionStart();
+                final int selEnd = getSelectionEnd();
+                min = Math.max(0, Math.min(selStart, selEnd));
+                max = Math.max(0, Math.max(selStart, selEnd));
+                final ClipData copyData = ClipData.newPlainText(null, getTransformedText(min, max));
+                if (setPrimaryClip(copyData)) {
+                    stopTextActionMode();
+                } else {
+                    Toast.makeText(getContext(),
+                            R.string.failed_to_copy_to_clipboard,
+                            Toast.LENGTH_SHORT).show();
+                }
+                return true;
+
+            case ID_REPLACE:
+                if (mEditor != null) {
+//                    mEditor.replace();
+                }
+                return true;
+
+            case ID_SHARE:
+//                shareSelectedText();
+                return true;
+
+            case ID_AUTOFILL:
+//                requestAutofill();
+//                stopTextActionMode();
+                return true;
+        }
+        return false;
+    }
+
+
+
+
+    /**
+     * Deletes the range of text [start, end[.
+     * @hide
+     */
+    protected void deleteText_internal(int start, int end) {
+        ((Editable) mText).delete(start, end);
+    }
+
+
+
     public Layout getLayout() {
         return mLayout;
     }
@@ -4744,6 +5021,36 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
     public Editable getText() {
         return mText;
+    }
+
+    CharSequence getTransformedText(int start, int end) {
+        return removeSuggestionSpans(mTransformed.subSequence(start, end));
+    }
+
+    /**
+     * Removes the suggestion spans.
+     */
+    CharSequence removeSuggestionSpans(CharSequence text) {
+        if (text instanceof Spanned) {
+            Spannable spannable;
+            if (text instanceof Spannable) {
+                spannable = (Spannable) text;
+            } else {
+                spannable = Spannable.Factory.getInstance().newSpannable(text);
+            }
+
+            SuggestionSpan[] spans = spannable.getSpans(0, text.length(), SuggestionSpan.class);
+            if (spans.length == 0) {
+                return text;
+            } else {
+                text = spannable;
+            }
+
+            for (int i = 0; i < spans.length; i++) {
+                spannable.removeSpan(spans[i]);
+            }
+        }
+        return text;
     }
 
     /**
@@ -4817,32 +5124,6 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
     public final CustomMovementMethod getMovementMethod() {
         return mMovement;
-    }
-
-    public boolean canProcessText() {
-        if (getId() == View.NO_ID) {
-            return false;
-        }
-        return canShare();
-    }
-
-    boolean canShare() {
-//        if (!getContext().canStartActivityForResult() || !isDeviceProvisioned()) {
-//            return false;
-//        }
-        return canCopy();
-    }
-
-    boolean canCopy() {
-//        if (hasPasswordTransformationMethod()) {
-//            return false;
-//        }
-
-        if (mText.length() > 0 && hasSelection() && mEditor != null) {
-            return true;
-        }
-
-        return false;
     }
 
 
@@ -4969,5 +5250,19 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 //        ev.transform(m);
 //        return true;
         return false;
+    }
+
+    // from View
+    /**
+     * Call {@link Context#startActivityForResult(String, Intent, int, Bundle)} for the View's
+     * Context, creating a unique View identifier to retrieve the result.
+     *
+     * @param intent The Intent to be started.
+     * @param requestCode The request code to use.
+     * @hide
+     */
+    public void startActivityForResult(Intent intent, int requestCode) {
+//        mStartActivityRequestWho = "@android:view:" + System.identityHashCode(this);
+//        getContext().startActivityForResult(mStartActivityRequestWho, intent, requestCode, null);
     }
 }
