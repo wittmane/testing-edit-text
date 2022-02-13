@@ -1226,6 +1226,18 @@ public class Editor {
         return selectionStarted;
     }
 
+    void invalidateHandlesAndActionMode() {
+        if (mSelectionModifierCursorController != null) {
+            mSelectionModifierCursorController.invalidateHandles();
+        }
+        if (mInsertionPointCursorController != null) {
+            mInsertionPointCursorController.invalidateHandle();
+        }
+        if (mTextActionMode != null) {
+            invalidateActionMode();
+        }
+    }
+
     public boolean extractedTextModeWillBeStarted() {
         if (!(mTextView.isInExtractedMode())) {
             final InputMethodManager imm = getInputMethodManager();

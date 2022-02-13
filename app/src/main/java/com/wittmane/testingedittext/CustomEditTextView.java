@@ -2,6 +2,7 @@ package com.wittmane.testingedittext;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -11,8 +12,10 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.LocaleList;
@@ -44,6 +47,7 @@ import android.text.style.SuggestionSpan;
 import android.text.style.UpdateAppearance;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.SparseIntArray;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -70,6 +74,9 @@ import android.widget.EditText;
 import android.widget.PopupWindow;
 import android.widget.Scroller;
 
+import androidx.annotation.ColorInt;
+import androidx.annotation.IntDef;
+import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -79,6 +86,8 @@ import androidx.core.content.ContextCompat;
 import com.wittmane.testingedittext.method.CustomArrowKeyMovementMethod;
 import com.wittmane.testingedittext.method.CustomMovementMethod;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
@@ -86,8 +95,12 @@ import java.util.Locale;
 public class CustomEditTextView extends View implements ICustomTextView, ViewTreeObserver.OnPreDrawListener {
     static final String TAG = CustomEditTextView.class.getSimpleName();
 
-    private int textColor = Color.BLACK;
-    private int textSize = sp(/*14*/18);
+    private ColorStateList mTextColor;
+    private ColorStateList mHintTextColor;
+    private ColorStateList mLinkTextColor;
+    @ViewDebug.ExportedProperty(category = "text")
+    private int mCurTextColor;
+    private int mCurHintTextColor;
     private float mSpacingMult = 1.0f;//TextView_lineSpacingMultiplier - this adds space between lines (relative to base spacing of font)
     private float mSpacingAdd = 0.0f;//TextView_lineSpacingExtra - this adds space between lines (in addition to base, possibly in px)
     private boolean mIncludePad = true;//TextView_includeFontPadding
@@ -113,11 +126,20 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     private static final int UNSET_LINE = -1;
     private static final int CHANGE_WATCHER_PRIORITY = 100;
 
-    private TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-    private Paint mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    //TODO: find a better way to set the color (and allow changes)
-    private int mCurTextColor = Color.BLACK;
-    private int mCurHintTextColor = Color.GRAY;
+
+    // Enum for the "typeface" XML parameter.
+    // TODO: How can we get this from the XML instead of hardcoding it here?
+    /** @hide */
+    @IntDef(value = {DEFAULT_TYPEFACE, SANS, SERIF, MONOSPACE})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface XMLTypefaceAttr{}
+    private static final int DEFAULT_TYPEFACE = -1;
+    private static final int SANS = 1;
+    private static final int SERIF = 2;
+    private static final int MONOSPACE = 3;
+
+    private final TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private Editable mText;
     private @Nullable Spannable mSpannable;
@@ -143,6 +165,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     public int mTextEditSuggestionItemLayout;
     public int mTextEditSuggestionContainerLayout;
     public int mTextEditSuggestionHighlightStyle;
+
+    private float mShadowRadius, mShadowDx, mShadowDy;
+    private int mShadowColor;
 
     private ArrayList<TextWatcher> mListeners;
 
@@ -179,6 +204,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     private boolean mTouchFocusSelected;
     // Set when this TextView gained focus with some text selected. Will start selection mode.
     private boolean mCreatedWithASelection;
+
+    // True if fallback fonts that end up getting used should be allowed to affect line spacing.
+    /* package */ boolean mUseFallbackLineSpacing;
 
     // The button state as of the last time #onTouchEvent is called.
     private int mLastButtonState;
@@ -272,10 +300,10 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         //android:lastBaselineToBottomHeight - impacts vertical spacing after the last line of text
 
 
-//        mTextPaint.density = getResources().getDisplayMetrics().density;
-        mTextPaint.setColor(textColor);
-        mTextPaint.setTextAlign(Paint.Align.LEFT);
-        mTextPaint.setTextSize(textSize);
+        mTextPaint.density = getResources().getDisplayMetrics().density;
+//        mTextPaint.setColor(textColor);
+//        mTextPaint.setTextAlign(Paint.Align.LEFT);
+//        mTextPaint.setTextSize(textSize);
         //this gives better spacing, but it doesn't seem to be what the default edit text uses (off by default)
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 //            mTextPaint.setElegantTextHeight(true);
@@ -294,56 +322,338 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 + ", paddingRight=" + getPaddingRight());//
 
 
+        setText("");
+
         mMovement = CustomArrowKeyMovementMethod.getInstance();
 
-        int inputType = EditorInfo.TYPE_NULL;
-        boolean singleLine = false;
+        final TextAppearanceAttributes attributes = new TextAppearanceAttributes();
+        attributes.mTextColor = ColorStateList.valueOf(0xFF000000);
+        attributes.mTextSize = 15;
+//        mBreakStrategy = Layout.BREAK_STRATEGY_SIMPLE;
+//        mHyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE;
+//        mJustificationMode = Layout.JUSTIFICATION_MODE_NONE;
 
         final Resources.Theme theme = context.getTheme();
-        TypedArray typedArray = theme.obtainStyledAttributes(
-                attrs, R.styleable.CustomSimpleTextView2, defStyleAttr, 0);
 
-        CharSequence initialText = "";
+        /*
+         * Look the appearance up without checking first if it exists because
+         * almost every TextView has one and it greatly simplifies the logic
+         * to be able to parse the appearance first and then let specific tags
+         * for this View override it.
+         */
+        TypedArray typedArray = theme.obtainStyledAttributes(attrs,
+                R.styleable.TextViewAppearance, defStyleAttr, /*defStyleRes*/0);
+        TypedArray appearance = null;
+        int ap = typedArray.getResourceId(
+                R.styleable.TextViewAppearance_android_textAppearance, -1);
+        typedArray.recycle();
+        if (ap != -1) {
+            appearance = theme.obtainStyledAttributes(ap, R.styleable.TextAppearance);
+        }
+        if (appearance != null) {
+            readTextAppearance(context, appearance, attributes, false /* styleArray */);
+            attributes.mFontFamilyExplicit = false;
+            appearance.recycle();
+        }
+
+        boolean editable = /*getDefaultEditable()*/true;
+        CharSequence inputMethod = null;
+        int numeric = 0;
+        CharSequence digits = null;
+        boolean phone = false;
+        boolean autotext = false;
+        int autocap = -1;
+        int buffertype = 0;
+        boolean selectallonfocus = false;
+        Drawable drawableLeft = null, drawableTop = null, drawableRight = null,
+                drawableBottom = null, drawableStart = null, drawableEnd = null;
+        ColorStateList drawableTint = null;
+        PorterDuff.Mode drawableTintMode = null;
+        int drawablePadding = 0;
+//        int ellipsize = ELLIPSIZE_NOT_SET;
+        boolean singleLine = false;
+        int maxlength = -1;
+        CharSequence text = "";
+        CharSequence hint = null;
+        boolean password = false;
+//        float autoSizeMinTextSizeInPx = UNSET_AUTO_SIZE_UNIFORM_CONFIGURATION_VALUE;
+//        float autoSizeMaxTextSizeInPx = UNSET_AUTO_SIZE_UNIFORM_CONFIGURATION_VALUE;
+//        float autoSizeStepGranularityInPx = UNSET_AUTO_SIZE_UNIFORM_CONFIGURATION_VALUE;
+        int inputType = EditorInfo.TYPE_NULL;
+        typedArray = theme.obtainStyledAttributes(
+                attrs, /*com.android.internal.R.styleable.TextView*/R.styleable.TextView, defStyleAttr, /*defStyleRes*/0);
+        int firstBaselineToTopHeight = -1;
+        int lastBaselineToBottomHeight = -1;
+        int lineHeight = -1;
+
+        readTextAppearance(context, typedArray, attributes, true /* styleArray */);
+
         for (int i = 0; i < typedArray.getIndexCount(); i++) {
             int attr = typedArray.getIndex(i);
-            if (attr == R.styleable.CustomSimpleTextView2_android_text) {
-                CharSequence text = typedArray.getText(attr);
-                if (text != null) {
-                    initialText = text;
-                }
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_inputType) {
+            if (attr == R.styleable.TextView_android_editable) {
+                // skipping - editable is deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_inputMethod) {
+                // skipping - inputMethod is deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_numeric) {
+                // skipping - numeric is deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_digits) {
+                //TODO: consider implementing
+                // If set, specifies that this TextView has a numeric input method and that these
+                // specific characters are the ones that it will accept. If this is set, numeric is
+                // implied to be true. The default is false.
+            } else if (attr == R.styleable.TextView_android_phoneNumber) {
+                // skipping - phoneNumber is deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_autoText) {
+                // skipping - autoText is deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_capitalize) {
+                //skipping - capitalize is deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_bufferType) {
+                // skipping - EditText always returns Editable, even if you specify something less
+                // powerful
+            } else if (attr == R.styleable.TextView_android_selectAllOnFocus) {
+                //TODO: consider implementing
+                // If the text is selectable, select it all when the view takes focus.
+            } else if (attr == R.styleable.TextView_android_autoLink) {
+                // probably skip - Controls whether links such as urls and email addresses are
+                // automatically found and converted to clickable links. The default value is
+                // "none", disabling this feature.
+            } else if (attr == R.styleable.TextView_android_linksClickable) {
+                // probably skip - If set to false, keeps the movement method from being set to the
+                // link movement method even if autoLink causes links to be found.
+            } else if (attr == R.styleable.TextView_android_drawableLeft) {
+                // probably skip - The drawable to be drawn to the left of the text.
+            } else if (attr == R.styleable.TextView_android_drawableTop) {
+                // probably skip
+            } else if (attr == R.styleable.TextView_android_drawableRight) {
+                // probably skip
+            } else if (attr == R.styleable.TextView_android_drawableBottom) {
+                // probably skip
+            } else if (attr == R.styleable.TextView_android_drawableStart) {
+                // probably skip
+            } else if (attr == R.styleable.TextView_android_drawableEnd) {
+                // probably skip
+//            } else if (&& attr == R.styleable.TextView_android_drawableTint) {
+//                // probably skip
+//                // can't use for some reason - maybe because it looks like it is just defined with
+//                // an ID and not a type
+//            } else if (attr == R.styleable.TextView_android_drawableTintMode) {
+//                // probably skip
+//                // can't use for some reason - maybe because it looks like it is just defined with
+//                // an ID and not a type
+            } else if (attr == R.styleable.TextView_android_drawablePadding) {
+                // probably skip
+            } else if (attr == R.styleable.TextView_android_maxLines) {
+                //TODO: implement
+                // Makes the TextView be at most this many lines tall. The inputType attribute's
+                // value must be combined with the textMultiLine flag for the maxLines attribute to
+                // apply.
+            } else if (attr == R.styleable.TextView_android_maxHeight) {
+                //TODO: implement
+                // Makes the TextView be at most this many pixels tall.
+            } else if (attr == R.styleable.TextView_android_lines) {
+                //TODO: implement
+                // Makes the TextView be exactly this many lines tall.
+            } else if (attr == R.styleable.TextView_android_height) {
+                //TODO:  maybe implement
+                // Makes the TextView be exactly this tall. You could get the same effect by
+                // specifying this number in the layout parameters.
+            } else if (attr == R.styleable.TextView_android_minLines) {
+                //TODO: implement
+                // Makes the TextView be at least this many lines tall. The inputType attribute's
+                // value must be combined with the textMultiLine flag for the minLines attribute to
+                // apply.
+            } else if (attr == R.styleable.TextView_android_minHeight) {
+                //TODO: implement
+                // Makes the TextView be at least this many pixels tall.
+            } else if (attr == R.styleable.TextView_android_maxEms) {
+                //TODO: implement
+                // Makes the TextView be at most this many ems wide.
+            } else if (attr == R.styleable.TextView_android_maxWidth) {
+                //TODO: implement
+                // Makes the TextView be at most this many pixels wide.
+            } else if (attr == R.styleable.TextView_android_ems) {
+                //TODO: implement
+                // Makes the TextView be exactly this many ems wide.
+            } else if (attr == R.styleable.TextView_android_width) {
+                //TODO: maybe implement
+                // Makes the TextView be exactly this wide. You could get the same effect by
+                // specifying this number in the layout parameters.
+            } else if (attr == R.styleable.TextView_android_minEms) {
+                //TODO: implement
+                // Makes the TextView be at least this many ems wide.
+            } else if (attr == R.styleable.TextView_android_minWidth) {
+                //TODO: implement
+                // Makes the TextView be at least this many pixels wide.
+            } else if (attr == R.styleable.TextView_android_gravity) {
+                // Specifies how to align the text by the view's x- and/or y-axis when the text is
+                // smaller than the view.
+                setGravity(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.TextView_android_hint) {
+                hint = typedArray.getText(attr);
+            } else if (attr == R.styleable.TextView_android_text) {
+                text = typedArray.getText(attr);
+            } else if (attr == R.styleable.TextView_android_scrollHorizontally) {
+                //skipping - doesn't seem to have any effect in an EditText
+            } else if (attr == R.styleable.TextView_android_singleLine) {
+                //skipping - deprecated. Use maxLines instead to change the layout of a static text,
+                // and use the textMultiLine flag in the inputType attribute instead for editable
+                // text views (if both singleLine and inputType are supplied, the inputType flags
+                // will override the value of singleLine)
+            } else if (attr == R.styleable.TextView_android_ellipsize) {
+                // skipping - doesn't seem to work in EditText (although only marquee is called out
+                // as not supported)
+            } else if (attr == R.styleable.TextView_android_marqueeRepeatLimit) {
+                // skipping - not supported in EditText
+            } else if (attr == R.styleable.TextView_android_includeFontPadding) {
+                //TODO: consider implementing if simple
+                // Leave enough room for ascenders and descenders instead of using the font ascent
+                // and descent strictly. (Normally true).
+            } else if (attr == R.styleable.TextView_android_cursorVisible) {
+                //TODO: consider implementing if simple - not really sure why this would be wanted
+                // Makes the cursor visible (the default) or invisible.
+            } else if (attr == R.styleable.TextView_android_maxLength) {
+                //TODO: implement
+                // Set an input filter to constrain the text length to the specified number.
+            } else if (attr == R.styleable.TextView_android_textScaleX) {
+                //TODO: implement
+                // Sets the horizontal scaling factor for the text.
+            } else if (attr == R.styleable.TextView_android_freezesText) {
+                //skipping - If set, the text view will include its current complete text inside of
+                // its frozen icicle in addition to meta-data such as the current cursor position.
+                // By default this is disabled; it can be useful when the contents of a text view is
+                // not stored in a persistent place such as a content provider. For
+                // {@link android.widget.EditText} it is always enabled, regardless of the value of
+                // the attribute.
+            } else if (attr == R.styleable.TextView_android_enabled) {
+                //TODO: implement
+                // Specifies whether the widget is enabled. The interpretation of the enabled state
+                // varies by subclass. For example, a non-enabled EditText prevents the user from
+                // editing the contained text, and a non-enabled Button prevents the user from
+                // tapping the button. The appearance of enabled and non-enabled widgets may differ,
+                // if the drawables referenced from evaluating state_enabled differ.
+            } else if (attr == R.styleable.TextView_android_password) {
+                //skipping - deprecated: Use inputType instead
+            } else if (attr == R.styleable.TextView_android_lineSpacingExtra) {
+                //TODO: implement
+                // Extra spacing between lines of text. The value will not be applied for the last
+                // line of text.
+            } else if (attr == R.styleable.TextView_android_lineSpacingMultiplier) {
+                //TODO: implement
+                // Extra spacing between lines of text, as a multiplier. The value will not be
+                // applied for the last line of text.
+            } else if (attr == R.styleable.TextView_android_inputType) {
+                //TODO: implement
+                // The type of data being placed in a text field, used to help an input method
+                // decide how to let the user enter text. The constants here correspond to those
+                // defined by {@link android.text.InputType}. Generally you can select a single
+                // value, though some can be combined together as indicated. Setting this attribute
+                // to anything besides none also implies that the text is editable.
+                // Values:
+                // date, datetime, none, number, numberDecimal, numberPassword, numberSigned, phone,
+                // text, textAutoComplete, textAutoCorrect, textCapCharacters, textCapSentences,
+                // textCapWords, textEmailAddress, textEmailSubject, textFilter, textImeMultiLine,
+                // textLongMessage, textMultiLine, textNoSuggestions, textPassword, textPersonName,
+                // textPhonetic, textPostalAddress, textShortMessage, textUri, textVisiblePassword,
+                // textWebEditText, textWebEmailAddress, textWebPassword, time
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_gravity) {
-//                setGravity(typedArray.getInt(attr, -1));
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_hint) {
-                CharSequence text = typedArray.getText(attr);
-                if (text != null) {
-                    mHint = text;
-                }
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_textCursorDrawable) {
+            } else if (attr == R.styleable.TextView_android_allowUndo) {
+                //TODO: consider implementing
+                // Whether undo should be allowed for editable text. Defaults to true.
+            } else if (attr == R.styleable.TextView_android_imeOptions) {
+                //TODO: implement
+                // Additional features you can enable in an IME associated with an editor to improve
+                // the integration with your application. The constants here correspond to those
+                // defined by {@link android.view.inputmethod.EditorInfo#imeOptions}.
+                // Values:
+                // actionDone, actionGo, actionNext, actionNone, actionPrevious, actionSearch,
+                // actionSend, actionUnspecified, flagForceAscii, flagNavigateNext,
+                // flagNavigatePrevious, flagNoAccessoryAction, flagNoEnterAction, flagNoExtractUi,
+                // flagNoFullscreen, flagNoPersonalizedLearning, normal
+            } else if (attr == R.styleable.TextView_android_imeActionLabel) {
+                //TODO: implement
+                // Supply a value for {@link android.view.inputmethod.EditorInfo#actionLabel
+                // EditorInfo.actionLabel} used when an input method is connected to the text view.
+            } else if (attr == R.styleable.TextView_android_imeActionId) {
+                //TODO: implement
+                // Supply a value for {@link android.view.inputmethod.EditorInfo#actionId
+                // EditorInfo.actionId} used when an input method is connected to the text view.
+            } else if (attr == R.styleable.TextView_android_privateImeOptions) {
+                //TODO: implement
+                // An addition content type description to supply to the input method attached to
+                // the text view, which is private to the implementation of the input method. This
+                // simply fills in the {@link android.view.inputmethod.EditorInfo#privateImeOptions
+                // EditorInfo.privateImeOptions} field when the input method is connected.
+            } else if (attr == R.styleable.TextView_android_editorExtras) {
+                //TODO: probably implement
+                // Reference to an {@link android.R.styleable#InputExtras <input-extras>} XML
+                // resource containing additional data to supply to an input method, which is
+                // private to the implementation of the input method. This simply fills in the
+                // {@link android.view.inputmethod.EditorInfo#extras EditorInfo.extras} field when
+                // the input method is connected.
+            } else if (attr == R.styleable.TextView_android_textCursorDrawable) {
                 mCursorDrawableRes = typedArray.getResourceId(attr, 0);
-                Log.w(TAG, "mCursorDrawableRes=" + mCursorDrawableRes);
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_textSelectHandleLeft) {
+            } else if (attr == R.styleable.TextView_android_textSelectHandleLeft) {
                 mTextSelectHandleLeftRes = typedArray.getResourceId(attr, 0);
-                Log.w(TAG, "mTextSelectHandleLeftRes=" + mTextSelectHandleLeftRes);
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_textSelectHandleRight) {
+            } else if (attr == R.styleable.TextView_android_textSelectHandleRight) {
                 mTextSelectHandleRightRes = typedArray.getResourceId(attr, 0);
-                Log.w(TAG, "mTextSelectHandleRightRes=" + mTextSelectHandleRightRes);
-            } else if (attr == R.styleable.CustomSimpleTextView2_android_textSelectHandle) {
+            } else if (attr == R.styleable.TextView_android_textSelectHandle) {
                 mTextSelectHandleRes = typedArray.getResourceId(attr, 0);
-                Log.w(TAG, "mTextSelectHandleRes=" + mTextSelectHandleRes);
+            } else if (attr == R.styleable.TextView_android_textEditSuggestionItemLayout) {
+                //probably skip - Layout of the TextView item that will populate the suggestion
+                // popup window.
+//            } else if (attr == R.styleable.TextView_android_textEditSuggestionContainerLayout) {
+//                //skipping - textEditSuggestionContainerLayout is private
+//            } else if (attr == R.styleable.TextView_android_textEditSuggestionHighlightStyle) {
+//                //skipping - textEditSuggestionHighlightStyle is private
+            } else if (attr == R.styleable.TextView_android_textIsSelectable) {
+                //skipping - doesn't seem to have any effect in an EditText
+            } else if (attr == R.styleable.TextView_android_breakStrategy) {
+                //skipping - Break strategy (control over paragraph layout).
+            } else if (attr == R.styleable.TextView_android_hyphenationFrequency) {
+                //skipping - Frequency of automatic hyphenation
+            } else if (attr == R.styleable.TextView_android_autoSizeTextType) {
+                //skipping - this feature is not supported by EditText
+            } else if (attr == R.styleable.TextView_android_autoSizeStepGranularity) {
+                //skipping - this feature is not supported by EditText
+            } else if (attr == R.styleable.TextView_android_autoSizeMinTextSize) {
+                //skipping - this feature is not supported by EditText
+            } else if (attr == R.styleable.TextView_android_autoSizeMaxTextSize) {
+                //skipping - this feature is not supported by EditText
+            } else if (attr == R.styleable.TextView_android_autoSizePresetSizes) {
+                //skipping - this feature is not supported by EditText
+            } else if (attr == R.styleable.TextView_android_justificationMode) {
+                //probably skip - justificationMode is only used in API level 26 and higher
+            } else if (attr == R.styleable.TextView_android_firstBaselineToTopHeight) {
+                //TODO: consider implementing if simple - only used in API level 28 and higher
+                // Distance from the top of the TextView to the first text baseline. If set, this
+                // overrides the value set for paddingTop.
+            } else if (attr == R.styleable.TextView_android_lastBaselineToBottomHeight) {
+                //TODO: consider implementing if simple - only used in API level 28 and higher
+                // Distance from the bottom of the TextView to the last text baseline. If set, this
+                // overrides the value set for paddingBottom.
+            } else if (attr == R.styleable.TextView_android_lineHeight) {
+                //TODO: consider implementing if simple - only used in API level 28 and higher
+                // Explicit height between lines of text. If set, this will override the values set
+                // for lineSpacingExtra and lineSpacingMultiplier.
             }
         }
+
+        final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
+        mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
 
         if (inputType != EditorInfo.TYPE_NULL) {
             // If set, the input type overrides what was set using the deprecated singleLine flag.
             singleLine = !isMultilineInputType(inputType);
+            Log.w(TAG, "constructor: singleLine=" + singleLine);
         }
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line TextViews.
         applySingleLine(singleLine, singleLine, singleLine);
 
-        setText(initialText);
+        applyTextAppearance(attributes);
+
+        setText(text);
+        if (hint != null) setHint(hint);
 
 
 
@@ -360,6 +670,619 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         }
         Log.w(TAG, "isClickable=" + isClickable());
     }
+
+
+
+
+
+
+    /**
+     * Read the Text Appearance attributes from a given TypedArray and set its values to the given
+     * set. If the TypedArray contains a value that was already set in the given attributes, that
+     * will be overriden.
+     *
+     * @param context The Context to be used
+     * @param appearance The TypedArray to read properties from
+     * @param attributes the TextAppearanceAttributes to fill in
+     * @param styleArray Whether the given TypedArray is a style or a TextAppearance. This defines
+     *                   what attribute indexes will be used to read the properties.
+     */
+    private void readTextAppearance(Context context, TypedArray appearance,
+                                    TextAppearanceAttributes attributes, boolean styleArray) {
+        final int n = appearance.getIndexCount();
+        for (int i = 0; i < n; i++) {
+            final int attr = appearance.getIndex(i);
+            int index = attr;
+            // Translate style array index ids to TextAppearance ids.
+            if (styleArray) {
+                index = sAppearanceValues.get(attr, -1);
+                if (index == -1) {
+                    // This value is not part of a Text Appearance and should be ignored.
+                    continue;
+                }
+            }
+
+            if (index == R.styleable.TextAppearance_android_textColorHighlight) {
+                attributes.mTextColorHighlight =
+                        appearance.getColor(attr, attributes.mTextColorHighlight);
+            } else if (index == R.styleable.TextAppearance_android_textColor) {
+                attributes.mTextColor = appearance.getColorStateList(attr);
+            } else if (index == R.styleable.TextAppearance_android_textColorHint) {
+                attributes.mTextColorHint = appearance.getColorStateList(attr);
+            } else if (index == R.styleable.TextAppearance_android_textColorLink) {
+                attributes.mTextColorLink = appearance.getColorStateList(attr);
+            } else if (index == R.styleable.TextAppearance_android_textSize) {
+                attributes.mTextSize =
+                        appearance.getDimensionPixelSize(attr, attributes.mTextSize);
+            } else if (index == R.styleable.TextAppearance_android_typeface) {
+                attributes.mTypefaceIndex = appearance.getInt(attr, attributes.mTypefaceIndex);
+                if (attributes.mTypefaceIndex != -1 && !attributes.mFontFamilyExplicit) {
+                    attributes.mFontFamily = null;
+                }
+            } else if (index == R.styleable.TextAppearance_android_fontFamily) {
+                if (!context.isRestricted()/* && context.canLoadUnsafeResources()*/) {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            attributes.mFontTypeface = appearance.getFont(attr);
+                        } else {
+                            //TODO: (EW) handle?
+                        }
+                    } catch (UnsupportedOperationException | Resources.NotFoundException e) {
+                        // Expected if it is not a font resource.
+                    }
+                }
+                if (attributes.mFontTypeface == null) {
+                    attributes.mFontFamily = appearance.getString(attr);
+                }
+                attributes.mFontFamilyExplicit = true;
+            } else if (index == R.styleable.TextAppearance_android_textStyle) {
+                attributes.mStyleIndex = appearance.getInt(attr, attributes.mStyleIndex);
+            } else if (index == R.styleable.TextAppearance_android_textFontWeight) {
+                // API 28
+                attributes.mFontWeight = appearance.getInt(attr, attributes.mFontWeight);
+            } else if (index == R.styleable.TextAppearance_android_textAllCaps) {
+                attributes.mAllCaps = appearance.getBoolean(attr, attributes.mAllCaps);
+            } else if (index == R.styleable.TextAppearance_android_shadowColor) {
+                attributes.mShadowColor = appearance.getInt(attr, attributes.mShadowColor);
+            } else if (index == R.styleable.TextAppearance_android_shadowDx) {
+                attributes.mShadowDx = appearance.getFloat(attr, attributes.mShadowDx);
+            } else if (index == R.styleable.TextAppearance_android_shadowDy) {
+                attributes.mShadowDy = appearance.getFloat(attr, attributes.mShadowDy);
+            } else if (index == R.styleable.TextAppearance_android_shadowRadius) {
+                attributes.mShadowRadius = appearance.getFloat(attr, attributes.mShadowRadius);
+            } else if (index == R.styleable.TextAppearance_android_elegantTextHeight) {
+                attributes.mHasElegant = true;
+                attributes.mElegant = appearance.getBoolean(attr, attributes.mElegant);
+            } else if (index == R.styleable.TextAppearance_android_fallbackLineSpacing) {
+                attributes.mHasFallbackLineSpacing = true;
+                attributes.mFallbackLineSpacing = appearance.getBoolean(attr,
+                        attributes.mFallbackLineSpacing);
+            } else if (index == R.styleable.TextAppearance_android_letterSpacing) {
+                attributes.mHasLetterSpacing = true;
+                attributes.mLetterSpacing =
+                        appearance.getFloat(attr, attributes.mLetterSpacing);
+            } else if (index == R.styleable.TextAppearance_android_fontFeatureSettings) {
+                attributes.mFontFeatureSettings = appearance.getString(attr);
+            }
+        }
+    }
+
+    private void applyTextAppearance(TextAppearanceAttributes attributes) {
+        if (attributes.mTextColor != null) {
+            setTextColor(attributes.mTextColor);
+        }
+
+        if (attributes.mTextColorHint != null) {
+            setHintTextColor(attributes.mTextColorHint);
+        }
+
+        if (attributes.mTextColorLink != null) {
+            setLinkTextColor(attributes.mTextColorLink);
+        }
+
+        if (attributes.mTextColorHighlight != 0) {
+            setHighlightColor(attributes.mTextColorHighlight);
+        }
+
+        if (attributes.mTextSize != 0) {
+            setRawTextSize(attributes.mTextSize, true /* shouldRequestLayout */);
+        }
+
+        if (attributes.mTypefaceIndex != -1 && !attributes.mFontFamilyExplicit) {
+            attributes.mFontFamily = null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            setTypefaceFromAttrs(attributes.mFontTypeface, attributes.mFontFamily,
+                    attributes.mTypefaceIndex, attributes.mStyleIndex, attributes.mFontWeight);
+        } else {
+            setTypefaceFromAttrs(attributes.mFontTypeface, attributes.mFontFamily,
+                    attributes.mTypefaceIndex, attributes.mStyleIndex);
+        }
+
+        if (attributes.mShadowColor != 0) {
+            setShadowLayer(attributes.mShadowRadius, attributes.mShadowDx, attributes.mShadowDy,
+                    attributes.mShadowColor);
+        }
+
+        if (attributes.mAllCaps) {
+//            setTransformationMethod(new AllCapsTransformationMethod(getContext()));
+        }
+
+        if (attributes.mHasElegant) {
+            setElegantTextHeight(attributes.mElegant);
+        }
+
+        if (attributes.mHasFallbackLineSpacing) {
+            setFallbackLineSpacing(attributes.mFallbackLineSpacing);
+        }
+
+        if (attributes.mHasLetterSpacing) {
+            setLetterSpacing(attributes.mLetterSpacing);
+        }
+
+        if (attributes.mFontFeatureSettings != null) {
+            setFontFeatureSettings(attributes.mFontFeatureSettings);
+        }
+    }
+
+    /**
+     * Sets the text color.
+     *
+     * @see #setTextColor(int)
+     * @see #getTextColors()
+     * @see #setHintTextColor(ColorStateList)
+     * @see #setLinkTextColor(ColorStateList)
+     *
+     * @attr ref android.R.styleable#TextView_textColor
+     */
+    public void setTextColor(ColorStateList colors) {
+        if (colors == null) {
+            throw new NullPointerException();
+        }
+
+        mTextColor = colors;
+        updateTextColors();
+    }
+
+    /**
+     * Sets the color of the hint text.
+     *
+     * @see #getHintTextColors()
+     * @see #setHintTextColor(int)
+     * @see #setTextColor(ColorStateList)
+     * @see #setLinkTextColor(ColorStateList)
+     *
+     * @attr ref android.R.styleable#TextView_textColorHint
+     */
+    public final void setHintTextColor(ColorStateList colors) {
+        mHintTextColor = colors;
+        updateTextColors();
+    }
+
+    /**
+     * Sets the color of links in the text.
+     *
+     * @see #setLinkTextColor(int)
+     * @see #getLinkTextColors()
+     * @see #setTextColor(ColorStateList)
+     * @see #setHintTextColor(ColorStateList)
+     *
+     * @attr ref android.R.styleable#TextView_textColorLink
+     */
+    public final void setLinkTextColor(ColorStateList colors) {
+        mLinkTextColor = colors;
+        updateTextColors();
+    }
+
+    /**
+     * Sets the color used to display the selection highlight.
+     *
+     * @attr ref android.R.styleable#TextView_textColorHighlight
+     */
+    public void setHighlightColor(@ColorInt int color) {
+        if (mHighlightColor != color) {
+            mHighlightColor = color;
+            invalidate();
+        }
+    }
+
+    private void setRawTextSize(float size, boolean shouldRequestLayout) {
+        if (size != mTextPaint.getTextSize()) {
+            mTextPaint.setTextSize(size);
+
+            if (shouldRequestLayout && mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Sets the Typeface taking into account the given attributes.
+     *
+     * @param typeface a typeface
+     * @param familyName family name string, e.g. "serif"
+     * @param typefaceIndex an index of the typeface enum, e.g. SANS, SERIF.
+     * @param style a typeface style
+     * @param weight a weight value for the Typeface or -1 if not specified.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.P)
+    private void setTypefaceFromAttrs(@Nullable Typeface typeface, @Nullable String familyName,
+                                      int typefaceIndex, int style, int weight) {
+        if (typeface == null && familyName != null) {
+            // Lookup normal Typeface from system font map.
+            final Typeface normalTypeface = Typeface.create(familyName, Typeface.NORMAL);
+            resolveStyleAndSetTypeface(normalTypeface, style, weight);
+        } else if (typeface != null) {
+            resolveStyleAndSetTypeface(typeface, style, weight);
+        } else {  // both typeface and familyName is null.
+            switch (typefaceIndex) {
+                case SANS:
+                    resolveStyleAndSetTypeface(Typeface.SANS_SERIF, style, weight);
+                    break;
+                case SERIF:
+                    resolveStyleAndSetTypeface(Typeface.SERIF, style, weight);
+                    break;
+                case MONOSPACE:
+                    resolveStyleAndSetTypeface(Typeface.MONOSPACE, style, weight);
+                    break;
+                case DEFAULT_TYPEFACE:
+                default:
+                    resolveStyleAndSetTypeface(null, style, weight);
+                    break;
+            }
+        }
+    }
+    private void setTypefaceFromAttrs(Typeface fontTypeface, String familyName, int typefaceIndex,
+                                      int style) {
+        Typeface tf = fontTypeface;
+        if (tf == null && familyName != null) {
+            tf = Typeface.create(familyName, style);
+        } else if (tf != null && tf.getStyle() != style) {
+            tf = Typeface.create(tf, style);
+        }
+        if (tf != null) {
+            setTypeface(tf);
+            return;
+        }
+        switch (typefaceIndex) {
+            case SANS:
+                tf = Typeface.SANS_SERIF;
+                break;
+            case SERIF:
+                tf = Typeface.SERIF;
+                break;
+            case MONOSPACE:
+                tf = Typeface.MONOSPACE;
+                break;
+        }
+        setTypeface(tf, style);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.P)
+    private void resolveStyleAndSetTypeface(Typeface typeface, int style, int weight) {
+        if (weight >= 0) {
+            final boolean italic = (style & Typeface.ITALIC) != 0;
+            setTypeface(Typeface.create(typeface, weight, italic));
+        } else {
+            setTypeface(typeface, style);
+        }
+    }
+
+    /**
+     * Sets the typeface and style in which the text should be displayed.
+     * Note that not all Typeface families actually have bold and italic
+     * variants, so you may need to use
+     * {@link #setTypeface(Typeface, int)} to get the appearance
+     * that you actually want.
+     *
+     * @see #getTypeface()
+     *
+     * @attr ref android.R.styleable#TextView_fontFamily
+     * @attr ref android.R.styleable#TextView_typeface
+     * @attr ref android.R.styleable#TextView_textStyle
+     */
+    public void setTypeface(@Nullable Typeface tf) {
+        if (mTextPaint.getTypeface() != tf) {
+            mTextPaint.setTypeface(tf);
+
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Sets the typeface and style in which the text should be displayed,
+     * and turns on the fake bold and italic bits in the Paint if the
+     * Typeface that you provided does not have all the bits in the
+     * style that you specified.
+     *
+     * @attr ref android.R.styleable#TextView_typeface
+     * @attr ref android.R.styleable#TextView_textStyle
+     */
+    public void setTypeface(@Nullable Typeface tf, /*@Typeface.Style */int style) {
+        if (style > 0) {
+            if (tf == null) {
+                tf = Typeface.defaultFromStyle(style);
+            } else {
+                tf = Typeface.create(tf, style);
+            }
+
+            setTypeface(tf);
+            // now compute what (if any) algorithmic styling is needed
+            int typefaceStyle = tf != null ? tf.getStyle() : 0;
+            int need = style & ~typefaceStyle;
+            mTextPaint.setFakeBoldText((need & Typeface.BOLD) != 0);
+            mTextPaint.setTextSkewX((need & Typeface.ITALIC) != 0 ? -0.25f : 0);
+        } else {
+            mTextPaint.setFakeBoldText(false);
+            mTextPaint.setTextSkewX(0);
+            setTypeface(tf);
+        }
+    }
+
+    /**
+     * Gives the text a shadow of the specified blur radius and color, the specified
+     * distance from its drawn position.
+     * <p>
+     * The text shadow produced does not interact with the properties on view
+     * that are responsible for real time shadows,
+     * {@link View#getElevation() elevation} and
+     * {@link View#getTranslationZ() translationZ}.
+     *
+     * @see Paint#setShadowLayer(float, float, float, int)
+     *
+     * @attr ref android.R.styleable#TextView_shadowColor
+     * @attr ref android.R.styleable#TextView_shadowDx
+     * @attr ref android.R.styleable#TextView_shadowDy
+     * @attr ref android.R.styleable#TextView_shadowRadius
+     */
+    public void setShadowLayer(float radius, float dx, float dy, int color) {
+        mTextPaint.setShadowLayer(radius, dx, dy, color);
+
+        mShadowRadius = radius;
+        mShadowDx = dx;
+        mShadowDy = dy;
+        mShadowColor = color;
+
+        // Will change text clip region
+        if (mEditor != null) {
+            mEditor.invalidateHandlesAndActionMode();
+        }
+        invalidate();
+    }
+
+    /**
+     * Set the TextView's elegant height metrics flag. This setting selects font
+     * variants that have not been compacted to fit Latin-based vertical
+     * metrics, and also increases top and bottom bounds to provide more space.
+     *
+     * @param elegant set the paint's elegant metrics flag.
+     *
+     * @see #isElegantTextHeight()
+     * @see Paint#isElegantTextHeight()
+     *
+     * @attr ref android.R.styleable#TextView_elegantTextHeight
+     */
+    public void setElegantTextHeight(boolean elegant) {
+        if (elegant != mTextPaint.isElegantTextHeight()) {
+            mTextPaint.setElegantTextHeight(elegant);
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Set whether to respect the ascent and descent of the fallback fonts that are used in
+     * displaying the text (which is needed to avoid text from consecutive lines running into
+     * each other). If set, fallback fonts that end up getting used can increase the ascent
+     * and descent of the lines that they are used on.
+     * <p/>
+     * It is required to be true if text could be in languages like Burmese or Tibetan where text
+     * is typically much taller or deeper than Latin text.
+     *
+     * @param enabled whether to expand linespacing based on fallback fonts, {@code true} by default
+     *
+     * @see StaticLayout.Builder#setUseLineSpacingFromFallbacks(boolean)
+     *
+     * @attr ref android.R.styleable#TextView_fallbackLineSpacing
+     */
+    public void setFallbackLineSpacing(boolean enabled) {
+        if (mUseFallbackLineSpacing != enabled) {
+            mUseFallbackLineSpacing = enabled;
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Sets text letter-spacing in em units.  Typical values
+     * for slight expansion will be around 0.05.  Negative values tighten text.
+     *
+     * @see #getLetterSpacing()
+     * @see Paint#getLetterSpacing
+     *
+     * @param letterSpacing A text letter-space value in ems.
+     * @attr ref android.R.styleable#TextView_letterSpacing
+     */
+    public void setLetterSpacing(float letterSpacing) {
+        if (letterSpacing != mTextPaint.getLetterSpacing()) {
+            mTextPaint.setLetterSpacing(letterSpacing);
+
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Sets font feature settings. The format is the same as the CSS
+     * font-feature-settings attribute:
+     * <a href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+     *     https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop</a>
+     *
+     * @param fontFeatureSettings font feature settings represented as CSS compatible string
+     *
+     * @see #getFontFeatureSettings()
+     * @see Paint#getFontFeatureSettings() Paint.getFontFeatureSettings()
+     *
+     * @attr ref android.R.styleable#TextView_fontFeatureSettings
+     */
+    public void setFontFeatureSettings(@Nullable String fontFeatureSettings) {
+        if (fontFeatureSettings != mTextPaint.getFontFeatureSettings()) {
+            mTextPaint.setFontFeatureSettings(fontFeatureSettings);
+
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    private void updateTextColors() {
+        boolean inval = false;
+        final int[] drawableState = getDrawableState();
+        int color = mTextColor.getColorForState(drawableState, 0);
+        if (color != mCurTextColor) {
+            mCurTextColor = color;
+            inval = true;
+        }
+        if (mLinkTextColor != null) {
+            color = mLinkTextColor.getColorForState(drawableState, 0);
+            if (color != mTextPaint.linkColor) {
+                mTextPaint.linkColor = color;
+                inval = true;
+            }
+        }
+        if (mHintTextColor != null) {
+            color = mHintTextColor.getColorForState(drawableState, 0);
+            if (color != mCurHintTextColor) {
+                mCurHintTextColor = color;
+                if (mText.length() == 0) {
+                    inval = true;
+                }
+            }
+        }
+        if (inval) {
+            // Text needs to be redrawn with the new color
+            invalidate();
+        }
+    }
+
+    /**
+     * Set of attributes that can be defined in a Text Appearance. This is used to simplify the code
+     * that reads these attributes in the constructor and in {@link #setTextAppearance}.
+     */
+    private static class TextAppearanceAttributes {
+        int mTextColorHighlight = 0;
+        ColorStateList mTextColor = null;
+        ColorStateList mTextColorHint = null;
+        ColorStateList mTextColorLink = null;
+        int mTextSize = 0;
+        String mFontFamily = null;
+        Typeface mFontTypeface = null;
+        boolean mFontFamilyExplicit = false;
+        int mTypefaceIndex = -1;
+        int mStyleIndex = -1;
+        int mFontWeight = -1;
+        boolean mAllCaps = false;
+        int mShadowColor = 0;
+        float mShadowDx = 0, mShadowDy = 0, mShadowRadius = 0;
+        boolean mHasElegant = false;
+        boolean mElegant = false;
+        boolean mHasFallbackLineSpacing = false;
+        boolean mFallbackLineSpacing = false;
+        boolean mHasLetterSpacing = false;
+        float mLetterSpacing = 0;
+        String mFontFeatureSettings = null;
+
+        @Override
+        public String toString() {
+            return "TextAppearanceAttributes {\n"
+                    + "    mTextColorHighlight:" + mTextColorHighlight + "\n"
+                    + "    mTextColor:" + mTextColor + "\n"
+                    + "    mTextColorHint:" + mTextColorHint + "\n"
+                    + "    mTextColorLink:" + mTextColorLink + "\n"
+                    + "    mTextSize:" + mTextSize + "\n"
+                    + "    mFontFamily:" + mFontFamily + "\n"
+                    + "    mFontTypeface:" + mFontTypeface + "\n"
+                    + "    mFontFamilyExplicit:" + mFontFamilyExplicit + "\n"
+                    + "    mTypefaceIndex:" + mTypefaceIndex + "\n"
+                    + "    mStyleIndex:" + mStyleIndex + "\n"
+                    + "    mFontWeight:" + mFontWeight + "\n"
+                    + "    mAllCaps:" + mAllCaps + "\n"
+                    + "    mShadowColor:" + mShadowColor + "\n"
+                    + "    mShadowDx:" + mShadowDx + "\n"
+                    + "    mShadowDy:" + mShadowDy + "\n"
+                    + "    mShadowRadius:" + mShadowRadius + "\n"
+                    + "    mHasElegant:" + mHasElegant + "\n"
+                    + "    mElegant:" + mElegant + "\n"
+                    + "    mHasFallbackLineSpacing:" + mHasFallbackLineSpacing + "\n"
+                    + "    mFallbackLineSpacing:" + mFallbackLineSpacing + "\n"
+                    + "    mHasLetterSpacing:" + mHasLetterSpacing + "\n"
+                    + "    mLetterSpacing:" + mLetterSpacing + "\n"
+                    + "    mFontFeatureSettings:" + mFontFeatureSettings + "\n"
+                    + "}";
+        }
+    }
+
+    // Maps styleable attributes that exist both in TextView style and TextAppearance.
+    private static final SparseIntArray sAppearanceValues = new SparseIntArray();
+    static {
+        sAppearanceValues.put(R.styleable.TextView_android_textColorHighlight,
+                R.styleable.TextAppearance_android_textColorHighlight);
+        sAppearanceValues.put(R.styleable.TextView_android_textColor,
+                R.styleable.TextAppearance_android_textColor);
+        sAppearanceValues.put(R.styleable.TextView_android_textColorHint,
+                R.styleable.TextAppearance_android_textColorHint);
+        sAppearanceValues.put(R.styleable.TextView_android_textColorLink,
+                R.styleable.TextAppearance_android_textColorLink);
+        sAppearanceValues.put(R.styleable.TextView_android_textSize,
+                R.styleable.TextAppearance_android_textSize);
+        sAppearanceValues.put(R.styleable.TextView_android_typeface,
+                R.styleable.TextAppearance_android_typeface);
+        sAppearanceValues.put(R.styleable.TextView_android_fontFamily,
+                R.styleable.TextAppearance_android_fontFamily);
+        sAppearanceValues.put(R.styleable.TextView_android_textStyle,
+                R.styleable.TextAppearance_android_textStyle);
+        sAppearanceValues.put(R.styleable.TextView_android_textFontWeight,
+                R.styleable.TextAppearance_android_textFontWeight);
+        sAppearanceValues.put(R.styleable.TextView_android_textAllCaps,
+                R.styleable.TextAppearance_android_textAllCaps);
+        sAppearanceValues.put(R.styleable.TextView_android_shadowColor,
+                R.styleable.TextAppearance_android_shadowColor);
+        sAppearanceValues.put(R.styleable.TextView_android_shadowDx,
+                R.styleable.TextAppearance_android_shadowDx);
+        sAppearanceValues.put(R.styleable.TextView_android_shadowDy,
+                R.styleable.TextAppearance_android_shadowDy);
+        sAppearanceValues.put(R.styleable.TextView_android_shadowRadius,
+                R.styleable.TextAppearance_android_shadowRadius);
+        sAppearanceValues.put(R.styleable.TextView_android_elegantTextHeight,
+                R.styleable.TextAppearance_android_elegantTextHeight);
+        sAppearanceValues.put(R.styleable.TextView_android_fallbackLineSpacing,
+                R.styleable.TextAppearance_android_fallbackLineSpacing);
+        sAppearanceValues.put(R.styleable.TextView_android_letterSpacing,
+                R.styleable.TextAppearance_android_letterSpacing);
+        sAppearanceValues.put(R.styleable.TextView_android_fontFeatureSettings,
+                R.styleable.TextAppearance_android_fontFeatureSettings);
+    }
+
+
+
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -384,9 +1307,6 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
         int width;
         int height;
-
-        BoringLayout.Metrics boring = /*UNKNOWN_BORING*/null;
-        BoringLayout.Metrics hintBoring = /*UNKNOWN_BORING*/null;
 
 //        if (mTextDir == null) {
 //            mTextDir = /*getTextDirectionHeuristic()*/TextDirectionHeuristics.LTR;
@@ -609,6 +1529,12 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
+        final int compoundPaddingLeft = getCompoundPaddingLeft();
+        final int compoundPaddingTop = getCompoundPaddingTop();
+        final int compoundPaddingRight = getCompoundPaddingRight();
+        final int compoundPaddingBottom = getCompoundPaddingBottom();
+
         if (mLayout == null) {
             assumeLayout();
         }
@@ -626,11 +1552,10 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         mTextPaint.setColor(color);
 
         canvas.save();
+        /*  Would be faster if we didn't have to do this. Can we chop the
+            (displayable) text so that we don't need to do this ever?
+        */
 
-        final int compoundPaddingLeft = getCompoundPaddingLeft();
-        final int compoundPaddingTop = getCompoundPaddingTop();
-        final int compoundPaddingRight = getCompoundPaddingRight();
-        final int compoundPaddingBottom = getCompoundPaddingBottom();
         final int scrollX = getScrollX();
         final int scrollY = getScrollY();
 //        Log.w(TAG, "onDraw: scrollX=" + scrollX + ", scrollY=" + scrollY);
@@ -638,10 +1563,6 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         final int left = getLeft();
         final int bottom = getBottom();
         final int top = getTop();
-//        final boolean isLayoutRtl = isLayoutRtl();
-//        final int offset = getHorizontalOffsetForDrawables();
-//        final int leftOffset = isLayoutRtl ? 0 : offset;
-//        final int rightOffset = isLayoutRtl ? offset : 0;
 
         int extendedPaddingTop = getExtendedPaddingTop();
         int extendedPaddingBottom = getExtendedPaddingBottom();
@@ -654,6 +1575,18 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         float clipRight = right - left - compoundPaddingRight + scrollX;
         float clipBottom = bottom - top + scrollY
                 - ((scrollY == maxScrollY) ? 0 : extendedPaddingBottom);
+
+        if (mShadowRadius != 0) {
+            clipLeft += Math.min(0, mShadowDx - mShadowRadius);
+            clipRight += Math.max(0, mShadowDx + mShadowRadius);
+
+            clipTop += Math.min(0, mShadowDy - mShadowRadius);
+            clipBottom += Math.max(0, mShadowDy + mShadowRadius);
+        }
+//        final boolean isLayoutRtl = isLayoutRtl();
+//        final int offset = getHorizontalOffsetForDrawables();
+//        final int leftOffset = isLayoutRtl ? 0 : offset;
+//        final int rightOffset = isLayoutRtl ? offset : 0;
 
         canvas.clipRect(clipLeft, clipTop, clipRight, clipBottom);
 
@@ -1029,6 +1962,33 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         }
     }
 
+    @Override
+    protected boolean isPaddingOffsetRequired() {
+        return mShadowRadius != 0/* || mDrawables != null*/;
+    }
+
+    @Override
+    protected int getLeftPaddingOffset() {
+        return getCompoundPaddingLeft() - getPaddingLeft()
+                + (int) Math.min(0, mShadowDx - mShadowRadius);
+    }
+
+    @Override
+    protected int getTopPaddingOffset() {
+        return (int) Math.min(0, mShadowDy - mShadowRadius);
+    }
+
+    @Override
+    protected int getBottomPaddingOffset() {
+        return (int) Math.max(0, mShadowDy + mShadowRadius);
+    }
+
+    @Override
+    protected int getRightPaddingOffset() {
+        return -(getCompoundPaddingRight() - getPaddingRight())
+                + (int) Math.max(0, mShadowDx + mShadowRadius);
+    }
+
     private int getBoxHeight(Layout l) {
 //        Insets opticalInsets = isLayoutModeOptical(mParent) ? getOpticalInsets() : Insets.NONE;
         int padding = (l == mHintLayout)
@@ -1083,6 +2043,56 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             }
         }
         return voffset;
+    }
+
+
+    /**
+     * Sets the horizontal alignment of the text and the
+     * vertical gravity that will be used when there is extra space
+     * in the TextView beyond what is required for the text itself.
+     *
+     * @see android.view.Gravity
+     * @attr ref android.R.styleable#TextView_gravity
+     */
+    public void setGravity(int gravity) {
+        if ((gravity & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == 0) {
+            gravity |= Gravity.START;
+        }
+        if ((gravity & Gravity.VERTICAL_GRAVITY_MASK) == 0) {
+            gravity |= Gravity.TOP;
+        }
+
+        boolean newLayout = false;
+
+        if ((gravity & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK)
+                != (mGravity & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK)) {
+            newLayout = true;
+        }
+
+        if (gravity != mGravity) {
+            invalidate();
+        }
+
+        mGravity = gravity;
+
+        if (mLayout != null && newLayout) {
+            // XXX this is heavy-handed because no actual content changes.
+            int want = mLayout.getWidth();
+            int hintWant = mHintLayout == null ? 0 : mHintLayout.getWidth();
+
+            makeNewLayout(want, hintWant, /*UNKNOWN_BORING, UNKNOWN_BORING,
+                    getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight(),*/ true);
+        }
+    }
+
+    /**
+     * Returns the horizontal and vertical alignment of this TextView.
+     *
+     * @see android.view.Gravity
+     * @attr ref android.R.styleable#TextView_gravity
+     */
+    public int getGravity() {
+        return mGravity;
     }
 
     private void setText(CharSequence text) {
@@ -1162,6 +2172,38 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
         // SelectionModifierCursorController depends on textCanBeSelected, which depends on text
         if (mEditor != null) mEditor.prepareCursorControllers();
+    }
+
+    /**
+     * Sets the text to be displayed when the text of the TextView is empty.
+     * Null means to use the normal empty text. The hint does not currently
+     * participate in determining the size of the view.
+     *
+     * @attr ref android.R.styleable#TextView_hint
+     */
+    public final void setHint(CharSequence hint) {
+        setHintInternal(hint);
+
+//        if (mEditor != null && isInputMethodTarget()) {
+//            mEditor.reportExtractedText();
+//        }
+    }
+
+    private void setHintInternal(CharSequence hint) {
+        mHint = TextUtils.stringOrSpannedString(hint);
+
+        if (mLayout != null) {
+//            checkForRelayout();
+        }
+
+        if (mText.length() == 0) {
+            invalidate();
+        }
+
+        // Invalidate display list if hint is currently used
+        if (mEditor != null && mText.length() == 0 && mHint != null) {
+//            mEditor.invalidateTextDisplayList();
+        }
     }
 
     /**

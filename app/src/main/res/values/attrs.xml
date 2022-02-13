@@ -7,6 +7,7 @@
         <attr name="android:inputType" />
         <attr name="android:gravity" />
         <attr name="android:hint" />
+<!--        <attr name="android:textColor" />-->
         <!-- Reference to a drawable that will be drawn under the insertion cursor. -->
         <attr name="android:textCursorDrawable" />
 
@@ -23,5 +24,374 @@
         <!-- Reference to a style that will be used for the window containing a text
              selection anchor. -->
         <attr name="textSelectHandleWindowStyle" format="reference" />
+    </declare-styleable>
+
+    <declare-styleable name="TextAppearance">
+        <!-- Text color. -->
+        <attr name="android:textColor" />
+        <!-- Size of the text. Recommended dimension type for text is "sp" for scaled-pixels (example: 15sp). -->
+        <attr name="android:textSize" />
+        <!-- Style (normal, bold, italic, bold|italic) for the text. -->
+        <attr name="android:textStyle" />
+        <!-- Weight for the font used in the TextView. -->
+        <attr name="android:textFontWeight" />
+        <!-- Typeface (normal, sans, serif, monospace) for the text. -->
+        <attr name="android:typeface" />
+        <!-- Font family (named by string or as a font resource reference) for the text. -->
+        <attr name="android:fontFamily" />
+        <!-- Specifies the {@link android.os.LocaleList} for the text.
+             May be a string value, which is a comma-separated language tag list, such as "ja-JP,zh-CN".
+             When not specified or an empty string is given, it will fallback to the default one.
+             {@see android.os.LocaleList#forLanguageTags(String)} -->
+        <attr name="android:textLocale" />
+        <!-- Color of the text selection highlight. -->
+        <attr name="android:textColorHighlight" />
+        <!-- Color of the hint text. -->
+        <attr name="android:textColorHint" />
+        <!-- Color of the links. -->
+        <attr name="android:textColorLink" />
+        <!-- Present the text in ALL CAPS. This may use a small-caps form when available. -->
+        <attr name="android:textAllCaps" />
+        <!-- Place a blurred shadow of text underneath the text, drawn with the
+             specified color. The text shadow produced does not interact with
+             properties on View that are responsible for real time shadows,
+             {@link android.R.styleable#View_elevation elevation} and
+             {@link android.R.styleable#View_translationZ translationZ}. -->
+        <attr name="android:shadowColor" />
+        <!-- Horizontal offset of the text shadow. -->
+        <attr name="android:shadowDx" />
+        <!-- Vertical offset of the text shadow. -->
+        <attr name="android:shadowDy" />
+        <!-- Blur radius of the text shadow. -->
+        <attr name="android:shadowRadius" />
+        <!-- Elegant text height, especially for less compacted complex script text. -->
+        <attr name="android:elegantTextHeight" />
+        <!-- Whether to respect the ascent and descent of the fallback fonts that are used in
+        displaying the text. When true, fallback fonts that end up getting used can increase
+        the ascent and descent of the lines that they are used on. -->
+        <attr name="android:fallbackLineSpacing" />
+        <!-- Text letter-spacing. -->
+        <attr name="android:letterSpacing" />
+        <!-- Font feature settings. -->
+        <attr name="android:fontFeatureSettings" />
+        <!-- Font variation settings. -->
+        <attr name="android:fontVariationSettings" />
+    </declare-styleable>
+    <declare-styleable name="TextView">
+        <!-- Determines the minimum type that getText() will return.
+             The default is "normal".
+             Note that EditText and LogTextBox always return Editable,
+             even if you specify something less powerful here. -->
+        <attr name="android:bufferType" />
+        <!-- Text to display. -->
+        <attr name="android:text" />
+        <!-- Hint text to display when the text is empty. -->
+        <attr name="android:hint" />
+        <!-- Text color. -->
+        <attr name="android:textColor" />
+        <!-- Color of the text selection highlight. -->
+        <attr name="android:textColorHighlight" />
+        <!-- Color of the hint text. -->
+        <attr name="android:textColorHint" />
+        <!-- Base text color, typeface, size, and style. -->
+        <attr name="android:textAppearance" />
+        <!-- Size of the text. Recommended dimension type for text is "sp" for scaled-pixels (example: 15sp). -->
+        <attr name="android:textSize" />
+        <!-- Sets the horizontal scaling factor for the text. -->
+        <attr name="android:textScaleX" />
+        <!-- Typeface (normal, sans, serif, monospace) for the text. -->
+        <attr name="android:typeface" />
+        <!-- Style (normal, bold, italic, bold|italic) for the text. -->
+        <attr name="android:textStyle" />
+        <!-- Weight for the font used in the TextView. -->
+        <attr name="android:textFontWeight" />
+        <!-- Font family (named by string or as a font resource reference) for the text. -->
+        <attr name="android:fontFamily" />
+        <!-- Specifies the {@link android.os.LocaleList} for the text in this TextView.
+             If not given, the system default will be used.
+             May be a string value, which is a comma-separated language tag list, such as "ja-JP,zh-CN".
+             When not specified or an empty string is given, it will fallback to the default one.
+             {@see android.os.LocaleList#forLanguageTags(String)}
+             {@see android.widget.TextView#setTextLocales(android.os.LocaleList)} -->
+        <attr name="android:textLocale" />
+        <!-- Text color for links. -->
+        <attr name="android:textColorLink" />
+        <!-- Makes the cursor visible (the default) or invisible. -->
+        <attr name="android:cursorVisible" />
+        <!-- Makes the TextView be at most this many lines tall.
+
+        When used on an editable text, the <code>inputType</code> attribute's value must be
+        combined with the <code>textMultiLine</code> flag for the maxLines attribute to apply. -->
+        <attr name="android:maxLines" />
+        <!-- Makes the TextView be at most this many pixels tall. -->
+        <attr name="android:maxHeight" />
+        <!-- Makes the TextView be exactly this many lines tall. -->
+        <attr name="android:lines" />
+        <!-- Makes the TextView be exactly this tall.
+             You could get the same effect by specifying this number in the
+             layout parameters. -->
+        <attr name="android:height" />
+        <!-- Makes the TextView be at least this many lines tall.
+
+        When used on an editable text, the <code>inputType</code> attribute's value must be
+        combined with the <code>textMultiLine</code> flag for the minLines attribute to apply. -->
+        <attr name="android:minLines" />
+        <!-- Makes the TextView be at least this many pixels tall. -->
+        <attr name="android:minHeight" />
+        <!-- Makes the TextView be at most this many ems wide. -->
+        <attr name="android:maxEms" />
+        <!-- Makes the TextView be at most this many pixels wide. -->
+        <attr name="android:maxWidth" />
+        <!-- Makes the TextView be exactly this many ems wide. -->
+        <attr name="android:ems" />
+        <!-- Makes the TextView be exactly this wide.
+             You could get the same effect by specifying this number in the
+             layout parameters. -->
+        <attr name="android:width" />
+        <!-- Makes the TextView be at least this many ems wide. -->
+        <attr name="android:minEms" />
+        <!-- Makes the TextView be at least this many pixels wide. -->
+        <attr name="android:minWidth" />
+        <!-- Specifies how to align the text by the view's x- and/or y-axis
+             when the text is smaller than the view. -->
+        <attr name="android:gravity" />
+        <!-- Whether the text is allowed to be wider than the view (and
+             therefore can be scrolled horizontally). -->
+        <attr name="android:scrollHorizontally" />
+        <!-- Whether the characters of the field are displayed as
+             password dots instead of themselves.
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:password" />
+        <!-- Constrains the text to a single horizontally scrolling line
+             instead of letting it wrap onto multiple lines, and advances
+             focus instead of inserting a newline when you press the
+             enter key.
+
+             The default value is false (multi-line wrapped text mode) for non-editable text, but if
+             you specify any value for inputType, the default is true (single-line input field mode).
+
+             {@deprecated This attribute is deprecated. Use <code>maxLines</code> instead to change
+             the layout of a static text, and use the <code>textMultiLine</code> flag in the
+             inputType attribute instead for editable text views (if both singleLine and inputType
+             are supplied, the inputType flags will override the value of singleLine). } -->
+        <attr name="android:singleLine" />
+        <!-- Specifies whether the widget is enabled. The interpretation of the enabled state varies by subclass.
+             For example, a non-enabled EditText prevents the user from editing the contained text, and
+             a non-enabled Button prevents the user from tapping the button.
+             The appearance of enabled and non-enabled widgets may differ, if the drawables referenced
+             from evaluating state_enabled differ. -->
+        <attr name="android:enabled" />
+        <!-- If the text is selectable, select it all when the view takes
+             focus. -->
+        <attr name="android:selectAllOnFocus" />
+        <!-- Leave enough room for ascenders and descenders instead of
+             using the font ascent and descent strictly.  (Normally true). -->
+        <attr name="android:includeFontPadding" />
+        <!-- Set an input filter to constrain the text length to the
+             specified number. -->
+        <attr name="android:maxLength" />
+        <!-- Place a blurred shadow of text underneath the text, drawn with the
+             specified color. The text shadow produced does not interact with
+             properties on View that are responsible for real time shadows,
+             {@link android.R.styleable#View_elevation elevation} and
+             {@link android.R.styleable#View_translationZ translationZ}. -->
+        <attr name="android:shadowColor" />
+        <!-- Horizontal offset of the text shadow. -->
+        <attr name="android:shadowDx" />
+        <!-- Vertical offset of the text shadow. -->
+        <attr name="android:shadowDy" />
+        <!-- Blur radius of the text shadow. -->
+        <attr name="android:shadowRadius" />
+        <attr name="android:autoLink" />
+        <!-- If set to false, keeps the movement method from being set
+             to the link movement method even if autoLink causes links
+             to be found. -->
+        <attr name="android:linksClickable" />
+        <!-- If set, specifies that this TextView has a numeric input method.
+             The default is false.
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:numeric" />
+        <!-- If set, specifies that this TextView has a numeric input method
+             and that these specific characters are the ones that it will
+             accept.
+             If this is set, numeric is implied to be true.
+             The default is false. -->
+        <attr name="android:digits" />
+        <!-- If set, specifies that this TextView has a phone number input
+             method. The default is false.
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:phoneNumber" />
+        <!-- If set, specifies that this TextView should use the specified
+             input method (specified by fully-qualified class name).
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:inputMethod" />
+        <!-- If set, specifies that this TextView has a textual input method
+             and should automatically capitalize what the user types.
+             The default is "none".
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:capitalize" />
+        <!-- If set, specifies that this TextView has a textual input method
+             and automatically corrects some common spelling errors.
+             The default is "false".
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:autoText" />
+        <!-- If set, specifies that this TextView has an input method.
+             It will be a textual one unless it has otherwise been specified.
+             For TextView, this is false by default.  For EditText, it is
+             true by default.
+             {@deprecated Use inputType instead.} -->
+        <attr name="android:editable" />
+        <!-- If set, the text view will include its current complete text
+             inside of its frozen icicle in addition to meta-data such as
+             the current cursor position.  By default this is disabled;
+             it can be useful when the contents of a text view is not stored
+             in a persistent place such as a content provider. For
+             {@link android.widget.EditText} it is always enabled, regardless
+             of the value of the attribute. -->
+        <attr name="android:freezesText" />
+        <!-- If set, causes words that are longer than the view is wide
+             to be ellipsized instead of broken in the middle.
+             You will often also want to set scrollHorizontally or singleLine
+             as well so that the text as a whole is also constrained to
+             a single line instead of still allowed to be broken onto
+             multiple lines. -->
+        <attr name="android:ellipsize" />
+        <!-- The drawable to be drawn above the text. -->
+        <attr name="android:drawableTop" />
+        <!-- The drawable to be drawn below the text. -->
+        <attr name="android:drawableBottom" />
+        <!-- The drawable to be drawn to the left of the text. -->
+        <attr name="android:drawableLeft" />
+        <!-- The drawable to be drawn to the right of the text. -->
+        <attr name="android:drawableRight" />
+        <!-- The drawable to be drawn to the start of the text. -->
+        <attr name="android:drawableStart" />
+        <!-- The drawable to be drawn to the end of the text. -->
+        <attr name="android:drawableEnd" />
+        <!-- The padding between the drawables and the text. -->
+        <attr name="android:drawablePadding" />
+        <!-- Tint to apply to the compound (left, top, etc.) drawables. -->
+        <attr name="android:drawableTint" />
+        <!-- Blending mode used to apply the compound (left, top, etc.) drawables tint. -->
+        <attr name="android:drawableTintMode" />
+        <!-- Extra spacing between lines of text. The value will not be applied for the last
+             line of text. -->
+        <attr name="android:lineSpacingExtra" />
+        <!-- Extra spacing between lines of text, as a multiplier. The value will not be applied
+             for the last line of text.-->
+        <attr name="android:lineSpacingMultiplier" />
+        <!-- Explicit height between lines of text. If set, this will override the values set
+             for lineSpacingExtra and lineSpacingMultiplier. -->
+        <attr name="android:lineHeight" />
+        <!-- Distance from the top of the TextView to the first text baseline. If set, this
+             overrides the value set for paddingTop. -->
+        <attr name="android:firstBaselineToTopHeight" />
+        <!-- Distance from the bottom of the TextView to the last text baseline. If set, this
+             overrides the value set for paddingBottom. -->
+        <attr name="android:lastBaselineToBottomHeight" />
+        <!-- The number of times to repeat the marquee animation. Only applied if the
+             TextView has marquee enabled. -->
+        <attr name="android:marqueeRepeatLimit" />
+        <attr name="android:inputType" />
+        <!-- Whether undo should be allowed for editable text. Defaults to true. -->
+        <attr name="android:allowUndo" />
+        <attr name="android:imeOptions" />
+        <!-- An addition content type description to supply to the input
+             method attached to the text view, which is private to the
+             implementation of the input method.  This simply fills in
+             the {@link android.view.inputmethod.EditorInfo#privateImeOptions
+             EditorInfo.privateImeOptions} field when the input
+             method is connected. -->
+        <attr name="android:privateImeOptions" />
+        <!-- Supply a value for
+             {@link android.view.inputmethod.EditorInfo#actionLabel EditorInfo.actionLabel}
+             used when an input method is connected to the text view. -->
+        <attr name="android:imeActionLabel" />
+        <!-- Supply a value for
+             {@link android.view.inputmethod.EditorInfo#actionId EditorInfo.actionId}
+             used when an input method is connected to the text view. -->
+        <attr name="android:imeActionId" />
+        <!-- Reference to an
+             {@link android.R.styleable#InputExtras &lt;input-extras&gt;}
+             XML resource containing additional data to
+             supply to an input method, which is private to the implementation
+             of the input method.  This simply fills in
+             the {@link android.view.inputmethod.EditorInfo#extras
+             EditorInfo.extras} field when the input
+             method is connected. -->
+        <attr name="android:editorExtras" />
+
+        <!-- Reference to a drawable that will be used to display a text selection
+             anchor on the left side of a selection region. -->
+        <attr name="android:textSelectHandleLeft" />
+        <!-- Reference to a drawable that will be used to display a text selection
+             anchor on the right side of a selection region. -->
+        <attr name="android:textSelectHandleRight" />
+        <!-- Reference to a drawable that will be used to display a text selection
+             anchor for positioning the cursor within text. -->
+        <attr name="android:textSelectHandle" />
+        <!-- The layout of the view that is displayed on top of the cursor to paste inside a
+             TextEdit field. -->
+        <attr name="android:textEditPasteWindowLayout" />
+        <!-- Variation of textEditPasteWindowLayout displayed when the clipboard is empty. -->
+        <attr name="android:textEditNoPasteWindowLayout" />
+        <!-- Used instead of textEditPasteWindowLayout when the window is moved on the side of the
+             insertion cursor because it would be clipped if it were positioned on top. -->
+        <attr name="android:textEditSidePasteWindowLayout" />
+        <!-- Variation of textEditSidePasteWindowLayout displayed when the clipboard is empty. -->
+        <attr name="android:textEditSideNoPasteWindowLayout" />
+
+        <!-- Layout of the TextView item that will populate the suggestion popup window. -->
+        <attr name="android:textEditSuggestionItemLayout" />
+        <!-- Layout of the container of the suggestion popup window. -->
+<!--        <attr name="android:textEditSuggestionContainerLayout" />-->
+        <!-- Style of the highlighted string in the suggestion popup window. -->
+<!--        <attr name="android:textEditSuggestionHighlightStyle" />-->
+
+
+        <!-- Reference to a drawable that will be drawn under the insertion cursor. -->
+        <attr name="android:textCursorDrawable" />
+
+        <!-- Indicates that the content of a non-editable text can be selected. -->
+        <attr name="android:textIsSelectable" />
+        <!-- Present the text in ALL CAPS. This may use a small-caps form when available. -->
+        <attr name="android:textAllCaps" />
+        <!-- Elegant text height, especially for less compacted complex script text. -->
+        <attr name="android:elegantTextHeight" />
+        <!-- Whether to respect the ascent and descent of the fallback fonts that are used in
+        displaying the text. When true, fallback fonts that end up getting used can increase
+        the ascent and descent of the lines that they are used on. -->
+        <attr name="android:fallbackLineSpacing" />
+        <!-- Text letter-spacing. -->
+        <attr name="android:letterSpacing" />
+        <!-- Font feature settings. -->
+        <attr name="android:fontFeatureSettings" />
+        <!-- Font variation settings. -->
+        <attr name="android:fontVariationSettings" />
+        <!-- Break strategy (control over paragraph layout). -->
+        <attr name="android:breakStrategy" />
+        <!-- Frequency of automatic hyphenation. -->
+        <attr name="android:hyphenationFrequency" />
+        <!-- Specify the type of auto-size. Note that this feature is not supported by EditText,
+        works only for TextView. -->
+        <attr name="android:autoSizeTextType" />
+        <!-- Specify the auto-size step size if <code>autoSizeTextType</code> is set to
+        <code>uniform</code>. The default is 1px. Overwrites
+        <code>autoSizePresetSizes</code> if set. -->
+        <attr name="android:autoSizeStepGranularity" />
+        <!-- Resource array of dimensions to be used in conjunction with
+        <code>autoSizeTextType</code> set to <code>uniform</code>. Overrides
+        <code>autoSizeStepGranularity</code> if set. -->
+        <attr name="android:autoSizePresetSizes"/>
+        <!-- The minimum text size constraint to be used when auto-sizing text. -->
+        <attr name="android:autoSizeMinTextSize" />
+        <!-- The maximum text size constraint to be used when auto-sizing text. -->
+        <attr name="android:autoSizeMaxTextSize" />
+        <!-- Mode for justification. -->
+        <attr name="android:justificationMode" />
+    </declare-styleable>
+    <declare-styleable name="TextViewAppearance">
+        <!-- Base text color, typeface, size, and style. -->
+        <attr name="android:textAppearance" />
     </declare-styleable>
 </resources>
