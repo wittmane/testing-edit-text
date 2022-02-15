@@ -109,6 +109,17 @@
                 android:gravity="top"
                 android:inputType="textMultiLine"
                 android:hint="hint text\nsecond line"/>
+            <EditText
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:gravity="top"
+                android:inputType="textMultiLine"
+                android:ems="9"
+                android:minLines="2"
+                android:text="foo\nbar\nbaz"
+                android:justificationMode="inter_word"
+                android:hint="hint text\nsecond line"/>
 <!--            <EditText-->
 <!--                android:layout_width="wrap_content"-->
 <!--                android:layout_height="wrap_content"-->
@@ -193,6 +204,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Custom simple EditText stripped 2"/>
+            <com.wittmane.testingedittext.CustomEditTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:gravity="top"
+                android:inputType="textMultiLine"
+                android:ems="9"
+                android:minLines="2"
+                android:justificationMode="inter_word"
+                android:text="foo\nbar\nbaz"
+                android:hint="hint text\nsecond line"/>
             <com.wittmane.testingedittext.CustomEditTextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

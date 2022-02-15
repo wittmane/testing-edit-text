@@ -5,17 +5,13 @@ import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Paint.FontMetricsInt;
 import android.graphics.Path;
-import android.graphics.Point;
-import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -32,18 +28,13 @@ import android.text.ParcelableSpan;
 import android.text.Selection;
 import android.text.SpanWatcher;
 import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.text.method.ArrowKeyMovementMethod;
-import android.text.method.KeyListener;
 import android.text.method.MetaKeyKeyListener;
-import android.text.method.MovementMethod;
 import android.text.method.SingleLineTransformationMethod;
-import android.text.method.TextKeyListener;
 import android.text.method.TransformationMethod;
 import android.text.style.CharacterStyle;
 import android.text.style.ParagraphStyle;
@@ -64,18 +55,14 @@ import android.view.ViewDebug;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
-import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityManager;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
-import android.view.textclassifier.TextClassificationContext;
 import android.view.textclassifier.TextClassificationManager;
 import android.view.textclassifier.TextClassifier;
 import android.widget.EditText;
-import android.widget.PopupWindow;
 import android.widget.Scroller;
 import android.widget.Toast;
 
@@ -84,6 +71,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.Px;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.core.content.ContextCompat;
@@ -94,7 +82,6 @@ import com.wittmane.testingedittext.method.CustomMovementMethod;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Locale;
 
 public class CustomEditTextView extends View implements ICustomTextView, ViewTreeObserver.OnPreDrawListener {
@@ -177,6 +164,8 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
     private float mShadowRadius, mShadowDx, mShadowDy;
     private int mShadowColor;
+
+    private int mJustificationMode;
 
     private ArrayList<TextWatcher> mListeners;
 
@@ -340,7 +329,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         attributes.mTextSize = 15;
 //        mBreakStrategy = Layout.BREAK_STRATEGY_SIMPLE;
 //        mHyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE;
-//        mJustificationMode = Layout.JUSTIFICATION_MODE_NONE;
+        mJustificationMode = Layout.JUSTIFICATION_MODE_NONE;
 
         final Resources.Theme theme = context.getTheme();
 
@@ -390,7 +379,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 //        float autoSizeStepGranularityInPx = UNSET_AUTO_SIZE_UNIFORM_CONFIGURATION_VALUE;
         int inputType = EditorInfo.TYPE_NULL;
         typedArray = theme.obtainStyledAttributes(
-                attrs, /*com.android.internal.R.styleable.TextView*/R.styleable.TextView, defStyleAttr, /*defStyleRes*/0);
+                attrs, /*com.android.internal.R.styleable.TextView*/R.styleable.CustomEditTextView, defStyleAttr, /*defStyleRes*/0);
         int firstBaselineToTopHeight = -1;
         int lastBaselineToBottomHeight = -1;
         int lineHeight = -1;
@@ -399,51 +388,51 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
         for (int i = 0; i < typedArray.getIndexCount(); i++) {
             int attr = typedArray.getIndex(i);
-            if (attr == R.styleable.TextView_android_editable) {
+            if (attr == R.styleable.CustomEditTextView_android_editable) {
                 // skipping - editable is deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_inputMethod) {
+            } else if (attr == R.styleable.CustomEditTextView_android_inputMethod) {
                 // skipping - inputMethod is deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_numeric) {
+            } else if (attr == R.styleable.CustomEditTextView_android_numeric) {
                 // skipping - numeric is deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_digits) {
+            } else if (attr == R.styleable.CustomEditTextView_android_digits) {
                 //TODO: probably implement - this supports more than just numbers (unsure if this is
                 // intended functionality or just a hack). if this isn't added, at least add some
                 // other means to filter input to only allow certain characters
                 // If set, specifies that this TextView has a numeric input method and that these
                 // specific characters are the ones that it will accept. If this is set, numeric is
                 // implied to be true. The default is false.
-            } else if (attr == R.styleable.TextView_android_phoneNumber) {
+            } else if (attr == R.styleable.CustomEditTextView_android_phoneNumber) {
                 // skipping - phoneNumber is deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_autoText) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoText) {
                 // skipping - autoText is deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_capitalize) {
+            } else if (attr == R.styleable.CustomEditTextView_android_capitalize) {
                 //skipping - capitalize is deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_bufferType) {
+            } else if (attr == R.styleable.CustomEditTextView_android_bufferType) {
                 // skipping - EditText always returns Editable, even if you specify something less
                 // powerful
-            } else if (attr == R.styleable.TextView_android_selectAllOnFocus) {
+            } else if (attr == R.styleable.CustomEditTextView_android_selectAllOnFocus) {
                 //TODO: consider implementing
                 // If the text is selectable, select it all when the view takes focus.
-            } else if (attr == R.styleable.TextView_android_autoLink) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoLink) {
                 // probably skip - EditText doesn't update the links as you type, so this doesn't
                 // seem very beneficial
                 // Controls whether links such as urls and email addresses are automatically found
                 // and converted to clickable links. The default value is "none", disabling this
                 // feature.
-            } else if (attr == R.styleable.TextView_android_linksClickable) {
+            } else if (attr == R.styleable.CustomEditTextView_android_linksClickable) {
                 // probably skip - If set to false, keeps the movement method from being set to the
                 // link movement method even if autoLink causes links to be found.
-            } else if (attr == R.styleable.TextView_android_drawableLeft) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawableLeft) {
                 // probably skip - The drawable to be drawn to the left of the text.
-            } else if (attr == R.styleable.TextView_android_drawableTop) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawableTop) {
                 // probably skip
-            } else if (attr == R.styleable.TextView_android_drawableRight) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawableRight) {
                 // probably skip
-            } else if (attr == R.styleable.TextView_android_drawableBottom) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawableBottom) {
                 // probably skip
-            } else if (attr == R.styleable.TextView_android_drawableStart) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawableStart) {
                 // probably skip
-            } else if (attr == R.styleable.TextView_android_drawableEnd) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawableEnd) {
                 // probably skip
 //            } else if (&& attr == R.styleable.TextView_android_drawableTint) {
 //                // probably skip
@@ -453,103 +442,105 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 //                // probably skip
 //                // can't use for some reason - maybe because it looks like it is just defined with
 //                // an ID and not a type
-            } else if (attr == R.styleable.TextView_android_drawablePadding) {
+            } else if (attr == R.styleable.CustomEditTextView_android_drawablePadding) {
                 // probably skip
-            } else if (attr == R.styleable.TextView_android_maxLines) {
-                //TODO: implement
+            } else if (attr == R.styleable.CustomEditTextView_android_maxLines) {
                 // Makes the TextView be at most this many lines tall. The inputType attribute's
                 // value must be combined with the textMultiLine flag for the maxLines attribute to
                 // apply.
-            } else if (attr == R.styleable.TextView_android_maxHeight) {
-                //TODO: implement
+                setMaxLines(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_maxHeight) {
                 // Makes the TextView be at most this many pixels tall.
-            } else if (attr == R.styleable.TextView_android_lines) {
-                //TODO: implement
+                setMaxHeight(typedArray.getDimensionPixelSize(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_lines) {
                 // Makes the TextView be exactly this many lines tall.
-            } else if (attr == R.styleable.TextView_android_height) {
-                //TODO:  maybe implement
+                //TODO: this doesn't actually limit the number of lines (even in EditText) - it's
+                // only the visual height - consider if it's worth not supporting
+                setLines(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_height) {
                 // Makes the TextView be exactly this tall. You could get the same effect by
                 // specifying this number in the layout parameters.
-            } else if (attr == R.styleable.TextView_android_minLines) {
-                //TODO: implement
+                setHeight(typedArray.getDimensionPixelSize(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_minLines) {
                 // Makes the TextView be at least this many lines tall. The inputType attribute's
                 // value must be combined with the textMultiLine flag for the minLines attribute to
                 // apply.
-            } else if (attr == R.styleable.TextView_android_minHeight) {
-                //TODO: implement
+                setMinLines(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_minHeight) {
                 // Makes the TextView be at least this many pixels tall.
-            } else if (attr == R.styleable.TextView_android_maxEms) {
-                //TODO: implement
+                setMinHeight(typedArray.getDimensionPixelSize(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_maxEms) {
                 // Makes the TextView be at most this many ems wide.
-            } else if (attr == R.styleable.TextView_android_maxWidth) {
-                //TODO: implement
+                setMaxEms(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_maxWidth) {
                 // Makes the TextView be at most this many pixels wide.
-            } else if (attr == R.styleable.TextView_android_ems) {
-                //TODO: implement
+                setMaxWidth(typedArray.getDimensionPixelSize(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_ems) {
                 // Makes the TextView be exactly this many ems wide.
-            } else if (attr == R.styleable.TextView_android_width) {
-                //TODO: maybe implement
+                setEms(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_width) {
                 // Makes the TextView be exactly this wide. You could get the same effect by
                 // specifying this number in the layout parameters.
-            } else if (attr == R.styleable.TextView_android_minEms) {
-                //TODO: implement
+                setWidth(typedArray.getDimensionPixelSize(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_minEms) {
                 // Makes the TextView be at least this many ems wide.
-            } else if (attr == R.styleable.TextView_android_minWidth) {
-                //TODO: implement
+                setMinEms(typedArray.getInt(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_minWidth) {
                 // Makes the TextView be at least this many pixels wide.
-            } else if (attr == R.styleable.TextView_android_gravity) {
+                setMinWidth(typedArray.getDimensionPixelSize(attr, -1));
+            } else if (attr == R.styleable.CustomEditTextView_android_gravity) {
                 // Specifies how to align the text by the view's x- and/or y-axis when the text is
                 // smaller than the view.
                 setGravity(typedArray.getInt(attr, -1));
-            } else if (attr == R.styleable.TextView_android_hint) {
+            } else if (attr == R.styleable.CustomEditTextView_android_hint) {
                 hint = typedArray.getText(attr);
-            } else if (attr == R.styleable.TextView_android_text) {
+            } else if (attr == R.styleable.CustomEditTextView_android_text) {
                 text = typedArray.getText(attr);
-            } else if (attr == R.styleable.TextView_android_scrollHorizontally) {
+            } else if (attr == R.styleable.CustomEditTextView_android_scrollHorizontally) {
                 //skipping - doesn't seem to have any effect in an EditText
-            } else if (attr == R.styleable.TextView_android_singleLine) {
+            } else if (attr == R.styleable.CustomEditTextView_android_singleLine) {
                 //skipping - deprecated. Use maxLines instead to change the layout of a static text,
                 // and use the textMultiLine flag in the inputType attribute instead for editable
                 // text views (if both singleLine and inputType are supplied, the inputType flags
                 // will override the value of singleLine)
-            } else if (attr == R.styleable.TextView_android_ellipsize) {
+            } else if (attr == R.styleable.CustomEditTextView_android_ellipsize) {
                 // skipping - doesn't seem to work in EditText (although only marquee is called out
                 // as not supported)
-            } else if (attr == R.styleable.TextView_android_marqueeRepeatLimit) {
+            } else if (attr == R.styleable.CustomEditTextView_android_marqueeRepeatLimit) {
                 // skipping - not supported in EditText
-            } else if (attr == R.styleable.TextView_android_includeFontPadding) {
+            } else if (attr == R.styleable.CustomEditTextView_android_includeFontPadding) {
                 //TODO: consider implementing if simple
                 // Leave enough room for ascenders and descenders instead of using the font ascent
                 // and descent strictly. (Normally true).
-            } else if (attr == R.styleable.TextView_android_cursorVisible) {
+            } else if (attr == R.styleable.CustomEditTextView_android_cursorVisible) {
                 //TODO: consider implementing if simple - not really sure why this would be wanted
                 // Makes the cursor visible (the default) or invisible.
-            } else if (attr == R.styleable.TextView_android_maxLength) {
+            } else if (attr == R.styleable.CustomEditTextView_android_maxLength) {
                 //TODO: implement
                 // Set an input filter to constrain the text length to the specified number.
-            } else if (attr == R.styleable.TextView_android_textScaleX) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textScaleX) {
                 //TODO: implement
                 // Sets the horizontal scaling factor for the text.
-            } else if (attr == R.styleable.TextView_android_freezesText) {
+            } else if (attr == R.styleable.CustomEditTextView_android_freezesText) {
                 //skipping - If set, the text view will include its current complete text inside of
                 // its frozen icicle in addition to meta-data such as the current cursor position.
                 // By default this is disabled; it can be useful when the contents of a text view is
                 // not stored in a persistent place such as a content provider. For
                 // {@link android.widget.EditText} it is always enabled, regardless of the value of
                 // the attribute.
-            } else if (attr == R.styleable.TextView_android_enabled) {
+            } else if (attr == R.styleable.CustomEditTextView_android_enabled) {
                 setEnabled(typedArray.getBoolean(attr, isEnabled()));
-            } else if (attr == R.styleable.TextView_android_password) {
+            } else if (attr == R.styleable.CustomEditTextView_android_password) {
                 //skipping - deprecated: Use inputType instead
-            } else if (attr == R.styleable.TextView_android_lineSpacingExtra) {
+            } else if (attr == R.styleable.CustomEditTextView_android_lineSpacingExtra) {
                 //TODO: implement
                 // Extra spacing between lines of text. The value will not be applied for the last
                 // line of text.
-            } else if (attr == R.styleable.TextView_android_lineSpacingMultiplier) {
+            } else if (attr == R.styleable.CustomEditTextView_android_lineSpacingMultiplier) {
                 //TODO: implement
                 // Extra spacing between lines of text, as a multiplier. The value will not be
                 // applied for the last line of text.
-            } else if (attr == R.styleable.TextView_android_inputType) {
+            } else if (attr == R.styleable.CustomEditTextView_android_inputType) {
                 //TODO: implement
                 // The type of data being placed in a text field, used to help an input method
                 // decide how to let the user enter text. The constants here correspond to those
@@ -564,10 +555,10 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 // textPhonetic, textPostalAddress, textShortMessage, textUri, textVisiblePassword,
                 // textWebEditText, textWebEmailAddress, textWebPassword, time
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
-            } else if (attr == R.styleable.TextView_android_allowUndo) {
+            } else if (attr == R.styleable.CustomEditTextView_android_allowUndo) {
                 //TODO: consider implementing
                 // Whether undo should be allowed for editable text. Defaults to true.
-            } else if (attr == R.styleable.TextView_android_imeOptions) {
+            } else if (attr == R.styleable.CustomEditTextView_android_imeOptions) {
                 //TODO: implement
                 // Additional features you can enable in an IME associated with an editor to improve
                 // the integration with your application. The constants here correspond to those
@@ -577,72 +568,80 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 // actionSend, actionUnspecified, flagForceAscii, flagNavigateNext,
                 // flagNavigatePrevious, flagNoAccessoryAction, flagNoEnterAction, flagNoExtractUi,
                 // flagNoFullscreen, flagNoPersonalizedLearning, normal
-            } else if (attr == R.styleable.TextView_android_imeActionLabel) {
+            } else if (attr == R.styleable.CustomEditTextView_android_imeActionLabel) {
                 //TODO: implement
                 // Supply a value for {@link android.view.inputmethod.EditorInfo#actionLabel
                 // EditorInfo.actionLabel} used when an input method is connected to the text view.
-            } else if (attr == R.styleable.TextView_android_imeActionId) {
+            } else if (attr == R.styleable.CustomEditTextView_android_imeActionId) {
                 //TODO: implement
                 // Supply a value for {@link android.view.inputmethod.EditorInfo#actionId
                 // EditorInfo.actionId} used when an input method is connected to the text view.
-            } else if (attr == R.styleable.TextView_android_privateImeOptions) {
+            } else if (attr == R.styleable.CustomEditTextView_android_privateImeOptions) {
                 //TODO: implement
                 // An addition content type description to supply to the input method attached to
                 // the text view, which is private to the implementation of the input method. This
                 // simply fills in the {@link android.view.inputmethod.EditorInfo#privateImeOptions
                 // EditorInfo.privateImeOptions} field when the input method is connected.
-            } else if (attr == R.styleable.TextView_android_editorExtras) {
+            } else if (attr == R.styleable.CustomEditTextView_android_editorExtras) {
                 //TODO: probably implement
                 // Reference to an {@link android.R.styleable#InputExtras <input-extras>} XML
                 // resource containing additional data to supply to an input method, which is
                 // private to the implementation of the input method. This simply fills in the
                 // {@link android.view.inputmethod.EditorInfo#extras EditorInfo.extras} field when
                 // the input method is connected.
-            } else if (attr == R.styleable.TextView_android_textCursorDrawable) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textCursorDrawable) {
                 mCursorDrawableRes = typedArray.getResourceId(attr, 0);
-            } else if (attr == R.styleable.TextView_android_textSelectHandleLeft) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textSelectHandleLeft) {
                 mTextSelectHandleLeftRes = typedArray.getResourceId(attr, 0);
-            } else if (attr == R.styleable.TextView_android_textSelectHandleRight) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textSelectHandleRight) {
                 mTextSelectHandleRightRes = typedArray.getResourceId(attr, 0);
-            } else if (attr == R.styleable.TextView_android_textSelectHandle) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textSelectHandle) {
                 mTextSelectHandleRes = typedArray.getResourceId(attr, 0);
-            } else if (attr == R.styleable.TextView_android_textEditSuggestionItemLayout) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textEditSuggestionItemLayout) {
                 //probably skip - Layout of the TextView item that will populate the suggestion
                 // popup window.
 //            } else if (attr == R.styleable.TextView_android_textEditSuggestionContainerLayout) {
 //                //skipping - textEditSuggestionContainerLayout is private
 //            } else if (attr == R.styleable.TextView_android_textEditSuggestionHighlightStyle) {
 //                //skipping - textEditSuggestionHighlightStyle is private
-            } else if (attr == R.styleable.TextView_android_textIsSelectable) {
+            } else if (attr == R.styleable.CustomEditTextView_android_textIsSelectable) {
                 //skipping - doesn't seem to have any effect in an EditText
-            } else if (attr == R.styleable.TextView_android_breakStrategy) {
+            } else if (attr == R.styleable.CustomEditTextView_android_breakStrategy) {
                 //skipping - Break strategy (control over paragraph layout).
-            } else if (attr == R.styleable.TextView_android_hyphenationFrequency) {
+            } else if (attr == R.styleable.CustomEditTextView_android_hyphenationFrequency) {
                 //skipping - Frequency of automatic hyphenation
-            } else if (attr == R.styleable.TextView_android_autoSizeTextType) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoSizeTextType) {
                 //skipping - this feature is not supported by EditText
-            } else if (attr == R.styleable.TextView_android_autoSizeStepGranularity) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoSizeStepGranularity) {
                 //skipping - this feature is not supported by EditText
-            } else if (attr == R.styleable.TextView_android_autoSizeMinTextSize) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoSizeMinTextSize) {
                 //skipping - this feature is not supported by EditText
-            } else if (attr == R.styleable.TextView_android_autoSizeMaxTextSize) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoSizeMaxTextSize) {
                 //skipping - this feature is not supported by EditText
-            } else if (attr == R.styleable.TextView_android_autoSizePresetSizes) {
+            } else if (attr == R.styleable.CustomEditTextView_android_autoSizePresetSizes) {
                 //skipping - this feature is not supported by EditText
-            } else if (attr == R.styleable.TextView_android_justificationMode) {
-                //probably skip - justificationMode is only used in API level 26 and higher
-            } else if (attr == R.styleable.TextView_android_firstBaselineToTopHeight) {
-                //TODO: consider implementing if simple - only used in API level 28 and higher
+            } else if (attr == R.styleable.CustomEditTextView_android_justificationMode) {
+                // Mode for justification.
+                //TODO: this doesn't apply the justification as you type (even in EditText), so it
+                // may be better to just remove support for this
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    mJustificationMode = typedArray.getInt(attr, Layout.JUSTIFICATION_MODE_NONE);
+                }
+            } else if (attr == R.styleable.CustomEditTextView_android_firstBaselineToTopHeight) {
                 // Distance from the top of the TextView to the first text baseline. If set, this
                 // overrides the value set for paddingTop.
-            } else if (attr == R.styleable.TextView_android_lastBaselineToBottomHeight) {
-                //TODO: consider implementing if simple - only used in API level 28 and higher
+                // only used in API level 28 and higher
+                firstBaselineToTopHeight = typedArray.getDimensionPixelSize(attr, -1);
+            } else if (attr == R.styleable.CustomEditTextView_android_lastBaselineToBottomHeight) {
                 // Distance from the bottom of the TextView to the last text baseline. If set, this
                 // overrides the value set for paddingBottom.
-            } else if (attr == R.styleable.TextView_android_lineHeight) {
-                //TODO: consider implementing if simple - only used in API level 28 and higher
+                // only used in API level 28 and higher
+                lastBaselineToBottomHeight = typedArray.getDimensionPixelSize(attr, -1);
+            } else if (attr == R.styleable.CustomEditTextView_android_lineHeight) {
                 // Explicit height between lines of text. If set, this will override the values set
                 // for lineSpacingExtra and lineSpacingMultiplier.
+                // only used in API level 28 and higher
+                lineHeight = typedArray.getDimensionPixelSize(attr, -1);
             }
         }
 
@@ -673,6 +672,17 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         setClickable(true);
         setLongClickable(true);
         mEditor.prepareCursorControllers();
+
+        if (firstBaselineToTopHeight >= 0) {
+            setFirstBaselineToTopHeight(firstBaselineToTopHeight);
+        }
+        if (lastBaselineToBottomHeight >= 0) {
+            setLastBaselineToBottomHeight(lastBaselineToBottomHeight);
+        }
+        if (lineHeight >= 0) {
+            setLineHeight(lineHeight);
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Log.w(TAG, "getFocusable=" + getFocusable());
         }
@@ -1250,41 +1260,41 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     // Maps styleable attributes that exist both in TextView style and TextAppearance.
     private static final SparseIntArray sAppearanceValues = new SparseIntArray();
     static {
-        sAppearanceValues.put(R.styleable.TextView_android_textColorHighlight,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textColorHighlight,
                 R.styleable.TextAppearance_android_textColorHighlight);
-        sAppearanceValues.put(R.styleable.TextView_android_textColor,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textColor,
                 R.styleable.TextAppearance_android_textColor);
-        sAppearanceValues.put(R.styleable.TextView_android_textColorHint,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textColorHint,
                 R.styleable.TextAppearance_android_textColorHint);
-        sAppearanceValues.put(R.styleable.TextView_android_textColorLink,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textColorLink,
                 R.styleable.TextAppearance_android_textColorLink);
-        sAppearanceValues.put(R.styleable.TextView_android_textSize,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textSize,
                 R.styleable.TextAppearance_android_textSize);
-        sAppearanceValues.put(R.styleable.TextView_android_typeface,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_typeface,
                 R.styleable.TextAppearance_android_typeface);
-        sAppearanceValues.put(R.styleable.TextView_android_fontFamily,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_fontFamily,
                 R.styleable.TextAppearance_android_fontFamily);
-        sAppearanceValues.put(R.styleable.TextView_android_textStyle,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textStyle,
                 R.styleable.TextAppearance_android_textStyle);
-        sAppearanceValues.put(R.styleable.TextView_android_textFontWeight,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textFontWeight,
                 R.styleable.TextAppearance_android_textFontWeight);
-        sAppearanceValues.put(R.styleable.TextView_android_textAllCaps,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_textAllCaps,
                 R.styleable.TextAppearance_android_textAllCaps);
-        sAppearanceValues.put(R.styleable.TextView_android_shadowColor,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_shadowColor,
                 R.styleable.TextAppearance_android_shadowColor);
-        sAppearanceValues.put(R.styleable.TextView_android_shadowDx,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_shadowDx,
                 R.styleable.TextAppearance_android_shadowDx);
-        sAppearanceValues.put(R.styleable.TextView_android_shadowDy,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_shadowDy,
                 R.styleable.TextAppearance_android_shadowDy);
-        sAppearanceValues.put(R.styleable.TextView_android_shadowRadius,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_shadowRadius,
                 R.styleable.TextAppearance_android_shadowRadius);
-        sAppearanceValues.put(R.styleable.TextView_android_elegantTextHeight,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_elegantTextHeight,
                 R.styleable.TextAppearance_android_elegantTextHeight);
-        sAppearanceValues.put(R.styleable.TextView_android_fallbackLineSpacing,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_fallbackLineSpacing,
                 R.styleable.TextAppearance_android_fallbackLineSpacing);
-        sAppearanceValues.put(R.styleable.TextView_android_letterSpacing,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_letterSpacing,
                 R.styleable.TextAppearance_android_letterSpacing);
-        sAppearanceValues.put(R.styleable.TextView_android_fontFeatureSettings,
+        sAppearanceValues.put(R.styleable.CustomEditTextView_android_fontFeatureSettings,
                 R.styleable.TextAppearance_android_fontFeatureSettings);
     }
 
@@ -1505,21 +1515,6 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 setTransformationMethod(null);
             }
         }
-    }
-
-    public void setLines(int lines) {
-        mMaximum = mMinimum = lines;
-        mMaxMode = mMinMode = LINES;
-
-        requestLayout();
-        invalidate();
-    }
-    public void setMaxLines(int maxLines) {
-        mMaximum = maxLines;
-        mMaxMode = LINES;
-
-        requestLayout();
-        invalidate();
     }
 
     public void setHorizontallyScrolling(boolean whether) {
@@ -1746,7 +1741,28 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         mLayout = new DynamicLayout(mText, /*mTransformed*/mText, mTextPaint, wantWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
 
         if (mHint != null) {
-            mHintLayout = new StaticLayout(mHint, mTextPaint, hintWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+
+            StaticLayout.Builder builder = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                builder = StaticLayout.Builder.obtain(mHint, 0,
+                        mHint.length(), mTextPaint, hintWidth)
+                        .setAlignment(alignment)
+//                        .setTextDirection(mTextDir)
+                        .setLineSpacing(mSpacingAdd, mSpacingMult)
+                        .setIncludePad(mIncludePad)
+//                        .setBreakStrategy(mBreakStrategy)
+//                        .setHyphenationFrequency(mHyphenationFrequency)
+                        .setMaxLines(mMaxMode == LINES ? mMaximum : Integer.MAX_VALUE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    builder.setJustificationMode(mJustificationMode);
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    builder.setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing);
+                }
+                mHintLayout = builder.build();
+            } else {
+                mHintLayout = new StaticLayout(mHint, mTextPaint, hintWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+            }
         } else {
             mHintLayout = null;
         }
@@ -2051,6 +2067,407 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             }
         }
         return voffset;
+    }
+
+
+
+    /**
+     * Sets the height of the TextView to be at least {@code minLines} tall.
+     * <p>
+     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * exact height. Setting this value overrides other previous minimum height configurations such
+     * as {@link #setMinHeight(int)} or {@link #setHeight(int)}. {@link #setSingleLine()} will set
+     * this value to 1.
+     *
+     * @param minLines the minimum height of TextView in terms of number of lines
+     *
+     * @see #getMinLines()
+     * @see #setLines(int)
+     *
+     * @attr ref android.R.styleable#TextView_minLines
+     */
+    public void setMinLines(int minLines) {
+        mMinimum = minLines;
+        mMinMode = LINES;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the height of the TextView to be at least {@code minPixels} tall.
+     * <p>
+     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * exact height. Setting this value overrides previous minimum height configurations such as
+     * {@link #setMinLines(int)} or {@link #setLines(int)}.
+     * <p>
+     * The value given here is different than {@link #setMinimumHeight(int)}. Between
+     * {@code minHeight} and the value set in {@link #setMinimumHeight(int)}, the greater one is
+     * used to decide the final height.
+     *
+     * @param minPixels the minimum height of TextView in terms of pixels
+     *
+     * @see #getMinHeight()
+     * @see #setHeight(int)
+     *
+     * @attr ref android.R.styleable#TextView_minHeight
+     */
+    public void setMinHeight(int minPixels) {
+        mMinimum = minPixels;
+        mMinMode = PIXELS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the height of the TextView to be at most {@code maxLines} tall.
+     * <p>
+     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * exact height. Setting this value overrides previous maximum height configurations such as
+     * {@link #setMaxHeight(int)} or {@link #setLines(int)}.
+     *
+     * @param maxLines the maximum height of TextView in terms of number of lines
+     *
+     * @see #getMaxLines()
+     * @see #setLines(int)
+     *
+     * @attr ref android.R.styleable#TextView_maxLines
+     */
+    public void setMaxLines(int maxLines) {
+        mMaximum = maxLines;
+        mMaxMode = LINES;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the height of the TextView to be at most {@code maxPixels} tall.
+     * <p>
+     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * exact height. Setting this value overrides previous maximum height configurations such as
+     * {@link #setMaxLines(int)} or {@link #setLines(int)}.
+     *
+     * @param maxPixels the maximum height of TextView in terms of pixels
+     *
+     * @see #getMaxHeight()
+     * @see #setHeight(int)
+     *
+     * @attr ref android.R.styleable#TextView_maxHeight
+     */
+    public void setMaxHeight(int maxPixels) {
+        mMaximum = maxPixels;
+        mMaxMode = PIXELS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the height of the TextView to be exactly {@code lines} tall.
+     * <p>
+     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * exact height. Setting this value overrides previous minimum/maximum height configurations
+     * such as {@link #setMinLines(int)} or {@link #setMaxLines(int)}. {@link #setSingleLine()} will
+     * set this value to 1.
+     *
+     * @param lines the exact height of the TextView in terms of lines
+     *
+     * @see #setHeight(int)
+     *
+     * @attr ref android.R.styleable#TextView_lines
+     */
+    public void setLines(int lines) {
+        mMaximum = mMinimum = lines;
+        mMaxMode = mMinMode = LINES;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Gets whether the TextView includes extra top and bottom padding to make
+     * room for accents that go above the normal ascent and descent.
+     *
+     * @see #setIncludeFontPadding(boolean)
+     *
+     * @attr ref android.R.styleable#TextView_includeFontPadding
+     */
+    public boolean getIncludeFontPadding() {
+        return mIncludePad;
+    }
+
+
+    /**
+     * Updates the top padding of the TextView so that {@code firstBaselineToTopHeight} is
+     * equal to the distance between the firt text baseline and the top of this TextView.
+     * <strong>Note</strong> that if {@code FontMetrics.top} or {@code FontMetrics.ascent} was
+     * already greater than {@code firstBaselineToTopHeight}, the top padding is not updated.
+     *
+     * @param firstBaselineToTopHeight distance between first baseline to top of the container
+     *      in pixels
+     *
+     * @see #getFirstBaselineToTopHeight()
+     * @see #setPadding(int, int, int, int)
+     * @see #setPaddingRelative(int, int, int, int)
+     *
+     * @attr ref android.R.styleable#TextView_firstBaselineToTopHeight
+     */
+    public void setFirstBaselineToTopHeight(@Px @IntRange(from = 0) int firstBaselineToTopHeight) {
+
+        final FontMetricsInt fontMetrics = getPaint().getFontMetricsInt();
+        final int fontMetricsTop;
+        if (getIncludeFontPadding()) {
+            fontMetricsTop = fontMetrics.top;
+        } else {
+            fontMetricsTop = fontMetrics.ascent;
+        }
+
+        // TODO: Decide if we want to ignore density ratio (i.e. when the user changes font size
+        // in settings). At the moment, we don't.
+
+        if (firstBaselineToTopHeight > Math.abs(fontMetricsTop)) {
+            final int paddingTop = firstBaselineToTopHeight - (-fontMetricsTop);
+            setPadding(getPaddingLeft(), paddingTop, getPaddingRight(), getPaddingBottom());
+        }
+    }
+
+    /**
+     * Updates the bottom padding of the TextView so that {@code lastBaselineToBottomHeight} is
+     * equal to the distance between the last text baseline and the bottom of this TextView.
+     * <strong>Note</strong> that if {@code FontMetrics.bottom} or {@code FontMetrics.descent} was
+     * already greater than {@code lastBaselineToBottomHeight}, the bottom padding is not updated.
+     *
+     * @param lastBaselineToBottomHeight distance between last baseline to bottom of the container
+     *      in pixels
+     *
+     * @see #getLastBaselineToBottomHeight()
+     * @see #setPadding(int, int, int, int)
+     * @see #setPaddingRelative(int, int, int, int)
+     *
+     * @attr ref android.R.styleable#TextView_lastBaselineToBottomHeight
+     */
+    public void setLastBaselineToBottomHeight(
+            @Px @IntRange(from = 0) int lastBaselineToBottomHeight) {
+
+        final FontMetricsInt fontMetrics = getPaint().getFontMetricsInt();
+        final int fontMetricsBottom;
+        if (getIncludeFontPadding()) {
+            fontMetricsBottom = fontMetrics.bottom;
+        } else {
+            fontMetricsBottom = fontMetrics.descent;
+        }
+
+        // TODO: Decide if we want to ignore density ratio (i.e. when the user changes font size
+        // in settings). At the moment, we don't.
+
+        if (lastBaselineToBottomHeight > Math.abs(fontMetricsBottom)) {
+            final int paddingBottom = lastBaselineToBottomHeight - fontMetricsBottom;
+            setPadding(getPaddingLeft(), getPaddingTop(), getPaddingRight(), paddingBottom);
+        }
+    }
+
+
+    /**
+     * Sets the height of the TextView to be exactly <code>pixels</code> tall.
+     * <p>
+     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * exact height. Setting this value overrides previous minimum/maximum height configurations
+     * such as {@link #setMinHeight(int)} or {@link #setMaxHeight(int)}.
+     *
+     * @param pixels the exact height of the TextView in terms of pixels
+     *
+     * @see #setLines(int)
+     *
+     * @attr ref android.R.styleable#TextView_height
+     */
+    public void setHeight(int pixels) {
+        mMaximum = mMinimum = pixels;
+        mMaxMode = mMinMode = PIXELS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the width of the TextView to be at least {@code minEms} wide.
+     * <p>
+     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * exact width. Setting this value overrides previous minimum width configurations such as
+     * {@link #setMinWidth(int)} or {@link #setWidth(int)}.
+     *
+     * @param minEms the minimum width of TextView in terms of ems
+     *
+     * @see #getMinEms()
+     * @see #setEms(int)
+     *
+     * @attr ref android.R.styleable#TextView_minEms
+     */
+    public void setMinEms(int minEms) {
+        mMinWidth = minEms;
+        mMinWidthMode = EMS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the width of the TextView to be at least {@code minPixels} wide.
+     * <p>
+     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * exact width. Setting this value overrides previous minimum width configurations such as
+     * {@link #setMinEms(int)} or {@link #setEms(int)}.
+     * <p>
+     * The value given here is different than {@link #setMinimumWidth(int)}. Between
+     * {@code minWidth} and the value set in {@link #setMinimumWidth(int)}, the greater one is used
+     * to decide the final width.
+     *
+     * @param minPixels the minimum width of TextView in terms of pixels
+     *
+     * @see #getMinWidth()
+     * @see #setWidth(int)
+     *
+     * @attr ref android.R.styleable#TextView_minWidth
+     */
+    public void setMinWidth(int minPixels) {
+        mMinWidth = minPixels;
+        mMinWidthMode = PIXELS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the width of the TextView to be at most {@code maxEms} wide.
+     * <p>
+     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * exact width. Setting this value overrides previous maximum width configurations such as
+     * {@link #setMaxWidth(int)} or {@link #setWidth(int)}.
+     *
+     * @param maxEms the maximum width of TextView in terms of ems
+     *
+     * @see #getMaxEms()
+     * @see #setEms(int)
+     *
+     * @attr ref android.R.styleable#TextView_maxEms
+     */
+    public void setMaxEms(int maxEms) {
+        mMaxWidth = maxEms;
+        mMaxWidthMode = EMS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the width of the TextView to be at most {@code maxPixels} wide.
+     * <p>
+     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * exact width. Setting this value overrides previous maximum width configurations such as
+     * {@link #setMaxEms(int)} or {@link #setEms(int)}.
+     *
+     * @param maxPixels the maximum width of TextView in terms of pixels
+     *
+     * @see #getMaxWidth()
+     * @see #setWidth(int)
+     *
+     * @attr ref android.R.styleable#TextView_maxWidth
+     */
+    public void setMaxWidth(int maxPixels) {
+        mMaxWidth = maxPixels;
+        mMaxWidthMode = PIXELS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the width of the TextView to be exactly {@code ems} wide.
+     *
+     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * exact width. Setting this value overrides previous minimum/maximum configurations such as
+     * {@link #setMinEms(int)} or {@link #setMaxEms(int)}.
+     *
+     * @param ems the exact width of the TextView in terms of ems
+     *
+     * @see #setWidth(int)
+     *
+     * @attr ref android.R.styleable#TextView_ems
+     */
+    public void setEms(int ems) {
+        mMaxWidth = mMinWidth = ems;
+        mMaxWidthMode = mMinWidthMode = EMS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets the width of the TextView to be exactly {@code pixels} wide.
+     * <p>
+     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * exact width. Setting this value overrides previous minimum/maximum width configurations
+     * such as {@link #setMinWidth(int)} or {@link #setMaxWidth(int)}.
+     *
+     * @param pixels the exact width of the TextView in terms of pixels
+     *
+     * @see #setEms(int)
+     *
+     * @attr ref android.R.styleable#TextView_width
+     */
+    public void setWidth(int pixels) {
+        mMaxWidth = mMinWidth = pixels;
+        mMaxWidthMode = mMinWidthMode = PIXELS;
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * Sets line spacing for this TextView.  Each line other than the last line will have its height
+     * multiplied by {@code mult} and have {@code add} added to it.
+     *
+     * @param add The value in pixels that should be added to each line other than the last line.
+     *            This will be applied after the multiplier
+     * @param mult The value by which each line height other than the last line will be multiplied
+     *             by
+     *
+     * @attr ref android.R.styleable#TextView_lineSpacingExtra
+     * @attr ref android.R.styleable#TextView_lineSpacingMultiplier
+     */
+    public void setLineSpacing(float add, float mult) {
+        if (mSpacingAdd != add || mSpacingMult != mult) {
+            mSpacingAdd = add;
+            mSpacingMult = mult;
+
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Sets an explicit line height for this TextView. This is equivalent to the vertical distance
+     * between subsequent baselines in the TextView.
+     *
+     * @param lineHeight the line height in pixels
+     *
+     * @see #setLineSpacing(float, float)
+     * @see #getLineSpacing()
+     *
+     * @attr ref android.R.styleable#TextView_lineHeight
+     */
+    public void setLineHeight(@Px @IntRange(from = 0) int lineHeight) {
+
+        final int fontHeight = getPaint().getFontMetricsInt(null);
+        // Make sure we don't setLineSpacing if it's not needed to avoid unnecessary redraw.
+        if (lineHeight != fontHeight) {
+            // Set lineSpacingExtra by the difference of lineSpacing with lineHeight
+            setLineSpacing(lineHeight - fontHeight, 1f);
+        }
     }
 
 

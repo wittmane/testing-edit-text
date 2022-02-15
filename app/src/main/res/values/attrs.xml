@@ -77,7 +77,7 @@
         <!-- Font variation settings. -->
         <attr name="android:fontVariationSettings" />
     </declare-styleable>
-    <declare-styleable name="TextView">
+    <declare-styleable name="CustomEditTextView">
         <!-- Determines the minimum type that getText() will return.
              The default is "normal".
              Note that EditText and LogTextBox always return Editable,
