@@ -23,6 +23,8 @@ import android.os.SystemClock;
 import android.text.BoringLayout;
 import android.text.DynamicLayout;
 import android.text.Editable;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.text.Layout;
 import android.text.ParcelableSpan;
 import android.text.Selection;
@@ -33,8 +35,15 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.text.method.DateKeyListener;
+import android.text.method.DateTimeKeyListener;
+import android.text.method.DialerKeyListener;
+import android.text.method.DigitsKeyListener;
+import android.text.method.KeyListener;
 import android.text.method.MetaKeyKeyListener;
 import android.text.method.SingleLineTransformationMethod;
+import android.text.method.TextKeyListener;
+import android.text.method.TimeKeyListener;
 import android.text.method.TransformationMethod;
 import android.text.style.CharacterStyle;
 import android.text.style.ParagraphStyle;
@@ -64,6 +73,7 @@ import android.view.textclassifier.TextClassificationManager;
 import android.view.textclassifier.TextClassifier;
 import android.widget.EditText;
 import android.widget.Scroller;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
@@ -117,6 +127,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     private static final int UNSET_X_VALUE = -1;
     private static final int UNSET_LINE = -1;
     private static final int CHANGE_WATCHER_PRIORITY = 100;
+    private static final InputFilter[] NO_FILTERS = new InputFilter[0];
 
     // Accessibility action start id for "process text" actions.
     public static final int ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID = 0x10000100;
@@ -146,6 +157,11 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     private Layout mHintLayout;
     public Drawable mDrawableForCursor = null;
     private Rect mTempRect;
+
+    // True if setKeyListener() has been explicitly called
+    private boolean mListenerChanged = false;
+    // True if internationalized input should be used for numbers and date and time.
+    private final boolean mUseInternationalizedInput;
 
     // Although these fields are specific to editable text, they are not added to Editor because
     // they are defined by the TextView's style and are theme-dependent.
@@ -214,6 +230,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
     public final EditorTouchState mTouchState = new EditorTouchState();
     public final SimpleTouchManager mTouchManager = new SimpleTouchManager(this);
+
+
+    private InputFilter[] mFilters = NO_FILTERS;
 
     /**
      *  Return code of {@link #doKeyDown}.
@@ -559,7 +578,6 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 //TODO: consider implementing
                 // Whether undo should be allowed for editable text. Defaults to true.
             } else if (attr == R.styleable.CustomEditTextView_android_imeOptions) {
-                //TODO: implement
                 // Additional features you can enable in an IME associated with an editor to improve
                 // the integration with your application. The constants here correspond to those
                 // defined by {@link android.view.inputmethod.EditorInfo#imeOptions}.
@@ -568,6 +586,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 // actionSend, actionUnspecified, flagForceAscii, flagNavigateNext,
                 // flagNavigatePrevious, flagNoAccessoryAction, flagNoEnterAction, flagNoExtractUi,
                 // flagNoFullscreen, flagNoPersonalizedLearning, normal
+                mEditor.createInputContentTypeIfNeeded();
+                mEditor.mInputContentType.imeOptions = typedArray.getInt(attr,
+                        mEditor.mInputContentType.imeOptions);
             } else if (attr == R.styleable.CustomEditTextView_android_imeActionLabel) {
                 //TODO: implement
                 // Supply a value for {@link android.view.inputmethod.EditorInfo#actionLabel
@@ -645,13 +666,49 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             }
         }
 
+        typedArray.recycle();
+
+        final int variation =
+                inputType & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION);
+        final boolean passwordInputType = variation
+                == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD);
+        final boolean webPasswordInputType = variation
+                == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD);
+        final boolean numberPasswordInputType = variation
+                == (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD);
+
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
+        mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
         mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
 
         if (inputType != EditorInfo.TYPE_NULL) {
+            setInputType(inputType, true);
             // If set, the input type overrides what was set using the deprecated singleLine flag.
             singleLine = !isMultilineInputType(inputType);
             Log.w(TAG, "constructor: singleLine=" + singleLine);
+        } else if (isTextSelectable()) {
+            // Prevent text changes from keyboard.
+            if (mEditor != null) {
+                mEditor.mKeyListener = null;
+                mEditor.mInputType = EditorInfo.TYPE_NULL;
+            }
+//            bufferType = TextView.BufferType.SPANNABLE;
+//            // So that selection can be changed using arrow keys and touch is handled.
+//            setMovementMethod(ArrowKeyMovementMethod.getInstance());
+        } else {
+            if (mEditor != null) mEditor.mKeyListener = null;
+
+//            switch (buffertype) {
+//                case 0:
+//                    bufferType = TextView.BufferType.NORMAL;
+//                    break;
+//                case 1:
+//                    bufferType = TextView.BufferType.SPANNABLE;
+//                    break;
+//                case 2:
+//                    bufferType = TextView.BufferType.EDITABLE;
+//                    break;
+//            }
         }
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line TextViews.
@@ -1495,6 +1552,22 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         desired = Math.max(desired, suggested);
 
         return desired;
+    }
+
+    /**
+     * Adds or remove the EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE on the mInputType.
+     * @param singleLine
+     */
+    private void setInputTypeSingleLine(boolean singleLine) {
+        if (mEditor != null
+                && (mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS)
+                == EditorInfo.TYPE_CLASS_TEXT) {
+            if (singleLine) {
+                mEditor.mInputType &= ~EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE;
+            } else {
+                mEditor.mInputType |= EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE;
+            }
+        }
     }
 
     private void applySingleLine(boolean singleLine, boolean applyTransformation,
@@ -3978,10 +4051,10 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
                 if (event.hasNoModifiers()) {
-//                    // When mInputContentType is set, we know that we are
-//                    // running in a "modern" cupcake environment, so don't need
-//                    // to worry about the application trying to capture
-//                    // enter key events.
+                    // When mInputContentType is set, we know that we are
+                    // running in a "modern" cupcake environment, so don't need
+                    // to worry about the application trying to capture
+                    // enter key events.
 //                    if (mEditor != null && mEditor.mInputContentType != null) {
 //                        // If there is an action listener, given them a
 //                        // chance to consume the event.
@@ -4268,23 +4341,23 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
      * lines but where it doesn't make sense to insert newlines.
      */
     private boolean shouldAdvanceFocusOnEnter() {
-//        if (getKeyListener() == null) {
-//            return false;
-//        }
-//
-//        if (mSingleLine) {
-//            return true;
-//        }
-//
-//        if (mEditor != null
-//                && (mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS)
-//                == EditorInfo.TYPE_CLASS_TEXT) {
-//            int variation = mEditor.mInputType & EditorInfo.TYPE_MASK_VARIATION;
-//            if (variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-//                    || variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_SUBJECT) {
-//                return true;
-//            }
-//        }
+        if (getKeyListener() == null) {
+            return false;
+        }
+
+        if (mSingleLine) {
+            return true;
+        }
+
+        if (mEditor != null
+                && (mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS)
+                == EditorInfo.TYPE_CLASS_TEXT) {
+            int variation = mEditor.mInputType & EditorInfo.TYPE_MASK_VARIATION;
+            if (variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                    || variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_SUBJECT) {
+                return true;
+            }
+        }
 
         return false;
     }
@@ -5417,12 +5490,69 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     }
 
     @Override
+//    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+//        //TODO: send appropriate outAttrs, especially imeOptions
+//        if (onCheckIsTextEditor() && isEnabled()) {
+//            mEditor.createInputMethodStateIfNeeded();
+//            outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE;
+//            return new CustomInputConnection2(this);
+//        }
+//
+//        return null;
+//    }
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
         if (onCheckIsTextEditor() && isEnabled()) {
             mEditor.createInputMethodStateIfNeeded();
-            return new CustomInputConnection2(this);
+            outAttrs.inputType = getInputType();
+            if (mEditor.mInputContentType != null) {
+                outAttrs.imeOptions = mEditor.mInputContentType.imeOptions;
+                outAttrs.privateImeOptions = mEditor.mInputContentType.privateImeOptions;
+                outAttrs.actionLabel = mEditor.mInputContentType.imeActionLabel;
+                outAttrs.actionId = mEditor.mInputContentType.imeActionId;
+                outAttrs.extras = mEditor.mInputContentType.extras;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    outAttrs.hintLocales = mEditor.mInputContentType.imeHintLocales;
+                }
+            } else {
+                outAttrs.imeOptions = EditorInfo.IME_NULL;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    outAttrs.hintLocales = null;
+                }
+            }
+            if (focusSearch(FOCUS_DOWN) != null) {
+                outAttrs.imeOptions |= EditorInfo.IME_FLAG_NAVIGATE_NEXT;
+            }
+            if (focusSearch(FOCUS_UP) != null) {
+                outAttrs.imeOptions |= EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
+            }
+            if ((outAttrs.imeOptions & EditorInfo.IME_MASK_ACTION)
+                    == EditorInfo.IME_ACTION_UNSPECIFIED) {
+                if ((outAttrs.imeOptions & EditorInfo.IME_FLAG_NAVIGATE_NEXT) != 0) {
+                    // An action has not been set, but the enter key will move to
+                    // the next focus, so set the action to that.
+                    outAttrs.imeOptions |= EditorInfo.IME_ACTION_NEXT;
+                } else {
+                    // An action has not been set, and there is no focus to move
+                    // to, so let's just supply a "done" action.
+                    outAttrs.imeOptions |= EditorInfo.IME_ACTION_DONE;
+                }
+                if (!shouldAdvanceFocusOnEnter()) {
+                    outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+                }
+            }
+            if (isMultilineInputType(outAttrs.inputType)) {
+                // Multi-line text editors should always show an enter key.
+                outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+            }
+            outAttrs.hintText = mHint;
+            if (mText instanceof Editable) {
+                InputConnection ic = new CustomInputConnection2(this);
+                outAttrs.initialSelStart = getSelectionStart();
+                outAttrs.initialSelEnd = getSelectionEnd();
+                outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
+                return ic;
+            }
         }
-
         return null;
     }
 
@@ -5433,6 +5563,306 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         //TODO: verify this works
         return (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     }
+
+
+
+
+    /**
+     * Gets the current {@link KeyListener} for the TextView.
+     * This will frequently be null for non-EditText TextViews.
+     * @return the current key listener for this TextView.
+     *
+     * @attr ref android.R.styleable#TextView_numeric
+     * @attr ref android.R.styleable#TextView_digits
+     * @attr ref android.R.styleable#TextView_phoneNumber
+     * @attr ref android.R.styleable#TextView_inputMethod
+     * @attr ref android.R.styleable#TextView_capitalize
+     * @attr ref android.R.styleable#TextView_autoText
+     */
+    public final KeyListener getKeyListener() {
+        return mEditor == null ? null : mEditor.mKeyListener;
+    }
+
+    /**
+     * Sets the key listener to be used with this TextView.  This can be null
+     * to disallow user input.  Note that this method has significant and
+     * subtle interactions with soft keyboards and other input method:
+     * see {@link KeyListener#getInputType() KeyListener.getInputType()}
+     * for important details.  Calling this method will replace the current
+     * content type of the text view with the content type returned by the
+     * key listener.
+     * <p>
+     * Be warned that if you want a TextView with a key listener or movement
+     * method not to be focusable, or if you want a TextView without a
+     * key listener or movement method to be focusable, you must call
+     * {@link #setFocusable} again after calling this to get the focusability
+     * back the way you want it.
+     *
+     * @attr ref android.R.styleable#TextView_numeric
+     * @attr ref android.R.styleable#TextView_digits
+     * @attr ref android.R.styleable#TextView_phoneNumber
+     * @attr ref android.R.styleable#TextView_inputMethod
+     * @attr ref android.R.styleable#TextView_capitalize
+     * @attr ref android.R.styleable#TextView_autoText
+     */
+    public void setKeyListener(KeyListener input) {
+        mListenerChanged = true;
+        setKeyListenerOnly(input);
+        fixFocusableAndClickableSettings();
+
+        if (input != null) {
+            setInputTypeFromEditor();
+        } else {
+            if (mEditor != null) mEditor.mInputType = EditorInfo.TYPE_NULL;
+        }
+
+        InputMethodManager imm = getInputMethodManager();
+        if (imm != null) imm.restartInput(this);
+    }
+
+    private void setInputTypeFromEditor() {
+        try {
+            mEditor.mInputType = mEditor.mKeyListener.getInputType();
+        } catch (IncompatibleClassChangeError e) {
+            mEditor.mInputType = EditorInfo.TYPE_CLASS_TEXT;
+        }
+        // Change inputType, without affecting transformation.
+        // No need to applySingleLine since mSingleLine is unchanged.
+        setInputTypeSingleLine(mSingleLine);
+    }
+
+    private void setKeyListenerOnly(KeyListener input) {
+        if (mEditor == null && input == null) return; // null is the default value
+
+        if (mEditor.mKeyListener != input) {
+            mEditor.mKeyListener = input;
+            if (input != null && !(mText instanceof Editable)) {
+                setText(mText);
+            }
+
+            setFilters((Editable) mText, mFilters);
+        }
+    }
+
+    private void fixFocusableAndClickableSettings() {
+        if (mMovement != null || (mEditor != null && mEditor.mKeyListener != null)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                setFocusable(FOCUSABLE);
+            }
+            setClickable(true);
+            setLongClickable(true);
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                setFocusable(FOCUSABLE_AUTO);
+            }
+            setClickable(false);
+            setLongClickable(false);
+        }
+    }
+
+    /**
+     * Directly change the content type integer of the text view, without
+     * modifying any other state.
+     * @see #setInputType(int)
+     * @see android.text.InputType
+     * @attr ref android.R.styleable#TextView_inputType
+     */
+    public void setRawInputType(int type) {
+        if (type == InputType.TYPE_NULL && mEditor == null) return; //TYPE_NULL is the default value
+        mEditor.mInputType = type;
+    }
+
+    /**
+     * @return {@code null} if the key listener should use pre-O (locale-independent). Otherwise
+     *         a {@code Locale} object that can be used to customize key various listeners.
+     * @see DateKeyListener#getInstance(Locale)
+     * @see DateTimeKeyListener#getInstance(Locale)
+     * @see DigitsKeyListener#getInstance(Locale)
+     * @see TimeKeyListener#getInstance(Locale)
+     */
+    @Nullable
+    private Locale getCustomLocaleForKeyListenerOrNull() {
+        if (!mUseInternationalizedInput) {
+            // If the application does not target O, stick to the previous behavior.
+            return null;
+        }
+        final LocaleList locales = getImeHintLocales();
+        if (locales == null) {
+            // If the application does not explicitly specify IME hint locale, also stick to the
+            // previous behavior.
+            return null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            return locales.get(0);
+        } else {
+            //TODO: (EW) handle
+            return null;
+        }
+    }
+
+    /**
+     * @return The current languages list "hint". {@code null} when no "hint" is available.
+     * @see #setImeHintLocales(LocaleList)
+     * @see android.view.inputmethod.EditorInfo#hintLocales
+     */
+    @Nullable
+    public LocaleList getImeHintLocales() {
+        if (mEditor == null) {
+            return null;
+        }
+        if (mEditor.mInputContentType == null) {
+            return null;
+        }
+        return mEditor.mInputContentType.imeHintLocales;
+    }
+
+    private void setInputType(int type, boolean direct) {
+        final int cls = type & EditorInfo.TYPE_MASK_CLASS;
+        KeyListener input;
+        if (cls == EditorInfo.TYPE_CLASS_TEXT) {
+            boolean autotext = (type & EditorInfo.TYPE_TEXT_FLAG_AUTO_CORRECT) != 0;
+            TextKeyListener.Capitalize cap;
+            if ((type & EditorInfo.TYPE_TEXT_FLAG_CAP_CHARACTERS) != 0) {
+                cap = TextKeyListener.Capitalize.CHARACTERS;
+            } else if ((type & EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS) != 0) {
+                cap = TextKeyListener.Capitalize.WORDS;
+            } else if ((type & EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES) != 0) {
+                cap = TextKeyListener.Capitalize.SENTENCES;
+            } else {
+                cap = TextKeyListener.Capitalize.NONE;
+            }
+            input = TextKeyListener.getInstance(autotext, cap);
+        } else if (cls == EditorInfo.TYPE_CLASS_NUMBER) {
+            final Locale locale = getCustomLocaleForKeyListenerOrNull();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                input = DigitsKeyListener.getInstance(
+                        locale,
+                        (type & EditorInfo.TYPE_NUMBER_FLAG_SIGNED) != 0,
+                        (type & EditorInfo.TYPE_NUMBER_FLAG_DECIMAL) != 0);
+            } else {
+                //TODO: (EW) handle
+                input = null;
+            }
+            if (locale != null) {
+                // Override type, if necessary for i18n.
+                int newType = input.getInputType();
+                final int newClass = newType & EditorInfo.TYPE_MASK_CLASS;
+                if (newClass != EditorInfo.TYPE_CLASS_NUMBER) {
+                    // The class is different from the original class. So we need to override
+                    // 'type'. But we want to keep the password flag if it's there.
+                    if ((type & EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD) != 0) {
+                        newType |= EditorInfo.TYPE_TEXT_VARIATION_PASSWORD;
+                    }
+                    type = newType;
+                }
+            }
+        } else if (cls == EditorInfo.TYPE_CLASS_DATETIME) {
+            final Locale locale = getCustomLocaleForKeyListenerOrNull();
+            switch (type & EditorInfo.TYPE_MASK_VARIATION) {
+                case EditorInfo.TYPE_DATETIME_VARIATION_DATE:
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        input = DateKeyListener.getInstance(locale);
+                    } else {
+                        //TODO: (EW) handle
+                        input = null;
+                    }
+                    break;
+                case EditorInfo.TYPE_DATETIME_VARIATION_TIME:
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        input = TimeKeyListener.getInstance(locale);
+                    } else {
+                        //TODO: (EW) handle
+                        input = null;
+                    }
+                    break;
+                default:
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        input = DateTimeKeyListener.getInstance(locale);
+                    } else {
+                        //TODO: (EW) handle
+                        input = null;
+                    }
+                    break;
+            }
+            if (mUseInternationalizedInput) {
+                type = input.getInputType(); // Override type, if necessary for i18n.
+            }
+        } else if (cls == EditorInfo.TYPE_CLASS_PHONE) {
+            input = DialerKeyListener.getInstance();
+        } else {
+            input = TextKeyListener.getInstance();
+        }
+        setRawInputType(type);
+        mListenerChanged = false;
+        if (direct) {
+            mEditor.mKeyListener = input;
+        } else {
+            setKeyListenerOnly(input);
+        }
+    }
+
+    /**
+     * Get the type of the editable content.
+     *
+     * @see #setInputType(int)
+     * @see android.text.InputType
+     */
+    public int getInputType() {
+        return mEditor == null ? EditorInfo.TYPE_NULL : mEditor.mInputType;
+    }
+
+
+
+
+    /**
+     * Sets the list of input filters that will be used if the buffer is
+     * Editable. Has no effect otherwise.
+     *
+     * @attr ref android.R.styleable#TextView_maxLength
+     */
+    public void setFilters(InputFilter[] filters) {
+        if (filters == null) {
+            throw new IllegalArgumentException();
+        }
+
+        mFilters = filters;
+
+        if (mText instanceof Editable) {
+            setFilters((Editable) mText, filters);
+        }
+    }
+
+    /**
+     * Sets the list of input filters on the specified Editable,
+     * and includes mInput in the list if it is an InputFilter.
+     */
+    private void setFilters(Editable e, InputFilter[] filters) {
+        if (mEditor != null) {
+//            final boolean undoFilter = mEditor.mUndoInputFilter != null;
+            final boolean keyFilter = mEditor.mKeyListener instanceof InputFilter;
+            int num = 0;
+//            if (undoFilter) num++;
+            if (keyFilter) num++;
+            if (num > 0) {
+                InputFilter[] nf = new InputFilter[filters.length + num];
+
+                System.arraycopy(filters, 0, nf, 0, filters.length);
+                num = 0;
+//                if (undoFilter) {
+//                    nf[filters.length] = mEditor.mUndoInputFilter;
+//                    num++;
+//                }
+                if (keyFilter) {
+                    nf[filters.length + num] = (InputFilter) mEditor.mKeyListener;
+                }
+
+                e.setFilters(nf);
+                return;
+            }
+        }
+        e.setFilters(filters);
+    }
+
 
 
     public Editable getText() {

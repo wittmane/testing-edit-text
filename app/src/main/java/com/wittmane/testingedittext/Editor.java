@@ -1,13 +1,11 @@
 package com.wittmane.testingedittext;
 
 import android.app.PendingIntent;
-import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.SystemClock;
-import android.text.Editable;
 import android.text.Layout;
 import android.text.ParcelableSpan;
 import android.text.Selection;
@@ -21,15 +19,14 @@ import android.text.method.TextKeyListener;
 import android.text.style.URLSpan;
 import android.util.Log;
 import android.view.ActionMode;
-import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
@@ -41,6 +38,7 @@ import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.editor.CursorController;
 //import com.wittmane.testingedittext.editor.InsertionPointCursorController;
+import com.wittmane.testingedittext.editor.InputContentType28;
 import com.wittmane.testingedittext.editor.InsertionPointCursorController28;
 import com.wittmane.testingedittext.editor.PositionListener;
 import com.wittmane.testingedittext.editor.ProcessTextIntentActionsHandler28;
@@ -65,6 +63,8 @@ public class Editor {
 
     public final ProcessTextIntentActionsHandler28 mProcessTextIntentActionsHandler;
 
+    InputContentType28 mInputContentType;
+
     boolean mTouchFocusSelected;
 
     //TODO: maybe remove - was used when specifying inputMethod (deprecated),
@@ -74,6 +74,8 @@ public class Editor {
     // actually it looks like this is used by inputType (see TextView#setInputType). setting default
     // for now, but probably should update
     KeyListener mKeyListener = TextKeyListener.getInstance();
+
+    public int mInputType = EditorInfo.TYPE_NULL;
 
     // The span controller helps monitoring the changes to which the Editor needs to react:
     // - EasyEditSpans, for which we have some UI to display on attach and on hide
@@ -197,6 +199,12 @@ public class Editor {
         mTouchState = mTextView.mTouchState;
         mHapticTextHandleEnabled = /*mTextView.getContext().getResources().getBoolean(
                 R.bool.config_enableHapticTextHandle)*/false;
+    }
+
+    void createInputContentTypeIfNeeded() {
+        if (mInputContentType == null) {
+            mInputContentType = new InputContentType28();
+        }
     }
 
     void createInputMethodStateIfNeeded() {
@@ -429,6 +437,30 @@ public class Editor {
                 // none of the parameters have changed since the last time we called it.
                 imm.updateSelection(mTextView,
                         selectionStart, selectionEnd, candStart, candEnd);
+            }
+        }
+    }
+
+
+
+    void adjustInputType(boolean password, boolean passwordInputType,
+                         boolean webPasswordInputType, boolean numberPasswordInputType) {
+        // mInputType has been set from inputType, possibly modified by mInputMethod.
+        // Specialize mInputType to [web]password if we have a text class and the original input
+        // type was a password.
+        if ((mInputType & EditorInfo.TYPE_MASK_CLASS) == EditorInfo.TYPE_CLASS_TEXT) {
+            if (password || passwordInputType) {
+                mInputType = (mInputType & ~(EditorInfo.TYPE_MASK_VARIATION))
+                        | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD;
+            }
+            if (webPasswordInputType) {
+                mInputType = (mInputType & ~(EditorInfo.TYPE_MASK_VARIATION))
+                        | EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD;
+            }
+        } else if ((mInputType & EditorInfo.TYPE_MASK_CLASS) == EditorInfo.TYPE_CLASS_NUMBER) {
+            if (numberPasswordInputType) {
+                mInputType = (mInputType & ~(EditorInfo.TYPE_MASK_VARIATION))
+                        | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD;
             }
         }
     }
