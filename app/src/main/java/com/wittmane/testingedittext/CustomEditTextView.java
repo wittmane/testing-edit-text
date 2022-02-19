@@ -280,7 +280,13 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         this(context, null);
     }
     public CustomEditTextView(Context context, AttributeSet attrs) {
-        //R.attr.editTextStyle pulls in the underline in the DynamicLayout and allows this view to be focusable by default
+        // R.attr.editTextStyle pulls in the underline in the DynamicLayout and allows this view to
+        // be focusable by default. it also adds the line at the bottom of the view. this only seems
+        // to make a difference when using appcompat. removing this makes it look like when the
+        // activity doesn't use appcompat.
+        //TODO: investigate this more. should I build out some default so if someone else wants to
+        // take and use this in a non-appcompat activity, it would work normally, or is there
+        // anything else to handle better here?
         this(context, attrs, R.attr.editTextStyle);
     }
     public CustomEditTextView(Context context, AttributeSet attrs, int defStyleAttr) {
@@ -733,6 +739,12 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION))
                 == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD));
         if (isMonospaceEnforced) {
+            //TODO: for some reason when using appcompat the default EditText doesn't use monospace
+            // while this code, which is copied from it does. figure out if that's just a bug with
+            // appcompat or if we should be pulling in something that would override the change to
+            // monospace. if I set fontFamily="sans-serif" on this, it overrides the monospace and
+            // looks like the default EditText, so maybe something like that is being set somewhere
+            // and we just need to pull it in.
             attributes.mTypefaceIndex = MONOSPACE;
         }
 
@@ -752,11 +764,14 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         if (hint != null) setHint(hint);
 
 
+        // these seem to be necessary only when the activity isn't appcompat
+        //TODO: investigate this more. are these getting set in the aosp version somewhere else?
+        // what is appcompat doing that doesn't require this?
+//        setEnabled(true);
+        setClickable(true);
+//        setFocusable(true);
+        setFocusableInTouchMode(true);
 
-////        setEnabled(true);
-//        setClickable(true);
-////        setFocusable(true);
-//        setFocusableInTouchMode(true);
         setFocusable(true);
         setClickable(true);
         setLongClickable(true);
