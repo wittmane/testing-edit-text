@@ -150,6 +150,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
     private final TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private boolean mUserSetTextScaleX;
 
     private Editable mText;
     private @Nullable Spannable mSpannable;
@@ -531,18 +532,20 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             } else if (attr == R.styleable.CustomEditTextView_android_marqueeRepeatLimit) {
                 // skipping - not supported in EditText
             } else if (attr == R.styleable.CustomEditTextView_android_includeFontPadding) {
-                //TODO: consider implementing if simple
                 // Leave enough room for ascenders and descenders instead of using the font ascent
                 // and descent strictly. (Normally true).
+                if (!typedArray.getBoolean(attr, true)) {
+                    setIncludeFontPadding(false);
+                }
             } else if (attr == R.styleable.CustomEditTextView_android_cursorVisible) {
                 //TODO: consider implementing if simple - not really sure why this would be wanted
                 // Makes the cursor visible (the default) or invisible.
             } else if (attr == R.styleable.CustomEditTextView_android_maxLength) {
-                //TODO: implement
                 // Set an input filter to constrain the text length to the specified number.
+                maxlength = typedArray.getInt(attr, -1);
             } else if (attr == R.styleable.CustomEditTextView_android_textScaleX) {
-                //TODO: implement
                 // Sets the horizontal scaling factor for the text.
+                setTextScaleX(typedArray.getFloat(attr, 1.0f));
             } else if (attr == R.styleable.CustomEditTextView_android_freezesText) {
                 //skipping - If set, the text view will include its current complete text inside of
                 // its frozen icicle in addition to meta-data such as the current cursor position.
@@ -555,15 +558,14 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             } else if (attr == R.styleable.CustomEditTextView_android_password) {
                 //skipping - deprecated: Use inputType instead
             } else if (attr == R.styleable.CustomEditTextView_android_lineSpacingExtra) {
-                //TODO: implement
                 // Extra spacing between lines of text. The value will not be applied for the last
                 // line of text.
+                mSpacingAdd = typedArray.getDimensionPixelSize(attr, (int) mSpacingAdd);
             } else if (attr == R.styleable.CustomEditTextView_android_lineSpacingMultiplier) {
-                //TODO: implement
                 // Extra spacing between lines of text, as a multiplier. The value will not be
                 // applied for the last line of text.
+                mSpacingMult = typedArray.getFloat(attr, mSpacingMult);
             } else if (attr == R.styleable.CustomEditTextView_android_inputType) {
-                //TODO: implement
                 // The type of data being placed in a text field, used to help an input method
                 // decide how to let the user enter text. The constants here correspond to those
                 // defined by {@link android.text.InputType}. Generally you can select a single
@@ -996,6 +998,35 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
             mTextPaint.setTextSize(size);
 
             if (shouldRequestLayout && mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Gets the extent by which text should be stretched horizontally.
+     * This will usually be 1.0.
+     * @return The horizontal scale factor.
+     */
+    public float getTextScaleX() {
+        return mTextPaint.getTextScaleX();
+    }
+
+    /**
+     * Sets the horizontal scale factor for text. The default value
+     * is 1.0. Values greater than 1.0 stretch the text wider.
+     * Values less than 1.0 make the text narrower. By default, this value is 1.0.
+     * @param size The horizontal scale factor.
+     * @attr ref android.R.styleable#TextView_textScaleX
+     */
+    public void setTextScaleX(float size) {
+        if (size != mTextPaint.getTextScaleX()) {
+            mUserSetTextScaleX = true;
+            mTextPaint.setTextScaleX(size);
+
+            if (mLayout != null) {
                 nullLayouts();
                 requestLayout();
                 invalidate();
@@ -1901,6 +1932,27 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         if (mEditor != null) mEditor.prepareCursorControllers();
     }
 
+    /**
+     * Set whether the TextView includes extra top and bottom padding to make
+     * room for accents that go above the normal ascent and descent.
+     * The default is true.
+     *
+     * @see #getIncludeFontPadding()
+     *
+     * @attr ref android.R.styleable#TextView_includeFontPadding
+     */
+    public void setIncludeFontPadding(boolean includepad) {
+        if (mIncludePad != includepad) {
+            mIncludePad = includepad;
+
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
     private Layout.Alignment getLayoutAlignment() {
         Layout.Alignment alignment;
         switch (getTextAlignment()) {
@@ -2703,6 +2755,8 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         if (text == null) {
             text = "";
         }
+
+        if (!mUserSetTextScaleX) mTextPaint.setTextScaleX(1.0f);
 
         int n = mFilters.length;
         for (int i = 0; i < n; i++) {
