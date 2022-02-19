@@ -114,7 +114,7 @@
                 android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:gravity="top"
-                android:inputType="text"
+                android:inputType="textPassword"
                 android:ems="9"
                 android:minLines="2"
                 android:imeOptions="actionGo"
@@ -210,12 +210,12 @@
                 android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:gravity="top"
-                android:inputType="text"
+                android:inputType="textPassword"
                 android:ems="9"
                 android:minLines="2"
                 android:imeOptions="actionGo"
-                android:justificationMode="inter_word"
                 android:text="foo\nbar\nbaz"
+                android:justificationMode="inter_word"
                 android:hint="hint text\nsecond line"/>
             <com.wittmane.testingedittext.CustomEditTextView
                 android:layout_width="wrap_content"

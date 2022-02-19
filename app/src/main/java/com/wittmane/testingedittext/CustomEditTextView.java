@@ -31,6 +31,7 @@ import android.text.Selection;
 import android.text.SpanWatcher;
 import android.text.Spannable;
 import android.text.Spanned;
+import android.text.SpannedString;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -41,6 +42,7 @@ import android.text.method.DialerKeyListener;
 import android.text.method.DigitsKeyListener;
 import android.text.method.KeyListener;
 import android.text.method.MetaKeyKeyListener;
+import android.text.method.PasswordTransformationMethod;
 import android.text.method.SingleLineTransformationMethod;
 import android.text.method.TextKeyListener;
 import android.text.method.TimeKeyListener;
@@ -128,6 +130,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     private static final int UNSET_LINE = -1;
     private static final int CHANGE_WATCHER_PRIORITY = 100;
     private static final InputFilter[] NO_FILTERS = new InputFilter[0];
+    private static final Spanned EMPTY_SPANNED = new SpannedString("");
 
     // Accessibility action start id for "process text" actions.
     public static final int ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID = 0x10000100;
@@ -339,7 +342,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
                 + ", paddingRight=" + getPaddingRight());//
 
 
-        setText("");
+        setTextInternal("");
 
         mMovement = CustomArrowKeyMovementMethod.getInstance();
 
@@ -710,11 +713,38 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 //                    break;
 //            }
         }
+
+        if (mEditor != null) {
+            mEditor.adjustInputType(password, passwordInputType, webPasswordInputType,
+                    numberPasswordInputType);
+        }
+
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line TextViews.
+        setInputTypeSingleLine(singleLine);
         applySingleLine(singleLine, singleLine, singleLine);
 
+        final boolean isPassword = password || passwordInputType || webPasswordInputType
+                || numberPasswordInputType;
+        final boolean isMonospaceEnforced = isPassword || (mEditor != null
+                && (mEditor.mInputType
+                & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION))
+                == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD));
+        if (isMonospaceEnforced) {
+            attributes.mTypefaceIndex = MONOSPACE;
+        }
+
         applyTextAppearance(attributes);
+
+        if (isPassword) {
+            setTransformationMethod(PasswordTransformationMethod.getInstance());
+        }
+
+        if (maxlength >= 0) {
+            setFilters(new InputFilter[] { new InputFilter.LengthFilter(maxlength) });
+        } else {
+            setFilters(NO_FILTERS);
+        }
 
         setText(text);
         if (hint != null) setHint(hint);
@@ -1396,7 +1426,7 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         } else {
 //                    des = (int) Math.ceil(/*Layout*/HiddenLayoutInfo.getDesiredWidthWithLimit(mTransformed, 0,
 //                            mTransformed.length(), mTextPaint, mTextDir, widthLimit));
-            width = (int) /*FloatMath*/Math.ceil(Layout.getDesiredWidth(/*mTransformed*/mText, mTextPaint));
+            width = (int) /*FloatMath*/Math.ceil(Layout.getDesiredWidth(mTransformed, mTextPaint));
 
             if (mHint != null) {
                 int hintWidth;
@@ -1811,7 +1841,26 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         int oldDir = 0;
         if (testDirChange) oldDir = mLayout.getParagraphDirection(0);
 
-        mLayout = new DynamicLayout(mText, /*mTransformed*/mText, mTextPaint, wantWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            final DynamicLayout.Builder builder = DynamicLayout.Builder.obtain(mText, mTextPaint,
+                    wantWidth)
+                    .setDisplayText(mTransformed)
+                    .setAlignment(alignment)
+//                    .setTextDirection(mTextDir)
+                    .setLineSpacing(mSpacingAdd, mSpacingMult)
+                    .setIncludePad(mIncludePad)
+                    .setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing)
+//                    .setBreakStrategy(mBreakStrategy)
+//                    .setHyphenationFrequency(mHyphenationFrequency)
+                    .setJustificationMode(mJustificationMode);
+            mLayout = builder.build();
+        } else {
+//            mLayout = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth,
+//                    alignment, mTextDir, mSpacingMult, mSpacingAdd, mIncludePad,
+//                    mBreakStrategy, mHyphenationFrequency, mJustificationMode,
+//                    getKeyListener() == null ? effectiveEllipsize : null, ellipsisWidth);
+            mLayout = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+        }
 
         if (mHint != null) {
 
@@ -2593,20 +2642,87 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         return mGravity;
     }
 
-    private void setText(CharSequence text) {
+    /**
+     * Sets the text to be displayed. TextView <em>does not</em> accept
+     * HTML-like formatting, which you can do with text strings in XML resource files.
+     * To style your strings, attach android.text.style.* objects to a
+     * {@link android.text.SpannableString}, or see the
+     * <a href="{@docRoot}guide/topics/resources/available-resources.html#stringresources">
+     * Available Resource Types</a> documentation for an example of setting
+     * formatted text in the XML resource file.
+     * <p/>
+     * When required, TextView will use {@link android.text.Spannable.Factory} to create final or
+     * intermediate {@link Spannable Spannables}. Likewise it will use
+     * {@link android.text.Editable.Factory} to create final or intermediate
+     * {@link Editable Editables}.
+     *
+     * If the passed text is a {@link PrecomputedText} but the parameters used to create the
+     * PrecomputedText mismatches with this TextView, IllegalArgumentException is thrown. To ensure
+     * the parameters match, you can call {@link TextView#setTextMetricsParams} before calling this.
+     *
+     * @param text text to be displayed
+     *
+     * @attr ref android.R.styleable#TextView_text
+     * @throws IllegalArgumentException if the passed text is a {@link PrecomputedText} but the
+     *                                  parameters used to create the PrecomputedText mismatches
+     *                                  with this TextView.
+     */
+//    public final void setText(CharSequence text) {
+//        setText(text/*, mBufferType*/);
+//    }
+    /**
+     * Sets the text to be displayed and the {@link android.widget.TextView.BufferType}.
+     * <p/>
+     * When required, TextView will use {@link android.text.Spannable.Factory} to create final or
+     * intermediate {@link Spannable Spannables}. Likewise it will use
+     * {@link android.text.Editable.Factory} to create final or intermediate
+     * {@link Editable Editables}.
+     *
+     * @param text text to be displayed
+     * @param type a {@link android.widget.TextView.BufferType} which defines whether the text is
+     *              stored as a static text, styleable/spannable text, or editable text
+     *
+     * @see #setText(CharSequence)
+     * @see android.widget.TextView.BufferType
+     * @see #setSpannableFactory(Spannable.Factory)
+     * @see #setEditableFactory(Editable.Factory)
+     *
+     * @attr ref android.R.styleable#TextView_text
+     * @attr ref android.R.styleable#TextView_bufferType
+     */
+    public void setText(CharSequence text/*, TextView.BufferType type*/) {
+        setText(text/*, type*/, true, 0);
+
+//        if (mCharWrapper != null) {
+//            mCharWrapper.mChars = null;
+//        }
+    }
+
+    private void setText(CharSequence text/*, TextView.BufferType type*/,
+                         boolean notifyBefore, int oldlen) {
         if (text == null) {
             text = "";
         }
+
+        int n = mFilters.length;
+        for (int i = 0; i < n; i++) {
+            CharSequence out = mFilters[i].filter(text, 0, text.length(), EMPTY_SPANNED, 0, 0);
+            if (out != null) {
+                text = out;
+            }
+        }
+
         Editable t = Editable.Factory.getInstance().newEditable(text);
         text = t;
+
+        setFilters(t, mFilters);
 
         InputMethodManager imm = getInputMethodManager();
         if (imm != null) {
             imm.restartInput(this);
         }
 
-        mText = t;
-        mSpannable = (t instanceof Spannable) ? (Spannable) t : null;
+        setTextInternal(t);
 
         if (mTransformation == null) {
             mTransformed = text;
@@ -2670,6 +2786,13 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
         // SelectionModifierCursorController depends on textCanBeSelected, which depends on text
         if (mEditor != null) mEditor.prepareCursorControllers();
+    }
+    private void setTextInternal(@Nullable CharSequence text) {
+        setTextInternal(Editable.Factory.getInstance().newEditable(text));
+    }
+    private void setTextInternal(@Nullable Editable text) {
+        mText = text;
+        mSpannable = (text instanceof Spannable) ? (Spannable) text : null;
     }
 
     /**
@@ -2735,10 +2858,10 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
 
         setText(mText);
 
-//        if (hasPasswordTransformationMethod()) {
+        if (hasPasswordTransformationMethod()) {
 //            notifyViewAccessibilityStateChangedIfNeeded(
 //                    AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED);
-//        }
+        }
 
 //        // PasswordTransformationMethod always have LTR text direction heuristics returned by
 //        // getTextDirectionHeuristic, needs reset
@@ -3847,8 +3970,8 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     }
 
     public boolean canSelectAllText() {
-        return /*canSelectText() &&*//* !hasPasswordTransformationMethod()
-                &&*/ !(getSelectionStart() == 0 && getSelectionEnd() == mText.length());
+        return /*canSelectText() &&*/ !hasPasswordTransformationMethod()
+                && !(getSelectionStart() == 0 && getSelectionEnd() == mText.length());
     }
 
     /**
@@ -3880,9 +4003,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     }
 
     public boolean canCut() {
-//        if (hasPasswordTransformationMethod()) {
-//            return false;
-//        }
+        if (hasPasswordTransformationMethod()) {
+            return false;
+        }
 
         if (mText.length() > 0 && hasSelection() && mText instanceof Editable && mEditor != null
                 && mEditor.mKeyListener != null) {
@@ -3893,9 +4016,9 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     }
 
     public boolean canCopy() {
-//        if (hasPasswordTransformationMethod()) {
-//            return false;
-//        }
+        if (hasPasswordTransformationMethod()) {
+            return false;
+        }
 
         if (mText.length() > 0 && hasSelection() && mEditor != null) {
             return true;
@@ -5661,6 +5784,43 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
     }
 
     /**
+     * It would be better to rely on the input type for everything. A password inputType should have
+     * a password transformation. We should hence use isPasswordInputType instead of this method.
+     *
+     * We should:
+     * - Call setInputType in setKeyListener instead of changing the input type directly (which
+     * would install the correct transformation).
+     * - Refuse the installation of a non-password transformation in setTransformation if the input
+     * type is password.
+     *
+     * However, this is like this for legacy reasons and we cannot break existing apps. This method
+     * is useful since it matches what the user can see (obfuscated text or not).
+     *
+     * @return true if the current transformation method is of the password type.
+     */
+    boolean hasPasswordTransformationMethod() {
+        return mTransformation instanceof PasswordTransformationMethod;
+    }
+
+    static boolean isPasswordInputType(int inputType) {
+        final int variation =
+                inputType & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION);
+        return variation
+                == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD)
+                || variation
+                == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD)
+                || variation
+                == (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD);
+    }
+
+    private static boolean isVisiblePasswordInputType(int inputType) {
+        final int variation =
+                inputType & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION);
+        return variation
+                == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+    }
+
+    /**
      * Directly change the content type integer of the text view, without
      * modifying any other state.
      * @see #setInputType(int)
@@ -5799,6 +5959,78 @@ public class CustomEditTextView extends View implements ICustomTextView, ViewTre
         } else {
             setKeyListenerOnly(input);
         }
+    }
+
+    /**
+     * Set the type of the content with a constant as defined for {@link EditorInfo#inputType}. This
+     * will take care of changing the key listener, by calling {@link #setKeyListener(KeyListener)},
+     * to match the given content type.  If the given content type is {@link EditorInfo#TYPE_NULL}
+     * then a soft keyboard will not be displayed for this text view.
+     *
+     * Note that the maximum number of displayed lines (see {@link #setMaxLines(int)}) will be
+     * modified if you change the {@link EditorInfo#TYPE_TEXT_FLAG_MULTI_LINE} flag of the input
+     * type.
+     *
+     * @see #getInputType()
+     * @see #setRawInputType(int)
+     * @see InputType
+     * @attr ref android.R.styleable#TextView_inputType
+     */
+    public void setInputType(int type) {
+        final boolean wasPassword = isPasswordInputType(getInputType());
+        final boolean wasVisiblePassword = isVisiblePasswordInputType(getInputType());
+        setInputType(type, false);
+        final boolean isPassword = isPasswordInputType(type);
+        final boolean isVisiblePassword = isVisiblePasswordInputType(type);
+        boolean forceUpdate = false;
+        if (isPassword) {
+            setTransformationMethod(PasswordTransformationMethod.getInstance());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE,
+                        Typeface.NORMAL, -1 /* weight, not specifeid */);
+            } else {
+                //TODO: (EW) handle
+            }
+        } else if (isVisiblePassword) {
+            if (mTransformation == PasswordTransformationMethod.getInstance()) {
+                forceUpdate = true;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE,
+                        Typeface.NORMAL, -1 /* weight, not specified */);
+            } else {
+                //TODO: (EW) handle
+            }
+        } else if (wasPassword || wasVisiblePassword) {
+            // not in password mode, clean up typeface and transformation
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */,
+                        DEFAULT_TYPEFACE /* typeface index */, Typeface.NORMAL,
+                        -1 /* weight, not specified */);
+            } else {
+                //TODO: (EW) handle
+            }
+            if (mTransformation == PasswordTransformationMethod.getInstance()) {
+                forceUpdate = true;
+            }
+        }
+
+        boolean singleLine = !isMultilineInputType(type);
+
+        // We need to update the single line mode if it has changed or we
+        // were previously in password mode.
+        if (mSingleLine != singleLine || forceUpdate) {
+            // Change single line mode, but only change the transformation if
+            // we are not in password mode.
+            applySingleLine(singleLine, !isPassword, true);
+        }
+
+//        if (!isSuggestionsEnabled()) {
+//            setTextInternal(removeSuggestionSpans(mText));
+//        }
+
+        InputMethodManager imm = getInputMethodManager();
+        if (imm != null) imm.restartInput(this);
     }
 
     /**
