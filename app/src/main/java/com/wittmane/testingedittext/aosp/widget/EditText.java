@@ -84,9 +84,8 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.annotation.StringRes;
 
-import com.wittmane.testingedittext.CustomInputConnection2;
+import com.wittmane.testingedittext.CustomInputConnection;
 import com.wittmane.testingedittext.HiddenTextUtils;
-import com.wittmane.testingedittext.ICustomTextView;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
@@ -96,7 +95,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class EditText extends View implements ICustomTextView, ViewTreeObserver.OnPreDrawListener {
+public class EditText extends View implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
 
     static final String LOG_TAG = "TextView";
@@ -1018,7 +1017,6 @@ public class EditText extends View implements ICustomTextView, ViewTreeObserver.
      *
      * @see #getText
      */
-    @Override
     public Editable getEditableText() {
         return mText;
     }
@@ -3822,7 +3820,7 @@ public class EditText extends View implements ICustomTextView, ViewTreeObserver.
             }
             outAttrs.hintText = mHint;
             if (mText instanceof Editable) {
-                InputConnection ic = new CustomInputConnection2(this);
+                InputConnection ic = new CustomInputConnection(this);
                 outAttrs.initialSelStart = getSelectionStart();
                 outAttrs.initialSelEnd = getSelectionEnd();
                 outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
@@ -3832,13 +3830,11 @@ public class EditText extends View implements ICustomTextView, ViewTreeObserver.
         return null;
     }
 
-    @Override
     public void beginBatchEdit() {
         Log.w(TAG, "beginBatchEdit");
         mEditor.beginBatchEdit();
     }
 
-    @Override
     public void endBatchEdit() {
         Log.w(TAG, "endBatchEdit");
         mEditor.endBatchEdit();

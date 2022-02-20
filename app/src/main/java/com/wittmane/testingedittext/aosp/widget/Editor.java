@@ -59,7 +59,7 @@ import androidx.core.content.ContextCompat;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
-import com.wittmane.testingedittext.CustomInputConnection2;
+import com.wittmane.testingedittext.CustomInputConnection;
 import com.wittmane.testingedittext.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
 
@@ -1256,8 +1256,8 @@ public class Editor {
                 int candEnd = -1;
                 if (mTextView.getText() instanceof Spannable) {
                     final Spannable sp = (Spannable) mTextView.getText();
-                    candStart = CustomInputConnection2.getComposingSpanStart(sp);
-                    candEnd = CustomInputConnection2.getComposingSpanEnd(sp);
+                    candStart = CustomInputConnection.getComposingSpanStart(sp);
+                    candEnd = CustomInputConnection.getComposingSpanEnd(sp);
                 }
                 // InputMethodManager#updateSelection skips sending the message if
                 // none of the parameters have changed since the last time we called it.

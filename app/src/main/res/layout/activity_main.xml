@@ -27,17 +27,6 @@
                 android:layout_height="wrap_content"
                 android:text="test" />
 
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:text="Custom EditText"/>-->
-<!--            <com.wittmane.testingedittext.CustomEditText-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:singleLine="false"-->
-<!--                android:gravity="top"-->
-<!--                android:inputType="textMultiLine"-->
-<!--                android:text="example text\nnew line"/>-->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -135,90 +124,14 @@
                 android:text="foo\nbar\nbaz"
                 android:justificationMode="inter_word"
                 android:hint="hint text\nsecond line"/>
-<!--            <EditText-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:paddingLeft="4dp"-->
-<!--                android:singleLine="true"-->
-<!--                android:gravity="top"-->
-<!--                android:lineHeight="15sp"-->
-<!--                android:inputType="textMultiLine"-->
-<!--                android:hint="hint text\nsecond line"/>-->
-<!--            <EditText-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:paddingTop="0dp"-->
-<!--                android:paddingBottom="0dp"-->
-<!--                android:paddingLeft="0dp"-->
-<!--                android:paddingRight="0dp"-->
-<!--                android:singleLine="true"-->
-<!--                android:gravity="top"-->
-<!--                android:inputType="textMultiLine"-->
-<!--                android:hint="hint text\nsecond line"/>-->
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:text="Custom simple TextView"/>-->
-<!--            <com.wittmane.testingedittext.CustomSimpleTextView-->
-<!--                android:layout_width="50dp"-->
-<!--                android:layout_height="50dp"-->
-<!--                android:text="xml text"/>-->
-
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:text="Custom simple TextView 2"/>-->
-<!--            <com.wittmane.testingedittext.CustomSimpleTextView2-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:paddingLeft="4dp"-->
-<!--                android:paddingRight="4dp"-->
-<!--                android:paddingTop="4dp"-->
-<!--                android:paddingBottom="4dp"-->
-<!--                android:text="example text - xml text yqpgj - extra text to expand past what can span a single line to see what happens"/>-->
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Custom simple EditText"/>
-            <com.wittmane.testingedittext.CustomSimpleEditTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:text="example text"/>
-
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:text="Custom simple EditText 2"/>-->
-<!--&lt;!&ndash;            <com.wittmane.testingedittext.CustomSimpleEditTextView2&ndash;&gt;-->
-<!--&lt;!&ndash;                android:layout_width="wrap_content"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:layout_height="wrap_content"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:paddingLeft="4dp"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:paddingRight="4dp"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:paddingTop="4dp"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:paddingBottom="4dp"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:inputType="textMultiLine"&ndash;&gt;-->
-<!--&lt;!&ndash;                android:text="example text\nnew line"/>&ndash;&gt;-->
-<!--            <com.wittmane.testingedittext.CustomSimpleEditTextView2-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:paddingLeft="4dp"-->
-<!--                android:paddingRight="4dp"-->
-<!--                android:paddingTop="4dp"-->
-<!--                android:paddingBottom="4dp"-->
-<!--                android:inputType="text"-->
-<!--                android:hint="single line hint"-->
-<!--                android:text="example text with extra content to see how this scrolls automatically"/>-->
 
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Custom simple EditText stripped 2"/>
+                android:textSize="30sp"
+                android:textColor="@color/design_default_color_primary"
+                android:text="AOSP copy"/>
             <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

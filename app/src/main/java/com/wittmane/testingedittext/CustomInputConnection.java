@@ -1,33 +1,40 @@
 package com.wittmane.testingedittext;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputContentInfo;
-import android.widget.TextView;
+import android.view.inputmethod.InputMethodManager;
+
+import com.wittmane.testingedittext.aosp.widget.EditText;
 
 public class CustomInputConnection extends BaseInputConnection {
     static final String TAG = CustomInputConnection.class.getSimpleName();
 
     static final boolean LOG_CALLS = true;
 
-    private final CustomSimpleEditTextView mTextView;
+    protected final InputMethodManager mIMM;
+
+    private final EditText mTextView;
     // Keeps track of nested begin/end batch edit to ensure this connection always has a
     // balanced impact on its associated TextView.
     // A negative value means that this connection has been finished by the InputMethodManager.
     private int mBatchEditNesting;
 
-    public CustomInputConnection(CustomSimpleEditTextView targetView) {
+    public CustomInputConnection(EditText targetView) {
         super(targetView, true);
-        mTextView = targetView;
+        mTextView = (EditText)targetView;
+        // copied from BaseInputConnection because this protected variable is marked @hide
+        mIMM = (InputMethodManager)targetView.getContext().getSystemService(
+                Context.INPUT_METHOD_SERVICE);
     }
 
     @Override
@@ -75,6 +82,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest + ", i=" + i);
         }
+        //TODO: implement (maybe copy from AOSP EditableInputConnection)
         return super.getExtractedText(extractedTextRequest, i);
     }
 
@@ -123,6 +131,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitText: text=" + text + ", newCursorPosition=" + newCursorPosition);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection (not currently implementing error flags, so maybe not)
         return super.commitText(text, newCursorPosition);
     }
 
@@ -131,6 +140,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCompletion: CompletionInfo=" + text);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection
         return super.commitCompletion(text);
     }
 
@@ -139,6 +149,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCorrection: correctionInfo=" + correctionInfo);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection
         return super.commitCorrection(correctionInfo);
     }
 
@@ -155,6 +166,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performEditorAction: editorAction=" + editorAction);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection
         return super.performEditorAction(editorAction);
     }
 
@@ -163,6 +175,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performContextMenuAction: id=" + id);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection
         return super.performContextMenuAction(id);
     }
 
@@ -215,6 +228,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "clearMetaKeyStates: states=" + states);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection
         return super.clearMetaKeyStates(states);
     }
 
@@ -231,6 +245,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performPrivateCommand: s=" + s + ", bundle=" + bundle);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection
         return super.performPrivateCommand(s, bundle);
     }
 
@@ -239,6 +254,7 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "requestCursorUpdates: cursorUpdateMode=" + cursorUpdateMode);
         }
+        //TODO: maybe copy from AOSP EditableInputConnection (calls some inaccessible things, so not sure what needs to be done)
         return super.requestCursorUpdates(cursorUpdateMode);
     }
 
@@ -256,6 +272,13 @@ public class CustomInputConnection extends BaseInputConnection {
             Log.d(TAG, "closeConnection");
         }
         super.closeConnection();
+        synchronized(this) {
+            while (mBatchEditNesting > 0) {
+                endBatchEdit();
+            }
+            // Will prevent any further calls to begin or endBatchEdit
+            mBatchEditNesting = -1;
+        }
     }
 
     @Override
