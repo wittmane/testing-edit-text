@@ -1,11 +1,13 @@
-package com.wittmane.testingedittext.method;
+package com.wittmane.testingedittext.aosp.text.method;
+
 
 import android.icu.lang.UCharacter;
 import android.icu.lang.UProperty;
 import android.icu.text.BreakIterator;
-import android.text.Selection;
 
 import androidx.annotation.NonNull;
+
+import com.wittmane.testingedittext.aosp.text.CharSequenceCharacterIterator;
 
 import java.util.Locale;
 
@@ -17,7 +19,7 @@ import java.util.Locale;
  * Also provides methods to determine word boundaries.
  * {@hide}
  */
-public class WordIterator28 /*implements Selection.PositionIterator*/ {
+public class WordIterator /*implements Selection.PositionIterator*/ {
     // Size of the window for the word iterator, should be greater than the longest word's length
     private static final int WINDOW_WIDTH = 50;
 
@@ -28,7 +30,7 @@ public class WordIterator28 /*implements Selection.PositionIterator*/ {
     /**
      * Constructs a WordIterator using the default locale.
      */
-    public WordIterator28() {
+    public WordIterator() {
         this(Locale.getDefault());
     }
 
@@ -36,7 +38,8 @@ public class WordIterator28 /*implements Selection.PositionIterator*/ {
      * Constructs a new WordIterator for the specified locale.
      * @param locale The locale to be used for analyzing the text.
      */
-    public WordIterator28(Locale locale) {
+    public WordIterator(Locale locale) {
+        //TODO: (EW) handle API versions
         mIterator = BreakIterator.getWordInstance(locale);
     }
 
@@ -45,7 +48,7 @@ public class WordIterator28 /*implements Selection.PositionIterator*/ {
             mCharSeq = charSequence;
             mStart = Math.max(0, start - WINDOW_WIDTH);
             mEnd = Math.min(charSequence.length(), end + WINDOW_WIDTH);
-            mIterator.setText(new CharSequenceCharacterIterator28(charSequence, mStart, mEnd));
+            mIterator.setText(new CharSequenceCharacterIterator(charSequence, mStart, mEnd));
         } else {
             throw new IndexOutOfBoundsException("input indexes are outside the CharSequence");
         }

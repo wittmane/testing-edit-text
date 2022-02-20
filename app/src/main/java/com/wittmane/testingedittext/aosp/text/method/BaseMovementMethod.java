@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext.method;
+package com.wittmane.testingedittext.aosp.text.method;
 
 import android.text.Layout;
 import android.text.Spannable;
@@ -7,35 +7,36 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
-import com.wittmane.testingedittext.CustomEditTextView;
+import com.wittmane.testingedittext.aosp.widget.EditText;
+
 
 /**
  * Base classes for movement methods.
  */
-public class CustomBaseMovementMethod implements CustomMovementMethod {
-    static final String TAG = CustomBaseMovementMethod.class.getSimpleName();
+public class BaseMovementMethod implements MovementMethod {
+    static final String TAG = BaseMovementMethod.class.getSimpleName();
     @Override
     public boolean canSelectArbitrarily() {
         return false;
     }
 
     @Override
-    public void initialize(CustomEditTextView widget, Spannable text) {
+    public void initialize(EditText widget, Spannable text) {
     }
 
     @Override
-    public boolean onKeyDown(CustomEditTextView widget, Spannable text, int keyCode, KeyEvent event) {
+    public boolean onKeyDown(EditText widget, Spannable text, int keyCode, KeyEvent event) {
         final int movementMetaState = getMovementMetaState(text, event);
         boolean handled = handleMovementKey(widget, text, keyCode, movementMetaState, event);
         if (handled) {
-            CustomMetaKeyKeyListener.adjustMetaAfterKeypress(text);
-            CustomMetaKeyKeyListener.resetLockedMeta(text);
+            MetaKeyKeyListener.adjustMetaAfterKeypress(text);
+            MetaKeyKeyListener.resetLockedMeta(text);
         }
         return handled;
     }
 
     @Override
-    public boolean onKeyOther(CustomEditTextView widget, Spannable text, KeyEvent event) {
+    public boolean onKeyOther(EditText widget, Spannable text, KeyEvent event) {
         final int movementMetaState = getMovementMetaState(text, event);
         final int keyCode = event.getKeyCode();
         if (keyCode != KeyEvent.KEYCODE_UNKNOWN
@@ -49,8 +50,8 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
                 handled = true;
             }
             if (handled) {
-                CustomMetaKeyKeyListener.adjustMetaAfterKeypress(text);
-                CustomMetaKeyKeyListener.resetLockedMeta(text);
+                MetaKeyKeyListener.adjustMetaAfterKeypress(text);
+                MetaKeyKeyListener.resetLockedMeta(text);
             }
             return handled;
         }
@@ -58,26 +59,26 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
     }
 
     @Override
-    public boolean onKeyUp(CustomEditTextView widget, Spannable text, int keyCode, KeyEvent event) {
+    public boolean onKeyUp(EditText widget, Spannable text, int keyCode, KeyEvent event) {
         return false;
     }
 
     @Override
-    public void onTakeFocus(CustomEditTextView widget, Spannable text, int direction) {
+    public void onTakeFocus(EditText widget, Spannable text, int direction) {
     }
 
     @Override
-    public boolean onTouchEvent(CustomEditTextView widget, Spannable text, MotionEvent event) {
+    public boolean onTouchEvent(EditText widget, Spannable text, MotionEvent event) {
         return false;
     }
 
     @Override
-    public boolean onTrackballEvent(CustomEditTextView widget, Spannable text, MotionEvent event) {
+    public boolean onTrackballEvent(EditText widget, Spannable text, MotionEvent event) {
         return false;
     }
 
     @Override
-    public boolean onGenericMotionEvent(CustomEditTextView widget, Spannable text, MotionEvent event) {
+    public boolean onGenericMotionEvent(EditText widget, Spannable text, MotionEvent event) {
         if ((event.getSource() & InputDevice.SOURCE_CLASS_POINTER) != 0) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_SCROLL: {
@@ -123,8 +124,8 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      */
     protected int getMovementMetaState(Spannable buffer, KeyEvent event) {
         // We ignore locked modifiers and SHIFT.
-        int metaState = CustomMetaKeyKeyListener.getMetaState(buffer, event)
-                & ~(CustomMetaKeyKeyListener.META_ALT_LOCKED | CustomMetaKeyKeyListener.META_SYM_LOCKED);
+        int metaState = MetaKeyKeyListener.getMetaState(buffer, event)
+                & ~(MetaKeyKeyListener.META_ALT_LOCKED | MetaKeyKeyListener.META_SYM_LOCKED);
         return KeyEvent.normalizeMetaState(metaState) & ~KeyEvent.META_SHIFT_MASK;
     }
 
@@ -132,9 +133,9 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * Performs a movement key action.
      * The default implementation decodes the key down and invokes movement actions
      * such as {@link #down} and {@link #up}.
-     * {@link #onKeyDown(CustomEditTextView, Spannable, int, KeyEvent)} calls this method once
+     * {@link #onKeyDown(EditText, Spannable, int, KeyEvent)} calls this method once
      * to handle an {@link KeyEvent#ACTION_DOWN}.
-     * {@link #onKeyOther(CustomEditTextView, Spannable, KeyEvent)} calls this method repeatedly
+     * {@link #onKeyOther(EditText, Spannable, KeyEvent)} calls this method repeatedly
      * to handle each repetition of an {@link KeyEvent#ACTION_MULTIPLE}.
      *
      * @param widget The text view.
@@ -145,7 +146,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param event The key event.
      * @return True if the event was handled.
      */
-    protected boolean handleMovementKey(CustomEditTextView widget, Spannable buffer,
+    protected boolean handleMovementKey(EditText widget, Spannable buffer,
                                         int keyCode, int movementMetaState, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
@@ -237,7 +238,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean left(CustomEditTextView widget, Spannable buffer) {
+    protected boolean left(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -249,7 +250,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean right(CustomEditTextView widget, Spannable buffer) {
+    protected boolean right(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -261,7 +262,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean up(CustomEditTextView widget, Spannable buffer) {
+    protected boolean up(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -273,7 +274,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean down(CustomEditTextView widget, Spannable buffer) {
+    protected boolean down(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -285,7 +286,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean pageUp(CustomEditTextView widget, Spannable buffer) {
+    protected boolean pageUp(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -297,7 +298,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean pageDown(CustomEditTextView widget, Spannable buffer) {
+    protected boolean pageDown(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -309,7 +310,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean top(CustomEditTextView widget, Spannable buffer) {
+    protected boolean top(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -321,7 +322,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean bottom(CustomEditTextView widget, Spannable buffer) {
+    protected boolean bottom(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -333,7 +334,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean lineStart(CustomEditTextView widget, Spannable buffer) {
+    protected boolean lineStart(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -345,17 +346,17 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean lineEnd(CustomEditTextView widget, Spannable buffer) {
+    protected boolean lineEnd(EditText widget, Spannable buffer) {
         return false;
     }
 
     /** {@hide} */
-    protected boolean leftWord(CustomEditTextView widget, Spannable buffer) {
+    protected boolean leftWord(EditText widget, Spannable buffer) {
         return false;
     }
 
     /** {@hide} */
-    protected boolean rightWord(CustomEditTextView widget, Spannable buffer) {
+    protected boolean rightWord(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -369,7 +370,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean home(CustomEditTextView widget, Spannable buffer) {
+    protected boolean home(EditText widget, Spannable buffer) {
         return false;
     }
 
@@ -383,31 +384,31 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @param buffer The text buffer.
      * @return True if the event was handled.
      */
-    protected boolean end(CustomEditTextView widget, Spannable buffer) {
+    protected boolean end(EditText widget, Spannable buffer) {
         return false;
     }
 
-    private int getTopLine(CustomEditTextView widget) {
+    private int getTopLine(EditText widget) {
         return widget.getLayout().getLineForVertical(widget.getScrollY());
     }
 
-    private int getBottomLine(CustomEditTextView widget) {
+    private int getBottomLine(EditText widget) {
         return widget.getLayout().getLineForVertical(widget.getScrollY() + getInnerHeight(widget));
     }
 
-    private int getInnerWidth(CustomEditTextView widget) {
+    private int getInnerWidth(EditText widget) {
         return widget.getWidth() - widget.getTotalPaddingLeft() - widget.getTotalPaddingRight();
     }
 
-    private int getInnerHeight(CustomEditTextView widget) {
+    private int getInnerHeight(EditText widget) {
         return widget.getHeight() - widget.getTotalPaddingTop() - widget.getTotalPaddingBottom();
     }
 
-    private int getCharacterWidth(CustomEditTextView widget) {
+    private int getCharacterWidth(EditText widget) {
         return (int) Math.ceil(widget.getPaint().getFontSpacing());
     }
 
-    private int getScrollBoundsLeft(CustomEditTextView widget) {
+    private int getScrollBoundsLeft(EditText widget) {
         final Layout layout = widget.getLayout();
         final int topLine = getTopLine(widget);
         final int bottomLine = getBottomLine(widget);
@@ -424,7 +425,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
         return left;
     }
 
-    private int getScrollBoundsRight(CustomEditTextView widget) {
+    private int getScrollBoundsRight(EditText widget) {
         final Layout layout = widget.getLayout();
         final int topLine = getTopLine(widget);
         final int bottomLine = getBottomLine(widget);
@@ -451,7 +452,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollLeft(CustomEditTextView widget, Spannable buffer, int amount) {
+    protected boolean scrollLeft(EditText widget, Spannable buffer, int amount) {
         final int minScrollX = getScrollBoundsLeft(widget);
         int scrollX = widget.getScrollX();
         if (scrollX > minScrollX) {
@@ -472,7 +473,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollRight(CustomEditTextView widget, Spannable buffer, int amount) {
+    protected boolean scrollRight(EditText widget, Spannable buffer, int amount) {
         final int maxScrollX = getScrollBoundsRight(widget) - getInnerWidth(widget);
         int scrollX = widget.getScrollX();
         if (scrollX < maxScrollX) {
@@ -493,7 +494,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollUp(CustomEditTextView widget, Spannable buffer, int amount) {
+    protected boolean scrollUp(EditText widget, Spannable buffer, int amount) {
         final Layout layout = widget.getLayout();
         final int top = widget.getScrollY();
         int topLine = layout.getLineForVertical(top);
@@ -520,7 +521,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollDown(CustomEditTextView widget, Spannable buffer, int amount) {
+    protected boolean scrollDown(EditText widget, Spannable buffer, int amount) {
         final Layout layout = widget.getLayout();
         final int innerHeight = getInnerHeight(widget);
         final int bottom = widget.getScrollY() + innerHeight;
@@ -550,7 +551,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollPageUp(CustomEditTextView widget, Spannable buffer) {
+    protected boolean scrollPageUp(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         final int top = widget.getScrollY() - getInnerHeight(widget);
         int topLine = layout.getLineForVertical(top);
@@ -570,7 +571,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollPageDown(CustomEditTextView widget, Spannable buffer) {
+    protected boolean scrollPageDown(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         final int innerHeight = getInnerHeight(widget);
         final int bottom = widget.getScrollY() + innerHeight + innerHeight;
@@ -592,7 +593,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollTop(CustomEditTextView widget, Spannable buffer) {
+    protected boolean scrollTop(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (getTopLine(widget) >= 0) {
             Touch.scrollTo(widget, layout, widget.getScrollX(), layout.getLineTop(0));
@@ -610,7 +611,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollBottom(CustomEditTextView widget, Spannable buffer) {
+    protected boolean scrollBottom(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         final int lineCount = layout.getLineCount();
         if (getBottomLine(widget) <= lineCount - 1) {
@@ -630,7 +631,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollLineStart(CustomEditTextView widget, Spannable buffer) {
+    protected boolean scrollLineStart(EditText widget, Spannable buffer) {
         final int minScrollX = getScrollBoundsLeft(widget);
         int scrollX = widget.getScrollX();
         if (scrollX > minScrollX) {
@@ -649,7 +650,7 @@ public class CustomBaseMovementMethod implements CustomMovementMethod {
      * @return True if the event was handled.
      * @hide
      */
-    protected boolean scrollLineEnd(CustomEditTextView widget, Spannable buffer) {
+    protected boolean scrollLineEnd(EditText widget, Spannable buffer) {
         final int maxScrollX = getScrollBoundsRight(widget) - getInnerWidth(widget);
         int scrollX = widget.getScrollX();
         if (scrollX < maxScrollX) {

@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext.method;
+package com.wittmane.testingedittext.aosp.text.method;
 
 import android.graphics.Rect;
 import android.text.Layout;
@@ -9,25 +9,25 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.wittmane.testingedittext.CustomEditTextView;
+import com.wittmane.testingedittext.aosp.widget.EditText;
 
 /**
  * A movement method that provides cursor movement and selection.
  * Supports displaying the context menu on DPad Center.
  */
-public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod implements CustomMovementMethod {
-    static final String TAG = CustomArrowKeyMovementMethod.class.getSimpleName();
+public class ArrowKeyMovementMethod extends BaseMovementMethod implements MovementMethod {
+    static final String TAG = ArrowKeyMovementMethod.class.getSimpleName();
 
     private static boolean isSelecting(Spannable buffer) {
-        return ((CustomMetaKeyKeyListener.getMetaState(buffer, CustomMetaKeyKeyListener.META_SHIFT_ON) == 1) ||
-                (CustomMetaKeyKeyListener.getMetaState(buffer, CustomMetaKeyKeyListener.META_SELECTING) != 0));
+        return ((MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SHIFT_ON) == 1) ||
+                (MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SELECTING) != 0));
     }
 
     private static int getCurrentLineTop(Spannable buffer, Layout layout) {
         return layout.getLineTop(layout.getLineForOffset(Selection.getSelectionEnd(buffer)));
     }
 
-    private static int getPageHeight(CustomEditTextView widget) {
+    private static int getPageHeight(EditText widget) {
         // This calculation does not take into account the view transformations that
         // may have been applied to the child or its containers.  In case of scaling or
         // rotation, the calculated page height may be incorrect.
@@ -36,15 +36,15 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean handleMovementKey(CustomEditTextView widget, Spannable buffer, int keyCode,
+    protected boolean handleMovementKey(EditText widget, Spannable buffer, int keyCode,
                                         int movementMetaState, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_CENTER:
                 if (KeyEvent.metaStateHasNoModifiers(movementMetaState)) {
                     if (event.getAction() == KeyEvent.ACTION_DOWN
                             && event.getRepeatCount() == 0
-                            && CustomMetaKeyKeyListener.getMetaState(buffer,
-                            CustomMetaKeyKeyListener.META_SELECTING, event) != 0) {
+                            && MetaKeyKeyListener.getMetaState(buffer,
+                            MetaKeyKeyListener.META_SELECTING, event) != 0) {
                         return widget.showContextMenu();
                     }
                 }
@@ -54,7 +54,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean left(CustomEditTextView widget, Spannable buffer) {
+    protected boolean left(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendLeft(buffer, layout);
@@ -72,7 +72,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean right(CustomEditTextView widget, Spannable buffer) {
+    protected boolean right(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendRight(buffer, layout);
@@ -82,7 +82,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean up(CustomEditTextView widget, Spannable buffer) {
+    protected boolean up(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendUp(buffer, layout);
@@ -92,7 +92,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean down(CustomEditTextView widget, Spannable buffer) {
+    protected boolean down(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendDown(buffer, layout);
@@ -102,7 +102,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean pageUp(CustomEditTextView widget, Spannable buffer) {
+    protected boolean pageUp(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         final boolean selecting = isSelecting(buffer);
         final int targetY = getCurrentLineTop(buffer, layout) - getPageHeight(widget);
@@ -126,7 +126,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean pageDown(CustomEditTextView widget, Spannable buffer) {
+    protected boolean pageDown(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         final boolean selecting = isSelecting(buffer);
         final int targetY = getCurrentLineTop(buffer, layout) + getPageHeight(widget);
@@ -150,7 +150,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean top(CustomEditTextView widget, Spannable buffer) {
+    protected boolean top(EditText widget, Spannable buffer) {
         if (isSelecting(buffer)) {
             Selection.extendSelection(buffer, 0);
         } else {
@@ -160,7 +160,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean bottom(CustomEditTextView widget, Spannable buffer) {
+    protected boolean bottom(EditText widget, Spannable buffer) {
         if (isSelecting(buffer)) {
             Selection.extendSelection(buffer, buffer.length());
         } else {
@@ -170,7 +170,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean lineStart(CustomEditTextView widget, Spannable buffer) {
+    protected boolean lineStart(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendToLeftEdge(buffer, layout);
@@ -180,7 +180,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean lineEnd(CustomEditTextView widget, Spannable buffer) {
+    protected boolean lineEnd(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendToRightEdge(buffer, layout);
@@ -191,7 +191,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
 
     /** {@hide} */
     @Override
-    protected boolean leftWord(CustomEditTextView widget, Spannable buffer) {
+    protected boolean leftWord(EditText widget, Spannable buffer) {
 //        final int selectionEnd = widget.getSelectionEnd();
 //        final WordIterator wordIterator = widget.getWordIterator();
 //        wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
@@ -201,7 +201,7 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
 
     /** {@hide} */
     @Override
-    protected boolean rightWord(CustomEditTextView widget, Spannable buffer) {
+    protected boolean rightWord(EditText widget, Spannable buffer) {
 //        final int selectionEnd = widget.getSelectionEnd();
 //        final WordIterator wordIterator = widget.getWordIterator();
 //        wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
@@ -210,17 +210,17 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    protected boolean home(CustomEditTextView widget, Spannable buffer) {
+    protected boolean home(EditText widget, Spannable buffer) {
         return lineStart(widget, buffer);
     }
 
     @Override
-    protected boolean end(CustomEditTextView widget, Spannable buffer) {
+    protected boolean end(EditText widget, Spannable buffer) {
         return lineEnd(widget, buffer);
     }
 
     @Override
-    public boolean onTouchEvent(CustomEditTextView widget, Spannable buffer, MotionEvent event) {
+    public boolean onTouchEvent(EditText widget, Spannable buffer, MotionEvent event) {
         int initialScrollX = -1;
         int initialScrollY = -1;
         final int action = event.getAction();
@@ -291,8 +291,8 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
                     buffer.removeSpan(LAST_TAP_DOWN);
                 }
 
-                CustomMetaKeyKeyListener.adjustMetaAfterKeypress(buffer);
-                CustomMetaKeyKeyListener.resetLockedMeta(buffer);
+                MetaKeyKeyListener.adjustMetaAfterKeypress(buffer);
+                MetaKeyKeyListener.resetLockedMeta(buffer);
 
                 return true;
             }
@@ -306,12 +306,12 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
     }
 
     @Override
-    public void initialize(CustomEditTextView widget, Spannable text) {
+    public void initialize(EditText widget, Spannable text) {
         Selection.setSelection(text, 0);
     }
 
     @Override
-    public void onTakeFocus(CustomEditTextView view, Spannable text, int dir) {
+    public void onTakeFocus(EditText view, Spannable text, int dir) {
         if ((dir & (View.FOCUS_FORWARD | View.FOCUS_DOWN)) != 0) {
             if (view.getLayout() == null) {
                 // This shouldn't be null, but do something sensible if it is.
@@ -322,14 +322,14 @@ public class CustomArrowKeyMovementMethod extends CustomBaseMovementMethod imple
         }
     }
 
-    public static CustomMovementMethod getInstance() {
+    public static MovementMethod getInstance() {
         if (sInstance == null) {
-            sInstance = new CustomArrowKeyMovementMethod();
+            sInstance = new ArrowKeyMovementMethod();
         }
 
         return sInstance;
     }
 
     private static final Object LAST_TAP_DOWN = new Object();
-    private static CustomArrowKeyMovementMethod sInstance;
+    private static ArrowKeyMovementMethod sInstance;
 }

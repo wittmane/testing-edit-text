@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext.method;
+package com.wittmane.testingedittext.aosp.text;
 
 import androidx.annotation.NonNull;
 
@@ -8,7 +8,7 @@ import java.text.CharacterIterator;
  * An implementation of {@link java.text.CharacterIterator} that iterates over a given CharSequence.
  * {@hide}
  */
-public class CharSequenceCharacterIterator28 implements CharacterIterator {
+public class CharSequenceCharacterIterator implements CharacterIterator {
     private final int mBeginIndex, mEndIndex;
     private int mIndex;
     private final CharSequence mCharSeq;
@@ -17,7 +17,7 @@ public class CharSequenceCharacterIterator28 implements CharacterIterator {
      * Constructs the iterator given a CharSequence and a range. The position of the iterator index
      * is set to the beginning of the range.
      */
-    public CharSequenceCharacterIterator28(@NonNull CharSequence text, int start, int end) {
+    public CharSequenceCharacterIterator(@NonNull CharSequence text, int start, int end) {
         mCharSeq = text;
         mBeginIndex = mIndex = start;
         mEndIndex = end;

@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext.method;
+package com.wittmane.testingedittext.aosp.text.method;
 
 import android.text.Editable;
 import android.text.NoCopySpan;
@@ -54,7 +54,7 @@ import android.view.View;
  * }
  * </code>
  */
-public abstract class CustomMetaKeyKeyListener {
+public class MetaKeyKeyListener {
     /**
      * Flag that indicates that the SHIFT key is on.
      * Value equals {@link KeyEvent#META_SHIFT_ON}.

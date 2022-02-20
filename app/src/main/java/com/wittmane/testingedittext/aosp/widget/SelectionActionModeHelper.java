@@ -1,44 +1,30 @@
-package com.wittmane.testingedittext.widget;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
-import androidx.annotation.WorkerThread;
+package com.wittmane.testingedittext.aosp.widget;
+
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.PointF;
-import android.graphics.RectF;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.LocaleList;
-import android.text.Layout;
 import android.text.Selection;
 import android.text.Spannable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.textclassifier.SelectionEvent;
-//import android.view.textclassifier.SelectionEvent.InvocationMethod;
-//import android.view.textclassifier.SelectionSessionLogger;
 import android.view.textclassifier.TextClassification;
-//import android.view.textclassifier.TextClassificationConstants;
-import android.view.textclassifier.TextClassificationManager;
 import android.view.textclassifier.TextClassifier;
 import android.view.textclassifier.TextSelection;
 
-//import com.android.internal.annotations.VisibleForTesting;
-//import com.android.internal.util.Preconditions;
-import com.wittmane.testingedittext.CustomEditTextView;
-import com.wittmane.testingedittext.Editor;
-import com.wittmane.testingedittext.editor.SelectionModifierCursorController28;
-//import com.wittmane.testingedittext.textclassifier.SelectionSessionLogger28;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
+import androidx.annotation.WorkerThread;
+
+import com.wittmane.testingedittext.aosp.widget.Editor.SelectionModifierCursorController;
 
 import java.text.BreakIterator;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -47,15 +33,16 @@ import java.util.regex.Pattern;
  * (synchronously without the TextClassifier, asynchronously with the TextClassifier).
  * @hide
  */
-public class SelectionActionModeHelper28 {
+public final class SelectionActionModeHelper {
 
     private static final String LOG_TAG = "SelectActionModeHelper";
 
     private final Editor mEditor;
-    private final CustomEditTextView mTextView;
-    private final TextClassificationHelper mTextClassificationHelper;
+    private final EditText mTextView;
+    private final SelectionActionModeHelper.TextClassificationHelper mTextClassificationHelper;
 
-    @Nullable private TextClassification mTextClassification;
+    @Nullable
+    private TextClassification mTextClassification;
     private AsyncTask mTextClassificationAsyncTask;
 
     private final SelectionTracker mSelectionTracker;
@@ -64,7 +51,7 @@ public class SelectionActionModeHelper28 {
 //    @Nullable
 //    private final SmartSelectSprite mSmartSelectSprite;
 
-    public SelectionActionModeHelper28(@NonNull Editor editor) {
+    public SelectionActionModeHelper(@NonNull Editor editor) {
 //        mEditor = Preconditions.checkNotNull(editor);
         mEditor = editor;
         mTextView = mEditor.getTextView();
@@ -216,7 +203,7 @@ public class SelectionActionModeHelper28 {
         final boolean noSelection = mTextView.getSelectionEnd() == mTextView.getSelectionStart();
         // Do not call the TextClassifier if this is a password field.
 //        final boolean password = mTextView.hasPasswordTransformationMethod()
-//                || CustomEditTextView.isPasswordInputType(mTextView.getInputType());
+//                || EditText.isPasswordInputType(mTextView.getInputType());
         return noOpTextClassifier || noSelection /*|| password*/;
     }
 
@@ -235,8 +222,8 @@ public class SelectionActionModeHelper28 {
                 && (mTextView.isTextSelectable() || mTextView.isTextEditable())) {
             // Do not change the selection if TextClassifier should be dark launched.
 //            if (!getTextClassificationSettings().isModelDarkLaunchEnabled()) {
-                Selection.setSelection((Spannable) text, result.mStart, result.mEnd);
-                mTextView.invalidate();
+            Selection.setSelection((Spannable) text, result.mStart, result.mEnd);
+            mTextView.invalidate();
 //            }
             mTextClassification = result.mClassification;
         } else if (result != null && actionMode == Editor.TextActionMode.TEXT_LINK) {
@@ -245,7 +232,7 @@ public class SelectionActionModeHelper28 {
             mTextClassification = null;
         }
         if (mEditor.startActionModeInternal(actionMode)) {
-            final SelectionModifierCursorController28 controller = mEditor.getSelectionController();
+            final SelectionModifierCursorController controller = mEditor.getSelectionController();
             if (controller != null
                     && (mTextView.isTextSelectable() || mTextView.isTextEditable())) {
                 controller.show();
@@ -469,7 +456,7 @@ public class SelectionActionModeHelper28 {
      */
     private static final class SelectionTracker {
 
-        private final CustomEditTextView mTextView;
+        private final EditText mTextView;
         private SelectionMetricsLogger mLogger;
 
         private int mOriginalStart;
@@ -477,9 +464,9 @@ public class SelectionActionModeHelper28 {
         private int mSelectionStart;
         private int mSelectionEnd;
         private boolean mAllowReset;
-        private final LogAbandonRunnable mDelayedLogAbandon = new LogAbandonRunnable();
+        private final SelectionTracker.LogAbandonRunnable mDelayedLogAbandon = new SelectionTracker.LogAbandonRunnable();
 
-        SelectionTracker(CustomEditTextView textView) {
+        SelectionTracker(EditText textView) {
 //            mTextView = Preconditions.checkNotNull(textView);
             mTextView = textView;
             mLogger = new SelectionMetricsLogger(textView);
@@ -571,7 +558,7 @@ public class SelectionActionModeHelper28 {
          * on a single tap.
          */
         public boolean resetSelection(int textIndex, Editor editor) {
-            final CustomEditTextView textView = editor.getTextView();
+            final EditText textView = editor.getTextView();
             if (isSelectionStarted()
                     && mAllowReset
                     && textIndex >= mSelectionStart && textIndex <= mSelectionEnd
@@ -669,14 +656,14 @@ public class SelectionActionModeHelper28 {
         private int mStartIndex;
         private String mText;
 
-        SelectionMetricsLogger(CustomEditTextView textView) {
+        SelectionMetricsLogger(EditText textView) {
 //            Preconditions.checkNotNull(textView);
             mEditTextLogger = textView.isTextEditable();
             mTokenIterator = /*SelectionSessionLogger28.getTokenIterator(textView.getTextLocale())*/BreakIterator.getWordInstance(textView.getTextLocale());
         }
 
-//        @TextClassifier.WidgetType
-        private static String getWidetType(CustomEditTextView textView) {
+        //        @TextClassifier.WidgetType
+        private static String getWidetType(EditText textView) {
             if (textView.isTextEditable()) {
                 return TextClassifier.WIDGET_TYPE_EDITTEXT;
             }
@@ -876,7 +863,7 @@ public class SelectionActionModeHelper28 {
         private final Supplier<SelectionResult> mSelectionResultSupplier;
         private final Consumer<SelectionResult> mSelectionResultCallback;
         private final Supplier<SelectionResult> mTimeOutResultSupplier;
-        private final CustomEditTextView mTextView;
+        private final EditText mTextView;
         private final String mOriginalText;
 
         /**
@@ -887,7 +874,7 @@ public class SelectionActionModeHelper28 {
          * @param timeOutResultSupplier default result if the task times out
          */
         TextClassificationAsyncTask(
-                @NonNull CustomEditTextView textView, int timeOut,
+                @NonNull EditText textView, int timeOut,
                 @NonNull Supplier<SelectionResult> selectionResultSupplier,
                 @NonNull Consumer<SelectionResult> selectionResultCallback,
                 @NonNull Supplier<SelectionResult> timeOutResultSupplier) {
@@ -1147,28 +1134,28 @@ public class SelectionActionModeHelper28 {
         }
     }
 
-//    @SelectionEvent.ActionType
+    //    @SelectionEvent.ActionType
     private static int getActionType(int menuItemId) {
         switch (menuItemId) {
-            case CustomEditTextView.ID_SELECT_ALL:
+            case EditText.ID_SELECT_ALL:
                 return SelectionEvent.ACTION_SELECT_ALL;
-            case CustomEditTextView.ID_CUT:
+            case EditText.ID_CUT:
                 return SelectionEvent.ACTION_CUT;
-            case CustomEditTextView.ID_COPY:
+            case EditText.ID_COPY:
                 return SelectionEvent.ACTION_COPY;
-            case CustomEditTextView.ID_PASTE:  // fall through
-            case CustomEditTextView.ID_PASTE_AS_PLAIN_TEXT:
+            case EditText.ID_PASTE:  // fall through
+            case EditText.ID_PASTE_AS_PLAIN_TEXT:
                 return SelectionEvent.ACTION_PASTE;
-            case CustomEditTextView.ID_SHARE:
+            case EditText.ID_SHARE:
                 return SelectionEvent.ACTION_SHARE;
-            case CustomEditTextView.ID_ASSIST:
+            case EditText.ID_ASSIST:
                 return SelectionEvent.ACTION_SMART_SHARE;
             default:
                 return SelectionEvent.ACTION_OTHER;
         }
     }
 
-    private static CharSequence getText(CustomEditTextView textView) {
+    private static CharSequence getText(EditText textView) {
         // Extracts the textView's text.
         // TODO: Investigate why/when TextView.getText() is null.
         final CharSequence text = textView.getText();

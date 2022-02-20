@@ -219,14 +219,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Custom simple EditText stripped 2"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:gravity="top"
                 android:inputType="textMultiLine"
                 android:hint="hint text\nsecond line"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+
+            <com.wittmane.testingedittext.aosp.widget.EditText
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:gravity="top"
+                android:inputType="textMultiLine"
+                android:hint="hint text\nsecond line"/>
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:singleLine="true"
@@ -238,7 +246,7 @@
                 android:text="foo\nbar\nbaz"
                 android:justificationMode="inter_word"
                 android:hint="hint text\nsecond line"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingLeft="4dp"
@@ -247,7 +255,7 @@
                 android:paddingBottom="11dp"
                 android:inputType="text"
                 android:hint="single line hint"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="100dp"
                 android:shadowColor="@color/teal_700"
@@ -256,17 +264,17 @@
                 android:shadowRadius="3"
                 android:inputType="textMultiLine"
                 android:text="example text\nnew line"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:inputType="text"
                 android:text="example text with extra content to see how this scrolls automatically"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine"
                 android:text="example text with extra content to see how this wraps automatically"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="100dp"
                 android:digits="true"
@@ -277,7 +285,7 @@
                 android:singleLine="false"
                 android:inputType="textMultiLine"
                 android:text="example text http://www.example.com asdf"/>
-            <com.wittmane.testingedittext.CustomEditTextView
+            <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingLeft="0dp"

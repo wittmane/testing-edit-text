@@ -26,7 +26,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
 public class CustomSimpleEditTextViewStripped2 extends View implements ICustomTextView {
-    static final String TAG = CustomEditTextView.class.getSimpleName();
+    static final String TAG = CustomSimpleEditTextViewStripped2.class.getSimpleName();
 
     private int textColor = Color.BLACK;
     private int textSize = sp(/*14*/18);
