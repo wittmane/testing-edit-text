@@ -55,6 +55,7 @@ public final class SelectionActionModeHelper {
 //        mEditor = Preconditions.checkNotNull(editor);
         mEditor = editor;
         mTextView = mEditor.getTextView();
+        //TODO: should this handle API levels better for when LocaleList doesn't exist?
         mTextClassificationHelper = new TextClassificationHelper(
                 mTextView.getContext(),
                 mTextView::getTextClassifier,

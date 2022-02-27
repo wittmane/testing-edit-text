@@ -78,7 +78,7 @@
         <!-- Font variation settings. -->
         <attr name="android:fontVariationSettings" />
     </declare-styleable>
-    <declare-styleable name="CustomEditTextView">
+    <declare-styleable name="EditText">
         <!-- Determines the minimum type that getText() will return.
              The default is "normal".
              Note that EditText and LogTextBox always return Editable,
@@ -395,5 +395,474 @@
     <declare-styleable name="TextViewAppearance">
         <!-- Base text color, typeface, size, and style. -->
         <attr name="android:textAppearance" />
+    </declare-styleable>
+    <declare-styleable name="TextViewMultiLineBackgroundState">
+        <!-- State identifier indicating a TextView has a multi-line layout. -->
+        <attr name="state_multiline" format="boolean" />
+    </declare-styleable>
+    <!-- Attributes that can be used with {@link android.view.View} or
+         any of its subclasses.  Also see {@link #ViewGroup_Layout} for
+         attributes that are processed by the view's parent. -->
+    <declare-styleable name="View">
+        <!-- Supply an identifier name for this view, to later retrieve it
+             with {@link android.view.View#findViewById View.findViewById()} or
+             {@link android.app.Activity#findViewById Activity.findViewById()}.
+             This must be a
+             resource reference; typically you set this using the
+             <code>@+</code> syntax to create a new ID resources.
+             For example: <code>android:id="@+id/my_id"</code> which
+             allows you to later retrieve the view
+             with <code>findViewById(R.id.my_id)</code>. -->
+        <attr name="android:id" />
+
+        <!-- Supply a tag for this view containing a String, to be retrieved
+             later with {@link android.view.View#getTag View.getTag()} or
+             searched for with {@link android.view.View#findViewWithTag
+             View.findViewWithTag()}.  It is generally preferable to use
+             IDs (through the android:id attribute) instead of tags because
+             they are faster and allow for compile-time type checking. -->
+        <attr name="android:tag" />
+
+        <!-- The initial horizontal scroll offset, in pixels.-->
+        <attr name="android:scrollX" />
+
+        <!-- The initial vertical scroll offset, in pixels. -->
+        <attr name="android:scrollY" />
+
+        <!-- A drawable to use as the background.  This can be either a reference
+             to a full drawable resource (such as a PNG image, 9-patch,
+             XML state list description, etc), or a solid color such as "#ff000000"
+            (black). -->
+        <attr name="android:background" />
+
+        <!-- Sets the padding, in pixels, of all four edges. Padding is defined as
+             space between the edges of the view and the view's content. This value will take
+             precedence over any of the edge-specific values (paddingLeft, paddingTop,
+             paddingRight, paddingBottom, paddingHorizontal and paddingVertical), but will
+             not override paddingStart or paddingEnd, if set. A view's size
+             will include its padding. If a {@link android.R.attr#background}
+             is provided, the padding will initially be set to that (0 if the
+             drawable does not have padding). Explicitly setting a padding value
+             will override the corresponding padding found in the background. -->
+        <attr name="android:padding" />
+        <!-- Sets the padding, in pixels, of the left and right edges; see
+             {@link android.R.attr#padding}. This value will take precedence over
+             paddingLeft and paddingRight, but not paddingStart or paddingEnd (if set). -->
+        <attr name="android:paddingHorizontal" />
+        <!-- Sets the padding, in pixels, of the top and bottom edges; see
+             {@link android.R.attr#padding}. This value will take precedence over
+             paddingTop and paddingBottom, if set. -->
+        <attr name="android:paddingVertical" />
+        <!-- Sets the padding, in pixels, of the left edge; see {@link android.R.attr#padding}. -->
+        <attr name="android:paddingLeft" />
+        <!-- Sets the padding, in pixels, of the top edge; see {@link android.R.attr#padding}. -->
+        <attr name="android:paddingTop" />
+        <!-- Sets the padding, in pixels, of the right edge; see {@link android.R.attr#padding}. -->
+        <attr name="android:paddingRight" />
+        <!-- Sets the padding, in pixels, of the bottom edge; see {@link android.R.attr#padding}. -->
+        <attr name="android:paddingBottom" />
+        <!-- Sets the padding, in pixels, of the start edge; see {@link android.R.attr#padding}. -->
+        <attr name="android:paddingStart" />
+        <!-- Sets the padding, in pixels, of the end edge; see {@link android.R.attr#padding}. -->
+        <attr name="android:paddingEnd" />
+
+        <!-- Controls whether a view can take focus.  By default, this is "auto" which lets the
+             framework determine whether a user can move focus to a view.  By setting this attribute
+             to true the view is allowed to take focus. By setting it to "false" the view will not
+             take focus. This value does not impact the behavior of
+             directly calling {@link android.view.View#requestFocus}, which will
+             always request focus regardless of this view.  It only impacts where
+             focus navigation will try to move focus. -->
+        <attr name="android:focusable" />
+
+        <!-- Describes the content of a view so that a autofill service can fill in the appropriate
+             data. Multiple hints can be combined in a comma separated list or an array of strings
+             to mean e.g. emailAddress or postalAddress. -->
+        <attr name="android:autofillHints" />
+
+        <!-- Hints the Android System whether the view node associated with this View should be
+             included in a view structure used for autofill purposes. -->
+        <attr name="android:importantForAutofill" />
+
+        <!-- Boolean that controls whether a view can take focus while in touch mode.
+             If this is true for a view, that view can gain focus when clicked on, and can keep
+             focus if another view is clicked on that doesn't have this attribute set to true. -->
+        <attr name="android:focusableInTouchMode" />
+
+        <!-- Controls the initial visibility of the view.  -->
+        <attr name="android:visibility" />
+
+        <!-- Boolean internal attribute to adjust view layout based on
+             system windows such as the status bar.
+             If true, adjusts the padding of this view to leave space for the system windows.
+             Will only take effect if this view is in a non-embedded activity. -->
+        <attr name="android:fitsSystemWindows" />
+
+        <!-- Defines which scrollbars should be displayed on scrolling or not. -->
+        <attr name="android:scrollbars" />
+
+        <!-- Controls the scrollbar style and position. The scrollbars can be overlaid or
+             inset. When inset, they add to the padding of the view. And the
+             scrollbars can be drawn inside the padding area or on the edge of
+             the view. For example, if a view has a background drawable and you
+             want to draw the scrollbars inside the padding specified by the
+             drawable, you can use insideOverlay or insideInset. If you want them
+             to appear at the edge of the view, ignoring the padding, then you can
+             use outsideOverlay or outsideInset.-->
+        <attr name="android:scrollbarStyle" />
+
+        <!-- Set this if the view will serve as a scrolling container, meaning
+             that it can be resized to shrink its overall window so that there
+             will be space for an input method.  If not set, the default
+             value will be true if "scrollbars" has the vertical scrollbar
+             set, else it will be false. -->
+        <attr name="android:isScrollContainer" />
+
+        <!-- Defines whether to fade out scrollbars when they are not in use. -->
+        <attr name="android:fadeScrollbars" />
+        <!-- Defines the delay in milliseconds that a scrollbar takes to fade out. -->
+        <attr name="android:scrollbarFadeDuration" />
+        <!-- Defines the delay in milliseconds that a scrollbar waits before fade out. -->
+        <attr name="android:scrollbarDefaultDelayBeforeFade" />
+        <!-- Sets the width of vertical scrollbars and height of horizontal scrollbars. -->
+        <attr name="android:scrollbarSize" />
+        <!-- Defines the horizontal scrollbar thumb drawable. -->
+        <attr name="android:scrollbarThumbHorizontal" />
+        <!-- Defines the vertical scrollbar thumb drawable. -->
+        <attr name="android:scrollbarThumbVertical" />
+        <!-- Defines the horizontal scrollbar track drawable. -->
+        <attr name="android:scrollbarTrackHorizontal" />
+        <!-- Defines the vertical scrollbar track drawable. -->
+        <attr name="android:scrollbarTrackVertical" />
+        <!-- Defines whether the horizontal scrollbar track should always be drawn. -->
+        <attr name="android:scrollbarAlwaysDrawHorizontalTrack" />
+        <!-- Defines whether the vertical scrollbar track should always be drawn. -->
+        <attr name="android:scrollbarAlwaysDrawVerticalTrack" />
+
+        <!-- This attribute is ignored in API level 14
+             ({@link android.os.Build.VERSION_CODES#ICE_CREAM_SANDWICH}) and higher.
+             Using fading edges may introduce noticeable performance
+             degradations and should be used only when required by the application's
+             visual design. To request fading edges with API level 14 and above,
+             use the <code>android:requiresFadingEdge</code> attribute instead. -->
+        <attr name="android:fadingEdge" />
+        <!-- Defines which edges should be faded on scrolling. -->
+        <attr name="android:requiresFadingEdge" />
+        <!-- Defines the length of the fading edges. -->
+        <attr name="android:fadingEdgeLength" />
+
+        <!-- Defines the next view to give focus to when the next focus is
+             {@link android.view.View#FOCUS_LEFT}.
+
+             If the reference refers to a view that does not exist or is part
+             of a hierarchy that is invisible, a {@link java.lang.RuntimeException}
+             will result when the reference is accessed.-->
+        <attr name="android:nextFocusLeft" />
+
+        <!-- Defines the next view to give focus to when the next focus is
+             {@link android.view.View#FOCUS_RIGHT}
+
+             If the reference refers to a view that does not exist or is part
+             of a hierarchy that is invisible, a {@link java.lang.RuntimeException}
+             will result when the reference is accessed.-->
+        <attr name="android:nextFocusRight" />
+
+        <!-- Defines the next view to give focus to when the next focus is
+             {@link android.view.View#FOCUS_UP}
+
+             If the reference refers to a view that does not exist or is part
+             of a hierarchy that is invisible, a {@link java.lang.RuntimeException}
+             will result when the reference is accessed.-->
+        <attr name="android:nextFocusUp" />
+
+        <!-- Defines the next view to give focus to when the next focus is
+             {@link android.view.View#FOCUS_DOWN}
+
+             If the reference refers to a view that does not exist or is part
+             of a hierarchy that is invisible, a {@link java.lang.RuntimeException}
+             will result when the reference is accessed.-->
+        <attr name="android:nextFocusDown" />
+
+        <!-- Defines the next view to give focus to when the next focus is
+             {@link android.view.View#FOCUS_FORWARD}
+
+             If the reference refers to a view that does not exist or is part
+             of a hierarchy that is invisible, a {@link java.lang.RuntimeException}
+             will result when the reference is accessed.-->
+        <attr name="android:nextFocusForward" />
+
+        <!-- Defines whether this view reacts to click events. -->
+        <attr name="android:clickable" />
+
+        <!-- Defines whether this view reacts to long click events. -->
+        <attr name="android:longClickable" />
+
+        <!--  Defines whether this view reacts to context click events. -->
+        <attr name="android:contextClickable" />
+
+        <!-- If false, no state will be saved for this view when it is being
+             frozen. The default is true, allowing the view to be saved
+             (however it also must have an ID assigned to it for its
+             state to be saved).  Setting this to false only disables the
+             state for this view, not for its children which may still
+             be saved. -->
+        <attr name="android:saveEnabled" />
+
+        <!-- Specifies whether to filter touches when the view's window is obscured by
+             another visible window.  When set to true, the view will not receive touches
+             whenever a toast, dialog or other window appears above the view's window.
+             Refer to the {@link android.view.View} security documentation for more details. -->
+        <attr name="android:filterTouchesWhenObscured" />
+
+        <!-- Defines the quality of translucent drawing caches. This property is used
+             only when the drawing cache is enabled and translucent. The default value is auto.
+             Deprecated: The view drawing cache was largely made obsolete with the introduction of
+             hardware-accelerated rendering in API 11. -->
+        <attr name="android:drawingCacheQuality" />
+
+        <!-- Controls whether the view's window should keep the screen on
+             while visible. -->
+        <attr name="android:keepScreenOn" />
+
+        <!-- When this attribute is set to true, the view gets its drawable state
+             (focused, pressed, etc.) from its direct parent rather than from itself. -->
+        <attr name="android:duplicateParentState" />
+
+        <!-- Defines the minimum height of the view. It is not guaranteed
+             the view will be able to achieve this minimum height (for example,
+             if its parent layout constrains it with less available height). -->
+        <attr name="android:minHeight" />
+
+        <!-- Defines the minimum width of the view. It is not guaranteed
+             the view will be able to achieve this minimum width (for example,
+             if its parent layout constrains it with less available width). -->
+        <attr name="android:minWidth" />
+
+        <!-- Boolean that controls whether a view should have sound effects
+             enabled for events such as clicking and touching. -->
+        <attr name="android:soundEffectsEnabled" />
+
+        <!-- Boolean that controls whether a view should have haptic feedback
+             enabled for events such as long presses. -->
+        <attr name="android:hapticFeedbackEnabled" />
+
+        <!-- Defines text that briefly describes content of the view. This property is used
+             primarily for accessibility. Since some views do not have textual
+             representation this attribute can be used for providing such. -->
+        <attr name="android:contentDescription" />
+
+        <!-- Sets the id of a view before which this one is visited in accessibility traversal.
+             A screen-reader must visit the content of this view before the content of the one
+             it precedes.
+             {@see android.view.View#setAccessibilityTraversalBefore(int)} -->
+        <attr name="android:accessibilityTraversalBefore" />
+
+        <!-- Sets the id of a view after which this one is visited in accessibility traversal.
+             A screen-reader must visit the content of the other view before the content of
+             this one.
+             {@see android.view.View#setAccessibilityTraversalAfter(int)} -->
+        <attr name="android:accessibilityTraversalAfter" />
+
+        <!-- Name of the method in this View's context to invoke when the view is
+             clicked. This name must correspond to a public method that takes
+             exactly one parameter of type View. For instance, if you specify
+             <code>android:onClick="sayHello"</code>, you must declare a
+             <code>public void sayHello(View v)</code> method of your context
+             (typically, your Activity). -->
+        <attr name="android:onClick" />
+
+        <!-- Defines over-scrolling behavior. This property is used only if the
+             View is scrollable. Over-scrolling is the ability for the user to
+             receive feedback when attempting to scroll beyond meaningful content. -->
+        <attr name="android:overScrollMode" />
+
+        <!-- alpha property of the view, as a value between 0 (completely transparent) and 1
+             (completely opaque). -->
+        <attr name="android:alpha" />
+
+        <!-- base z depth of the view. -->
+        <attr name="android:elevation" />
+
+        <!-- translation in x of the view. This value is added post-layout to the left
+             property of the view, which is set by its layout. -->
+        <attr name="android:translationX" />
+
+        <!-- translation in y of the view. This value is added post-layout to the top
+             property of the view, which is set by its layout. -->
+        <attr name="android:translationY" />
+
+        <!-- translation in z of the view. This value is added to its elevation. -->
+        <attr name="android:translationZ" />
+
+        <!-- x location of the pivot point around which the view will rotate and scale.
+             This xml attribute sets the pivotX property of the View. -->
+        <attr name="android:transformPivotX" />
+
+        <!-- y location of the pivot point around which the view will rotate and scale.
+             This xml attribute sets the pivotY property of the View. -->
+        <attr name="android:transformPivotY" />
+
+        <!-- rotation of the view, in degrees. -->
+        <attr name="android:rotation" />
+
+        <!-- rotation of the view around the x axis, in degrees. -->
+        <attr name="android:rotationX" />
+
+        <!-- rotation of the view around the y axis, in degrees. -->
+        <attr name="android:rotationY" />
+
+        <!-- scale of the view in the x direction. -->
+        <attr name="android:scaleX" />
+
+        <!-- scale of the view in the y direction. -->
+        <attr name="android:scaleY" />
+
+        <!-- Determines which side the vertical scroll bar should be placed on. -->
+        <attr name="android:verticalScrollbarPosition" />
+
+        <!-- Specifies the type of layer backing this view. The default value is none.
+             Refer to {@link android.view.View#setLayerType(int, android.graphics.Paint)}
+             for more information.-->
+        <attr name="android:layerType" />
+
+        <!-- Defines the direction of layout drawing. This typically is associated with writing
+             direction of the language script used. The possible values are "ltr" for Left-to-Right,
+             "rtl" for Right-to-Left, "locale", and "inherit" from parent view. If there is nothing
+             to inherit, "locale" is used. "locale" falls back to "en-US". "ltr" is the direction
+             used in "en-US". The default for this attribute is "inherit". -->
+        <attr name="android:layoutDirection" />
+
+        <!-- Defines the direction of the text. -->
+        <attr name="android:textDirection" />
+
+        <!-- Defines the alignment of the text. -->
+        <attr name="android:textAlignment" />
+
+        <!-- Describes whether or not this view is important for accessibility.
+             If it is important, the view fires accessibility events and is
+             reported to accessibility services that query the screen. Note:
+             While not recommended, an accessibility service may decide to
+             ignore this attribute and operate on all views in the view tree. -->
+        <attr name="android:importantForAccessibility" />
+
+        <!-- Indicates to accessibility services whether the user should be notified when
+             this view changes. -->
+        <attr name="android:accessibilityLiveRegion" />
+
+        <!-- Specifies the id of a view for which this view serves as a label for
+             accessibility purposes. For example, a TextView before an EditText in
+             the UI usually specifies what infomation is contained in the EditText.
+             Hence, the TextView is a label for the EditText. -->
+        <attr name="android:labelFor" />
+
+        <!-- Specifies a theme override for a view. When a theme override is set, the
+             view will be inflated using a {@link android.content.Context} themed with
+             the specified resource. During XML inflation, any child views under the
+             view with a theme override will inherit the themed context. -->
+        <attr name="android:theme" />
+
+        <!-- Names a View such that it can be identified for Transitions. Names should be
+             unique in the View hierarchy. -->
+        <attr name="android:transitionName" />
+
+        <!-- Specifies that this view should permit nested scrolling within a compatible
+             ancestor view. -->
+        <attr name="android:nestedScrollingEnabled" />
+
+        <!-- Sets the state-based animator for the View. -->
+        <attr name="android:stateListAnimator" />
+
+        <!-- Tint to apply to the background. -->
+        <attr name="android:backgroundTint" />
+
+        <!-- Blending mode used to apply the background tint. -->
+        <attr name="android:backgroundTintMode" />
+
+        <!-- ViewOutlineProvider used to determine the View's Outline. -->
+        <attr name="android:outlineProvider" />
+
+        <!-- Defines the drawable to draw over the content. This can be used as an overlay.
+             The foreground drawable participates in the padding of the content if the gravity
+             is set to fill. -->
+        <attr name="android:foreground" />
+        <!-- Defines the gravity to apply to the foreground drawable. The gravity defaults
+             to fill. -->
+        <attr name="android:foregroundGravity" />
+<!--        &lt;!&ndash; Defines whether the foreground drawable should be drawn inside the padding.-->
+<!--             This property is turned on by default. &ndash;&gt;-->
+<!--        <attr name="android:foregroundInsidePadding" />-->
+        <!-- Tint to apply to the foreground. -->
+        <attr name="android:foregroundTint" />
+        <!-- Blending mode used to apply the foreground tint. -->
+        <attr name="android:foregroundTintMode" />
+
+        <!-- Defines which scroll indicators should be displayed when the view
+             can be scrolled. Multiple values may be combined using logical OR,
+             for example "top|bottom". -->
+        <attr name="android:scrollIndicators" />
+
+        <attr name="android:pointerIcon" />
+
+        <!-- Whether this view has elements that may overlap when drawn. See
+             {@link android.view.View#forceHasOverlappingRendering(boolean)}. -->
+        <attr name="android:forceHasOverlappingRendering" />
+
+        <!-- Defines text displayed in a small popup window on hover or long press. -->
+        <attr name="android:tooltipText" />
+
+        <!-- Whether this view is a root of a keyboard navigation cluster.
+             See {@link android.view.View#setKeyboardNavigationCluster(boolean)}. -->
+        <attr name="android:keyboardNavigationCluster" />
+
+        <!-- Defines the next keyboard navigation cluster.
+
+             If the reference refers to a view that does not exist or is part
+             of a hierarchy that is invisible, a {@link java.lang.RuntimeException}
+             will result when the reference is accessed.-->
+        <attr name="android:nextClusterForward" />
+
+        <!-- Whether this view is a default-focus view.
+             Only one view per keyboard navigation cluster can have this attribute set to true.
+             See {@link android.view.View#setFocusedByDefault(boolean)}. -->
+        <attr name="android:focusedByDefault" />
+
+        <!-- Whether this View should use a default focus highlight when it gets focused but
+             doesn't have {@link android.R.attr#state_focused} defined in its background. -->
+        <attr name="android:defaultFocusHighlightEnabled" />
+
+        <!-- Whether this view should be treated as a focusable unit by screen reader accessibility
+             tools. See {@link android.view.View#setScreenReaderFocusable(boolean)}. The default
+             value, {@code false}, leaves the screen reader to consider other signals, such as
+             focusability or the presence of text, to decide what it focus.-->
+        <attr name="android:screenReaderFocusable" />
+
+        <!-- The title this view should present to accessibility as a pane title.
+             See {@link android.view.View#setAccessibilityPaneTitle(CharSequence)} -->
+        <attr name="android:accessibilityPaneTitle" />
+
+        <!-- Whether or not this view is a heading for accessibility purposes. -->
+        <attr name="android:accessibilityHeading" />
+
+        <!-- Sets the color of the spot shadow that is drawn when the view has a positive Z or
+             elevation value.
+             <p>
+             By default the shadow color is black. Generally, this color will be opaque so the
+             intensity of the shadow is consistent between different views with different colors.
+             <p>
+             The opacity of the final spot shadow is a function of the shadow caster height, the
+             alpha channel of the outlineSpotShadowColor (typically opaque), and the
+             {@link android.R.attr#spotShadowAlpha} theme attribute. -->
+        <attr name="android:outlineSpotShadowColor" />
+
+        <!-- Sets the color of the ambient shadow that is drawn when the view has a positive Z
+             or elevation value.
+             <p>
+             By default the shadow color is black. Generally, this color will be opaque so the
+             intensity of the shadow is consistent between different views with different colors.
+             <p>
+             The opacity of the final ambient shadow is a function of the shadow caster height,
+             the alpha channel of the outlineAmbientShadowColor (typically opaque), and the
+             {@link android.R.attr#ambientShadowAlpha} theme attribute. -->
+        <attr name="android:outlineAmbientShadowColor" />
     </declare-styleable>
 </resources>

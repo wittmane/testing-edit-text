@@ -15,6 +15,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
+import android.os.Parcel;
 import android.os.SystemClock;
 import android.text.Layout;
 import android.text.ParcelableSpan;
@@ -56,6 +57,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
+import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
@@ -255,6 +257,22 @@ public class Editor {
                 R.bool.config_enableHapticTextHandle)*/false;
     }
 
+    ParcelableParcel saveInstanceState() {
+        ParcelableParcel state = new ParcelableParcel(getClass().getClassLoader());
+        Parcel parcel = state.getParcel();
+//        mUndoManager.saveInstanceState(parcel);
+//        mUndoInputFilter.saveInstanceState(parcel);
+        return state;
+    }
+
+    void restoreInstanceState(ParcelableParcel state) {
+        Parcel parcel = state.getParcel();
+//        mUndoManager.restoreInstanceState(parcel, state.getClassLoader());
+//        mUndoInputFilter.restoreInstanceState(parcel);
+//        // Re-associate this object as the owner of undo state.
+//        mUndoOwner = mUndoManager.getOwner(UNDO_OWNER_TAG, this);
+    }
+
     /**
      * Forgets all undo and redo operations for this Editor.
      */
@@ -290,6 +308,87 @@ public class Editor {
 //        }
 //        UndoOwner[] owners = { mUndoOwner };
 //        mUndoManager.redo(owners, 1);  // Redo 1 action.
+    }
+
+    void onAttachedToWindow() {
+//        if (mShowErrorAfterAttach) {
+//            showError();
+//            mShowErrorAfterAttach = false;
+//        }
+
+        final ViewTreeObserver observer = mTextView.getViewTreeObserver();
+        if (observer.isAlive()) {
+            // No need to create the controller.
+            // The get method will add the listener on controller creation.
+            if (mInsertionPointCursorController != null) {
+                observer.addOnTouchModeChangeListener(mInsertionPointCursorController);
+            }
+            if (mSelectionModifierCursorController != null) {
+                mSelectionModifierCursorController.resetTouchOffsets();
+                observer.addOnTouchModeChangeListener(mSelectionModifierCursorController);
+            }
+//            if (FLAG_USE_MAGNIFIER) {
+//                observer.addOnDrawListener(mMagnifierOnDrawListener);
+//            }
+        }
+
+//        updateSpellCheckSpans(0, mTextView.getText().length(),
+//                true /* create the spell checker if needed */);
+
+        if (mTextView.hasSelection()) {
+            refreshTextActionMode();
+        }
+
+//        getPositionListener().addSubscriber(mCursorAnchorInfoNotifier, true);
+        resumeBlink();
+    }
+
+    void onDetachedFromWindow() {
+//        getPositionListener().removeSubscriber(mCursorAnchorInfoNotifier);
+
+//        if (mError != null) {
+//            hideError();
+//        }
+
+        suspendBlink();
+
+        if (mInsertionPointCursorController != null) {
+            mInsertionPointCursorController.onDetached();
+        }
+
+        if (mSelectionModifierCursorController != null) {
+            mSelectionModifierCursorController.onDetached();
+        }
+
+        if (mShowSuggestionRunnable != null) {
+            mTextView.removeCallbacks(mShowSuggestionRunnable);
+        }
+
+        // Cancel the single tap delayed runnable.
+        if (mInsertionActionModeRunnable != null) {
+            mTextView.removeCallbacks(mInsertionActionModeRunnable);
+        }
+
+//        mTextView.removeCallbacks(mShowFloatingToolbar);
+
+//        discardTextDisplayLists();
+
+//        if (mSpellChecker != null) {
+//            mSpellChecker.closeSession();
+//            // Forces the creation of a new SpellChecker next time this window is created.
+//            // Will handle the cases where the settings has been changed in the meantime.
+//            mSpellChecker = null;
+//        }
+
+//        if (FLAG_USE_MAGNIFIER) {
+//            final ViewTreeObserver observer = mTextView.getViewTreeObserver();
+//            if (observer.isAlive()) {
+//                observer.removeOnDrawListener(mMagnifierOnDrawListener);
+//            }
+//        }
+
+        hideCursorAndSpanControllers();
+        stopTextActionModeWithPreservingSelection();
     }
 
     void createInputContentTypeIfNeeded() {
@@ -385,6 +484,17 @@ public class Editor {
 //            mSuggestionsPopupWindow.hide();
 //        }
         hideInsertionPointCursorController();
+    }
+
+    void onScreenStateChanged(int screenState) {
+        switch (screenState) {
+            case View.SCREEN_STATE_ON:
+                resumeBlink();
+                break;
+            case View.SCREEN_STATE_OFF:
+                suspendBlink();
+                break;
+        }
     }
 
     private void suspendBlink() {
@@ -833,6 +943,14 @@ public class Editor {
         }
     }
 
+    private void ensureNoSelectionIfNonSelectable() {
+        // This could be the case if a TextLink has been tapped.
+        if (!mTextView.textCanBeSelected() && mTextView.hasSelection()) {
+            Selection.setSelection((Spannable) mTextView.getText(),
+                    mTextView.length(), mTextView.length());
+        }
+    }
+
     void sendOnTextChanged(int start, int before, int after) {
 //        getSelectionActionModeHelper().onTextChanged(start, start + before);
 //        updateSpellCheckSpans(start, start + after, false);
@@ -873,6 +991,36 @@ public class Editor {
 //        }
 
         return -1;
+    }
+
+    void onWindowFocusChanged(boolean hasWindowFocus) {
+        if (hasWindowFocus) {
+            if (mBlink != null) {
+                mBlink.uncancel();
+                makeBlink();
+            }
+            if (mTextView.hasSelection() && !extractedTextModeWillBeStarted()) {
+                refreshTextActionMode();
+            }
+        } else {
+            if (mBlink != null) {
+                mBlink.cancel();
+            }
+            if (mInputContentType != null) {
+                mInputContentType.enterDown = false;
+            }
+            // Order matters! Must be done before onParentLostFocus to rely on isShowingUp
+            hideCursorAndSpanControllers();
+            stopTextActionModeWithPreservingSelection();
+//            if (mSuggestionsPopupWindow != null) {
+//                mSuggestionsPopupWindow.onParentLostFocus();
+//            }
+
+            // Don't leave us in the middle of a batch edit. Same as in onFocusChanged
+            ensureEndedBatchEdit();
+
+            ensureNoSelectionIfNonSelectable();
+        }
     }
 
     private void updateTapState(MotionEvent event) {
