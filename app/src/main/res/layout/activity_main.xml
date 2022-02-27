@@ -55,7 +55,25 @@
                 android:textIsSelectable="false"
                 android:lineHeight="100sp"
                 android:firstBaselineToTopHeight="40sp"
+                android:imeActionLabel="my action"
                 android:text="example text with extra content to see how this scrolls"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapWords"
+                android:hint="textCapWords"/>
+<!--            <EditText-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:inputType="text"-->
+<!--                android:textLocale="en-US"-->
+<!--                android:hint="en-US"/>-->
+<!--            <EditText-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:inputType="text"-->
+<!--                android:textLocale="ko-KR"-->
+<!--                android:hint="ko-KR"/>-->
             <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -176,11 +194,30 @@
                 android:shadowDy="10"
                 android:shadowRadius="3"
                 android:inputType="textMultiLine"
+                android:selectAllOnFocus="true"
                 android:text="example text\nnew line"/>
+            <com.wittmane.testingedittext.aosp.widget.EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapWords"
+                android:hint="textCapWords"/>
+<!--            <com.wittmane.testingedittext.aosp.widget.EditText-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:inputType="text"-->
+<!--                android:textLocale="en-US"-->
+<!--                android:hint="en-US"/>-->
+<!--            <com.wittmane.testingedittext.aosp.widget.EditText-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:inputType="text"-->
+<!--                android:textLocale="ko-KR"-->
+<!--                android:hint="ko-KR"/>-->
             <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:inputType="text"
+                android:imeActionLabel="my action"
                 android:text="example text with extra content to see how this scrolls automatically"/>
             <com.wittmane.testingedittext.aosp.widget.EditText
                 android:layout_width="wrap_content"

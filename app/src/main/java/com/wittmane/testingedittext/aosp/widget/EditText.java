@@ -13,6 +13,7 @@ import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
+import android.content.res.XmlResourceParser;
 import android.graphics.Canvas;
 import android.graphics.fonts.FontVariationAxis;
 import android.graphics.Paint;
@@ -116,6 +117,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
+import androidx.annotation.XmlRes;
 import androidx.core.content.ContextCompat;
 
 import com.wittmane.testingedittext.CustomInputConnection;
@@ -126,6 +128,9 @@ import com.wittmane.testingedittext.aosp.text.comutil.Preconditions;
 import com.wittmane.testingedittext.aosp.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -334,9 +339,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     int mTextSelectHandleLeftRes;
     int mTextSelectHandleRightRes;
     int mTextSelectHandleRes;
-    int mTextEditSuggestionItemLayout;
-    int mTextEditSuggestionContainerLayout;
-    int mTextEditSuggestionHighlightStyle;
 
     /**
      * {@link EditText} specific data, created on demand when one of the Editor fields is used.
@@ -504,7 +506,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // skipping - EditText always returns Editable, even if you specify something less
                 // powerful
             } else if (attr == R.styleable.EditText_android_selectAllOnFocus) {
-                //TODO: consider implementing
                 // If the text is selectable, select it all when the view takes focus.
                 selectAllOnFocus = typedArray.getBoolean(attr, selectAllOnFocus);
             } else if (attr == R.styleable.EditText_android_autoLink) {
@@ -666,19 +667,24 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 mEditor.mInputContentType.imeOptions = typedArray.getInt(attr,
                         mEditor.mInputContentType.imeOptions);
             } else if (attr == R.styleable.EditText_android_imeActionLabel) {
-                //TODO: implement
                 // Supply a value for {@link android.view.inputmethod.EditorInfo#actionLabel
                 // EditorInfo.actionLabel} used when an input method is connected to the text view.
+                mEditor.createInputContentTypeIfNeeded();
+                mEditor.mInputContentType.imeActionLabel = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_imeActionId) {
                 //TODO: implement
                 // Supply a value for {@link android.view.inputmethod.EditorInfo#actionId
                 // EditorInfo.actionId} used when an input method is connected to the text view.
+                mEditor.createInputContentTypeIfNeeded();
+                mEditor.mInputContentType.imeActionId = typedArray.getInt(attr,
+                        mEditor.mInputContentType.imeActionId);
             } else if (attr == R.styleable.EditText_android_privateImeOptions) {
                 //TODO: implement
                 // An addition content type description to supply to the input method attached to
                 // the text view, which is private to the implementation of the input method. This
                 // simply fills in the {@link android.view.inputmethod.EditorInfo#privateImeOptions
                 // EditorInfo.privateImeOptions} field when the input method is connected.
+                setPrivateImeOptions(typedArray.getString(attr));
             } else if (attr == R.styleable.EditText_android_editorExtras) {
                 //TODO: probably implement
                 // Reference to an {@link android.R.styleable#InputExtras <input-extras>} XML
@@ -695,11 +701,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (attr == R.styleable.EditText_android_textSelectHandle) {
                 mTextSelectHandleRes = typedArray.getResourceId(attr, 0);
             } else if (attr == R.styleable.EditText_android_textEditSuggestionItemLayout) {
-                //probably skip - Layout of the TextView item that will populate the suggestion
+                //skipping - Layout of the TextView item that will populate the suggestion
                 // popup window.
-//            } else if (attr == R.styleable.TextView_android_textEditSuggestionContainerLayout) {
+//            } else if (attr == R.styleable.EditText_android_textEditSuggestionContainerLayout) {
 //                //skipping - textEditSuggestionContainerLayout is private
-//            } else if (attr == R.styleable.TextView_android_textEditSuggestionHighlightStyle) {
+//            } else if (attr == R.styleable.EditText_android_textEditSuggestionHighlightStyle) {
 //                //skipping - textEditSuggestionHighlightStyle is private
             } else if (attr == R.styleable.EditText_android_textIsSelectable) {
                 //skipping - doesn't seem to have any effect in an EditText
@@ -1491,6 +1497,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setFirstBaselineToTopHeight(int)
      * @see #setLastBaselineToBottomHeight(int)
      */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     @Override
     public void setPaddingRelative(int start, int top, int end, int bottom) {
         if (start != getPaddingStart()
@@ -3219,7 +3226,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         Parcelable superState = super.onSaveInstanceState();
 
         // Save state if we are forced to
-        final boolean freezesText = /*getFreezesText()*/true;
         boolean hasSelection = false;
         int start = -1;
         int end = -1;
@@ -3233,37 +3239,44 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
         }
 
-        if (freezesText || hasSelection) {
-            SavedState ss = new SavedState(superState);
+        SavedState ss = new SavedState(superState);
 
-            if (freezesText) {
-                if (mText instanceof Spanned) {
-                    final Spannable sp = new SpannableStringBuilder(mText);
+        if (mText instanceof Spanned) {
+            final Spannable sp = new SpannableStringBuilder(mText);
 
-//                    removeMisspelledSpans(sp);
-//                    sp.removeSpan(mEditor.mSuggestionRangeSpan);
+            //TODO: (EW) is it really necessary to have special handling for suggestion spans?
+            removeMisspelledSpans(sp);
+//            sp.removeSpan(mEditor.mSuggestionRangeSpan);
 
-                    ss.text = sp;
-                } else {
-                    ss.text = mText.toString();
-                }
-            }
-
-            if (hasSelection) {
-                // XXX Should also save the current scroll position!
-                ss.selStart = start;
-                ss.selEnd = end;
-            }
-
-            if (isFocused() && start >= 0 && end >= 0) {
-                ss.frozenWithFocus = true;
-            }
-
-            ss.editorState = mEditor.saveInstanceState();
-            return ss;
+            ss.text = sp;
+        } else {
+            ss.text = mText.toString();
         }
 
-        return superState;
+        if (hasSelection) {
+            // XXX Should also save the current scroll position!
+            ss.selStart = start;
+            ss.selEnd = end;
+        }
+
+        if (isFocused() && start >= 0 && end >= 0) {
+            ss.frozenWithFocus = true;
+        }
+
+        ss.editorState = mEditor.saveInstanceState();
+        return ss;
+    }
+
+    void removeMisspelledSpans(Spannable spannable) {
+        SuggestionSpan[] suggestionSpans = spannable.getSpans(0, spannable.length(),
+                SuggestionSpan.class);
+        for (int i = 0; i < suggestionSpans.length; i++) {
+            int flags = suggestionSpans[i].getFlags();
+            if ((flags & SuggestionSpan.FLAG_EASY_CORRECT) != 0
+                    && (flags & SuggestionSpan.FLAG_MISSPELLED) != 0) {
+                spannable.removeSpan(suggestionSpans[i]);
+            }
+        }
     }
 
     @Override
@@ -3879,6 +3892,131 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
+     * Change the editor type integer associated with the text view, which
+     * is reported to an Input Method Editor (IME) with {@link EditorInfo#imeOptions}
+     * when it has focus.
+     * @see #getImeOptions
+     * @see android.view.inputmethod.EditorInfo
+     * @attr ref android.R.styleable#TextView_imeOptions
+     */
+    public void setImeOptions(int imeOptions) {
+        mEditor.createInputContentTypeIfNeeded();
+        mEditor.mInputContentType.imeOptions = imeOptions;
+    }
+
+    /**
+     * Get the type of the Input Method Editor (IME).
+     * @return the type of the IME
+     * @see #setImeOptions(int)
+     * @see android.view.inputmethod.EditorInfo
+     */
+    public int getImeOptions() {
+        return mEditor != null && mEditor.mInputContentType != null
+                ? mEditor.mInputContentType.imeOptions : EditorInfo.IME_NULL;
+    }
+
+    /**
+     * Change the custom IME action associated with the text view, which
+     * will be reported to an IME with {@link EditorInfo#actionLabel}
+     * and {@link EditorInfo#actionId} when it has focus.
+     * @see #getImeActionLabel
+     * @see #getImeActionId
+     * @see android.view.inputmethod.EditorInfo
+     * @attr ref android.R.styleable#TextView_imeActionLabel
+     * @attr ref android.R.styleable#TextView_imeActionId
+     */
+    public void setImeActionLabel(CharSequence label, int actionId) {
+        mEditor.createInputContentTypeIfNeeded();
+        mEditor.mInputContentType.imeActionLabel = label;
+        mEditor.mInputContentType.imeActionId = actionId;
+    }
+
+    /**
+     * Get the IME action label previous set with {@link #setImeActionLabel}.
+     *
+     * @see #setImeActionLabel
+     * @see android.view.inputmethod.EditorInfo
+     */
+    public CharSequence getImeActionLabel() {
+        return mEditor.mInputContentType != null ? mEditor.mInputContentType.imeActionLabel : null;
+    }
+
+    /**
+     * Get the IME action ID previous set with {@link #setImeActionLabel}.
+     *
+     * @see #setImeActionLabel
+     * @see android.view.inputmethod.EditorInfo
+     */
+    public int getImeActionId() {
+        return mEditor.mInputContentType != null ? mEditor.mInputContentType.imeActionId : 0;
+    }
+
+    /**
+     * Set the private content type of the text, which is the
+     * {@link EditorInfo#privateImeOptions EditorInfo.privateImeOptions}
+     * field that will be filled in when creating an input connection.
+     *
+     * @see #getPrivateImeOptions()
+     * @see EditorInfo#privateImeOptions
+     * @attr ref android.R.styleable#TextView_privateImeOptions
+     */
+    public void setPrivateImeOptions(String type) {
+        mEditor.createInputContentTypeIfNeeded();
+        mEditor.mInputContentType.privateImeOptions = type;
+    }
+
+    /**
+     * Get the private type of the content.
+     *
+     * @see #setPrivateImeOptions(String)
+     * @see EditorInfo#privateImeOptions
+     */
+    public String getPrivateImeOptions() {
+        return mEditor.mInputContentType != null
+                ? mEditor.mInputContentType.privateImeOptions : null;
+    }
+
+    /**
+     * Set the extra input data of the text, which is the
+     * {@link EditorInfo#extras TextBoxAttribute.extras}
+     * Bundle that will be filled in when creating an input connection.  The
+     * given integer is the resource identifier of an XML resource holding an
+     * {@link android.R.styleable#InputExtras &lt;input-extras&gt;} XML tree.
+     *
+     * @see #getInputExtras(boolean)
+     * @see EditorInfo#extras
+     * @attr ref android.R.styleable#TextView_editorExtras
+     */
+    public void setInputExtras(@XmlRes int xmlResId) throws XmlPullParserException, IOException {
+        XmlResourceParser parser = getResources().getXml(xmlResId);
+        mEditor.createInputContentTypeIfNeeded();
+        mEditor.mInputContentType.extras = new Bundle();
+        getResources().parseBundleExtras(parser, mEditor.mInputContentType.extras);
+    }
+
+    /**
+     * Retrieve the input extras currently associated with the text view, which
+     * can be viewed as well as modified.
+     *
+     * @param create If true, the extras will be created if they don't already
+     * exist.  Otherwise, null will be returned if none have been created.
+     * @see #setInputExtras(int)
+     * @see EditorInfo#extras
+     * @attr ref android.R.styleable#TextView_editorExtras
+     */
+    public Bundle getInputExtras(boolean create) {
+        if (mEditor.mInputContentType == null) {
+            if (!create) return null;
+            mEditor.createInputContentTypeIfNeeded();
+        }
+        if (mEditor.mInputContentType.extras == null) {
+            if (!create) return null;
+            mEditor.mInputContentType.extras = new Bundle();
+        }
+        return mEditor.mInputContentType.extras;
+    }
+
+    /**
      * Change "hint" locales associated with the text view, which will be reported to an IME with
      * {@link EditorInfo#hintLocales} when it has focus.
      *
@@ -4232,6 +4370,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         super.onDetachedFromWindow();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     @Override
     public void onScreenStateChanged(int screenState) {
         super.onScreenStateChanged(screenState);
@@ -4574,14 +4713,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return getExtendedPaddingTop() + voffset;
     }
 
+    @RequiresApi(api = VERSION_CODES.N)
     @Override
     public PointerIcon onResolvePointerIcon(MotionEvent event, int pointerIndex) {
         if (isTextSelectable() || isTextEditable()) {
-            if (VERSION.SDK_INT >= VERSION_CODES.N) {
-                return PointerIcon.getSystemIcon(getContext(), PointerIcon.TYPE_TEXT);
-            } else {
-                //TODO: (EW) handle
-            }
+            return PointerIcon.getSystemIcon(getContext(), PointerIcon.TYPE_TEXT);
         }
         return super.onResolvePointerIcon(event, pointerIndex);
     }
@@ -6839,6 +6975,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return false;
     }
 
+    @RequiresApi(api = VERSION_CODES.M)
     @Override
     public CharSequence getAccessibilityClassName() {
         return EditText.class.getName();
@@ -7064,16 +7201,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @see View#getAutofillValue()
      */
+    @RequiresApi(api = VERSION_CODES.O)
     @Override
     @Nullable
     public AutofillValue getAutofillValue() {
         if (isTextEditable()) {
             final CharSequence text = HiddenTextUtils.trimToParcelableSize(getText());
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
-                return AutofillValue.forText(text);
-            } else {
-                //TODO: (EW) handle
-            }
+            return AutofillValue.forText(text);
         }
         return null;
     }
@@ -7365,9 +7499,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     CharSequence getTransformedText(int start, int end) {
+        //TODO: (EW) is it really necessary to have special handling for suggestion spans?
         return removeSuggestionSpans(mTransformed.subSequence(start, end));
     }
 
+    @RequiresApi(api = VERSION_CODES.N)
     @Override
     public boolean performLongClick() {
         boolean handled = false;
@@ -7709,6 +7845,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEditor.mInBatchEditControllers;
     }
 
+    @RequiresApi(api = VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     public void onRtlPropertiesChanged(int layoutDirection) {
         super.onRtlPropertiesChanged(layoutDirection);
