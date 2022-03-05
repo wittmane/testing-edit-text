@@ -78,12 +78,22 @@ public class CustomInputConnection extends BaseInputConnection {
     }
 
     @Override
-    public ExtractedText getExtractedText(ExtractedTextRequest extractedTextRequest, int i) {
+    public ExtractedText getExtractedText(ExtractedTextRequest extractedTextRequest, int flags) {
         if (LOG_CALLS) {
-            Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest + ", i=" + i);
+            Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest + ", flags=" + flags);
         }
-        //TODO: implement (maybe copy from AOSP EditableInputConnection)
-        return super.getExtractedText(extractedTextRequest, i);
+        //TODO: (EW) if this returns null, no text is shown in the full screen text field
+        // (landscape) so be sure to consider this when figuring out the weird behavior options
+        if (mTextView != null) {
+            ExtractedText et = new ExtractedText();
+            if (mTextView.extractText(extractedTextRequest, et)) {
+                if ((flags&GET_EXTRACTED_TEXT_MONITOR) != 0) {
+                    mTextView.setExtracting(extractedTextRequest);
+                }
+                return et;
+            }
+        }
+        return null;
     }
 
     @Override

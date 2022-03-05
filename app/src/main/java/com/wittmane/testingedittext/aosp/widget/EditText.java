@@ -5243,6 +5243,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
+    //TODO: (EW) I only see this getting called from InputMethodService for ExtractEditText, but it
+    // is a public method so maybe app devs have some use to call it. consider if this can get
+    // removed
     /**
      * Apply to this text view the given extracted text, as previously
      * returned by {@link #extractText(ExtractedTextRequest, ExtractedText)}.
