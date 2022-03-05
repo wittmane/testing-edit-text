@@ -177,6 +177,7 @@ public class Editor {
 
     boolean mInBatchEditControllers;
     boolean mShowSoftInputOnFocus = true;
+    boolean mTemporaryDetach;// only used pre-M
     private boolean mPreserveSelection;
     private boolean mRestartActionModeOnNextRefresh;
     private boolean mRequestingLinkActionMode;
@@ -316,6 +317,7 @@ public class Editor {
 //            showError();
 //            mShowErrorAfterAttach = false;
 //        }
+        mTemporaryDetach = false;
 
         final ViewTreeObserver observer = mTextView.getViewTreeObserver();
         if (observer.isAlive()) {
@@ -390,6 +392,7 @@ public class Editor {
 
         hideCursorAndSpanControllers();
         stopTextActionModeWithPreservingSelection();
+        mTemporaryDetach = false;
     }
 
     void createInputContentTypeIfNeeded() {
@@ -923,24 +926,32 @@ public class Editor {
 
             if (mTextView.isInExtractedMode()) {
                 hideCursorAndSpanControllers();
-//                stopTextActionModeWithPreservingSelection();
+                stopTextActionModeWithPreservingSelection();
             } else {
                 hideCursorAndSpanControllers();
+                //TODO: (EW) the M version set mPreserveDetachedSelection around doing some actions.
+                // it looks like the code was just restructured and the variable and function for
+                // checking temporarily detached are essentially checking the same thing. verify
+                // there isn't some need to do this the old way when running on an older version
+                boolean isTemporarilyDetached;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    if (mTextView.isTemporarilyDetached()) {
-//                        stopTextActionModeWithPreservingSelection();
-                    } else {
-                        stopTextActionMode();
-                    }
+                    isTemporarilyDetached = mTextView.isTemporarilyDetached();
+                } else {
+                    isTemporarilyDetached = mTemporaryDetach;
+                }
+                if (isTemporarilyDetached) {
+                    stopTextActionModeWithPreservingSelection();
+                } else {
+                    stopTextActionMode();
                 }
 //                downgradeEasyCorrectionSpans();
             }
             // No need to create the controller
-//            if (mSelectionModifierCursorController != null) {
-//                mSelectionModifierCursorController.resetTouchOffsets();
-//            }
+            if (mSelectionModifierCursorController != null) {
+                mSelectionModifierCursorController.resetTouchOffsets();
+            }
 
-//            ensureNoSelectionIfNonSelectable();
+            ensureNoSelectionIfNonSelectable();
         }
     }
 
@@ -1000,8 +1011,17 @@ public class Editor {
                 mBlink.uncancel();
                 makeBlink();
             }
-            if (mTextView.hasSelection() && !extractedTextModeWillBeStarted()) {
-                refreshTextActionMode();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {//TODO: (EW) figure out why this is different and if I should copy that
+                if (mTextView.hasSelection() && !extractedTextModeWillBeStarted()) {
+                    refreshTextActionMode();
+                }
+            } else {
+                final InputMethodManager imm = getInputMethodManager();
+                final boolean immFullScreen = (imm != null && imm.isFullscreenMode());
+                if (mSelectionModifierCursorController != null && mTextView.hasSelection()
+                        && !immFullScreen && mTextActionMode != null) {
+                    mSelectionModifierCursorController.show();
+                }
             }
         } else {
             if (mBlink != null) {
@@ -1341,6 +1361,7 @@ public class Editor {
         outText.startOffset = 0;
         outText.selectionStart = mTextView.getSelectionStart();
         outText.selectionEnd = mTextView.getSelectionEnd();
+        // the output hint only exists since P
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             outText.hint = mTextView.getHint();
         }
@@ -1520,10 +1541,10 @@ public class Editor {
                 stopTextActionModeWithPreservingSelection();
                 startSelectionActionModeAsync(false);
             } else {
+                // (EW) nothing needs to be done prior to M because the copy/paste/etc popup was in
+                // a fixed position and this function only makes sense for dynamic positioning
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     mTextActionMode.invalidateContentRect();
-                } else {
-                    //TODO: (EW) handle?
                 }
             }
         } else {
@@ -1532,6 +1553,8 @@ public class Editor {
             if (insertionController == null || !insertionController.isActive()) {
                 stopTextActionMode();
             } else if (mTextActionMode != null) {
+                // (EW) nothing needs to be done prior to M because the copy/paste/etc popup was in
+                // a fixed position and this function only makes sense for dynamic positioning
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     mTextActionMode.invalidateContentRect();
                 }
@@ -1559,7 +1582,9 @@ public class Editor {
             mTextActionMode = mTextView.startActionMode(
                     actionModeCallback, ActionMode.TYPE_FLOATING);
         } else {
-            //TODO: handle
+            //TODO: (EW) handle. I think TextActionModeCallback is related to the floating
+            // copy/paste/etc popup, which functions differently in lollipop (fixed bar at the top
+            // of the screen). we may need significantly different handling for that.
         }
         if (mTextActionMode != null && getInsertionController() != null) {
             getInsertionController().show();
@@ -1681,7 +1706,7 @@ public class Editor {
             Callback actionModeCallback = new TextActionModeCallback(actionMode);
             mTextActionMode = mTextView.startActionMode(actionModeCallback, ActionMode.TYPE_FLOATING);
         } else {
-            //TODO: (EW) handle
+            //TODO: (EW) handle. match other use of this
         }
 
         final boolean selectableText = mTextView.isTextEditable() || mTextView.isTextSelectable();
@@ -1907,10 +1932,10 @@ public class Editor {
             mPositionListener.onScrollChanged();
         }
         if (mTextActionMode != null) {
+            // (EW) nothing needs to be done prior to M because the copy/paste/etc popup was in
+            // a fixed position and this function only makes sense for dynamic positioning
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 mTextActionMode.invalidateContentRect();
-            } else {
-                //TODO: (EW) handle?
             }
         }
     }
@@ -1988,6 +2013,7 @@ public class Editor {
         text.setSpan(mSpanController, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
     }
 
+    //TODO: (EW) this isn't hooked up
     private final MenuItem.OnMenuItemClickListener mOnContextMenuItemClickListener =
             new MenuItem.OnMenuItemClickListener() {
                 @Override
@@ -2636,7 +2662,8 @@ public class Editor {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 mContainer.setWindowLayoutType(WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
             } else {
-                //TODO: (EW) handle?
+                //TODO: (EW) handle. lollipop calls the same code. marked with @hide before being
+                // released for app devs. maybe it would be reasonable to use reflection for this
             }
             mContainer.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
             mContainer.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -3313,10 +3340,11 @@ public class Editor {
                         }
                     } else {
                         if (mTextActionMode != null) {
+                            // (EW) nothing needs to be done prior to M because the copy/paste/etc
+                            // popup was in a fixed position and this function only makes sense for
+                            // dynamic positioning
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 mTextActionMode.invalidateContentRect();
-                            } else {
-                                //TODO: (EW) handle?
                             }
                         }
                     }
@@ -4554,7 +4582,7 @@ public class Editor {
             return mPackageName.equals(info.activityInfo.packageName)
                     || info.activityInfo.exported
                     && (info.activityInfo.permission == null
-                    || Build.VERSION.SDK_INT < Build.VERSION_CODES.M//TODO: (EW) verify this is right
+                    || Build.VERSION.SDK_INT < Build.VERSION_CODES.M//TODO: (EW) verify this is right. it seems this whole class might not be used in older versions, so this may not matter and may be an excuse to drop support
                     || mContext.checkSelfPermission(info.activityInfo.permission)
                     == PackageManager.PERMISSION_GRANTED);
         }

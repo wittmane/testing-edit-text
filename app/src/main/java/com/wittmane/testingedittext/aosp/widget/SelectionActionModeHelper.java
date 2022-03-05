@@ -899,7 +899,7 @@ public final class SelectionActionModeHelper {
             final Runnable onTimeOut = this::onTimeOut;
             mTextView.postDelayed(onTimeOut, mTimeOutDuration);
             final SelectionResult result;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 result = mSelectionResultSupplier.get();
             } else {
                 //TODO: (EW) handle
@@ -1005,19 +1005,15 @@ public final class SelectionActionModeHelper {
             mHot = true;
             trimText();
             final TextSelection selection;
-            if (mContext.getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.P) {
+            if (mContext.getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.P
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 final TextSelection.Request request;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    request = new TextSelection.Request.Builder(
-                            mTrimmedText, mRelativeStart, mRelativeEnd)
-                            .setDefaultLocales(mDefaultLocales)
+                request = new TextSelection.Request.Builder(
+                        mTrimmedText, mRelativeStart, mRelativeEnd)
+                        .setDefaultLocales(mDefaultLocales)
 //                            .setDarkLaunchAllowed(true)
-                            .build();
-                    selection = mTextClassifier.get().suggestSelection(request);
-                } else {
-                    //TODO: (EW) handle
-                    selection = null;
-                }
+                        .build();
+                selection = mTextClassifier.get().suggestSelection(request);
             } else {
                 // Use old APIs.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -1079,18 +1075,14 @@ public final class SelectionActionModeHelper {
 
                 trimText();
                 final TextClassification classification;
-                if (mContext.getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.P) {
+                if (mContext.getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.P
+                        && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     final TextClassification.Request request;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        request = new TextClassification.Request.Builder(
-                                mTrimmedText, mRelativeStart, mRelativeEnd)
-                                .setDefaultLocales(mDefaultLocales)
-                                .build();
-                        classification = mTextClassifier.get().classifyText(request);
-                    } else {
-                        //TODO: (EW) handle
-                        classification = null;
-                    }
+                    request = new TextClassification.Request.Builder(
+                            mTrimmedText, mRelativeStart, mRelativeEnd)
+                            .setDefaultLocales(mDefaultLocales)
+                            .build();
+                    classification = mTextClassifier.get().classifyText(request);
                 } else {
                     // Use old APIs.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

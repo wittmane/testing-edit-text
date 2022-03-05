@@ -222,6 +222,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private int mCurTextColor;
     private int mCurHintTextColor;
     private boolean mFreezesText;
+    private boolean mDispatchTemporaryDetach;
+
+    /** Whether this view is temporarily detached from the parent view. */
+    boolean mTemporaryDetach;
 
     private Editable.Factory mEditableFactory = Editable.Factory.getInstance();
     private Spannable.Factory mSpannableFactory = Spannable.Factory.getInstance();
@@ -406,7 +410,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public EditText(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         // TextView is important by default, unless app developer overrode attribute.
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // autofill support started in O
             if (getImportantForAutofill() == IMPORTANT_FOR_AUTOFILL_AUTO) {
                 setImportantForAutofill(IMPORTANT_FOR_AUTOFILL_YES);
             }
@@ -731,7 +736,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // Mode for justification.
                 //TODO: this doesn't apply the justification as you type (even in EditText), so it
                 // may be better to just remove support for this
-                if (VERSION.SDK_INT >= VERSION_CODES.O) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     mJustificationMode = typedArray.getInt(attr, Layout.JUSTIFICATION_MODE_NONE);
                 }
             } else if (attr == R.styleable.EditText_android_firstBaselineToTopHeight) {
@@ -764,8 +769,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 == (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD);
 
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
-        mUseInternationalizedInput = targetSdkVersion >= VERSION_CODES.O;
-        mUseFallbackLineSpacing = targetSdkVersion >= VERSION_CODES.P;
+        mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
+        mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
 
         if (inputType != EditorInfo.TYPE_NULL) {
             setInputType(inputType, true);
@@ -835,34 +840,36 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         boolean clickable = canInputOrMove || isClickable();
         boolean longClickable = canInputOrMove || isLongClickable();
         int focusable;
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
+        boolean isFocusable;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             focusable = getFocusable();
+            // doesn't matter. this won't be used. pacify java
+            isFocusable = false;
         } else {
-            //TODO: (EW) handle
+            isFocusable = mMovement != null || getKeyListener() != null;
+            // doesn't matter. this won't be used. pacify java
             focusable = 0;
         }
 
         attrCount = typedArray.getIndexCount();
         for (int i = 0; i < attrCount; i++) {
             int attr = typedArray.getIndex(i);
-
-            switch (attr) {
-                case /*com.android.internal.*/R.styleable.View_android_focusable:
-                    TypedValue val = new TypedValue();
+            if (attr == R.styleable.View_android_focusable) {
+                TypedValue val = new TypedValue();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     if (typedArray.getValue(attr, val)) {
                         focusable = (val.type == TypedValue.TYPE_INT_BOOLEAN)
                                 ? (val.data == 0 ? NOT_FOCUSABLE : FOCUSABLE)
                                 : val.data;
                     }
-                    break;
-
-                case /*com.android.internal.*/R.styleable.View_android_clickable:
-                    clickable = typedArray.getBoolean(attr, clickable);
-                    break;
-
-                case /*com.android.internal.*/R.styleable.View_android_longClickable:
-                    longClickable = typedArray.getBoolean(attr, longClickable);
-                    break;
+                } else {
+                    //TODO: (EW) verify this works
+                    isFocusable = typedArray.getBoolean(attr, isFocusable);
+                }
+            } else if (attr == R.styleable.View_android_clickable) {
+                clickable = typedArray.getBoolean(attr, clickable);
+            } else if (attr == R.styleable.View_android_longClickable) {
+                longClickable = typedArray.getBoolean(attr, longClickable);
             }
         }
         typedArray.recycle();
@@ -871,12 +878,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // focusableInTouchMode != focusable in TextViews if both were specified in XML (usually
         // when starting with EditText and setting only focusable=false). To keep those apps from
         // breaking, re-apply the focusable attribute here.
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (focusable != getFocusable()) {
                 setFocusable(focusable);
             }
         } else {
-            //TODO: (EW) handle
+            setFocusable(isFocusable);
         }
         setClickable(clickable);
         setLongClickable(longClickable);
@@ -1226,7 +1233,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 setFocusable(FOCUSABLE);
             } else {
-                //TODO: (EW) handle?
+                setFocusable(true);
             }
             setClickable(true);
             setLongClickable(true);
@@ -1234,7 +1241,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 setFocusable(FOCUSABLE_AUTO);
             } else {
-                //TODO: (EW) handle?
+                setFocusable(false);
             }
             setClickable(false);
             setLongClickable(false);
@@ -1761,16 +1768,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     attributes.mFontFamily = null;
                 }
             } else if (index == R.styleable.TextAppearance_android_fontFamily) {
-                //TODO: (EW) can we just ignore the canLoadUnsafeResources check?
-                if (!context.isRestricted()/* && context.canLoadUnsafeResources()*/) {
-                    try {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            attributes.mFontTypeface = appearance.getFont(attr);
-                        } else {
-                            //TODO: (EW) handle?
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    //TODO: (EW) can we just ignore the canLoadUnsafeResources check?
+                    if (!context.isRestricted()/* && context.canLoadUnsafeResources()*/) {
+                        try {
+                                attributes.mFontTypeface = appearance.getFont(attr);
+                        } catch (UnsupportedOperationException | Resources.NotFoundException e) {
+                            // Expected if it is not a font resource.
                         }
-                    } catch (UnsupportedOperationException | Resources.NotFoundException e) {
-                        // Expected if it is not a font resource.
                     }
                 }
                 if (attributes.mFontTypeface == null) {
@@ -1885,7 +1890,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mTextPaint.getTextLocales();
     }
 
-    @RequiresApi(api = VERSION_CODES.N)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void changeListenerLocaleTo(@Nullable Locale locale) {
         if (mListenerChanged) {
             // If a listener has been explicitly set, don't change it. We may break something.
@@ -1899,23 +1904,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             //TODO: (EW) figure out how to handle
 //            listener = DigitsKeyListener.getInstance(locale, (DigitsKeyListener) listener);
         } else if (listener instanceof DateKeyListener) {
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
-                listener = DateKeyListener.getInstance(locale);
-            } else {
-                //TODO: (EW) handle
-            }
+            listener = DateKeyListener.getInstance(locale);
         } else if (listener instanceof TimeKeyListener) {
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
-                listener = TimeKeyListener.getInstance(locale);
-            } else {
-                //TODO: (EW) handle
-            }
+            listener = TimeKeyListener.getInstance(locale);
         } else if (listener instanceof DateTimeKeyListener) {
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
-                listener = DateTimeKeyListener.getInstance(locale);
-            } else {
-                //TODO: (EW) handle
-            }
+            listener = DateTimeKeyListener.getInstance(locale);
         } else {
             return;
         }
@@ -1961,7 +1954,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @see Paint#setTextLocales
      */
-    @RequiresApi(api = VERSION_CODES.N)
+    @RequiresApi(api = Build.VERSION_CODES.N)
     public void setTextLocales(@NonNull @Size(min = 1) LocaleList locales) {
         mLocalesChanged = true;
         mTextPaint.setTextLocales(locales);
@@ -1976,8 +1969,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     protected void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (!mLocalesChanged) {
-            if (VERSION.SDK_INT >= VERSION_CODES.N) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 mTextPaint.setTextLocales(LocaleList.getDefault());
+            } else {
+                mTextPaint.setTextLocale(Locale.getDefault());
             }
             if (mLayout != null) {
                 nullLayouts();
@@ -2263,7 +2258,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setFontVariationSettings(String)
      * @see Paint#setFontVariationSettings(String) Paint.setFontVariationSettings(String)
      */
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Nullable
     public String getFontVariationSettings() {
         return mTextPaint.getFontVariationSettings();
@@ -2338,7 +2333,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #getFontVariationSettings()
      * @see FontVariationAxis
      */
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public boolean setFontVariationSettings(@Nullable String fontVariationSettings) {
         final String existingSettings = mTextPaint.getFontVariationSettings();
         if (fontVariationSettings == existingSettings
@@ -3676,7 +3671,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE,
                         Typeface.NORMAL, -1 /* weight, not specifeid */);
             } else {
-                //TODO: (EW) handle
+                setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE, 0);
             }
         } else if (isVisiblePassword) {
             if (mTransformation == PasswordTransformationMethod.getInstance()) {
@@ -3686,7 +3681,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE,
                         Typeface.NORMAL, -1 /* weight, not specified */);
             } else {
-                //TODO: (EW) handle
+                setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE, 0);
             }
         } else if (wasPassword || wasVisiblePassword) {
             // not in password mode, clean up typeface and transformation
@@ -3695,7 +3690,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         DEFAULT_TYPEFACE /* typeface index */, Typeface.NORMAL,
                         -1 /* weight, not specified */);
             } else {
-                //TODO: (EW) handle
+                setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, -1, -1);
             }
             if (mTransformation == PasswordTransformationMethod.getInstance()) {
                 forceUpdate = true;
@@ -3778,7 +3773,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     @Nullable
     private Locale getCustomLocaleForKeyListenerOrNull() {
-        if (!mUseInternationalizedInput) {
+        if (/*!mUseInternationalizedInput*/Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             // If the application does not target O, stick to the previous behavior.
             return null;
         }
@@ -3788,12 +3783,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // previous behavior.
             return null;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            return locales.get(0);
-        } else {
-            //TODO: (EW) handle
-            return null;
-        }
+        return locales.get(0);
     }
 
     private void setInputType(int type, boolean direct) {
@@ -3820,8 +3810,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         (type & EditorInfo.TYPE_NUMBER_FLAG_SIGNED) != 0,
                         (type & EditorInfo.TYPE_NUMBER_FLAG_DECIMAL) != 0);
             } else {
-                //TODO: (EW) handle
-                input = null;
+                input = DigitsKeyListener.getInstance(
+                        (type & EditorInfo.TYPE_NUMBER_FLAG_SIGNED) != 0,
+                        (type & EditorInfo.TYPE_NUMBER_FLAG_DECIMAL) != 0);
             }
             if (locale != null) {
                 // Override type, if necessary for i18n.
@@ -3843,28 +3834,25 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         input = DateKeyListener.getInstance(locale);
                     } else {
-                        //TODO: (EW) handle
-                        input = null;
+                        input = DateKeyListener.getInstance();
                     }
                     break;
                 case EditorInfo.TYPE_DATETIME_VARIATION_TIME:
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         input = TimeKeyListener.getInstance(locale);
                     } else {
-                        //TODO: (EW) handle
-                        input = null;
+                        input = TimeKeyListener.getInstance();
                     }
                     break;
                 default:
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         input = DateTimeKeyListener.getInstance(locale);
                     } else {
-                        //TODO: (EW) handle
-                        input = null;
+                        input = DateTimeKeyListener.getInstance();
                     }
                     break;
             }
-            if (mUseInternationalizedInput) {
+            if (mUseInternationalizedInput) {//targetSdkVersion >= Build.VERSION_CODES.O
                 type = input.getInputType(); // Override type, if necessary for i18n.
             }
         } else if (cls == EditorInfo.TYPE_CLASS_PHONE) {
@@ -4030,11 +4018,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #getImeHintLocales()
      * @see android.view.inputmethod.EditorInfo#hintLocales
      */
-    @RequiresApi(api = VERSION_CODES.N)
+    @RequiresApi(api = Build.VERSION_CODES.N)
     public void setImeHintLocales(@Nullable LocaleList hintLocales) {
         mEditor.createInputContentTypeIfNeeded();
         mEditor.mInputContentType.imeHintLocales = hintLocales;
-        if (mUseInternationalizedInput) {
+        if (/*mUseInternationalizedInput*/Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             changeListenerLocaleTo(hintLocales == null ? null : hintLocales.get(0));
         }
     }
@@ -4347,6 +4335,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
 
+        mTemporaryDetach = false;
+
         mEditor.onAttachedToWindow();
 
         if (mPreDrawListenerDetached) {
@@ -4453,10 +4443,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         mEditor.mTextIsSelectable = selectable;
         setFocusableInTouchMode(selectable);
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             setFocusable(FOCUSABLE_AUTO);
         } else {
-            //TODO: (EW) handle?
+            setFocusable(selectable);
         }
         setClickable(selectable);
         setLongClickable(selectable);
@@ -4713,7 +4703,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return getExtendedPaddingTop() + voffset;
     }
 
-    @RequiresApi(api = VERSION_CODES.N)
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public PointerIcon onResolvePointerIcon(MotionEvent event, int pointerIndex) {
         if (isTextSelectable() || isTextEditable()) {
@@ -5309,10 +5299,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //            MetaKeyKeyListener.stopSelecting(this, sp);
         }
 
-        if (VERSION.SDK_INT >= VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             setHintInternal(text.hint);
-        } else {
-            //TODO: (EW) handle
         }
     }
 
@@ -5507,7 +5495,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     protected Layout makeSingleLayout(int wantWidth, Layout.Alignment alignment) {
         Layout result = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             final DynamicLayout.Builder builder = DynamicLayout.Builder.obtain(mText, mTextPaint,
                     wantWidth)
                     .setDisplayText(mTransformed)
@@ -6467,16 +6455,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private void notifyAutoFillManagerAfterTextChangedIfNeeded() {
         // It is important to not check whether the view is important for autofill
         // since the user can trigger autofill manually on not important views.
-        if (!isAutofillable()) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAutofillable()) {
             return;
         }
         final AutofillManager afm;
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
-            afm = getContext().getSystemService(AutofillManager.class);
-        } else {
-            //TODO: (EW) handle
-            afm = null;
-        }
+        afm = getContext().getSystemService(AutofillManager.class);
         if (afm == null) {
             return;
         }
@@ -6486,11 +6469,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //            if (android.view.autofill.Helper.sVerbose) {
 //                Log.v(LOG_TAG, "notifying AFM after text changed");
 //            }
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
-                afm.notifyValueChanged(EditText.this);
-            } else {
-                //TODO: (EW) handle
-            }
+            afm.notifyValueChanged(EditText.this);
             mLastValueSentToAutofillManager = mText;
         } else {
 //            if (android.view.autofill.Helper.sVerbose) {
@@ -6499,15 +6478,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private boolean isAutofillable() {
         // It is important to not check whether the view is important for autofill
         // since the user can trigger autofill manually on not important views.
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
-            return getAutofillType() != AUTOFILL_TYPE_NONE;
-        } else {
-            //TODO: (EW) handle
-            return false;
-        }
+        return getAutofillType() != AUTOFILL_TYPE_NONE;
     }
 
     void updateAfterEdit() {
@@ -6676,15 +6651,44 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     @Override
+    public void dispatchFinishTemporaryDetach() {
+        mDispatchTemporaryDetach = true;
+        super.dispatchFinishTemporaryDetach();
+        mDispatchTemporaryDetach = false;
+    }
+
+    @Override
+    public void onStartTemporaryDetach() {
+        super.onStartTemporaryDetach();
+        // Only track when onStartTemporaryDetach() is called directly,
+        // usually because this instance is an editable field in a list
+        if (!mDispatchTemporaryDetach) mTemporaryDetach = true;
+        // Tell the editor that we are temporarily detached. It can use this to preserve
+        // selection state as needed.
+        mEditor.mTemporaryDetach = true;
+    }
+
+    @Override
+    public void onFinishTemporaryDetach() {
+        super.onFinishTemporaryDetach();
+        // Only track when onStartTemporaryDetach() is called directly,
+        // usually because this instance is an editable field in a list
+        if (!mDispatchTemporaryDetach) mTemporaryDetach = false;
+        mEditor.mTemporaryDetach = false;
+    }
+
+    @Override
     protected void onFocusChanged(boolean focused, int direction, Rect previouslyFocusedRect) {
+        boolean isTemporarilyDetached;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            if (isTemporarilyDetached()) {
-                // If we are temporarily in the detach state, then do nothing.
-                super.onFocusChanged(focused, direction, previouslyFocusedRect);
-                return;
-            }
+            isTemporarilyDetached = isTemporarilyDetached();
         } else {
-            //TODO: (EW) handle?
+            isTemporarilyDetached = mTemporaryDetach;
+        }
+        if (isTemporarilyDetached) {
+            // If we are temporarily in the detach state, then do nothing.
+            super.onFocusChanged(focused, direction, previouslyFocusedRect);
+            return;
         }
 
         mEditor.onFocusChanged(focused, direction);
@@ -6978,44 +6982,36 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return false;
     }
 
-    @RequiresApi(api = VERSION_CODES.M)
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public CharSequence getAccessibilityClassName() {
         return EditText.class.getName();
     }
 
-    @RequiresApi(api = VERSION_CODES.M)
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onProvideStructure(ViewStructure structure) {
         super.onProvideStructure(structure);
         onProvideAutoStructureForAssistOrAutofill(structure, false);
     }
 
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onProvideAutofillStructure(ViewStructure structure, int flags) {
         super.onProvideAutofillStructure(structure, flags);
         onProvideAutoStructureForAssistOrAutofill(structure, true);
     }
 
-    @RequiresApi(api = VERSION_CODES.M)
+    @RequiresApi(api = Build.VERSION_CODES.M)
     private void onProvideAutoStructureForAssistOrAutofill(ViewStructure structure,
                                                            boolean forAutofill) {
         final boolean isPassword = hasPasswordTransformationMethod()
                 || isPasswordInputType(getInputType());
-        if (forAutofill) {
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
-                structure.setDataIsSensitive(!mTextSetFromXmlOrResourceId);
-            } else {
-                //TODO: (EW) handle
-            }
-            if (mTextId != /*ResourceId.ID_NULL*/0) {
+        if (forAutofill && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            structure.setDataIsSensitive(!mTextSetFromXmlOrResourceId);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && mTextId != /*ResourceId.ID_NULL*/0) {
                 try {
-                    if (VERSION.SDK_INT >= VERSION_CODES.P) {
-                        structure.setTextIdEntry(getResources().getResourceEntryName(mTextId));
-                    } else {
-                        //TODO: (EW) handle
-                    }
+                    structure.setTextIdEntry(getResources().getResourceEntryName(mTextId));
                 } catch (NotFoundException e) {
 //                    if (android.view.autofill.Helper.sVerbose) {
 //                        Log.v(LOG_TAG, "onProvideAutofillStructure(): cannot set name for text id "
@@ -7141,13 +7137,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // of the View (and can be any drawable) or a BackgroundColorSpan inside the text.
                 structure.setTextStyle(getTextSize(), getCurrentTextColor(),
                         ViewNode.TEXT_COLOR_UNDEFINED /* bgColor */, style);
-            } else {
-                if (VERSION.SDK_INT >= VERSION_CODES.P) {
-                    structure.setMinTextEms(getMinEms());
-                    structure.setMaxTextEms(getMaxEms());
-                } else {
-                    //TODO: (EW) handle
-                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                structure.setMinTextEms(getMinEms());
+                structure.setMaxTextEms(getMaxEms());
                 int maxLength = -1;
                 for (InputFilter filter: getFilters()) {
                     if (filter instanceof LengthFilter) {
@@ -7155,22 +7147,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         break;
                     }
                 }
-                if (VERSION.SDK_INT >= VERSION_CODES.P) {
-                    structure.setMaxTextLength(maxLength);
-                } else {
-                    //TODO: (EW) handle
-                }
+                structure.setMaxTextLength(maxLength);
             }
         }
         structure.setHint(getHint());
-        if (VERSION.SDK_INT >= VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             structure.setInputType(getInputType());
-        } else {
-            //TODO: (EW) handle
         }
     }
 
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void autofill(AutofillValue value) {
         if (!value.isText() || !isTextEditable()) {
@@ -7190,7 +7176,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public int getAutofillType() {
         return isTextEditable() ? AUTOFILL_TYPE_TEXT : AUTOFILL_TYPE_NONE;
@@ -7204,7 +7190,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @see View#getAutofillValue()
      */
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     @Nullable
     public AutofillValue getAutofillValue() {
@@ -7215,7 +7201,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return null;
     }
 
-    @RequiresApi(api = VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void addExtraDataToAccessibilityNodeInfo(
             AccessibilityNodeInfo info, String extraDataKey, Bundle arguments) {
@@ -7506,7 +7492,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return removeSuggestionSpans(mTransformed.subSequence(start, end));
     }
 
-    @RequiresApi(api = VERSION_CODES.N)
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public boolean performLongClick() {
         boolean handled = false;
@@ -7565,7 +7551,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //            }
 //        }
 //        return mTextClassifier;
-        return TextClassifier.NO_OP;
+        return TextClassifier.NO_OP;//TODO: (EW) handle
     }
 
     /**
@@ -7602,14 +7588,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //            }
 //        }
 //        return mTextClassificationSession;
-        return TextClassifier.NO_OP;
+        return TextClassifier.NO_OP;//TODO: (EW) handle
     }
 
     /**
      * Returns true if this TextView uses a no-op TextClassifier.
      */
     boolean usesNoOpTextClassifier() {
-        return getTextClassifier() == TextClassifier.NO_OP;
+        return getTextClassifier() == TextClassifier.NO_OP;//TODO: (EW) handle
     }
 
     protected void stopTextActionMode() {
@@ -7848,7 +7834,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEditor.mInBatchEditControllers;
     }
 
-    @RequiresApi(api = VERSION_CODES.JELLY_BEAN_MR1)
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     public void onRtlPropertiesChanged(int layoutDirection) {
         super.onRtlPropertiesChanged(layoutDirection);
@@ -7874,33 +7860,30 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return TextDirectionHeuristics.LTR;
         }
 
-        if ((mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS) == EditorInfo.TYPE_CLASS_PHONE) {
-            // Phone numbers must be in the direction of the locale's digits. Most locales have LTR
-            // digits, but some locales, such as those written in the Adlam or N'Ko scripts, have
-            // RTL digits.
-            final DecimalFormatSymbols symbols;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                symbols = DecimalFormatSymbols.getInstance(getTextLocale());
-            } else {
-                //TODO: (EW) handle
-                symbols = null;
-            }
-            final String zero;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                zero = symbols.getDigitStrings()[0];
-            } else {
-                //TODO: (EW) handle
-                zero = null;
-            }
-            // In case the zero digit is multi-codepoint, just use the first codepoint to determine
-            // direction.
-            final int firstCodepoint = zero.codePointAt(0);
-            final byte digitDirection = Character.getDirectionality(firstCodepoint);
-            if (digitDirection == Character.DIRECTIONALITY_RIGHT_TO_LEFT
-                    || digitDirection == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) {
-                return TextDirectionHeuristics.RTL;
-            } else {
-                return TextDirectionHeuristics.LTR;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if ((mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS) == EditorInfo.TYPE_CLASS_PHONE) {
+                // Phone numbers must be in the direction of the locale's digits. Most locales have LTR
+                // digits, but some locales, such as those written in the Adlam or N'Ko scripts, have
+                // RTL digits.
+                final DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(getTextLocale());
+                final String zero;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    zero = symbols.getDigitStrings()[0];
+                } else {
+                    //TODO: (EW) handle - O calls the same code. not sure how it's available or
+                    // where the code is to try to copy it. maybe only do this block for P
+                    zero = null;
+                }
+                // In case the zero digit is multi-codepoint, just use the first codepoint to determine
+                // direction.
+                final int firstCodepoint = zero.codePointAt(0);
+                final byte digitDirection = Character.getDirectionality(firstCodepoint);
+                if (digitDirection == Character.DIRECTIONALITY_RIGHT_TO_LEFT
+                        || digitDirection == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) {
+                    return TextDirectionHeuristics.RTL;
+                } else {
+                    return TextDirectionHeuristics.LTR;
+                }
             }
         }
 
