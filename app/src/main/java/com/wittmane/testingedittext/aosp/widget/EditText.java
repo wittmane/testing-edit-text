@@ -236,9 +236,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private boolean mPreDrawRegistered;
     private boolean mPreDrawListenerDetached;
 
-    private TextClassifier mTextClassifier;
-    private TextClassifier mTextClassificationSession;
-
     // A flag to prevent repeated movements from escaping the enclosing text view. The idea here is
     // that if a user is holding down a movement key to traverse text, we shouldn't also traverse
     // the view hierarchy. On the other hand, if the user is using the movement key to traverse
@@ -7528,74 +7525,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
         Log.w(TAG, "onScrollChanged: horiz=" + horiz + ", vert=" + vert + ", oldHoriz=" + oldHoriz + ", oldVert=" + oldVert);
         mEditor.onScrollChanged();
-    }
-
-    /**
-     * Returns the {@link TextClassifier} used by this TextView.
-     * If no TextClassifier has been set, this TextView uses the default set by the
-     * {@link TextClassificationManager}.
-     */
-    @NonNull
-    public TextClassifier getTextClassifier() {
-//        if (mTextClassifier == null) {
-//            final TextClassificationManager tcm =
-//                    mContext.getSystemService(TextClassificationManager.class);
-//            if (tcm != null) {
-//                return tcm.getTextClassifier();
-//            }
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                return TextClassifier.NO_OP;
-//            } else {
-//                //TODO: handle
-//                return null;
-//            }
-//        }
-//        return mTextClassifier;
-        return TextClassifier.NO_OP;//TODO: (EW) handle
-    }
-
-    /**
-     * Returns a session-aware text classifier.
-     * This method creates one if none already exists or the current one is destroyed.
-     */
-    @NonNull
-    TextClassifier getTextClassificationSession() {
-//        if (mTextClassificationSession == null || mTextClassificationSession.isDestroyed()) {
-//            final TextClassificationManager tcm =
-//                    mContext.getSystemService(TextClassificationManager.class);
-//            if (tcm != null) {
-//                final String widgetType;
-//                if (isTextEditable()) {
-//                    widgetType = TextClassifier.WIDGET_TYPE_EDITTEXT;
-//                } else if (isTextSelectable()) {
-//                    widgetType = TextClassifier.WIDGET_TYPE_TEXTVIEW;
-//                } else {
-//                    widgetType = TextClassifier.WIDGET_TYPE_UNSELECTABLE_TEXTVIEW;
-//                }
-//                final TextClassificationContext textClassificationContext =
-//                        new TextClassificationContext.Builder(
-//                                mContext.getPackageName(), widgetType)
-//                                .build();
-//                if (mTextClassifier != null) {
-//                    mTextClassificationSession = tcm.createTextClassificationSession(
-//                            textClassificationContext, mTextClassifier);
-//                } else {
-//                    mTextClassificationSession = tcm.createTextClassificationSession(
-//                            textClassificationContext);
-//                }
-//            } else {
-//                mTextClassificationSession = TextClassifier.NO_OP;
-//            }
-//        }
-//        return mTextClassificationSession;
-        return TextClassifier.NO_OP;//TODO: (EW) handle
-    }
-
-    /**
-     * Returns true if this TextView uses a no-op TextClassifier.
-     */
-    boolean usesNoOpTextClassifier() {
-        return getTextClassifier() == TextClassifier.NO_OP;//TODO: (EW) handle
     }
 
     protected void stopTextActionMode() {

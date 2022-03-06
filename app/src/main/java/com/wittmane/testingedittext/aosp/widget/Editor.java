@@ -1468,13 +1468,6 @@ public class Editor {
             highlight = null;
         }
 
-        if (mSelectionActionModeHelper != null) {
-            mSelectionActionModeHelper.onDraw(canvas);
-            if (mSelectionActionModeHelper.isDrawingHighlight()) {
-                highlight = null;
-            }
-        }
-
 //        if (mTextView.canHaveDisplayList() && canvas.isHardwareAccelerated()) {
 //            drawHardwareAccelerated(canvas, layout, highlight, highlightPaint,
 //                    cursorOffsetVertical);
@@ -1534,12 +1527,12 @@ public class Editor {
                 if (mRestartActionModeOnNextRefresh) {
                     // To avoid distraction, newly start action mode only when selection action
                     // mode is being restarted.
-                    startSelectionActionModeAsync(false);
+                    startSelectionActionModeAsync();
                 }
             } else if (selectionController == null || !selectionController.isActive()) {
                 // Insertion action mode is active. Avoid dismissing the selection.
                 stopTextActionModeWithPreservingSelection();
-                startSelectionActionModeAsync(false);
+                startSelectionActionModeAsync();
             } else {
                 // (EW) nothing needs to be done prior to M because the copy/paste/etc popup was in
                 // a fixed position and this function only makes sense for dynamic positioning
@@ -1608,8 +1601,8 @@ public class Editor {
     /**
      * Asynchronously starts a selection action mode using the TextClassifier.
      */
-    void startSelectionActionModeAsync(boolean adjustSelection) {
-        getSelectionActionModeHelper().startSelectionActionModeAsync(adjustSelection);
+    void startSelectionActionModeAsync() {
+        getSelectionActionModeHelper().startSelectionActionModeAsync();
     }
 
     /**
@@ -2268,7 +2261,6 @@ public class Editor {
         private final RectF mSelectionBounds = new RectF();
         private final boolean mHasSelection;
         private final int mHandleHeight;
-        private final Map<MenuItem, View.OnClickListener> mAssistClickHandlers = new HashMap<>();
 
         public TextActionModeCallback(@TextActionMode int mode) {
             mHasSelection = mode == TextActionMode.SELECTION
@@ -2297,8 +2289,6 @@ public class Editor {
 
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            mAssistClickHandlers.clear();
-
             mode.setTitle(null);
             mode.setSubtitle(null);
             mode.setTitleOptionalHint(true);
@@ -2492,28 +2482,7 @@ public class Editor {
         private boolean onAssistMenuItemClicked(MenuItem assistMenuItem) {
 //        Preconditions.checkArgument(assistMenuItem.getGroupId() == TextView.ID_ASSIST);
 
-            final TextClassification textClassification =
-                    getSelectionActionModeHelper().getTextClassification();
-            if (!shouldEnableAssistMenuItems() || textClassification == null) {
-                // No textClassification result to handle the click. Eat the click.
-                return true;
-            }
-
-            View.OnClickListener onClickListener = mAssistClickHandlers.get(assistMenuItem);
-            if (onClickListener == null) {
-                final Intent intent = assistMenuItem.getIntent();
-                if (intent != null) {
-//                onClickListener = TextClassification.createIntentOnClickListener(
-//                        TextClassification.createPendingIntent(
-//                                mTextView.getContext(), intent,
-//                                createAssistMenuItemPendingIntentRequestCode()));
-                }
-            }
-            if (onClickListener != null) {
-                onClickListener.onClick(mTextView);
-                stopTextActionMode();
-            }
-            // We tried our best.
+            // No textClassification result to handle the click. Eat the click.
             return true;
         }
 
@@ -2574,7 +2543,6 @@ public class Editor {
                 mSelectionModifierCursorController.hide();
             }
 
-            mAssistClickHandlers.clear();
 //        mRequestingLinkActionMode = false;
         }
 
@@ -4189,7 +4157,7 @@ public class Editor {
 
                     if (mTextView.hasSelection()) {
                         // Drag selection should not be adjusted by the text classifier.
-                        startSelectionActionModeAsync(mHaventMovedEnoughToStartDrag);
+                        startSelectionActionModeAsync();
                     }
                     break;
             }
