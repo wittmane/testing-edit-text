@@ -537,37 +537,35 @@ public class Editor {
     }
 
     private int getWordStart(int offset) {
-//        // FIXME - For this and similar methods we're not doing anything to check if there's
-//        // a LocaleSpan in the text, this may be something we should try handling or checking for.
-//        int retOffset = getWordIteratorWithText().prevBoundary(offset);
-//        if (getWordIteratorWithText().isOnPunctuation(retOffset)) {
-//            // On punctuation boundary or within group of punctuation, find punctuation start.
-//            retOffset = getWordIteratorWithText().getPunctuationBeginning(offset);
-//        } else {
-//            // Not on a punctuation boundary, find the word start.
-//            retOffset = getWordIteratorWithText().getPrevWordBeginningOnTwoWordsBoundary(offset);
-//        }
-//        if (retOffset == BreakIterator.DONE) {
-//            return offset;
-//        }
-//        return retOffset;
-        return offset;
+        // FIXME - For this and similar methods we're not doing anything to check if there's
+        // a LocaleSpan in the text, this may be something we should try handling or checking for.
+        int retOffset = getWordIteratorWithText().prevBoundary(offset);
+        if (getWordIteratorWithText().isOnPunctuation(retOffset)) {
+            // On punctuation boundary or within group of punctuation, find punctuation start.
+            retOffset = getWordIteratorWithText().getPunctuationBeginning(offset);
+        } else {
+            // Not on a punctuation boundary, find the word start.
+            retOffset = getWordIteratorWithText().getPrevWordBeginningOnTwoWordsBoundary(offset);
+        }
+        if (retOffset == BreakIterator.DONE) {
+            return offset;
+        }
+        return retOffset;
     }
 
     private int getWordEnd(int offset) {
-//        int retOffset = getWordIteratorWithText().nextBoundary(offset);
-//        if (getWordIteratorWithText().isAfterPunctuation(retOffset)) {
-//            // On punctuation boundary or within group of punctuation, find punctuation end.
-//            retOffset = getWordIteratorWithText().getPunctuationEnd(offset);
-//        } else {
-//            // Not on a punctuation boundary, find the word end.
-//            retOffset = getWordIteratorWithText().getNextWordEndOnTwoWordBoundary(offset);
-//        }
-//        if (retOffset == BreakIterator.DONE) {
-//            return offset;
-//        }
-//        return retOffset;
-        return offset;
+        int retOffset = getWordIteratorWithText().nextBoundary(offset);
+        if (getWordIteratorWithText().isAfterPunctuation(retOffset)) {
+            // On punctuation boundary or within group of punctuation, find punctuation end.
+            retOffset = getWordIteratorWithText().getPunctuationEnd(offset);
+        } else {
+            // Not on a punctuation boundary, find the word end.
+            retOffset = getWordIteratorWithText().getNextWordEndOnTwoWordBoundary(offset);
+        }
+        if (retOffset == BreakIterator.DONE) {
+            return offset;
+        }
+        return retOffset;
     }
 
     /**
@@ -658,6 +656,13 @@ public class Editor {
 //            return true;
 //        }
         return false;
+    }
+
+    void onLocaleChanged() {
+        // Will be re-created on demand in getWordIterator and getWordIteratorWithText with the
+        // proper new locale
+        mWordIterator = null;
+        mWordIteratorWithText = null;
     }
 
     public WordIterator getWordIterator() {
@@ -964,21 +969,21 @@ public class Editor {
     }
 
     void sendOnTextChanged(int start, int before, int after) {
-//        getSelectionActionModeHelper().onTextChanged(start, start + before);
+        getSelectionActionModeHelper().onTextChanged(start, start + before);
 //        updateSpellCheckSpans(start, start + after, false);
 
         // Flip flag to indicate the word iterator needs to have the text reset.
-//        mUpdateWordIteratorText = true;
+        mUpdateWordIteratorText = true;
 
         // Hide the controllers as soon as text is modified (typing, procedural...)
         // We do not hide the span controllers, since they can be added when a new text is
         // inserted into the text view (voice IME).
-//        hideCursorControllers();
+        hideCursorControllers();
         // Reset drag accelerator.
-//        if (mSelectionModifierCursorController != null) {
-//            mSelectionModifierCursorController.resetTouchOffsets();
-//        }
-//        stopTextActionMode();
+        if (mSelectionModifierCursorController != null) {
+            mSelectionModifierCursorController.resetTouchOffsets();
+        }
+        stopTextActionMode();
     }
 
     private int getLastTapPosition() {

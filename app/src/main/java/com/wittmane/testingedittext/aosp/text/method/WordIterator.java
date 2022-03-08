@@ -4,6 +4,7 @@ package com.wittmane.testingedittext.aosp.text.method;
 import android.icu.lang.UCharacter;
 import android.icu.lang.UProperty;
 import android.icu.text.BreakIterator;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -20,6 +21,7 @@ import java.util.Locale;
  * {@hide}
  */
 public class WordIterator /*implements Selection.PositionIterator*/ {
+    private static final String TAG = WordIterator.class.getSimpleName();
     // Size of the window for the word iterator, should be greater than the longest word's length
     private static final int WINDOW_WIDTH = 50;
 
