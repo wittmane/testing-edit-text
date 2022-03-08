@@ -4,10 +4,12 @@ package com.wittmane.testingedittext.aosp.text.method;
 import android.icu.lang.UCharacter;
 import android.icu.lang.UProperty;
 import android.icu.text.BreakIterator;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.BreakIteratorWrapper;
 import com.wittmane.testingedittext.aosp.text.CharSequenceCharacterIterator;
 
 import java.util.Locale;
@@ -27,7 +29,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
 
     private int mStart, mEnd;
     private CharSequence mCharSeq;
-    private final BreakIterator mIterator;
+    private final BreakIteratorWrapper mIterator;
 
     /**
      * Constructs a WordIterator using the default locale.
@@ -41,8 +43,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      * @param locale The locale to be used for analyzing the text.
      */
     public WordIterator(Locale locale) {
-        //TODO: (EW) handle API versions
-        mIterator = BreakIterator.getWordInstance(locale);
+        mIterator = new BreakIteratorWrapper(locale);
     }
 
     public void setCharSequence(@NonNull CharSequence charSequence, int start, int end) {
@@ -327,10 +328,15 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      * @return True if the codepoint is a mid-word punctuation.
      */
     public static boolean isMidWordPunctuation(Locale locale, int codePoint) {
-        final int wb = UCharacter.getIntPropertyValue(codePoint, UProperty.WORD_BREAK);
-        return (wb == UCharacter.WordBreak.MIDLETTER
-                || wb == UCharacter.WordBreak.MIDNUMLET
-                || wb == UCharacter.WordBreak.SINGLE_QUOTE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            final int wb = UCharacter.getIntPropertyValue(codePoint, UProperty.WORD_BREAK);
+            return (wb == UCharacter.WordBreak.MIDLETTER
+                    || wb == UCharacter.WordBreak.MIDNUMLET
+                    || wb == UCharacter.WordBreak.SINGLE_QUOTE);
+        } else {
+            //TODO: (EW) handle or delete this function if it isn't used
+            return false;
+        }
     }
 
     private boolean isPunctuationStartBoundary(int offset) {
