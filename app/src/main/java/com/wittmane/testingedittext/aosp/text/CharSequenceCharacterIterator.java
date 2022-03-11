@@ -1,5 +1,7 @@
 package com.wittmane.testingedittext.aosp.text;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import java.text.CharacterIterator;
@@ -9,6 +11,7 @@ import java.text.CharacterIterator;
  * {@hide}
  */
 public class CharSequenceCharacterIterator implements CharacterIterator {
+    private static final String TAG = CharSequenceCharacterIterator.class.getSimpleName();
     private final int mBeginIndex, mEndIndex;
     private int mIndex;
     private final CharSequence mCharSeq;

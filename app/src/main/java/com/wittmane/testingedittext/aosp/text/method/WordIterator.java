@@ -51,6 +51,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
             mCharSeq = charSequence;
             mStart = Math.max(0, start - WINDOW_WIDTH);
             mEnd = Math.min(charSequence.length(), end + WINDOW_WIDTH);
+            //(EW) O changed to use CharSequenceCharacterIterator instead of a substring of charSequence
             mIterator.setText(new CharSequenceCharacterIterator(charSequence, mStart, mEnd));
         } else {
             throw new IndexOutOfBoundsException("input indexes are outside the CharSequence");
@@ -62,7 +63,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
         checkOffsetIsValid(offset);
         while (true) {
             offset = mIterator.preceding(offset);
-            if (offset == BreakIterator.DONE || isOnLetterOrDigit(offset)) {
+            if (offset == BreakIteratorWrapper.DONE || isOnLetterOrDigit(offset)) {
                 return offset;
             }
         }
@@ -73,7 +74,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
         checkOffsetIsValid(offset);
         while (true) {
             offset = mIterator.following(offset);
-            if (offset == BreakIterator.DONE || isAfterLetterOrDigit(offset)) {
+            if (offset == BreakIteratorWrapper.DONE || isAfterLetterOrDigit(offset)) {
                 return offset;
             }
         }
@@ -214,7 +215,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
                 return mIterator.preceding(offset);
             }
         }
-        return BreakIterator.DONE;
+        return BreakIteratorWrapper.DONE;
     }
 
     /**
@@ -248,7 +249,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
                 return mIterator.following(offset);
             }
         }
-        return BreakIterator.DONE;
+        return BreakIteratorWrapper.DONE;
     }
 
     /**
@@ -260,7 +261,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      */
     public int getPunctuationBeginning(int offset) {
         checkOffsetIsValid(offset);
-        while (offset != BreakIterator.DONE && !isPunctuationStartBoundary(offset)) {
+        while (offset != BreakIteratorWrapper.DONE && !isPunctuationStartBoundary(offset)) {
             offset = prevBoundary(offset);
         }
         // No need to shift offset, prevBoundary handles that.
@@ -276,7 +277,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      */
     public int getPunctuationEnd(int offset) {
         checkOffsetIsValid(offset);
-        while (offset != BreakIterator.DONE && !isPunctuationEndBoundary(offset)) {
+        while (offset != BreakIteratorWrapper.DONE && !isPunctuationEndBoundary(offset)) {
             offset = nextBoundary(offset);
         }
         // No need to shift offset, nextBoundary handles that.

@@ -13,6 +13,8 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.LocaleList;
 import android.os.Parcel;
@@ -58,6 +60,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
+import com.wittmane.testingedittext.BreakIteratorWrapper;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
@@ -547,7 +550,7 @@ public class Editor {
             // Not on a punctuation boundary, find the word start.
             retOffset = getWordIteratorWithText().getPrevWordBeginningOnTwoWordsBoundary(offset);
         }
-        if (retOffset == BreakIterator.DONE) {
+        if (retOffset == BreakIteratorWrapper.DONE) {
             return offset;
         }
         return retOffset;
@@ -562,7 +565,7 @@ public class Editor {
             // Not on a punctuation boundary, find the word end.
             retOffset = getWordIteratorWithText().getNextWordEndOnTwoWordBoundary(offset);
         }
-        if (retOffset == BreakIterator.DONE) {
+        if (retOffset == BreakIteratorWrapper.DONE) {
             return offset;
         }
         return retOffset;
@@ -616,7 +619,7 @@ public class Editor {
             selectionEnd = wordIterator.getEnd(maxOffset);
             Log.w(TAG, "selectCurrentWord: selectionStart=" + selectionStart + ", selectionEnd=" + selectionEnd);
 
-            if (selectionStart == BreakIterator.DONE || selectionEnd == BreakIterator.DONE
+            if (selectionStart == BreakIteratorWrapper.DONE || selectionEnd == BreakIteratorWrapper.DONE
                     || selectionStart == selectionEnd) {
                 // Possible when the word iterator does not properly handle the text's language
                 long range = getCharClusterRange(minOffset);
@@ -1580,9 +1583,8 @@ public class Editor {
             mTextActionMode = mTextView.startActionMode(
                     actionModeCallback, ActionMode.TYPE_FLOATING);
         } else {
-            //TODO: (EW) handle. I think TextActionModeCallback is related to the floating
-            // copy/paste/etc popup, which functions differently in lollipop (fixed bar at the top
-            // of the screen). we may need significantly different handling for that.
+            ActionMode.Callback actionModeCallback = new SelectionActionModeCallback();
+            mTextActionMode = mTextView.startActionMode(actionModeCallback);
         }
         if (mTextActionMode != null && getInsertionController() != null) {
             getInsertionController().show();
@@ -1633,12 +1635,6 @@ public class Editor {
         }
         return mSelectionActionModeHelper;
     }
-//    private SelectionActionModeHelper getSelectionActionModeHelper() {
-//        if (mSelectionActionModeHelper == null) {
-//            mSelectionActionModeHelper = new SelectionActionModeHelper(this);
-//        }
-//        return mSelectionActionModeHelper;
-//    }
 
     /**
      * If the TextView allows text selection, selects the current word when no existing selection
@@ -1704,7 +1700,8 @@ public class Editor {
             Callback actionModeCallback = new TextActionModeCallback(actionMode);
             mTextActionMode = mTextView.startActionMode(actionModeCallback, ActionMode.TYPE_FLOATING);
         } else {
-            //TODO: (EW) handle. match other use of this
+            ActionMode.Callback actionModeCallback = new SelectionActionModeCallback();
+            mTextActionMode = mTextView.startActionMode(actionModeCallback);
         }
 
         final boolean selectableText = mTextView.isTextEditable() || mTextView.isTextSelectable();
@@ -2320,10 +2317,9 @@ public class Editor {
         }
 
         private Callback getCustomCallback() {
-//        return mHasSelection
-//                ? mCustomSelectionActionModeCallback
-//                : mCustomInsertionActionModeCallback;
-            return null;
+            return mHasSelection
+                    ? mCustomSelectionActionModeCallback
+                    : mCustomInsertionActionModeCallback;
         }
 
         private void populateMenuWithItems(Menu menu) {
@@ -2363,13 +2359,17 @@ public class Editor {
 //            }
 //        }
 
-            if (mTextView.canPasteAsPlainText()) {
-                menu.add(
-                        Menu.NONE,
-                        EditText.ID_PASTE_AS_PLAIN_TEXT,
-                        MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
-                        /*com.android.internal.R.string.paste_as_plain_text*/android.R.string.paste_as_plain_text)
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+            //TODO: (EW) skipping because of the resource missing in older api levels. consider
+            // implementing to have consistent functionality across versions
+            if (VERSION.SDK_INT >= VERSION_CODES.O) {
+                if (mTextView.canPasteAsPlainText()) {
+                    menu.add(
+                            Menu.NONE,
+                            EditText.ID_PASTE_AS_PLAIN_TEXT,
+                            MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
+                            /*com.android.internal.R.string.paste_as_plain_text*/android.R.string.paste_as_plain_text)
+                            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+                }
             }
 
             updateSelectAllItem(menu);
@@ -2391,15 +2391,15 @@ public class Editor {
         }
 
         private void updateSelectAllItem(Menu menu) {
-//        boolean canSelectAll = mTextView.canSelectAllText();
-//        boolean selectAllItemExists = menu.findItem(EditText.ID_SELECT_ALL) != null;
-//        if (canSelectAll && !selectAllItemExists) {
-//            menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
-//                    com.android.internal.R.string.selectAll)
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        } else if (!canSelectAll && selectAllItemExists) {
-//            menu.removeItem(EditText.ID_SELECT_ALL);
-//        }
+            boolean canSelectAll = mTextView.canSelectAllText();
+            boolean selectAllItemExists = menu.findItem(EditText.ID_SELECT_ALL) != null;
+            if (canSelectAll && !selectAllItemExists) {
+                menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
+                        /*com.android.internal.*/android.R.string.selectAll)
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+            } else if (!canSelectAll && selectAllItemExists) {
+                menu.removeItem(EditText.ID_SELECT_ALL);
+            }
         }
 
         private void updateReplaceItem(Menu menu) {
@@ -2584,6 +2584,99 @@ public class Editor {
                     (int) Math.floor(mSelectionBounds.top + textVerticalOffset),
                     (int) Math.ceil(mSelectionBounds.right + textHorizontalOffset),
                     (int) Math.ceil(mSelectionBounds.bottom + textVerticalOffset));
+        }
+    }
+
+    //(EW) replaced with TextActionModeCallback in M when it move to a floating popup, rather than a
+    // fixed location
+    //TODO: (EW) deduplicate with TextActionModeCallback
+    //TODO: (EW) consider renaming. pre-M only uses this for selections, but since more recent
+    // version show it when tapping the insertion controller, I pushed this to do the same in
+    // lollipop to have consistent behavior in this app, so now the name isn't really correct.
+    /**
+     * An ActionMode Callback class that is used to provide actions while in text selection mode.
+     *
+     * The default callback provides a subset of Select All, Cut, Copy and Paste actions, depending
+     * on which of these this TextView supports.
+     */
+    private class SelectionActionModeCallback implements ActionMode.Callback {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            //TODO: (EW) I don't see this text displayed anywhere, so maybe just remove it. if not,
+            // move this to a resource
+            mode.setTitle(/*mTextView.getContext().getString(
+                    com.android.internal.R.string.textSelectionCABTitle)*/"Text selection");
+            mode.setSubtitle(null);
+            mode.setTitleOptionalHint(true);
+            menu.add(Menu.NONE, EditText.ID_SELECT_ALL, 0, android.R.string.selectAll)
+                    .setAlphabeticShortcut('a')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            if (mTextView.canCut()) {
+                menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT, android.R.string.cut)
+                        .setAlphabeticShortcut('x')
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            }
+            if (mTextView.canCopy()) {
+                menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY, android.R.string.copy)
+                        .setAlphabeticShortcut('c')
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            }
+            if (mTextView.canPaste()) {
+                menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE, android.R.string.paste)
+                        .setAlphabeticShortcut('v')
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            }
+            if (mCustomSelectionActionModeCallback != null) {
+                if (!mCustomSelectionActionModeCallback.onCreateActionMode(mode, menu)) {
+                    // The custom mode can choose to cancel the action mode
+                    return false;
+                }
+            }
+            if (menu.hasVisibleItems() || mode.getCustomView() != null) {
+                getSelectionController().show();
+                mTextView.setHasTransientState(true);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            if (mCustomSelectionActionModeCallback != null) {
+                return mCustomSelectionActionModeCallback.onPrepareActionMode(mode, menu);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            if (mCustomSelectionActionModeCallback != null &&
+                    mCustomSelectionActionModeCallback.onActionItemClicked(mode, item)) {
+                return true;
+            }
+            return mTextView.onTextContextMenuItem(item.getItemId());
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            if (mCustomSelectionActionModeCallback != null) {
+                mCustomSelectionActionModeCallback.onDestroyActionMode(mode);
+            }
+            /*
+             * If we're ending this mode because we're detaching from a window,
+             * we still have selection state to preserve. Don't clear it, we'll
+             * bring back the selection mode when (if) we get reattached.
+             */
+            if (!/*mPreserveDetachedSelection*/mPreserveSelection) {//TODO: (EW) verify this is the right replacement
+                Selection.setSelection((Spannable) mTextView.getText(),
+                        mTextView.getSelectionEnd());
+                mTextView.setHasTransientState(false);
+            }
+            if (mSelectionModifierCursorController != null) {
+                mSelectionModifierCursorController.hide();
+            }
+            mTextActionMode = null;
         }
     }
 
