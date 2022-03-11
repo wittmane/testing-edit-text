@@ -2,15 +2,12 @@ package com.wittmane.testingedittext;
 
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
-import android.util.Log;
 
 import java.text.CharacterIterator;
 import java.util.Locale;
 
-//TODO: (EW) does this wrapper make sense? what benefit do we get from using the ICU version? should
-// we just use the java version and not bother with the wrapper?
-public class BreakIteratorWrapper {
-    private static final String TAG = BreakIteratorWrapper.class.getSimpleName();
+public class BreakIterator {
+    private static final String TAG = BreakIterator.class.getSimpleName();
     private android.icu.text.BreakIterator mIcuBreakIterator;
     private java.text.BreakIterator mJavaBreakIterator;
     private int mBeginIndex;
@@ -19,11 +16,19 @@ public class BreakIteratorWrapper {
             ? android.icu.text.BreakIterator.DONE
             : java.text.BreakIterator.DONE;
 
-    public BreakIteratorWrapper(Locale locale) {
+    private BreakIterator(android.icu.text.BreakIterator icuBreakIterator) {
+        mIcuBreakIterator = icuBreakIterator;
+    }
+
+    private BreakIterator(java.text.BreakIterator javaBreakIterator) {
+        mJavaBreakIterator = javaBreakIterator;
+    }
+
+    public static BreakIterator getWordInstance(Locale locale) {
         if (VERSION.SDK_INT >= VERSION_CODES.N) {
-            mIcuBreakIterator = android.icu.text.BreakIterator.getWordInstance(locale);
+            return new BreakIterator(android.icu.text.BreakIterator.getWordInstance(locale));
         } else {
-            mJavaBreakIterator = java.text.BreakIterator.getWordInstance(locale);
+            return new BreakIterator(java.text.BreakIterator.getWordInstance(locale));
         }
     }
 

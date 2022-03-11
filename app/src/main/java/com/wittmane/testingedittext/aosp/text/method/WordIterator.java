@@ -3,20 +3,19 @@ package com.wittmane.testingedittext.aosp.text.method;
 
 import android.icu.lang.UCharacter;
 import android.icu.lang.UProperty;
-import android.icu.text.BreakIterator;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.wittmane.testingedittext.BreakIteratorWrapper;
+import com.wittmane.testingedittext.BreakIterator;
 import com.wittmane.testingedittext.aosp.text.CharSequenceCharacterIterator;
 
 import java.util.Locale;
 
 /**
  * Walks through cursor positions at word boundaries. Internally uses
- * {@link BreakIterator#getWordInstance()}, and caches {@link CharSequence}
+ * {@link BreakIterator#getWordInstance(Locale)}, and caches {@link CharSequence}
  * for performance reasons.
  *
  * Also provides methods to determine word boundaries.
@@ -29,7 +28,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
 
     private int mStart, mEnd;
     private CharSequence mCharSeq;
-    private final BreakIteratorWrapper mIterator;
+    private final BreakIterator mIterator;
 
     /**
      * Constructs a WordIterator using the default locale.
@@ -43,7 +42,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      * @param locale The locale to be used for analyzing the text.
      */
     public WordIterator(Locale locale) {
-        mIterator = new BreakIteratorWrapper(locale);
+        mIterator = BreakIterator.getWordInstance(locale);
     }
 
     public void setCharSequence(@NonNull CharSequence charSequence, int start, int end) {
@@ -63,7 +62,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
         checkOffsetIsValid(offset);
         while (true) {
             offset = mIterator.preceding(offset);
-            if (offset == BreakIteratorWrapper.DONE || isOnLetterOrDigit(offset)) {
+            if (offset == BreakIterator.DONE || isOnLetterOrDigit(offset)) {
                 return offset;
             }
         }
@@ -74,7 +73,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
         checkOffsetIsValid(offset);
         while (true) {
             offset = mIterator.following(offset);
-            if (offset == BreakIteratorWrapper.DONE || isAfterLetterOrDigit(offset)) {
+            if (offset == BreakIterator.DONE || isAfterLetterOrDigit(offset)) {
                 return offset;
             }
         }
@@ -215,7 +214,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
                 return mIterator.preceding(offset);
             }
         }
-        return BreakIteratorWrapper.DONE;
+        return BreakIterator.DONE;
     }
 
     /**
@@ -249,7 +248,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
                 return mIterator.following(offset);
             }
         }
-        return BreakIteratorWrapper.DONE;
+        return BreakIterator.DONE;
     }
 
     /**
@@ -261,7 +260,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      */
     public int getPunctuationBeginning(int offset) {
         checkOffsetIsValid(offset);
-        while (offset != BreakIteratorWrapper.DONE && !isPunctuationStartBoundary(offset)) {
+        while (offset != BreakIterator.DONE && !isPunctuationStartBoundary(offset)) {
             offset = prevBoundary(offset);
         }
         // No need to shift offset, prevBoundary handles that.
@@ -277,7 +276,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
      */
     public int getPunctuationEnd(int offset) {
         checkOffsetIsValid(offset);
-        while (offset != BreakIteratorWrapper.DONE && !isPunctuationEndBoundary(offset)) {
+        while (offset != BreakIterator.DONE && !isPunctuationEndBoundary(offset)) {
             offset = nextBoundary(offset);
         }
         // No need to shift offset, nextBoundary handles that.

@@ -42,7 +42,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -51,7 +50,6 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
-import android.view.textclassifier.TextClassification;
 import android.widget.PopupWindow;
 
 import androidx.annotation.IntDef;
@@ -60,7 +58,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
-import com.wittmane.testingedittext.BreakIteratorWrapper;
+import com.wittmane.testingedittext.BreakIterator;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
@@ -71,11 +69,8 @@ import com.wittmane.testingedittext.R;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.text.BreakIterator;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Editor {
     private static final String TAG = Editor.class.getSimpleName();
@@ -550,7 +545,7 @@ public class Editor {
             // Not on a punctuation boundary, find the word start.
             retOffset = getWordIteratorWithText().getPrevWordBeginningOnTwoWordsBoundary(offset);
         }
-        if (retOffset == BreakIteratorWrapper.DONE) {
+        if (retOffset == BreakIterator.DONE) {
             return offset;
         }
         return retOffset;
@@ -565,7 +560,7 @@ public class Editor {
             // Not on a punctuation boundary, find the word end.
             retOffset = getWordIteratorWithText().getNextWordEndOnTwoWordBoundary(offset);
         }
-        if (retOffset == BreakIteratorWrapper.DONE) {
+        if (retOffset == BreakIterator.DONE) {
             return offset;
         }
         return retOffset;
@@ -619,7 +614,7 @@ public class Editor {
             selectionEnd = wordIterator.getEnd(maxOffset);
             Log.w(TAG, "selectCurrentWord: selectionStart=" + selectionStart + ", selectionEnd=" + selectionEnd);
 
-            if (selectionStart == BreakIteratorWrapper.DONE || selectionEnd == BreakIteratorWrapper.DONE
+            if (selectionStart == BreakIterator.DONE || selectionEnd == BreakIterator.DONE
                     || selectionStart == selectionEnd) {
                 // Possible when the word iterator does not properly handle the text's language
                 long range = getCharClusterRange(minOffset);
