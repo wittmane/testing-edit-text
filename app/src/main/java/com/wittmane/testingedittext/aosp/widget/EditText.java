@@ -25,8 +25,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DecimalFormatSymbols;
 import android.os.Build;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.LocaleList;
 import android.os.Parcel;
@@ -187,7 +185,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private static final int CHANGE_WATCHER_PRIORITY = 100;
 
     // New state used to change background based on whether this TextView is multiline.
-    private static final int[] MULTILINE_STATE_SET = { R.attr.state_multiline };
+    private static final int[] MULTILINE_STATE_SET = { android.R.attr.state_multiline };
 
     // Accessibility action to share selected text.
     private static final int ACCESSIBILITY_ACTION_SHARE = 0x10000000;
@@ -394,14 +392,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     public EditText(Context context, @Nullable AttributeSet attrs) {
-        // R.attr.editTextStyle pulls in the underline in the DynamicLayout and allows this view to
-        // be focusable by default. it also adds the line at the bottom of the view. this only seems
-        // to make a difference when using appcompat. removing this makes it look like when the
-        // activity doesn't use appcompat.
-        //TODO: investigate this more. should I build out some default so if someone else wants to
-        // take and use this in a non-appcompat activity, it would work normally, or is there
-        // anything else to handle better here?
-        this(context, attrs, R.attr.editTextStyle);
+        this(context, attrs, android.R.attr.editTextStyle);
     }
 
     public EditText(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
@@ -1795,6 +1786,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (index == R.styleable.TextAppearance_android_shadowRadius) {
                 attributes.mShadowRadius = appearance.getFloat(attr, attributes.mShadowRadius);
             } else if (index == R.styleable.TextAppearance_android_elegantTextHeight) {
+                // (EW) only used in API level 21 and higher
                 attributes.mHasElegant = true;
                 attributes.mElegant = appearance.getBoolean(attr, attributes.mElegant);
             } else if (index == R.styleable.TextAppearance_android_fallbackLineSpacing) {
@@ -1802,10 +1794,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 attributes.mFallbackLineSpacing = appearance.getBoolean(attr,
                         attributes.mFallbackLineSpacing);
             } else if (index == R.styleable.TextAppearance_android_letterSpacing) {
+                // (EW) only used in API level 21 and higher
                 attributes.mHasLetterSpacing = true;
                 attributes.mLetterSpacing =
                         appearance.getFloat(attr, attributes.mLetterSpacing);
             } else if (index == R.styleable.TextAppearance_android_fontFeatureSettings) {
+                // (EW) only used in API level 21 and higher
                 attributes.mFontFeatureSettings = appearance.getString(attr);
             }
         }
@@ -1850,7 +1844,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //            setTransformationMethod(new AllCapsTransformationMethod(getContext()));
         }
 
-        if (attributes.mHasElegant) {
+        if (attributes.mHasElegant && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             setElegantTextHeight(attributes.mElegant);
         }
 
@@ -1858,11 +1852,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             setFallbackLineSpacing(attributes.mFallbackLineSpacing);
         }
 
-        if (attributes.mHasLetterSpacing) {
+        if (attributes.mHasLetterSpacing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             setLetterSpacing(attributes.mLetterSpacing);
         }
 
-        if (attributes.mFontFeatureSettings != null) {
+        if (attributes.mFontFeatureSettings != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             setFontFeatureSettings(attributes.mFontFeatureSettings);
         }
     }
@@ -2135,6 +2129,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @attr ref android.R.styleable#TextView_elegantTextHeight
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void setElegantTextHeight(boolean elegant) {
         if (elegant != mTextPaint.isElegantTextHeight()) {
             mTextPaint.setElegantTextHeight(elegant);
@@ -2192,6 +2187,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setElegantTextHeight(boolean)
      * @see Paint#setElegantTextHeight(boolean)
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public boolean isElegantTextHeight() {
         return mTextPaint.isElegantTextHeight();
     }
@@ -2204,6 +2200,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setLetterSpacing(float)
      * @see Paint#setLetterSpacing
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public float getLetterSpacing() {
         return mTextPaint.getLetterSpacing();
     }
@@ -2218,6 +2215,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param letterSpacing A text letter-space value in ems.
      * @attr ref android.R.styleable#TextView_letterSpacing
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void setLetterSpacing(float letterSpacing) {
         if (letterSpacing != mTextPaint.getLetterSpacing()) {
             mTextPaint.setLetterSpacing(letterSpacing);
@@ -2241,6 +2239,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setFontFeatureSettings(String)
      * @see Paint#setFontFeatureSettings(String) Paint.setFontFeatureSettings(String)
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Nullable
     public String getFontFeatureSettings() {
         return mTextPaint.getFontFeatureSettings();
@@ -2274,6 +2273,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @attr ref android.R.styleable#TextView_fontFeatureSettings
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void setFontFeatureSettings(@Nullable String fontFeatureSettings) {
         if (fontFeatureSettings != mTextPaint.getFontFeatureSettings()) {
             mTextPaint.setFontFeatureSettings(fontFeatureSettings);
@@ -3961,12 +3961,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 ? mEditor.mInputContentType.privateImeOptions : null;
     }
 
+    //TODO: (EW) I added a space to remove the link for now to avoid the error because styleable
+    // can't seem to be referenced. figure this out
     /**
      * Set the extra input data of the text, which is the
      * {@link EditorInfo#extras TextBoxAttribute.extras}
      * Bundle that will be filled in when creating an input connection.  The
      * given integer is the resource identifier of an XML resource holding an
-     * {@link android.R.styleable#InputExtras &lt;input-extras&gt;} XML tree.
+     * { @link android.R.styleable#InputExtras &lt;input-extras&gt;} XML tree.
      *
      * @see #getInputExtras(boolean)
      * @see EditorInfo#extras
@@ -7248,6 +7250,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param viewportToContentVerticalOffset The vertical offset from the viewport to the content
      * @hide
      */
+    // (EW) although the API level doesn't need to be this high, this was added in this version, so
+    // leaving this set this high for now
+    @RequiresApi(api = Build.VERSION_CODES.O)
     void populateCharacterBounds(CursorAnchorInfo.Builder builder,
             int startIndex, int endIndex, float viewportToContentHorizontalOffset,
             float viewportToContentVerticalOffset) {

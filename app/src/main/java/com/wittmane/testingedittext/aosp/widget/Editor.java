@@ -1082,6 +1082,7 @@ public class Editor {
             return true;
         }
         if (action == MotionEvent.ACTION_MOVE
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP//TODO: (EW) verify this check can just be ignored on older versions
                 && !event.isButtonPressed(MotionEvent.BUTTON_PRIMARY)) {
             return true;
         }
@@ -1505,7 +1506,8 @@ public class Editor {
         loadCursorDrawable();
         final int left = clampHorizontalPosition(mDrawableForCursor, horizontal);
         final int width = mDrawableForCursor.getIntrinsicWidth();
-        Log.w(TAG, String.format("updateCursorPosition: left=%s, top=%s", left, (top - mTempRect.top)));
+        Log.w(TAG, String.format("updateCursorPosition: left=%s, top=%s, right=%s, bottom=%s",
+                left, (top - mTempRect.top), left + width, bottom + mTempRect.bottom));
         mDrawableForCursor.setBounds(left, top - mTempRect.top, left + width,
                 bottom + mTempRect.bottom);
     }
@@ -1860,6 +1862,7 @@ public class Editor {
     void updateCursorPosition() {
         loadCursorDrawable();
         if (mDrawableForCursor == null) {
+            Log.e(TAG, "updateCursorPosition: no drawable for cursor");
             return;
         }
 
@@ -1867,7 +1870,8 @@ public class Editor {
         final int offset = mTextView.getSelectionStart();
         final int line = layout.getLineForOffset(offset);
         final int top = layout.getLineTop(line);
-        final int bottom = /*layout.getLineBottomWithoutSpacing(line)*/layout.getLineBottom(line);//hidden - hopefully this is good enough
+        final int bottom = /*layout.getLineBottomWithoutSpacing(line)*/layout.getLineBottom(line);//(EW) hidden - hopefully this is good enough
+//        final int bottom = layout.getLineTop(line + 1);
 
 //        final boolean clamped = layout.shouldClampCursor(line);
         updateCursorPosition(top, bottom, layout.getPrimaryHorizontal(offset/*, clamped*/));
@@ -2717,7 +2721,7 @@ public class Editor {
             super(mTextView.getContext());
             setId(id);
             mContainer = new PopupWindow(mTextView.getContext(), null,
-                    /*com.android.internal.*/R.attr.textSelectHandleWindowStyle);
+                    android.R.attr.textSelectHandleWindowStyle);
             mContainer.setSplitTouchEnabled(true);
             mContainer.setClippingEnabled(false);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -3954,7 +3958,7 @@ public class Editor {
     void loadCursorDrawable() {
         if (mDrawableForCursor == null && mTextView.mCursorDrawableRes != 0) {
 //            mDrawableForCursor = getContext().getDrawable(mCursorDrawableRes);
-            mDrawableForCursor = ContextCompat.getDrawable(mTextView.getContext(), mTextView.mCursorDrawableRes);
+            mDrawableForCursor = getDrawable(mTextView.mCursorDrawableRes);
             Log.w(TAG, "mDrawableForCursor=" + mDrawableForCursor);
         }
     }
@@ -3994,8 +3998,7 @@ public class Editor {
             if (mSelectHandleCenter == null) {
 //            mSelectHandleCenter = mTextView.getContext().getDrawable(
 //                    mTextView.mTextSelectHandleRes);
-                mSelectHandleCenter = ContextCompat.getDrawable(
-                        mTextView.getContext(), mTextView.mTextSelectHandleRes);
+                mSelectHandleCenter = getDrawable(mTextView.mTextSelectHandleRes);
             }
             if (mHandle == null) {
                 mHandle = new InsertionHandleView(mSelectHandleCenter, mTextView);
@@ -4077,12 +4080,10 @@ public class Editor {
 
         private void initDrawables() {
             if (mSelectHandleLeft == null) {
-                mSelectHandleLeft = mTextView.getContext().getDrawable(
-                        mTextView.mTextSelectHandleLeftRes);
+                mSelectHandleLeft = getDrawable(mTextView.mTextSelectHandleLeftRes);
             }
             if (mSelectHandleRight == null) {
-                mSelectHandleRight = mTextView.getContext().getDrawable(
-                        mTextView.mTextSelectHandleRightRes);
+                mSelectHandleRight = getDrawable(mTextView.mTextSelectHandleRightRes);
             }
         }
 
@@ -4571,35 +4572,35 @@ public class Editor {
             return fireIntent(item.getIntent());
         }
 
-        /**
-         * Initializes and caches "PROCESS_TEXT" accessibility actions.
-         */
-        public void initializeAccessibilityActions() {
-            mAccessibilityIntents.clear();
-            mAccessibilityActions.clear();
-            int i = 0;
-            loadSupportedActivities();
-            for (ResolveInfo resolveInfo : mSupportedActivities) {
-                int actionId = EditText.ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID + i++;
-                mAccessibilityActions.put(
-                        actionId,
-                        new AccessibilityNodeInfo.AccessibilityAction(
-                                actionId, getLabel(resolveInfo)));
-                mAccessibilityIntents.put(
-                        actionId, createProcessTextIntentForResolveInfo(resolveInfo));
-            }
-        }
-
-        /**
-         * Adds "PROCESS_TEXT" accessibility actions to the specified accessibility node info.
-         * NOTE: This needs a prior call to {@link #initializeAccessibilityActions()} to make the
-         * latest accessibility actions available for this call.
-         */
-        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo nodeInfo) {
-            for (int i = 0; i < mAccessibilityActions.size(); i++) {
-                nodeInfo.addAction(mAccessibilityActions.valueAt(i));
-            }
-        }
+//        /**
+//         * Initializes and caches "PROCESS_TEXT" accessibility actions.
+//         */
+//        public void initializeAccessibilityActions() {
+//            mAccessibilityIntents.clear();
+//            mAccessibilityActions.clear();
+//            int i = 0;
+//            loadSupportedActivities();
+//            for (ResolveInfo resolveInfo : mSupportedActivities) {
+//                int actionId = EditText.ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID + i++;
+//                mAccessibilityActions.put(
+//                        actionId,
+//                        new AccessibilityNodeInfo.AccessibilityAction(
+//                                actionId, getLabel(resolveInfo)));
+//                mAccessibilityIntents.put(
+//                        actionId, createProcessTextIntentForResolveInfo(resolveInfo));
+//            }
+//        }
+//
+//        /**
+//         * Adds "PROCESS_TEXT" accessibility actions to the specified accessibility node info.
+//         * NOTE: This needs a prior call to {@link #initializeAccessibilityActions()} to make the
+//         * latest accessibility actions available for this call.
+//         */
+//        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo nodeInfo) {
+//            for (int i = 0; i < mAccessibilityActions.size(); i++) {
+//                nodeInfo.addAction(mAccessibilityActions.valueAt(i));
+//            }
+//        }
 
         /**
          * Performs a "PROCESS_TEXT" action if there is one associated with the specified
@@ -4671,5 +4672,16 @@ public class Editor {
         } else {
             Log.d(TAG, location + ": " + String.format(msgFormat, msgArgs));
         }
+    }
+
+    private Drawable getDrawable(int res) {
+        //TODO: (EW) should we use ContextCompat to avoid the version check or should we avoid using
+        // the compatibility libraries?
+        if (VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) {
+            return mTextView.getContext().getDrawable(res);
+        } else {
+            return mTextView.getContext().getResources().getDrawable(res);
+        }
+//        return ContextCompat.getDrawable(mTextView.getContext(), res);
     }
 }

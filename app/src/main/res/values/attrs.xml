@@ -18,14 +18,6 @@
 <!--    &lt;!&ndash; Reference to a drawable that will be drawn under the insertion cursor. &ndash;&gt;-->
 <!--    <attr name="textCursorDrawable" format="reference" />-->
 
-
-    <!-- These are the standard attributes that make up a complete theme. -->
-    <declare-styleable name="Theme">
-        <!-- Reference to a style that will be used for the window containing a text
-             selection anchor. -->
-        <attr name="textSelectHandleWindowStyle" format="reference" />
-    </declare-styleable>
-
     <declare-styleable name="TextAppearance">
         <!-- Text color. -->
         <attr name="android:textColor" />
@@ -398,7 +390,7 @@
     </declare-styleable>
     <declare-styleable name="TextViewMultiLineBackgroundState">
         <!-- State identifier indicating a TextView has a multi-line layout. -->
-        <attr name="state_multiline" format="boolean" />
+        <attr name="android:state_multiline" />
     </declare-styleable>
     <!-- Attributes that can be used with {@link android.view.View} or
          any of its subclasses.  Also see {@link #ViewGroup_Layout} for
