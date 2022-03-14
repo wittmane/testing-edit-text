@@ -126,9 +126,6 @@ import com.wittmane.testingedittext.aosp.text.comutil.Preconditions;
 import com.wittmane.testingedittext.aosp.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -665,26 +662,19 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 mEditor.createInputContentTypeIfNeeded();
                 mEditor.mInputContentType.imeActionLabel = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_imeActionId) {
-                //TODO: implement
                 // Supply a value for {@link android.view.inputmethod.EditorInfo#actionId
                 // EditorInfo.actionId} used when an input method is connected to the text view.
                 mEditor.createInputContentTypeIfNeeded();
                 mEditor.mInputContentType.imeActionId = typedArray.getInt(attr,
                         mEditor.mInputContentType.imeActionId);
             } else if (attr == R.styleable.EditText_android_privateImeOptions) {
-                //TODO: implement
                 // An addition content type description to supply to the input method attached to
                 // the text view, which is private to the implementation of the input method. This
                 // simply fills in the {@link android.view.inputmethod.EditorInfo#privateImeOptions
                 // EditorInfo.privateImeOptions} field when the input method is connected.
                 setPrivateImeOptions(typedArray.getString(attr));
             } else if (attr == R.styleable.EditText_android_editorExtras) {
-                //TODO: probably implement
-                // Reference to an {@link android.R.styleable#InputExtras <input-extras>} XML
-                // resource containing additional data to supply to an input method, which is
-                // private to the implementation of the input method. This simply fills in the
-                // {@link android.view.inputmethod.EditorInfo#extras EditorInfo.extras} field when
-                // the input method is connected.
+                //skipping - this throws a NullPointerException even in the built-in EditText
             } else if (attr == R.styleable.EditText_android_textCursorDrawable) {
                 mCursorDrawableRes = typedArray.getResourceId(attr, 0);
             } else if (attr == R.styleable.EditText_android_textSelectHandleLeft) {
@@ -3959,48 +3949,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public String getPrivateImeOptions() {
         return mEditor.mInputContentType != null
                 ? mEditor.mInputContentType.privateImeOptions : null;
-    }
-
-    //TODO: (EW) I added a space to remove the link for now to avoid the error because styleable
-    // can't seem to be referenced. figure this out
-    /**
-     * Set the extra input data of the text, which is the
-     * {@link EditorInfo#extras TextBoxAttribute.extras}
-     * Bundle that will be filled in when creating an input connection.  The
-     * given integer is the resource identifier of an XML resource holding an
-     * { @link android.R.styleable#InputExtras &lt;input-extras&gt;} XML tree.
-     *
-     * @see #getInputExtras(boolean)
-     * @see EditorInfo#extras
-     * @attr ref android.R.styleable#TextView_editorExtras
-     */
-    public void setInputExtras(@XmlRes int xmlResId) throws XmlPullParserException, IOException {
-        XmlResourceParser parser = getResources().getXml(xmlResId);
-        mEditor.createInputContentTypeIfNeeded();
-        mEditor.mInputContentType.extras = new Bundle();
-        getResources().parseBundleExtras(parser, mEditor.mInputContentType.extras);
-    }
-
-    /**
-     * Retrieve the input extras currently associated with the text view, which
-     * can be viewed as well as modified.
-     *
-     * @param create If true, the extras will be created if they don't already
-     * exist.  Otherwise, null will be returned if none have been created.
-     * @see #setInputExtras(int)
-     * @see EditorInfo#extras
-     * @attr ref android.R.styleable#TextView_editorExtras
-     */
-    public Bundle getInputExtras(boolean create) {
-        if (mEditor.mInputContentType == null) {
-            if (!create) return null;
-            mEditor.createInputContentTypeIfNeeded();
-        }
-        if (mEditor.mInputContentType.extras == null) {
-            if (!create) return null;
-            mEditor.mInputContentType.extras = new Bundle();
-        }
-        return mEditor.mInputContentType.extras;
     }
 
     /**
