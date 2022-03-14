@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 31
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "com.wittmane.testingedittext"
         minSdkVersion /*16*/19
         //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 28
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
