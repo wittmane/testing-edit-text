@@ -644,8 +644,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // textWebEditText, textWebEmailAddress, textWebPassword, time
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
             } else if (attr == R.styleable.EditText_android_allowUndo) {
-                //TODO: consider implementing
                 // Whether undo should be allowed for editable text. Defaults to true.
+                mEditor.mAllowUndo = typedArray.getBoolean(attr, true);
             } else if (attr == R.styleable.EditText_android_imeOptions) {
                 // Additional features you can enable in an IME associated with an editor to improve
                 // the integration with your application. The constants here correspond to those
@@ -3377,6 +3377,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             needEditableForNotification = true;
         }
 
+        mEditor.forgetUndoRedo();
         Editable t = Editable.Factory.getInstance().newEditable(text);
         text = t;
 
@@ -4012,20 +4013,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * and includes mInput in the list if it is an InputFilter.
      */
     private void setFilters(Editable e, InputFilter[] filters) {
-//        final boolean undoFilter = mEditor.mUndoInputFilter != null;
+        final boolean undoFilter = mEditor.mUndoInputFilter != null;
         final boolean keyFilter = mEditor.mKeyListener instanceof InputFilter;
         int num = 0;
-//        if (undoFilter) num++;
+        if (undoFilter) num++;
         if (keyFilter) num++;
         if (num > 0) {
             InputFilter[] nf = new InputFilter[filters.length + num];
 
             System.arraycopy(filters, 0, nf, 0, filters.length);
             num = 0;
-//            if (undoFilter) {
-//                nf[filters.length] = mEditor.mUndoInputFilter;
-//                num++;
-//            }
+            if (undoFilter) {
+                nf[filters.length] = mEditor.mUndoInputFilter;
+                num++;
+            }
             if (keyFilter) {
                 nf[filters.length + num] = (InputFilter) mEditor.mKeyListener;
             }

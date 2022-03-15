@@ -62,6 +62,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textCapWords"
+                android:allowUndo="false"
                 android:hint="textCapWords"/>
 <!--            <EditText-->
 <!--                android:layout_width="match_parent"-->
@@ -201,6 +202,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textCapWords"
+                android:allowUndo="false"
                 android:hint="textCapWords"/>
 <!--            <com.wittmane.testingedittext.aosp.widget.EditText-->
 <!--                android:layout_width="match_parent"-->
