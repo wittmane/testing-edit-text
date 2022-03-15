@@ -92,6 +92,8 @@ import android.view.animation.AnimationUtils;
 import android.view.autofill.AutofillManager;
 import android.view.autofill.AutofillValue;
 import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.CompletionInfo;
+import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
@@ -5266,6 +5268,33 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (mEditor.mSelectionModifierCursorController != null) {
             mEditor.mSelectionModifierCursorController.resetTouchOffsets();
         }
+    }
+
+    /**
+     * Called by the framework in response to a text completion from
+     * the current input method, provided by it calling
+     * {@link InputConnection#commitCompletion
+     * InputConnection.commitCompletion()}.  The default implementation does
+     * nothing; text views that are supporting auto-completion should override
+     * this to do their desired behavior.
+     *
+     * @param text The auto complete text the user has selected.
+     */
+    public void onCommitCompletion(CompletionInfo text) {
+        // intentionally empty
+    }
+
+    /**
+     * Called by the framework in response to a text auto-correction (such as fixing a typo using a
+     * dictionary) from the current input method, provided by it calling
+     * {@link InputConnection#commitCorrection(CorrectionInfo) InputConnection.commitCorrection()}.
+     * The default implementation flashes the background of the corrected word to provide
+     * feedback to the user.
+     *
+     * @param info The auto correct info about the text that was corrected.
+     */
+    public void onCommitCorrection(CorrectionInfo info) {
+        mEditor.onCommitCorrection(info);
     }
 
     public void beginBatchEdit() {

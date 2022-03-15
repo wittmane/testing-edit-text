@@ -150,8 +150,10 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCompletion: CompletionInfo=" + text);
         }
-        //TODO: maybe copy from AOSP EditableInputConnection
-        return super.commitCompletion(text);
+        mTextView.beginBatchEdit();
+        mTextView.onCommitCompletion(text);
+        mTextView.endBatchEdit();
+        return true;
     }
 
     @Override
@@ -159,8 +161,14 @@ public class CustomInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCorrection: correctionInfo=" + correctionInfo);
         }
-        //TODO: maybe copy from AOSP EditableInputConnection
-        return super.commitCorrection(correctionInfo);
+        mTextView.beginBatchEdit();
+        //TODO: (EW) the AOSP version only flashes a highlight on the new text position as if
+        // assuming that correction was already made and this method was only meant as a visual
+        // indication despite the documentation sounding like this should actually change text. This
+        // is probably a good candidate for alternate functionality options.
+        mTextView.onCommitCorrection(correctionInfo);
+        mTextView.endBatchEdit();
+        return true;
     }
 
     @Override

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -45,6 +46,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -138,7 +140,7 @@ public class Editor {
     private final boolean mHapticTextHandleEnabled;
 
     // Used to highlight a word when it is corrected by the IME
-//    private CorrectionHighlighter mCorrectionHighlighter;
+    private CorrectionHighlighter mCorrectionHighlighter;
 
     InputContentType mInputContentType;
     InputMethodState mInputMethodState;
@@ -1461,9 +1463,9 @@ public class Editor {
             }
         }
 
-//        if (mCorrectionHighlighter != null) {
-//            mCorrectionHighlighter.draw(canvas, cursorOffsetVertical);
-//        }
+        if (mCorrectionHighlighter != null) {
+            mCorrectionHighlighter.draw(canvas, cursorOffsetVertical);
+        }
 
         if (highlight != null && selectionStart == selectionEnd && mDrawableForCursor != null) {
             drawCursor(canvas, cursorOffsetVertical);
@@ -1919,6 +1921,25 @@ public class Editor {
             left = (int) horizontal - mTempRect.left;
         }
         return left;
+    }
+
+    /**
+     * Called by the framework in response to a text auto-correction (such as fixing a typo using a
+     * a dictionary) from the current input method, provided by it calling
+     * {@link InputConnection#commitCorrection} InputConnection.commitCorrection()}. The default
+     * implementation flashes the background of the corrected word to provide feedback to the user.
+     *
+     * @param info The auto correct info about the text that was corrected.
+     */
+    public void onCommitCorrection(CorrectionInfo info) {
+        if (mCorrectionHighlighter == null) {
+            mCorrectionHighlighter = new CorrectionHighlighter();
+        } else {
+            mCorrectionHighlighter.invalidate(false);
+        }
+
+        mCorrectionHighlighter.highlight(info);
+//        mUndoInputFilter.freezeLastEdit();
     }
 
     void onScrollChanged() {
@@ -4500,6 +4521,98 @@ public class Editor {
 //            }
 //        }
 //    }
+
+    private class CorrectionHighlighter {
+        private final Path mPath = new Path();
+        private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private int mStart, mEnd;
+        private long mFadingStartTime;
+        private RectF mTempRectF;
+        private static final int FADE_OUT_DURATION = 400;
+
+        public CorrectionHighlighter() {
+//            mPaint.setCompatibilityScaling(
+//                    mTextView.getResources().getCompatibilityInfo().applicationScale);
+            mPaint.setStyle(Paint.Style.FILL);
+        }
+
+        public void highlight(CorrectionInfo info) {
+            mStart = info.getOffset();
+            mEnd = mStart + info.getNewText().length();
+            mFadingStartTime = SystemClock.uptimeMillis();
+
+            if (mStart < 0 || mEnd < 0) {
+                stopAnimation();
+            }
+        }
+
+        public void draw(Canvas canvas, int cursorOffsetVertical) {
+            if (updatePath() && updatePaint()) {
+                if (cursorOffsetVertical != 0) {
+                    canvas.translate(0, cursorOffsetVertical);
+                }
+
+                canvas.drawPath(mPath, mPaint);
+
+                if (cursorOffsetVertical != 0) {
+                    canvas.translate(0, -cursorOffsetVertical);
+                }
+                invalidate(true); // TODO invalidate cursor region only
+            } else {
+                stopAnimation();
+                invalidate(false); // TODO invalidate cursor region only
+            }
+        }
+
+        private boolean updatePaint() {
+            final long duration = SystemClock.uptimeMillis() - mFadingStartTime;
+            if (duration > FADE_OUT_DURATION) return false;
+
+            final float coef = 1.0f - (float) duration / FADE_OUT_DURATION;
+            final int highlightColorAlpha = Color.alpha(mTextView.mHighlightColor);
+            final int color = (mTextView.mHighlightColor & 0x00FFFFFF)
+                    + ((int) (highlightColorAlpha * coef) << 24);
+            mPaint.setColor(color);
+            return true;
+        }
+
+        private boolean updatePath() {
+            final Layout layout = mTextView.getLayout();
+            if (layout == null) return false;
+
+            // Update in case text is edited while the animation is run
+            final int length = mTextView.getText().length();
+            int start = Math.min(length, mStart);
+            int end = Math.min(length, mEnd);
+
+            mPath.reset();
+            layout.getSelectionPath(start, end, mPath);
+            return true;
+        }
+
+        private void invalidate(boolean delayed) {
+            if (mTextView.getLayout() == null) return;
+
+            if (mTempRectF == null) mTempRectF = new RectF();
+            mPath.computeBounds(mTempRectF, false);
+
+            int left = mTextView.getCompoundPaddingLeft();
+            int top = mTextView.getExtendedPaddingTop() + mTextView.getVerticalOffset(true);
+
+            if (delayed) {
+                mTextView.postInvalidateOnAnimation(
+                        left + (int) mTempRectF.left, top + (int) mTempRectF.top,
+                        left + (int) mTempRectF.right, top + (int) mTempRectF.bottom);
+            } else {
+                mTextView.postInvalidate((int) mTempRectF.left, (int) mTempRectF.top,
+                        (int) mTempRectF.right, (int) mTempRectF.bottom);
+            }
+        }
+
+        private void stopAnimation() {
+            Editor.this.mCorrectionHighlighter = null;
+        }
+    }
 
     static class InputContentType {
         public int imeOptions = EditorInfo.IME_NULL;
