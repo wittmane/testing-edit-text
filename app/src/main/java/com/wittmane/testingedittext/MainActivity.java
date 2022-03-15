@@ -2,6 +2,8 @@ package com.wittmane.testingedittext;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.text.InputFilter;
+import android.text.Spanned;
 
 public class MainActivity extends Activity {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
@@ -27,5 +29,25 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        InputFilter filter = new InputFilter() {
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < source.length(); i++) {
+                    char c = source.charAt(i);
+                    if (c >= 'A' && c <= 'Z') {
+                        continue;
+                    }
+                    sb.append(c);
+                }
+                return sb;
+            }
+        };
+
+        android.widget.EditText nativeEditText1 = findViewById(R.id.nativeEditText1);
+        nativeEditText1.setFilters(new InputFilter[] {filter});
+        com.wittmane.testingedittext.aosp.widget.EditText customEditText1 = findViewById(R.id.customEditText1);
+        customEditText1.setFilters(new InputFilter[] {filter});
     }
 }

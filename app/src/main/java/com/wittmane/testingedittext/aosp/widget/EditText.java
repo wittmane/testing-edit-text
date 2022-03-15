@@ -482,12 +482,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (attr == R.styleable.EditText_android_numeric) {
                 // skipping - numeric is deprecated: Use inputType instead
             } else if (attr == R.styleable.EditText_android_digits) {
-                //TODO: probably implement - this supports more than just numbers (unsure if this is
-                // intended functionality or just a hack). if this isn't added, at least add some
-                // other means to filter input to only allow certain characters
                 // If set, specifies that this TextView has a numeric input method and that these
                 // specific characters are the ones that it will accept. If this is set, numeric is
                 // implied to be true. The default is false.
+                digits = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_phoneNumber) {
                 // skipping - phoneNumber is deprecated: Use inputType instead
             } else if (attr == R.styleable.EditText_android_autoText) {
@@ -541,8 +539,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 setMaxHeight(typedArray.getDimensionPixelSize(attr, -1));
             } else if (attr == R.styleable.EditText_android_lines) {
                 // Makes the TextView be exactly this many lines tall.
-                //TODO: this doesn't actually limit the number of lines (even in EditText) - it's
-                // only the visual height - consider if it's worth not supporting
                 setLines(typedArray.getInt(attr, -1));
             } else if (attr == R.styleable.EditText_android_height) {
                 // Makes the TextView be exactly this tall. You could get the same effect by
@@ -602,8 +598,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     setIncludeFontPadding(false);
                 }
             } else if (attr == R.styleable.EditText_android_cursorVisible) {
-                //TODO: consider implementing if simple - not really sure why this would be wanted
                 // Makes the cursor visible (the default) or invisible.
+                if (!typedArray.getBoolean(attr, true)) {
+                    setCursorVisible(false);
+                }
             } else if (attr == R.styleable.EditText_android_maxLength) {
                 // Set an input filter to constrain the text length to the specified number.
                 maxlength = typedArray.getInt(attr, -1);
@@ -752,7 +750,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
         mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
 
-        if (inputType != EditorInfo.TYPE_NULL) {
+        if (digits != null) {
+            mEditor.mKeyListener = DigitsKeyListener.getInstance(digits.toString());
+            // If no input type was specified, we will default to generic
+            // text, since we can't tell the IME about the set of digits
+            // that was selected.
+            mEditor.mInputType = inputType != EditorInfo.TYPE_NULL
+                    ? inputType : EditorInfo.TYPE_CLASS_TEXT;
+        } else if (inputType != EditorInfo.TYPE_NULL) {
             setInputType(inputType, true);
             // If set, the input type overrides what was set using the deprecated singleLine flag.
             singleLine = !isMultilineInputType(inputType);
@@ -843,7 +848,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                                 : val.data;
                     }
                 } else {
-                    //TODO: (EW) verify this works
                     isFocusable = typedArray.getBoolean(attr, isFocusable);
                 }
             } else if (attr == R.styleable.View_android_clickable) {
@@ -6810,6 +6814,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public void cancelLongPress() {
         super.cancelLongPress();
         mEditor.mIgnoreActionUpEvent = true;
+    }
+
+    @Override
+    public boolean onTrackballEvent(MotionEvent event) {
+        if (mMovement != null && mSpannable != null && mLayout != null) {
+            if (mMovement.onTrackballEvent(this, mSpannable, event)) {
+                return true;
+            }
+        }
+
+        return super.onTrackballEvent(event);
     }
 
     @Override

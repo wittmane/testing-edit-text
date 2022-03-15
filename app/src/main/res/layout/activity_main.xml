@@ -45,6 +45,7 @@
                 android:firstBaselineToTopHeight="40sp"
                 android:text="example text with extra content to see how this scrolls"/>
             <EditText
+                android:id="@+id/nativeEditText1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingLeft="0dp"
@@ -119,6 +120,7 @@
                 android:gravity="top"
                 android:includeFontPadding="false"
                 android:inputType="textMultiLine"
+                android:digits="123"
                 android:hint="hint text\nsecond line"/>
             <EditText
                 android:layout_width="wrap_content"
@@ -158,6 +160,7 @@
                 android:singleLine="true"
                 android:gravity="top"
                 android:inputType="textMultiLine"
+                android:digits="123"
                 android:hint="hint text\nsecond line"/>
 
             <com.wittmane.testingedittext.aosp.widget.EditText
@@ -217,6 +220,7 @@
 <!--                android:textLocale="ko-KR"-->
 <!--                android:hint="ko-KR"/>-->
             <com.wittmane.testingedittext.aosp.widget.EditText
+                android:id="@+id/customEditText1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:inputType="text"
