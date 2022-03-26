@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Base.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
+        <!--(EW) android Theme.DeviceDefault inherits from Theme.Material (as of versions 21 (L)
+            through at least 31 (S)), so matching our Theme.Base.Material since this can't inherit
+            from both-->
+        <item name="isLightTheme">false</item>
+        <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
+    </style>
+    <style name="Theme.Base.Material" parent="@android:style/Theme.Material">
+        <!--(EW) from Theme in themes (versions 23 (M) through at least 31 (S)) that the android
+            Material theme inherits from-->
+        <item name="isLightTheme">false</item>
+        <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
+    </style>
+    <style name="Theme.Base.Material.Light" parent="@android:style/Theme.Material.Light">
+        <!--(EW) from Theme.Light in themes (versions 23 (M) through at least 31 (S)) that the
+            android Material light theme inherits from-->
+        <item name="isLightTheme">true</item>
+        <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_light</item>
+    </style>
+
+    <style name="Theme.DeviceDefault" parent="Theme.Base.DeviceDefault">
+        <!--(EW) android Theme.DeviceDefault inherits from Theme.Material (as of versions 21 (L)
+            through 23 (M)), so matching our Theme.Material since this can't inherit from both-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
+    <style name="Theme.Material" parent="Theme.Base.Material">
+        <!--(EW) versions 21 (L) through 23 (M) essentially used the Holo theme, which used code
+            rather than resource files for these. see the comment on Theme.Holo-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
+    <style name="Theme.Material.Light" parent="Theme.Base.Material.Light">
+        <!--(EW) see comment on Theme.Material-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
+</resources>

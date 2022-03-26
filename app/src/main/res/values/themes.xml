@@ -1,6 +1,45 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
+        <!--(EW) android Theme.DeviceDefault inherits from Theme.Holo (prior to version 21 (L)), so
+            matching our Theme.Holo since this can't inherit from both-->
+        <item name="isLightTheme">false</item>
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
+
+    <style name="Theme.Holo" parent="@android:style/Theme.Holo">
+        <!--(EW) from Theme in themes (23 (M) through at least 31 (S)) that the android Holo theme
+            inherits from-->
+        <item name="isLightTheme">false</item>
+
+        <!--(EW) from themes_holo (versions 24 (N) through at least  31 (S))-->
+        <!--(EW) prior to N, Editor just created a new ListView from code, rather than using a
+            layout file, but this was added in N as a compatibility version for the holo theme-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <!--(EW) prior to N, android.R.style.TextAppearance_SuggestionHighlight was just directly
+            used in Editor-->
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
+
+    <style name="Theme.Holo.Light" parent="@android:style/Theme.Holo.Light">
+        <!--(EW) from Theme.Light in themes (versions 23 (M) through at least 31 (S)) that the
+            android Holo light theme inherits from-->
+        <item name="isLightTheme">true</item>
+
+        <!--(EW) from themes_holo (versions 24 (N) through at least  31 (S))-->
+        <!--(EW) see comment in Theme.Holo-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <!--(EW) see comment in Theme.Holo-->
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
+
+
     <!-- Base application theme. -->
-    <style name="Theme.TestingEditText" parent="@android:style/Theme.DeviceDefault">
+    <style name="Theme.TestingEditText" parent="Theme.DeviceDefault">
+<!--    <style name="Theme.TestingEditText" parent="Theme.Material">-->
+<!--    <style name="Theme.TestingEditText" parent="Theme.Material.Light">-->
+<!--    <style name="Theme.TestingEditText" parent="Theme.Holo">-->
+<!--    <style name="Theme.TestingEditText" parent="Theme.Holo.Light">-->
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_200</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
@@ -12,5 +51,7 @@
         <!-- Status bar color. -->
 <!--        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>-->
         <!-- Customize your theme here. -->
+
+        <item name="android:colorAccent">#03A9F4</item>
     </style>
 </resources>

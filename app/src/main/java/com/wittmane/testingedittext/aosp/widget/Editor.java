@@ -5,17 +5,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorSpace;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.LocaleList;
 import android.os.Parcel;
@@ -33,20 +34,27 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.method.KeyListener;
 import android.text.method.MetaKeyKeyListener;
+import android.text.style.EasyEditSpan;
+import android.text.style.SuggestionSpan;
+import android.text.style.TextAppearanceSpan;
 import android.text.style.URLSpan;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.ActionMode;
 import android.view.ActionMode.Callback;
+import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -57,6 +65,11 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.PopupWindow;
 
 import androidx.annotation.IntDef;
@@ -72,14 +85,18 @@ import com.wittmane.testingedittext.aosp.content.UndoOwner;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
-import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
+//import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
 import com.wittmane.testingedittext.CustomInputConnection;
 import com.wittmane.testingedittext.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 public class Editor {
@@ -194,8 +211,8 @@ public class Editor {
 
     boolean mIsBeingLongClicked;
 
-//    private SuggestionsPopupWindow mSuggestionsPopupWindow;
-//    SuggestionRangeSpan mSuggestionRangeSpan;
+    private SuggestionsPopupWindow mSuggestionsPopupWindow;
+    SuggestionRangeSpan mSuggestionRangeSpan;
     private Runnable mShowSuggestionRunnable;
 
     Drawable mDrawableForCursor = null;
@@ -254,7 +271,7 @@ public class Editor {
 
     boolean mIsInsertionActionModeStartPending = false;
 
-//    private final SuggestionHelper mSuggestionHelper = new SuggestionHelper();
+    private final SuggestionHelper mSuggestionHelper = new SuggestionHelper();
 
     private int mLineChangeSlopMax;
     private int mLineChangeSlopMin;
@@ -315,6 +332,17 @@ public class Editor {
         }
         UndoOwner[] owners = { mUndoOwner };
         mUndoManager.redo(owners, 1);  // Redo 1 action.
+    }
+
+    void replace() {
+        if (mSuggestionsPopupWindow == null) {
+            mSuggestionsPopupWindow = new SuggestionsPopupWindow();
+        }
+        hideCursorAndSpanControllers();
+        mSuggestionsPopupWindow.show();
+
+        int middle = (mTextView.getSelectionStart() + mTextView.getSelectionEnd()) / 2;
+        Selection.setSelection((Spannable) mTextView.getText(), middle);
     }
 
     void onAttachedToWindow() {
@@ -487,11 +515,11 @@ public class Editor {
         // One is the true focus lost where suggestions pop-up (if any) should be dismissed, and the
         // other is an side effect of showing the suggestions pop-up itself. We use isShowingUp()
         // to distinguish one from the other.
-//        if (mSuggestionsPopupWindow != null && ((mTextView.isInExtractedMode())
-//                || !mSuggestionsPopupWindow.isShowingUp())) {
-//            // Should be done before hide insertion point controller since it triggers a show of it
-//            mSuggestionsPopupWindow.hide();
-//        }
+        if (mSuggestionsPopupWindow != null && ((mTextView.isInExtractedMode())
+                || !mSuggestionsPopupWindow.isShowingUp())) {
+            // Should be done before hide insertion point controller since it triggers a show of it
+            mSuggestionsPopupWindow.hide();
+        }
         hideInsertionPointCursorController();
     }
 
@@ -731,12 +759,11 @@ public class Editor {
             Selection.setSelection((Spannable) mTextView.getText(), selectionStart, selectionEnd);
         }
 
-//        SelectionModifierCursorController selectionController = getSelectionController();
-//        int minOffset = selectionController.getMinTouchOffset();
-//        int maxOffset = selectionController.getMaxTouchOffset();
-//
-//        return ((minOffset >= selectionStart) && (maxOffset < selectionEnd));
-        return false;
+        SelectionModifierCursorController selectionController = getSelectionController();
+        int minOffset = selectionController.getMinTouchOffset();
+        int maxOffset = selectionController.getMaxTouchOffset();
+
+        return ((minOffset >= selectionStart) && (maxOffset < selectionEnd));
     }
 
     private PositionListener getPositionListener() {
@@ -749,6 +776,18 @@ public class Editor {
     private interface TextViewPositionListener {
         void updatePosition(int parentPositionX, int parentPositionY,
                             boolean parentPositionChanged, boolean parentScrolled);
+    }
+
+    private boolean isOffsetVisible(int offset) {
+        Layout layout = mTextView.getLayout();
+        if (layout == null) return false;
+
+        final int line = layout.getLineForOffset(offset);
+        final int lineBottom = layout.getLineBottom(line);
+        final int primaryHorizontal = (int) layout.getPrimaryHorizontal(offset);
+        return mTextView.isPositionVisible(
+                primaryHorizontal + mTextView.viewportToContentHorizontalOffset(),
+                lineBottom + mTextView.viewportToContentVerticalOffset());
     }
 
     /** Returns true if the screen coordinates position (x,y) corresponds to a character displayed
@@ -1043,9 +1082,9 @@ public class Editor {
             // Order matters! Must be done before onParentLostFocus to rely on isShowingUp
             hideCursorAndSpanControllers();
             stopTextActionModeWithPreservingSelection();
-//            if (mSuggestionsPopupWindow != null) {
-//                mSuggestionsPopupWindow.onParentLostFocus();
-//            }
+            if (mSuggestionsPopupWindow != null) {
+                mSuggestionsPopupWindow.onParentLostFocus();
+            }
 
             // Don't leave us in the middle of a batch edit. Same as in onFocusChanged
             ensureEndedBatchEdit();
@@ -1106,16 +1145,17 @@ public class Editor {
             return;
         }
         updateTapState(event);
+        //TODO: (EW) is this necessary? is this the paste popup in lollipop?
 //        updateFloatingToolbarVisibility(event);
 
         if (hasSelectionController()) {
             getSelectionController().onTouchEvent(event);
         }
 
-//        if (mShowSuggestionRunnable != null) {
-//            mTextView.removeCallbacks(mShowSuggestionRunnable);
-//            mShowSuggestionRunnable = null;
-//        }
+        if (mShowSuggestionRunnable != null) {
+            mTextView.removeCallbacks(mShowSuggestionRunnable);
+            mShowSuggestionRunnable = null;
+        }
 
         if (event.getActionMasked() == MotionEvent.ACTION_UP) {
             mLastUpPositionX = event.getX();
@@ -1284,7 +1324,7 @@ public class Editor {
         Log.w(TAG, "finishBatchEdit: mTextActionMode=" + mTextActionMode);
         if (mTextActionMode != null) {
             final CursorController cursorController = mTextView.hasSelection()
-                    ? /*getSelectionController()*/null : getInsertionController();
+                    ? getSelectionController() : getInsertionController();
             if (cursorController != null && !cursorController.isActive()
                     && !cursorController.isCursorBeingModified()) {
                 cursorController.show();
@@ -1720,7 +1760,7 @@ public class Editor {
         final boolean selectionStarted = mTextActionMode != null;
         if (selectionStarted
                 && mTextView.isTextEditable() && !mTextView.isTextSelectable()
-            /*&& mShowSoftInputOnFocus*/) {
+                && mShowSoftInputOnFocus) {
             // Show the IME to be able to replace text, except when selecting non editable text.
             final InputMethodManager imm = /*InputMethodManager.peekInstance*/getInputMethodManager();
             if (imm != null) {
@@ -1738,9 +1778,88 @@ public class Editor {
         return false;
     }
 
+    /**
+     * @return <code>true</code> if it's reasonable to offer to show suggestions depending on
+     * the current cursor position or selection range. This method is consistent with the
+     * method to show suggestions {@link SuggestionsPopupWindow#updateSuggestions}.
+     */
+    private boolean shouldOfferToShowSuggestions() {
+        CharSequence text = mTextView.getText();
+        if (!(text instanceof Spannable)) return false;
+
+        final Spannable spannable = (Spannable) text;
+        final int selectionStart = mTextView.getSelectionStart();
+        final int selectionEnd = mTextView.getSelectionEnd();
+        final SuggestionSpan[] suggestionSpans = spannable.getSpans(selectionStart, selectionEnd,
+                SuggestionSpan.class);
+        if (suggestionSpans.length == 0) {
+            return false;
+        }
+        if (selectionStart == selectionEnd) {
+            // Spans overlap the cursor.
+            for (int i = 0; i < suggestionSpans.length; i++) {
+                if (suggestionSpans[i].getSuggestions().length > 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        int minSpanStart = mTextView.getText().length();
+        int maxSpanEnd = 0;
+        int unionOfSpansCoveringSelectionStartStart = mTextView.getText().length();
+        int unionOfSpansCoveringSelectionStartEnd = 0;
+        boolean hasValidSuggestions = false;
+        for (int i = 0; i < suggestionSpans.length; i++) {
+            final int spanStart = spannable.getSpanStart(suggestionSpans[i]);
+            final int spanEnd = spannable.getSpanEnd(suggestionSpans[i]);
+            minSpanStart = Math.min(minSpanStart, spanStart);
+            maxSpanEnd = Math.max(maxSpanEnd, spanEnd);
+            if (selectionStart < spanStart || selectionStart > spanEnd) {
+                // The span doesn't cover the current selection start point.
+                continue;
+            }
+            hasValidSuggestions =
+                    hasValidSuggestions || suggestionSpans[i].getSuggestions().length > 0;
+            unionOfSpansCoveringSelectionStartStart =
+                    Math.min(unionOfSpansCoveringSelectionStartStart, spanStart);
+            unionOfSpansCoveringSelectionStartEnd =
+                    Math.max(unionOfSpansCoveringSelectionStartEnd, spanEnd);
+        }
+        if (!hasValidSuggestions) {
+            return false;
+        }
+        if (unionOfSpansCoveringSelectionStartStart >= unionOfSpansCoveringSelectionStartEnd) {
+            // No spans cover the selection start point.
+            return false;
+        }
+        if (minSpanStart < unionOfSpansCoveringSelectionStartStart
+                || maxSpanEnd > unionOfSpansCoveringSelectionStartEnd) {
+            // There is a span that is not covered by the union. In this case, we soouldn't offer
+            // to show suggestions as it's confusing.
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @return <code>true</code> if the cursor is inside an {@link SuggestionSpan} with
+     * {@link SuggestionSpan#FLAG_EASY_CORRECT} set.
+     */
+    private boolean isCursorInsideEasyCorrectionSpan() {
+        Spannable spannable = (Spannable) mTextView.getText();
+        SuggestionSpan[] suggestionSpans = spannable.getSpans(mTextView.getSelectionStart(),
+                mTextView.getSelectionEnd(), SuggestionSpan.class);
+        for (int i = 0; i < suggestionSpans.length; i++) {
+            if ((suggestionSpans[i].getFlags() & SuggestionSpan.FLAG_EASY_CORRECT) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void onTouchUpEvent(MotionEvent event) {
         if (getSelectionActionModeHelper().resetSelection(
-                mTextView.getOffsetForPosition(event.getX(), event.getY()))) {
+                getTextView().getOffsetForPosition(event.getX(), event.getY()))) {
             return;
         }
 
@@ -1765,7 +1884,7 @@ public class Editor {
                     + ", hasInsertionController=" + hasInsertionController()
                     + ", shouldInsertCursor=" + shouldInsertCursor);
             if (!extractedTextModeWillBeStarted()) {
-                /*if (isCursorInsideEasyCorrectionSpan()) {
+                if (isCursorInsideEasyCorrectionSpan()) {
                     // Cancel the single tap delayed runnable.
                     if (mInsertionActionModeRunnable != null) {
                         mTextView.removeCallbacks(mInsertionActionModeRunnable);
@@ -1776,7 +1895,7 @@ public class Editor {
                     // removeCallbacks is performed on every touch
                     mTextView.postDelayed(mShowSuggestionRunnable,
                             ViewConfiguration.getDoubleTapTimeout());
-                } else */if (hasInsertionController()) {
+                } else if (hasInsertionController()) {
                     if (shouldInsertCursor) {
                         getInsertionController().show();
                     } else {
@@ -1824,7 +1943,7 @@ public class Editor {
         }
 
         if (mInsertionPointCursorController == null) {
-            mInsertionPointCursorController = new InsertionPointCursorController(mTextView);
+            mInsertionPointCursorController = new InsertionPointCursorController();
 
             final ViewTreeObserver observer = mTextView.getViewTreeObserver();
             observer.addOnTouchModeChangeListener(mInsertionPointCursorController);
@@ -1841,7 +1960,7 @@ public class Editor {
         }
 
         if (mSelectionModifierCursorController == null) {
-            mSelectionModifierCursorController = new SelectionModifierCursorController(mTextView);
+            mSelectionModifierCursorController = new SelectionModifierCursorController();
 
             final ViewTreeObserver observer = mTextView.getViewTreeObserver();
             observer.addOnTouchModeChangeListener(mSelectionModifierCursorController);
@@ -2033,6 +2152,106 @@ public class Editor {
         text.setSpan(mSpanController, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
     }
 
+    @Nullable
+    private SuggestionSpan findEquivalentSuggestionSpan(
+            @NonNull SuggestionSpanInfo suggestionSpanInfo) {
+        final Editable editable = (Editable) mTextView.getText();
+        if (editable.getSpanStart(suggestionSpanInfo.mSuggestionSpan) >= 0) {
+            // Exactly same span is found.
+            return suggestionSpanInfo.mSuggestionSpan;
+        }
+        // Suggestion span couldn't be found. Try to find a suggestion span that has the same
+        // contents.
+        final SuggestionSpan[] suggestionSpans = editable.getSpans(suggestionSpanInfo.mSpanStart,
+                suggestionSpanInfo.mSpanEnd, SuggestionSpan.class);
+        for (final SuggestionSpan suggestionSpan : suggestionSpans) {
+            final int start = editable.getSpanStart(suggestionSpan);
+            if (start != suggestionSpanInfo.mSpanStart) {
+                continue;
+            }
+            final int end = editable.getSpanEnd(suggestionSpan);
+            if (end != suggestionSpanInfo.mSpanEnd) {
+                continue;
+            }
+            if (suggestionSpan.equals(suggestionSpanInfo.mSuggestionSpan)) {
+                return suggestionSpan;
+            }
+        }
+        return null;
+    }
+
+    private void replaceWithSuggestion(@NonNull final SuggestionInfo suggestionInfo) {
+        final SuggestionSpan targetSuggestionSpan = findEquivalentSuggestionSpan(
+                suggestionInfo.mSuggestionSpanInfo);
+        if (targetSuggestionSpan == null) {
+            // Span has been removed
+            return;
+        }
+        final Editable editable = (Editable) mTextView.getText();
+        final int spanStart = editable.getSpanStart(targetSuggestionSpan);
+        final int spanEnd = editable.getSpanEnd(targetSuggestionSpan);
+        if (spanStart < 0 || spanEnd <= spanStart) {
+            // Span has been removed
+            return;
+        }
+
+        final String originalText = TextUtils.substring(editable, spanStart, spanEnd);
+        // SuggestionSpans are removed by replace: save them before
+        SuggestionSpan[] suggestionSpans = editable.getSpans(spanStart, spanEnd,
+                SuggestionSpan.class);
+        final int length = suggestionSpans.length;
+        int[] suggestionSpansStarts = new int[length];
+        int[] suggestionSpansEnds = new int[length];
+        int[] suggestionSpansFlags = new int[length];
+        for (int i = 0; i < length; i++) {
+            final SuggestionSpan suggestionSpan = suggestionSpans[i];
+            suggestionSpansStarts[i] = editable.getSpanStart(suggestionSpan);
+            suggestionSpansEnds[i] = editable.getSpanEnd(suggestionSpan);
+            suggestionSpansFlags[i] = editable.getSpanFlags(suggestionSpan);
+
+            // Remove potential misspelled flags
+            int suggestionSpanFlags = suggestionSpan.getFlags();
+            if ((suggestionSpanFlags & SuggestionSpan.FLAG_MISSPELLED) != 0) {
+                suggestionSpanFlags &= ~SuggestionSpan.FLAG_MISSPELLED;
+                suggestionSpanFlags &= ~SuggestionSpan.FLAG_EASY_CORRECT;
+                suggestionSpan.setFlags(suggestionSpanFlags);
+            }
+        }
+
+        // Notify source IME of the suggestion pick. Do this before swapping texts.
+        // (EW) the AOSP version called SuggestionSpan#notifySelection, which called
+        // InputMethodManager#notifySuggestionPicked, which is hidden. I'm not sure why that isn't
+        // accessible, but it seems there is nothing we can do to replicate that functionality.
+        // Hopefully that isn't a problem.
+//        targetSuggestionSpan.notifySelection(
+//                mTextView.getContext(), originalText, suggestionInfo.mSuggestionIndex);
+
+        // Swap text content between actual text and Suggestion span
+        final int suggestionStart = suggestionInfo.mSuggestionStart;
+        final int suggestionEnd = suggestionInfo.mSuggestionEnd;
+        final String suggestion = suggestionInfo.mText.subSequence(
+                suggestionStart, suggestionEnd).toString();
+        mTextView.replaceText_internal(spanStart, spanEnd, suggestion);
+
+        String[] suggestions = targetSuggestionSpan.getSuggestions();
+        suggestions[suggestionInfo.mSuggestionIndex] = originalText;
+
+        // Restore previous SuggestionSpans
+        final int lengthDelta = suggestion.length() - (spanEnd - spanStart);
+        for (int i = 0; i < length; i++) {
+            // Only spans that include the modified region make sense after replacement
+            // Spans partially included in the replaced region are removed, there is no
+            // way to assign them a valid range after replacement
+            if (suggestionSpansStarts[i] <= spanStart && suggestionSpansEnds[i] >= spanEnd) {
+                mTextView.setSpan_internal(suggestionSpans[i], suggestionSpansStarts[i],
+                        suggestionSpansEnds[i] + lengthDelta, suggestionSpansFlags[i]);
+            }
+        }
+        // Move cursor at the end of the replaced word
+        final int newCursorPosition = spanEnd + lengthDelta;
+        mTextView.setCursorPosition_internal(newCursorPosition, newCursorPosition);
+    }
+
     /**
      * Controls the {@link EasyEditSpan} monitoring when it is added, and when the related
      * pop-up should be displayed.
@@ -2139,17 +2358,17 @@ public class Editor {
         }
 
         private void sendEasySpanNotification(int textChangedType, EasyEditSpan span) {
-            try {
-                PendingIntent pendingIntent = span.getPendingIntent();//@hide
-                if (pendingIntent != null) {
-                    Intent intent = new Intent();
-                    intent.putExtra(EasyEditSpan.EXTRA_TEXT_CHANGED_TYPE, textChangedType);
-                    pendingIntent.send(mTextView.getContext(), 0, intent);
-                }
-            } catch (PendingIntent.CanceledException e) {
-                // This should not happen, as we should try to send the intent only once.
-                Log.w(TAG, "PendingIntent for notification cannot be sent", e);
-            }
+//            try {
+//                PendingIntent pendingIntent = span.getPendingIntent();//@hide
+//                if (pendingIntent != null) {
+//                    Intent intent = new Intent();
+//                    intent.putExtra(EasyEditSpan.EXTRA_TEXT_CHANGED_TYPE, textChangedType);
+//                    pendingIntent.send(mTextView.getContext(), 0, intent);
+//                }
+//            } catch (PendingIntent.CanceledException e) {
+//                // This should not happen, as we should try to send the intent only once.
+//                Log.w(TAG, "PendingIntent for notification cannot be sent", e);
+//            }
         }
     }
 
@@ -2260,6 +2479,681 @@ public class Editor {
         }
     }
 
+    private abstract class PinnedPopupWindow implements TextViewPositionListener {
+        protected PopupWindow mPopupWindow;
+        protected ViewGroup mContentView;
+        int mPositionX, mPositionY;
+        int mClippingLimitLeft, mClippingLimitRight;
+
+        protected abstract void createPopupWindow();
+        protected abstract void initContentView();
+        protected abstract int getTextOffset();
+        protected abstract int getVerticalLocalPosition(int line);
+        protected abstract int clipVertically(int positionY);
+        protected void setUp() {
+        }
+
+        public PinnedPopupWindow() {
+            // Due to calling subclass methods in base constructor, subclass constructor is not
+            // called before subclass methods, e.g. createPopupWindow or initContentView. To give
+            // a chance to initialize subclasses, call setUp() method here.
+            // TODO: It is good to extract non trivial initialization code from constructor.
+            setUp();
+
+            createPopupWindow();
+
+            //TODO: (EW) figure out how to handle. I'm not sure what this does, but it doesn't seem
+            // critical
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+////                mPopupWindow.setWindowLayoutType(
+////                        WindowManager.LayoutParams.TYPE_APPLICATION_ABOVE_SUB_PANEL);
+//                mPopupWindow.setWindowLayoutType(
+//                        WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
+//            }
+            mPopupWindow.setWidth(LayoutParams.WRAP_CONTENT);
+            mPopupWindow.setHeight(LayoutParams.WRAP_CONTENT);
+
+            initContentView();
+
+            LayoutParams wrapContent = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT);
+            mContentView.setLayoutParams(wrapContent);
+
+            mPopupWindow.setContentView(mContentView);
+        }
+
+        public void show() {
+            getPositionListener().addSubscriber(this, false /* offset is fixed */);
+
+            computeLocalPosition();
+
+            final PositionListener positionListener = getPositionListener();
+            updatePosition(positionListener.getPositionX(), positionListener.getPositionY());
+        }
+
+        protected void measureContent() {
+            final DisplayMetrics displayMetrics = mTextView.getResources().getDisplayMetrics();
+            mContentView.measure(
+                    View.MeasureSpec.makeMeasureSpec(displayMetrics.widthPixels,
+                            View.MeasureSpec.AT_MOST),
+                    View.MeasureSpec.makeMeasureSpec(displayMetrics.heightPixels,
+                            View.MeasureSpec.AT_MOST));
+        }
+
+        /* The popup window will be horizontally centered on the getTextOffset() and vertically
+         * positioned according to viewportToContentHorizontalOffset.
+         *
+         * This method assumes that mContentView has properly been measured from its content. */
+        private void computeLocalPosition() {
+            measureContent();
+            final int width = mContentView.getMeasuredWidth();
+            final int offset = getTextOffset();
+            mPositionX = (int) (mTextView.getLayout().getPrimaryHorizontal(offset) - width / 2.0f);
+            mPositionX += mTextView.viewportToContentHorizontalOffset();
+
+            final int line = mTextView.getLayout().getLineForOffset(offset);
+            mPositionY = getVerticalLocalPosition(line);
+            mPositionY += mTextView.viewportToContentVerticalOffset();
+        }
+
+        private void updatePosition(int parentPositionX, int parentPositionY) {
+            int positionX = parentPositionX + mPositionX;
+            int positionY = parentPositionY + mPositionY;
+
+            positionY = clipVertically(positionY);
+
+            // Horizontal clipping
+            final DisplayMetrics displayMetrics = mTextView.getResources().getDisplayMetrics();
+            final int width = mContentView.getMeasuredWidth();
+            positionX = Math.min(
+                    displayMetrics.widthPixels - width + mClippingLimitRight, positionX);
+            positionX = Math.max(-mClippingLimitLeft, positionX);
+
+            if (isShowing()) {
+                mPopupWindow.update(positionX, positionY, -1, -1);
+            } else {
+                mPopupWindow.showAtLocation(mTextView, Gravity.NO_GRAVITY,
+                        positionX, positionY);
+            }
+        }
+
+        public void hide() {
+            if (!isShowing()) {
+                return;
+            }
+            mPopupWindow.dismiss();
+            getPositionListener().removeSubscriber(this);
+        }
+
+        @Override
+        public void updatePosition(int parentPositionX, int parentPositionY,
+                                   boolean parentPositionChanged, boolean parentScrolled) {
+            // Either parentPositionChanged or parentScrolled is true, check if still visible
+            if (isShowing() && isOffsetVisible(getTextOffset())) {
+                if (parentScrolled) computeLocalPosition();
+                updatePosition(parentPositionX, parentPositionY);
+            } else {
+                hide();
+            }
+        }
+
+        public boolean isShowing() {
+            return mPopupWindow.isShowing();
+        }
+    }
+
+    private static final class SuggestionInfo {
+        // Range of actual suggestion within mText
+        int mSuggestionStart, mSuggestionEnd;
+
+        // The SuggestionSpan that this TextView represents
+        final SuggestionSpanInfo mSuggestionSpanInfo = new SuggestionSpanInfo();
+
+        // The index of this suggestion inside suggestionSpan
+        int mSuggestionIndex;
+
+        final SpannableStringBuilder mText = new SpannableStringBuilder();
+
+        void clear() {
+            mSuggestionSpanInfo.clear();
+            mText.clear();
+        }
+
+        // Utility method to set attributes about a SuggestionSpan.
+        void setSpanInfo(SuggestionSpan span, int spanStart, int spanEnd) {
+            mSuggestionSpanInfo.mSuggestionSpan = span;
+            mSuggestionSpanInfo.mSpanStart = spanStart;
+            mSuggestionSpanInfo.mSpanEnd = spanEnd;
+        }
+    }
+
+    private static final class SuggestionSpanInfo {
+        // The SuggestionSpan;
+        @Nullable
+        SuggestionSpan mSuggestionSpan;
+
+        // The SuggestionSpan start position
+        int mSpanStart;
+
+        // The SuggestionSpan end position
+        int mSpanEnd;
+
+        void clear() {
+            mSuggestionSpan = null;
+        }
+    }
+
+    private class SuggestionHelper {
+        private final Comparator<SuggestionSpan> mSuggestionSpanComparator =
+                new SuggestionSpanComparator();
+        private final HashMap<SuggestionSpan, Integer> mSpansLengths =
+                new HashMap<SuggestionSpan, Integer>();
+
+        private class SuggestionSpanComparator implements Comparator<SuggestionSpan> {
+            public int compare(SuggestionSpan span1, SuggestionSpan span2) {
+                final int flag1 = span1.getFlags();
+                final int flag2 = span2.getFlags();
+                if (flag1 != flag2) {
+                    // The order here should match what is used in updateDrawState
+                    final boolean easy1 = (flag1 & SuggestionSpan.FLAG_EASY_CORRECT) != 0;
+                    final boolean easy2 = (flag2 & SuggestionSpan.FLAG_EASY_CORRECT) != 0;
+                    final boolean misspelled1 = (flag1 & SuggestionSpan.FLAG_MISSPELLED) != 0;
+                    final boolean misspelled2 = (flag2 & SuggestionSpan.FLAG_MISSPELLED) != 0;
+                    if (easy1 && !misspelled1) return -1;
+                    if (easy2 && !misspelled2) return 1;
+                    if (misspelled1) return -1;
+                    if (misspelled2) return 1;
+                }
+
+                return mSpansLengths.get(span1).intValue() - mSpansLengths.get(span2).intValue();
+            }
+        }
+
+        /**
+         * Returns the suggestion spans that cover the current cursor position. The suggestion
+         * spans are sorted according to the length of text that they are attached to.
+         */
+        private SuggestionSpan[] getSortedSuggestionSpans() {
+            int pos = mTextView.getSelectionStart();
+            Spannable spannable = (Spannable) mTextView.getText();
+            SuggestionSpan[] suggestionSpans = spannable.getSpans(pos, pos, SuggestionSpan.class);
+            Log.w(TAG, "getSortedSuggestionSpans: " + suggestionSpans.length);
+
+            mSpansLengths.clear();
+            for (SuggestionSpan suggestionSpan : suggestionSpans) {
+                int start = spannable.getSpanStart(suggestionSpan);
+                int end = spannable.getSpanEnd(suggestionSpan);
+                mSpansLengths.put(suggestionSpan, Integer.valueOf(end - start));
+            }
+
+            // The suggestions are sorted according to their types (easy correction first, then
+            // misspelled) and to the length of the text that they cover (shorter first).
+            Arrays.sort(suggestionSpans, mSuggestionSpanComparator);
+            mSpansLengths.clear();
+
+            return suggestionSpans;
+        }
+
+        /**
+         * Gets the SuggestionInfo list that contains suggestion information at the current cursor
+         * position.
+         *
+         * @param suggestionInfos SuggestionInfo array the results will be set.
+         * @param misspelledSpanInfo a struct the misspelled SuggestionSpan info will be set.
+         * @return the number of suggestions actually fetched.
+         */
+        public int getSuggestionInfo(SuggestionInfo[] suggestionInfos,
+                                     @Nullable SuggestionSpanInfo misspelledSpanInfo) {
+            final Spannable spannable = (Spannable) mTextView.getText();
+            final SuggestionSpan[] suggestionSpans = getSortedSuggestionSpans();
+            final int nbSpans = suggestionSpans.length;
+            if (nbSpans == 0) return 0;
+
+            int numberOfSuggestions = 0;
+            for (final SuggestionSpan suggestionSpan : suggestionSpans) {
+                final int spanStart = spannable.getSpanStart(suggestionSpan);
+                final int spanEnd = spannable.getSpanEnd(suggestionSpan);
+
+                if (misspelledSpanInfo != null
+                        && (suggestionSpan.getFlags() & SuggestionSpan.FLAG_MISSPELLED) != 0) {
+                    misspelledSpanInfo.mSuggestionSpan = suggestionSpan;
+                    misspelledSpanInfo.mSpanStart = spanStart;
+                    misspelledSpanInfo.mSpanEnd = spanEnd;
+                }
+
+                final String[] suggestions = suggestionSpan.getSuggestions();
+                final int nbSuggestions = suggestions.length;
+                suggestionLoop:
+                for (int suggestionIndex = 0; suggestionIndex < nbSuggestions; suggestionIndex++) {
+                    final String suggestion = suggestions[suggestionIndex];
+                    for (int i = 0; i < numberOfSuggestions; i++) {
+                        final SuggestionInfo otherSuggestionInfo = suggestionInfos[i];
+                        if (otherSuggestionInfo.mText.toString().equals(suggestion)) {
+                            final int otherSpanStart =
+                                    otherSuggestionInfo.mSuggestionSpanInfo.mSpanStart;
+                            final int otherSpanEnd =
+                                    otherSuggestionInfo.mSuggestionSpanInfo.mSpanEnd;
+                            if (spanStart == otherSpanStart && spanEnd == otherSpanEnd) {
+                                continue suggestionLoop;
+                            }
+                        }
+                    }
+
+                    SuggestionInfo suggestionInfo = suggestionInfos[numberOfSuggestions];
+                    suggestionInfo.setSpanInfo(suggestionSpan, spanStart, spanEnd);
+                    suggestionInfo.mSuggestionIndex = suggestionIndex;
+                    suggestionInfo.mSuggestionStart = 0;
+                    suggestionInfo.mSuggestionEnd = suggestion.length();
+                    suggestionInfo.mText.replace(0, suggestionInfo.mText.length(), suggestion);
+                    numberOfSuggestions++;
+                    if (numberOfSuggestions >= suggestionInfos.length) {
+                        return numberOfSuggestions;
+                    }
+                }
+            }
+            return numberOfSuggestions;
+        }
+    }
+
+    public class SuggestionsPopupWindow extends PinnedPopupWindow implements OnItemClickListener {
+        private static final int MAX_NUMBER_SUGGESTIONS = SuggestionSpan.SUGGESTIONS_MAX_SIZE;
+
+        // Key of intent extras for inserting new word into user dictionary.
+        private static final String USER_DICTIONARY_EXTRA_WORD = "word";
+        private static final String USER_DICTIONARY_EXTRA_LOCALE = "locale";
+
+        private SuggestionInfo[] mSuggestionInfos;
+        private int mNumberOfSuggestions;
+        private boolean mCursorWasVisibleBeforeSuggestions;
+        private boolean mIsShowingUp = false;
+        private SuggestionAdapter mSuggestionsAdapter;
+        private TextAppearanceSpan mHighlightSpan;  // TODO: Make mHighlightSpan final.
+        private android.widget.TextView mAddToDictionaryButton;
+        private android.widget.TextView mDeleteButton;
+        private ListView mSuggestionListView;
+        private final SuggestionSpanInfo mMisspelledSpanInfo = new SuggestionSpanInfo();
+        private int mContainerMarginWidth;
+        private int mContainerMarginTop;
+        private LinearLayout mContainerView;
+        private Context mContext;  // TODO: Make mContext final.
+
+        private class CustomPopupWindow extends PopupWindow {
+
+            @Override
+            public void dismiss() {
+                if (!isShowing()) {
+                    return;
+                }
+                super.dismiss();
+                getPositionListener().removeSubscriber(SuggestionsPopupWindow.this);
+
+                // Safe cast since show() checks that mTextView.getText() is an Editable
+                ((Spannable) mTextView.getText()).removeSpan(mSuggestionRangeSpan);
+
+                mTextView.setCursorVisible(mCursorWasVisibleBeforeSuggestions);
+                if (hasInsertionController() && !extractedTextModeWillBeStarted()) {
+                    getInsertionController().show();
+                }
+            }
+        }
+
+        public SuggestionsPopupWindow() {
+            mCursorWasVisibleBeforeSuggestions = mCursorVisible;
+        }
+
+        @Override
+        protected void setUp() {
+            mContext = applyDefaultTheme(mTextView.getContext());
+            mHighlightSpan = new TextAppearanceSpan(mContext,
+                    mTextView.mTextEditSuggestionHighlightStyle);
+        }
+
+        private Context applyDefaultTheme(Context originalContext) {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
+                // (EW) prior to N, the AOSP version didn't bother with the theme wrapper and just
+                // used the text view's context directly, and layout/text_edit_suggestion_item set
+                // textColor to dim_foreground_light (#323232). in order to match styling with the
+                // normal EditText on older versions and not try to fight the suggestion item
+                // layout, we'll just use the text view's context.
+                return originalContext;
+            }
+            // (EW) starting in N, the AOSP version checked
+            // com.android.internal.R.attr.isLightTheme even though android.R.attr.isLightTheme
+            // wasn't made public until Q, so for older versions, we'll need to use our own copy of
+            // the attribute.
+            TypedArray a = originalContext.obtainStyledAttributes(new int[]{
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                            ? android.R.attr.isLightTheme : R.attr.isLightTheme
+            });
+            boolean isLightTheme = a.getBoolean(0, true);
+            int themeId = isLightTheme ? android.R.style.ThemeOverlay_Material_Light
+                    : android.R.style.ThemeOverlay_Material_Dark;
+            a.recycle();
+            return new ContextThemeWrapper(originalContext, themeId);
+        }
+
+        @Override
+        protected void createPopupWindow() {
+            mPopupWindow = new CustomPopupWindow();
+            mPopupWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+            mPopupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            mPopupWindow.setFocusable(true);
+            mPopupWindow.setClippingEnabled(false);
+        }
+
+        @Override
+        protected void initContentView() {
+            final LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(
+                    Context.LAYOUT_INFLATER_SERVICE);
+            mContentView = (ViewGroup) inflater.inflate(
+                    mTextView.mTextEditSuggestionContainerLayout, null);
+
+            mContainerView = (LinearLayout) mContentView.findViewById(
+                    R.id.suggestionWindowContainer);
+            ViewGroup.MarginLayoutParams lp =
+                    (ViewGroup.MarginLayoutParams) mContainerView.getLayoutParams();
+            mContainerMarginWidth = lp.leftMargin + lp.rightMargin;
+            mContainerMarginTop = lp.topMargin;
+            mClippingLimitLeft = lp.leftMargin;
+            mClippingLimitRight = lp.rightMargin;
+
+            mSuggestionListView = (ListView) mContentView.findViewById(R.id.suggestionContainer);
+
+            mSuggestionsAdapter = new SuggestionAdapter();
+            mSuggestionListView.setAdapter(mSuggestionsAdapter);
+            mSuggestionListView.setOnItemClickListener(this);
+
+            // Inflate the suggestion items once and for all.
+            mSuggestionInfos = new SuggestionInfo[MAX_NUMBER_SUGGESTIONS];
+            for (int i = 0; i < mSuggestionInfos.length; i++) {
+                mSuggestionInfos[i] = new SuggestionInfo();
+            }
+
+            mAddToDictionaryButton = (android.widget.TextView) mContentView.findViewById(
+                    R.id.addToDictionaryButton);
+            mAddToDictionaryButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    final SuggestionSpan misspelledSpan =
+                            findEquivalentSuggestionSpan(mMisspelledSpanInfo);
+                    if (misspelledSpan == null) {
+                        // Span has been removed.
+                        return;
+                    }
+                    final Editable editable = (Editable) mTextView.getText();
+                    final int spanStart = editable.getSpanStart(misspelledSpan);
+                    final int spanEnd = editable.getSpanEnd(misspelledSpan);
+                    if (spanStart < 0 || spanEnd <= spanStart) {
+                        return;
+                    }
+                    final String originalText = TextUtils.substring(editable, spanStart, spanEnd);
+
+                    //TODO: (EW) figure out an alternative way to add a word to the user dictionary
+                    // or maybe just skip this feature
+//                    final Intent intent = new Intent(Settings.ACTION_USER_DICTIONARY_INSERT);
+//                    intent.putExtra(USER_DICTIONARY_EXTRA_WORD, originalText);
+//                    intent.putExtra(USER_DICTIONARY_EXTRA_LOCALE,
+//                            mTextView.getTextServicesLocale().toString());
+//                    intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NEW_TASK);
+//                    mTextView.getContext().startActivity(intent);
+                    // There is no way to know if the word was indeed added. Re-check.
+                    // TODO The ExtractEditText should remove the span in the original text instead
+                    editable.removeSpan(mMisspelledSpanInfo.mSuggestionSpan);
+                    Selection.setSelection(editable, spanEnd);
+//                    updateSpellCheckSpans(spanStart, spanEnd, false);
+                    hideWithCleanUp();
+                }
+            });
+
+            mDeleteButton = (android.widget.TextView) mContentView.findViewById(R.id.deleteButton);
+            mDeleteButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    final Editable editable = (Editable) mTextView.getText();
+
+                    final int spanUnionStart = editable.getSpanStart(mSuggestionRangeSpan);
+                    int spanUnionEnd = editable.getSpanEnd(mSuggestionRangeSpan);
+                    if (spanUnionStart >= 0 && spanUnionEnd > spanUnionStart) {
+                        // Do not leave two adjacent spaces after deletion, or one at beginning of
+                        // text
+                        if (spanUnionEnd < editable.length()
+                                && Character.isSpaceChar(editable.charAt(spanUnionEnd))
+                                && (spanUnionStart == 0
+                                || Character.isSpaceChar(
+                                editable.charAt(spanUnionStart - 1)))) {
+                            spanUnionEnd = spanUnionEnd + 1;
+                        }
+                        mTextView.deleteText_internal(spanUnionStart, spanUnionEnd);
+                    }
+                    hideWithCleanUp();
+                }
+            });
+
+        }
+
+        public boolean isShowingUp() {
+            return mIsShowingUp;
+        }
+
+        public void onParentLostFocus() {
+            mIsShowingUp = false;
+        }
+
+        private class SuggestionAdapter extends BaseAdapter {
+            private LayoutInflater mInflater = (LayoutInflater) mContext.getSystemService(
+                    Context.LAYOUT_INFLATER_SERVICE);
+
+            @Override
+            public int getCount() {
+                return mNumberOfSuggestions;
+            }
+
+            @Override
+            public Object getItem(int position) {
+                return mSuggestionInfos[position];
+            }
+
+            @Override
+            public long getItemId(int position) {
+                return position;
+            }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                android.widget.TextView textView = (android.widget.TextView) convertView;
+
+                if (textView == null) {
+                    textView = (android.widget.TextView) mInflater.inflate(mTextView.mTextEditSuggestionItemLayout,
+                            parent, false);
+                }
+
+                final SuggestionInfo suggestionInfo = mSuggestionInfos[position];
+                textView.setText(suggestionInfo.mText);
+
+                //TODO: (EW) make sure this matches how we're handling applyDefaultTheme
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES./*LOLLIPOP*/N) {
+                    textView.setBackgroundColor(Color.WHITE);
+                }
+
+                return textView;
+            }
+        }
+
+        public ViewGroup getContentViewForTesting() {
+            return mContentView;
+        }
+
+        @Override
+        public void show() {
+            if (!(mTextView.getText() instanceof Editable)) return;
+            if (extractedTextModeWillBeStarted()) {
+                return;
+            }
+
+            if (updateSuggestions()) {
+                mCursorWasVisibleBeforeSuggestions = mCursorVisible;
+                mTextView.setCursorVisible(false);
+                mIsShowingUp = true;
+                super.show();
+            }
+
+            mSuggestionListView.setVisibility(mNumberOfSuggestions == 0 ? View.GONE : View.VISIBLE);
+        }
+
+        @Override
+        protected void measureContent() {
+            final DisplayMetrics displayMetrics = mTextView.getResources().getDisplayMetrics();
+            final int horizontalMeasure = View.MeasureSpec.makeMeasureSpec(
+                    displayMetrics.widthPixels, View.MeasureSpec.AT_MOST);
+            final int verticalMeasure = View.MeasureSpec.makeMeasureSpec(
+                    displayMetrics.heightPixels, View.MeasureSpec.AT_MOST);
+
+            int width = 0;
+            View view = null;
+            for (int i = 0; i < mNumberOfSuggestions; i++) {
+                view = mSuggestionsAdapter.getView(i, view, mContentView);
+                view.getLayoutParams().width = LayoutParams.WRAP_CONTENT;
+                view.measure(horizontalMeasure, verticalMeasure);
+                width = Math.max(width, view.getMeasuredWidth());
+            }
+
+            if (mAddToDictionaryButton.getVisibility() != View.GONE) {
+                mAddToDictionaryButton.measure(horizontalMeasure, verticalMeasure);
+                width = Math.max(width, mAddToDictionaryButton.getMeasuredWidth());
+            }
+
+            mDeleteButton.measure(horizontalMeasure, verticalMeasure);
+            width = Math.max(width, mDeleteButton.getMeasuredWidth());
+
+            width += mContainerView.getPaddingLeft() + mContainerView.getPaddingRight()
+                    + mContainerMarginWidth;
+
+            // Enforce the width based on actual text widths
+            mContentView.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    verticalMeasure);
+
+            Drawable popupBackground = mPopupWindow.getBackground();
+            if (popupBackground != null) {
+                if (mTempRect == null) mTempRect = new Rect();
+                popupBackground.getPadding(mTempRect);
+                width += mTempRect.left + mTempRect.right;
+            }
+            mPopupWindow.setWidth(width);
+        }
+
+        @Override
+        protected int getTextOffset() {
+            return (mTextView.getSelectionStart() + mTextView.getSelectionStart()) / 2;
+        }
+
+        @Override
+        protected int getVerticalLocalPosition(int line) {
+            final Layout layout = mTextView.getLayout();
+            return layout./*getLineBottomWithoutSpacing*/getLineBottom(line) - mContainerMarginTop;//(EW) hidden - hopefully this is good enough
+        }
+
+        @Override
+        protected int clipVertically(int positionY) {
+            final int height = mContentView.getMeasuredHeight();
+            final DisplayMetrics displayMetrics = mTextView.getResources().getDisplayMetrics();
+            return Math.min(positionY, displayMetrics.heightPixels - height);
+        }
+
+        private void hideWithCleanUp() {
+            for (final SuggestionInfo info : mSuggestionInfos) {
+                info.clear();
+            }
+            mMisspelledSpanInfo.clear();
+            hide();
+        }
+
+        private boolean updateSuggestions() {
+            Spannable spannable = (Spannable) mTextView.getText();
+            mNumberOfSuggestions =
+                    mSuggestionHelper.getSuggestionInfo(mSuggestionInfos, mMisspelledSpanInfo);
+            if (mNumberOfSuggestions == 0 && mMisspelledSpanInfo.mSuggestionSpan == null) {
+                return false;
+            }
+
+            int spanUnionStart = mTextView.getText().length();
+            int spanUnionEnd = 0;
+
+            for (int i = 0; i < mNumberOfSuggestions; i++) {
+                final SuggestionSpanInfo spanInfo = mSuggestionInfos[i].mSuggestionSpanInfo;
+                spanUnionStart = Math.min(spanUnionStart, spanInfo.mSpanStart);
+                spanUnionEnd = Math.max(spanUnionEnd, spanInfo.mSpanEnd);
+            }
+            if (mMisspelledSpanInfo.mSuggestionSpan != null) {
+                spanUnionStart = Math.min(spanUnionStart, mMisspelledSpanInfo.mSpanStart);
+                spanUnionEnd = Math.max(spanUnionEnd, mMisspelledSpanInfo.mSpanEnd);
+            }
+
+            for (int i = 0; i < mNumberOfSuggestions; i++) {
+                highlightTextDifferences(mSuggestionInfos[i], spanUnionStart, spanUnionEnd);
+            }
+
+            // Make "Add to dictionary" item visible if there is a span with the misspelled flag
+            int addToDictionaryButtonVisibility = View.GONE;
+            if (mMisspelledSpanInfo.mSuggestionSpan != null) {
+                if (mMisspelledSpanInfo.mSpanStart >= 0
+                        && mMisspelledSpanInfo.mSpanEnd > mMisspelledSpanInfo.mSpanStart) {
+                    addToDictionaryButtonVisibility = View.VISIBLE;
+                }
+            }
+            mAddToDictionaryButton.setVisibility(addToDictionaryButtonVisibility);
+
+            if (mSuggestionRangeSpan == null) mSuggestionRangeSpan = new SuggestionRangeSpan();
+            final int underlineColor;
+            if (mNumberOfSuggestions != 0) {
+                underlineColor =
+                        getUnderlineColor(mSuggestionInfos[0].mSuggestionSpanInfo.mSuggestionSpan);
+            } else {
+                underlineColor = getUnderlineColor(mMisspelledSpanInfo.mSuggestionSpan);
+            }
+
+            if (underlineColor == 0) {
+                // Fallback on the default highlight color when the first span does not provide one
+                mSuggestionRangeSpan.setBackgroundColor(mTextView.mHighlightColor);
+            } else {
+                final float BACKGROUND_TRANSPARENCY = 0.4f;
+                final int newAlpha = (int) (Color.alpha(underlineColor) * BACKGROUND_TRANSPARENCY);
+                mSuggestionRangeSpan.setBackgroundColor(
+                        (underlineColor & 0x00FFFFFF) + (newAlpha << 24));
+            }
+            spannable.setSpan(mSuggestionRangeSpan, spanUnionStart, spanUnionEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            mSuggestionsAdapter.notifyDataSetChanged();
+            return true;
+        }
+
+        private void highlightTextDifferences(SuggestionInfo suggestionInfo, int unionStart,
+                                              int unionEnd) {
+            final Spannable text = (Spannable) mTextView.getText();
+            final int spanStart = suggestionInfo.mSuggestionSpanInfo.mSpanStart;
+            final int spanEnd = suggestionInfo.mSuggestionSpanInfo.mSpanEnd;
+
+            // Adjust the start/end of the suggestion span
+            suggestionInfo.mSuggestionStart = spanStart - unionStart;
+            suggestionInfo.mSuggestionEnd = suggestionInfo.mSuggestionStart
+                    + suggestionInfo.mText.length();
+
+            suggestionInfo.mText.setSpan(mHighlightSpan, 0, suggestionInfo.mText.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            // Add the text before and after the span.
+            final String textAsString = text.toString();
+            suggestionInfo.mText.insert(0, textAsString.substring(unionStart, spanStart));
+            suggestionInfo.mText.append(textAsString.substring(spanEnd, unionEnd));
+        }
+
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            SuggestionInfo suggestionInfo = mSuggestionInfos[position];
+            replaceWithSuggestion(suggestionInfo);
+            hideWithCleanUp();
+        }
+    }
+
     /**
      * An ActionMode Callback class that is used to provide actions while in text insertion or
      * selection mode.
@@ -2270,7 +3164,6 @@ public class Editor {
     @RequiresApi(api = Build.VERSION_CODES.M)
     private class TextActionModeCallback extends ActionMode.Callback2 {
         private /*static */final String TAG = TextActionModeCallback.class.getSimpleName();
-
 
         private final Path mSelectionPath = new Path();
         private final RectF mSelectionBounds = new RectF();
@@ -2374,7 +3267,7 @@ public class Editor {
 
             //TODO: (EW) skipping because of the resource missing in older api levels. consider
             // implementing to have consistent functionality across versions
-            if (VERSION.SDK_INT >= VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (mTextView.canPasteAsPlainText()) {
                     menu.add(
                             Menu.NONE,
@@ -2416,15 +3309,14 @@ public class Editor {
         }
 
         private void updateReplaceItem(Menu menu) {
-//        boolean canReplace = mTextView.isSuggestionsEnabled() && shouldOfferToShowSuggestions();
-//        boolean replaceItemExists = menu.findItem(EditText.ID_REPLACE) != null;
-//        if (canReplace && !replaceItemExists) {
-//            menu.add(Menu.NONE, EditText.ID_REPLACE, MENU_ITEM_ORDER_REPLACE,
-//                    com.android.internal.R.string.replace)
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        } else if (!canReplace && replaceItemExists) {
-//            menu.removeItem(EditText.ID_REPLACE);
-//        }
+            boolean canReplace = mTextView.isSuggestionsEnabled() && shouldOfferToShowSuggestions();
+            boolean replaceItemExists = menu.findItem(EditText.ID_REPLACE) != null;
+            if (canReplace && !replaceItemExists) {
+                menu.add(Menu.NONE, EditText.ID_REPLACE, MENU_ITEM_ORDER_REPLACE, R.string.replace)
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+            } else if (!canReplace && replaceItemExists) {
+                menu.removeItem(EditText.ID_REPLACE);
+            }
         }
 
         private void updateAssistMenuItems(Menu menu) {
@@ -2693,7 +3585,7 @@ public class Editor {
         }
     }
 
-    public abstract class HandleView extends View implements TextViewPositionListener {
+    abstract class HandleView extends View implements TextViewPositionListener {
         private /*static */final String TAG = HandleView.class.getSimpleName();
 
         public static final int UNSET_X_VALUE = -1;
@@ -2905,7 +3797,7 @@ public class Editor {
 
         protected abstract void updatePosition(float x, float y, boolean fromTouchScreen);
 
-        //    @MagnifierHandleTrigger
+//        @MagnifierHandleTrigger
         protected abstract int getMagnifierHandleTrigger();
 
         protected boolean isAtRtlRun(@NonNull Layout layout, int offset) {
@@ -3284,7 +4176,7 @@ public class Editor {
         public void onDetached() {}
     }
 
-    public class InsertionHandleView extends HandleView {
+    private class InsertionHandleView extends HandleView {
         private static final int DELAY_BEFORE_HANDLE_FADES_OUT = 4000;
         private static final int RECENT_CUT_COPY_DURATION = 15 * 1000; // seconds
 
@@ -3292,7 +4184,7 @@ public class Editor {
         private float mDownPositionX, mDownPositionY;
         private Runnable mHider;
 
-        public InsertionHandleView(Drawable drawable, EditText textView) {
+        public InsertionHandleView(Drawable drawable) {
             super(drawable, drawable, /*com.android.internal.*/R.id.insertion_handle);
         }
 
@@ -3307,14 +4199,14 @@ public class Editor {
             if (mInsertionActionModeRunnable != null
                     && ((mTapState == TAP_STATE_DOUBLE_TAP)
                     || (mTapState == TAP_STATE_TRIPLE_CLICK)
-                    /*|| isCursorInsideEasyCorrectionSpan()*/)) {
+                    || isCursorInsideEasyCorrectionSpan())) {
                 mTextView.removeCallbacks(mInsertionActionModeRunnable);
             }
 
             // Prepare and schedule the single tap runnable to run exactly after the double tap
             // timeout has passed.
             if ((mTapState != TAP_STATE_DOUBLE_TAP) && (mTapState != TAP_STATE_TRIPLE_CLICK)
-//                && !isCursorInsideEasyCorrectionSpan()
+                    && !isCursorInsideEasyCorrectionSpan()
                     && (durationSinceCutOrCopy < RECENT_CUT_COPY_DURATION)) {
                 if (mTextActionMode == null) {
                     if (mInsertionActionModeRunnable == null) {
@@ -3604,7 +4496,8 @@ public class Editor {
             final int currentOffset = getCurrentCursorOffset();
             final boolean rtlAtCurrentOffset = isAtRtlRun(layout, currentOffset);
             final boolean atRtl = isAtRtlRun(layout, offset);
-//        final boolean isLvlBoundary = layout.isLevelBoundary(offset);
+            //TODO: (EW) can this just be skipped?
+//            final boolean isLvlBoundary = layout.isLevelBoundary(offset);
 
             // We can't determine if the user is expanding or shrinking the selection if they're
             // on a bi-di boundary, so until they've moved past the boundary we'll just place
@@ -3910,7 +4803,7 @@ public class Editor {
         mLineChangeSlopMax = max;
     }
 
-    public int getCurrentLineAdjustedForSlop(Layout layout, int prevLine, float y) {
+    private int getCurrentLineAdjustedForSlop(Layout layout, int prevLine, float y) {
         final int trueLine = mTextView.getLineAtCoordinate(y);
         if (layout == null || prevLine > layout.getLineCount()
                 || layout.getLineCount() <= 0 || prevLine < 0) {
@@ -3981,16 +4874,9 @@ public class Editor {
     private class InsertionPointCursorController implements CursorController {
         private InsertionHandleView mHandle;
 
-        protected final EditText mTextView;
-
-        public InsertionPointCursorController(EditText textView) {
-            mTextView = textView;
-        }
-
         public void show() {
             getHandle().show();
 
-            //TODO: (EW) add back once the selection modifier is added
             if (mSelectionModifierCursorController != null) {
                 mSelectionModifierCursorController.hide();
             }
@@ -4015,7 +4901,7 @@ public class Editor {
                 mSelectHandleCenter = getDrawable(mTextView.mTextSelectHandleRes);
             }
             if (mHandle == null) {
-                mHandle = new InsertionHandleView(mSelectHandleCenter, mTextView);
+                mHandle = new InsertionHandleView(mSelectHandleCenter);
             }
             return mHandle;
         }
@@ -4077,10 +4963,7 @@ public class Editor {
         // Paragraph based selection by dragging. Enabled after mouse triple click.
         private static final int DRAG_ACCELERATOR_MODE_PARAGRAPH = 3;
 
-        protected final EditText mTextView;
-
-        SelectionModifierCursorController(EditText textView) {
-            mTextView = textView;
+        SelectionModifierCursorController() {
             resetTouchOffsets();
         }
 
@@ -5322,11 +6205,75 @@ public class Editor {
     private Drawable getDrawable(int res) {
         //TODO: (EW) should we use ContextCompat to avoid the version check or should we avoid using
         // the compatibility libraries?
-        if (VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             return mTextView.getContext().getDrawable(res);
         } else {
             return mTextView.getContext().getResources().getDrawable(res);
         }
 //        return ContextCompat.getDrawable(mTextView.getContext(), res);
     }
+
+    private static int getUnderlineColor(SuggestionSpan span) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return span.getUnderlineColor();
+        }
+
+        // from SuggestionSpan for use on older versions
+        int flags = span.getFlags();
+        // The order here should match what is used in updateDrawState
+        final boolean misspelled = (flags & SuggestionSpan.FLAG_MISSPELLED) != 0;
+        final boolean easy = (flags & SuggestionSpan.FLAG_EASY_CORRECT) != 0;
+        final boolean autoCorrection = (flags & SuggestionSpan.FLAG_AUTO_CORRECTION) != 0;
+        if (easy) {
+            if (!misspelled) {
+                // mEasyCorrectUnderlineColor
+                return Color.parseColor("#88C8C8C8");
+            } else {
+                // mMisspelledUnderlineColor
+                return  Color.parseColor("#ffff4444");
+            }
+        } else if (autoCorrection) {
+            // mAutoCorrectionUnderlineColor
+            return Color.parseColor("#ff33b5e5");
+        }
+        return 0;
+    }
+
+    // from SuggestionSpan
+    /**
+     * Notifies a suggestion selection.
+     *
+     * @hide
+     */
+//    private void notifySelection(SuggestionSpan span, Context context, String original, int index) {
+//        final Intent intent = new Intent();
+//
+//        if (context == null || mNotificationTargetClassName == null) {
+//            return;
+//        }
+//        // Ensures that only a class in the original IME package will receive the
+//        // notification.
+//        String[] suggestions = span.getSuggestions();
+//        if (suggestions == null || index < 0 || index >= suggestions.length) {
+//            Log.w(TAG, "Unable to notify the suggestion as the index is out of range index=" + index
+//                    + " length=" + suggestions.length);
+//            return;
+//        }
+//
+//        // The package name is not mandatory (legacy from JB), and if the package name
+//        // is missing, we try to notify the suggestion through the input method manager.
+//        if (mNotificationTargetPackageName != null) {
+//            intent.setClassName(mNotificationTargetPackageName, mNotificationTargetClassName);
+//            intent.setAction(SuggestionSpan.ACTION_SUGGESTION_PICKED);
+//            intent.putExtra(SuggestionSpan.SUGGESTION_SPAN_PICKED_BEFORE, original);
+//            intent.putExtra(SuggestionSpan.SUGGESTION_SPAN_PICKED_AFTER, suggestions[index]);
+//            intent.putExtra(SuggestionSpan.SUGGESTION_SPAN_PICKED_HASHCODE, span.hashCode());
+//            context.sendBroadcast(intent);
+//        } else {
+//            InputMethodManager imm = getInputMethodManager();
+//            if (imm != null) {
+//                imm.notifySuggestionPicked(this, original, index);
+//            }
+//        }
+//    }
 }

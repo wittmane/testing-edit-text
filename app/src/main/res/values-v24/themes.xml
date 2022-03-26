@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.DeviceDefault" parent="Theme.Base.DeviceDefault">
+        <!--(EW) android Theme.DeviceDefault inherits from Theme.Material (versions 24 (N) through
+            at least 31 (S)), so matching our Theme.Material since this can't inherit from both-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+    </style>
+    <style name="Theme.Material" parent="Theme.Base.Material">
+        <!--(EW) from themes_material (versions 24 (N) through at least 31 (S))-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+    </style>
+    <style name="Theme.Material.Light" parent="Theme.Base.Material.Light">
+        <!--(EW) from themes_material (versions 24 (N) through at least 31 (S))-->
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+    </style>
+</resources>

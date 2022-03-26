@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <declare-styleable name="Theme">
+        <!-- Layout of the container of the suggestion popup window. -->
+        <attr name="textEditSuggestionContainerLayout" format="reference" />
+        <!-- Text appearance of the focused words to be replaced by suggested word. -->
+        <attr name="textEditSuggestionHighlightStyle" format="reference" />
+
+        <attr name="floatingToolbarPopupBackgroundDrawable" format="reference" />
+
+        <!-- Specifies that a theme has a light background with dark text on top. -->
+        <attr name="isLightTheme" format="boolean" />
+    </declare-styleable>
     <declare-styleable name="CustomSimpleTextView2">
         <attr name="android:text" />
 <!--        <attr name="android:layout_width" />-->
@@ -339,8 +350,10 @@
         <attr name="android:textEditSuggestionItemLayout" />
         <!-- Layout of the container of the suggestion popup window. -->
 <!--        <attr name="android:textEditSuggestionContainerLayout" />-->
+        <attr name="textEditSuggestionContainerLayout" />
         <!-- Style of the highlighted string in the suggestion popup window. -->
 <!--        <attr name="android:textEditSuggestionHighlightStyle" />-->
+        <attr name="textEditSuggestionHighlightStyle" />
 
 
         <!-- Reference to a drawable that will be drawn under the insertion cursor. -->

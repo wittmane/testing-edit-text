@@ -337,6 +337,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     int mTextSelectHandleLeftRes;
     int mTextSelectHandleRightRes;
     int mTextSelectHandleRes;
+    int mTextEditSuggestionItemLayout;
+    int mTextEditSuggestionContainerLayout;
+    int mTextEditSuggestionHighlightStyle;
 
     /**
      * {@link EditText} specific data, created on demand when one of the Editor fields is used.
@@ -684,12 +687,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (attr == R.styleable.EditText_android_textSelectHandle) {
                 mTextSelectHandleRes = typedArray.getResourceId(attr, 0);
             } else if (attr == R.styleable.EditText_android_textEditSuggestionItemLayout) {
-                //skipping - Layout of the TextView item that will populate the suggestion
-                // popup window.
-//            } else if (attr == R.styleable.EditText_android_textEditSuggestionContainerLayout) {
-//                //skipping - textEditSuggestionContainerLayout is private
-//            } else if (attr == R.styleable.EditText_android_textEditSuggestionHighlightStyle) {
-//                //skipping - textEditSuggestionHighlightStyle is private
+                // Layout of the TextView item that will populate the suggestion popup window.
+                mTextEditSuggestionItemLayout = typedArray.getResourceId(attr, 0);
+            } else if (attr == R.styleable.EditText_textEditSuggestionContainerLayout) {
+                // Layout of the container of the suggestion popup window.
+                mTextEditSuggestionContainerLayout = typedArray.getResourceId(attr, 0);
+            } else if (attr == R.styleable.EditText_textEditSuggestionHighlightStyle) {
+                // Style of the highlighted string in the suggestion popup window.
+                mTextEditSuggestionHighlightStyle = typedArray.getResourceId(attr, 0);
             } else if (attr == R.styleable.EditText_android_textIsSelectable) {
                 //skipping - doesn't seem to have any effect in an EditText
             } else if (attr == R.styleable.EditText_android_breakStrategy) {
@@ -3234,7 +3239,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             //TODO: (EW) is it really necessary to have special handling for suggestion spans?
             removeMisspelledSpans(sp);
-//            sp.removeSpan(mEditor.mSuggestionRangeSpan);
+            sp.removeSpan(mEditor.mSuggestionRangeSpan);
 
             ss.text = sp;
         } else {
@@ -3354,6 +3359,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         mTextSetFromXmlOrResourceId = false;
         if (text == null) {
             text = "";
+        }
+
+        // If suggestions are not enabled, remove the suggestion spans from the text
+        if (!isSuggestionsEnabled()) {
+            text = removeSuggestionSpans(text);
         }
 
         if (!mUserSetTextScaleX) mTextPaint.setTextScaleX(1.0f);
@@ -3701,9 +3711,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             applySingleLine(singleLine, !isPassword, true);
         }
 
-//        if (!isSuggestionsEnabled()) {
-//            setTextInternal(removeSuggestionSpans(mText));
-//        }
+        if (!isSuggestionsEnabled()) {
+            setTextInternal(removeSuggestionSpans(mText));
+        }
 
         InputMethodManager imm = getInputMethodManager();
         if (imm != null) imm.restartInput(this);
@@ -6397,7 +6407,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         // The spans that are inside or intersect the modified region no longer make sense
 //        removeIntersectingNonAdjacentSpans(start, start + before, SpellCheckSpan.class);
-//        removeIntersectingNonAdjacentSpans(start, start + before, SuggestionSpan.class);
+        removeIntersectingNonAdjacentSpans(start, start + before, SuggestionSpan.class);
+    }
+
+    // Removes all spans that are inside or actually overlap the start..end range
+    private <T> void removeIntersectingNonAdjacentSpans(int start, int end, Class<T> type) {
+        if (!(mText instanceof Editable)) return;
+        Editable text = (Editable) mText;
+
+        T[] spans = text.getSpans(start, end, type);
+        final int length = spans.length;
+        for (int i = 0; i < length; i++) {
+            final int spanStart = text.getSpanStart(spans[i]);
+            final int spanEnd = text.getSpanEnd(spans[i]);
+            if (spanEnd == start || spanStart == end) break;
+            text.removeSpan(spans[i]);
+        }
     }
 
     /**
@@ -7467,7 +7492,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 return true;
 
             case ID_REPLACE:
-//                mEditor.replace();
+                mEditor.replace();
                 return true;
 
             case ID_SHARE:
@@ -7523,6 +7548,43 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
         Log.w(TAG, "onScrollChanged: horiz=" + horiz + ", vert=" + vert + ", oldHoriz=" + oldHoriz + ", oldVert=" + oldVert);
         mEditor.onScrollChanged();
+    }
+
+    /**
+     * Return whether or not suggestions are enabled on this TextView. The suggestions are generated
+     * by the IME or by the spell checker as the user types. This is done by adding
+     * {@link SuggestionSpan}s to the text.
+     *
+     * When suggestions are enabled (default), this list of suggestions will be displayed when the
+     * user asks for them on these parts of the text. This value depends on the inputType of this
+     * TextView.
+     *
+     * The class of the input type must be {@link InputType#TYPE_CLASS_TEXT}.
+     *
+     * In addition, the type variation must be one of
+     * {@link InputType#TYPE_TEXT_VARIATION_NORMAL},
+     * {@link InputType#TYPE_TEXT_VARIATION_EMAIL_SUBJECT},
+     * {@link InputType#TYPE_TEXT_VARIATION_LONG_MESSAGE},
+     * {@link InputType#TYPE_TEXT_VARIATION_SHORT_MESSAGE} or
+     * {@link InputType#TYPE_TEXT_VARIATION_WEB_EDIT_TEXT}.
+     *
+     * And finally, the {@link InputType#TYPE_TEXT_FLAG_NO_SUGGESTIONS} flag must <i>not</i> be set.
+     *
+     * @return true if the suggestions popup window is enabled, based on the inputType.
+     */
+    public boolean isSuggestionsEnabled() {
+        if (mEditor == null) return false;
+        if ((mEditor.mInputType & InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT) {
+            return false;
+        }
+        if ((mEditor.mInputType & InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) > 0) return false;
+
+        final int variation = mEditor.mInputType & EditorInfo.TYPE_MASK_VARIATION;
+        return (variation == EditorInfo.TYPE_TEXT_VARIATION_NORMAL
+                || variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_SUBJECT
+                || variation == EditorInfo.TYPE_TEXT_VARIATION_LONG_MESSAGE
+                || variation == EditorInfo.TYPE_TEXT_VARIATION_SHORT_MESSAGE
+                || variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT);
     }
 
     protected void stopTextActionMode() {
@@ -7850,6 +7912,30 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     protected void deleteText_internal(int start, int end) {
         ((Editable) mText).delete(start, end);
+    }
+
+    /**
+     * Replaces the range of text [start, end[ by replacement text
+     * @hide
+     */
+    protected void replaceText_internal(int start, int end, CharSequence text) {
+        ((Editable) mText).replace(start, end, text);
+    }
+
+    /**
+     * Sets a span on the specified range of text
+     * @hide
+     */
+    protected void setSpan_internal(Object span, int start, int end, int flags) {
+        ((Editable) mText).setSpan(span, start, end, flags);
+    }
+
+    /**
+     * Moves the cursor to the specified offset position in text
+     * @hide
+     */
+    protected void setCursorPosition_internal(int start, int end) {
+        Selection.setSelection(((Editable) mText), start, end);
     }
 
     /**

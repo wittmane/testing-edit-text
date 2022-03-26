@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--(EW) (versions 24 (N) through at least 31 (S)). prior to version 24 (N), this didn't exist, and
+    Editor just created the content from code. this was added for compatibility with the Holo theme,
+    but wasn't ever used on older versions of EditText. we always use it on versions prior to
+    version 24 (N) to match the style on those versions even when the theme is technically
+    Material.-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+    <!--TODO: (EW) this was pulled from N, presumably as some backwards compatibility layout, but
+         this wasn't actually the code used in the older versions. it might be worth double checking
+         if some of these attributes are necessary. prior to N,
+         SuggestionsPopupWindow#initContentView just creates a new ListView from code, and that gets
+         added as the content view for the PopupWindow, and it seems that only the layout params
+         were specified, so basically everything else might be unnecessary.
+         SuggestionsPopupWindow#createPopupWindow creates a CustomPopupWindow with
+         com.android.internal.R.attr.textSuggestionsWindowStyle, so anything not in that may not be
+         necessary for the outer layout-->
+    <!--TODO: (EW) despite the AOSP holo theme version using the nine-patch in this layout for
+         compatibility, it sets the background color in the suggestion button style, which loses the
+         round corners. based off of that, maybe we shouldn't bother with the nine-patch even when
+         running on kitkat-->
+    <LinearLayout
+        android:id="@+id/suggestionWindowContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:elevation="@dimen/text_edit_floating_toolbar_elevation"
+        android:layout_margin="@dimen/text_edit_floating_toolbar_margin"
+        android:background="@drawable/text_edit_suggestions_window"
+        android:dropDownSelector="@android:drawable/list_selector_background"
+        android:divider="@null">
+        <ListView
+            android:id="@+id/suggestionContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="?android:attr/dividerHorizontal">
+            <!-- Suggestions will be added here. -->
+        </ListView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:divider="?android:attr/dividerHorizontal"
+            android:showDividers="middle">
+            <TextView
+                style="@style/Widget.Holo.SuggestionButton"
+                android:id="@+id/addToDictionaryButton"
+                android:text="@string/addToDictionary" />
+            <TextView
+                style="@style/Widget.Holo.SuggestionButton"
+                android:id="@+id/deleteButton"
+                android:text="@string/deleteText" />
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>

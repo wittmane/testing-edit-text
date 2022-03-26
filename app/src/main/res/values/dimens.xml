@@ -2,4 +2,7 @@
 <resources>
 
     <dimen name="text_handle_min_size">40dp</dimen>
+
+    <dimen name="text_edit_floating_toolbar_elevation">2dp</dimen>
+    <dimen name="text_edit_floating_toolbar_margin">20dp</dimen>
 </resources>

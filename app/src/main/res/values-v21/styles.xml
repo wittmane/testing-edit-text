@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--(EW) from styles_material (versions 24 (N) through at least 31 (S))-->
+    <style name="TextAppearance.Material.TextSuggestionHighlight" parent="@android:style/TextAppearance.Material">
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+    </style>
+
+    <!--(EW) from styles_material (versions 24 (N) through at least 31 (S))-->
+    <style name="Widget.Material.SuggestionButton" parent="android:Widget.Material">
+        <item name="android:textAppearance">@android:style/TextAppearance.Material.Button</item>
+        <item name="android:textColor">?android:attr/colorAccent</item>
+        <item name="android:drawablePadding">8dip</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:layout_gravity">start|center_vertical</item>
+        <item name="android:layout_height">48dip</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:paddingBottom">8dip</item>
+        <item name="android:paddingEnd">16dip</item>
+        <item name="android:paddingStart">16dip</item>
+        <item name="android:paddingTop">8dip</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+</resources>
