@@ -1,11 +1,13 @@
 package com.wittmane.testingedittext.aosp.widget;
 
+import android.app.Activity;
 import android.app.assist.AssistStructure;
 import android.app.assist.AssistStructure.ViewNode;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -7805,7 +7807,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 return true;
 
             case DragEvent.ACTION_DROP:
-//                mEditor.onDrop(event);
+                mEditor.onDrop(event);
                 return true;
 
             case DragEvent.ACTION_DRAG_ENDED:
@@ -8387,4 +8389,21 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return null;
     }
 
+
+
+
+    // (EW) from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
+    // DragAndDropPermissions isn't accessible for app devs, so we need to find the activity to get
+    // it.
+    Activity getActivity() {
+        // Gross way of unwrapping the Activity so we can get the FragmentManager
+        Context context = getContext();
+        while (context instanceof ContextWrapper) {
+            if (context instanceof Activity) {
+                return (Activity)context;
+            }
+            context = ((ContextWrapper)context).getBaseContext();
+        }
+        throw new IllegalStateException("The EditText's Context is not an Activity.");
+    }
 }

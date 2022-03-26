@@ -7,6 +7,8 @@
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
     </style>
 
+    <!--TODO: (EW) add Theme.DeviceDefault.Light-->
+
     <style name="Theme.Holo" parent="@android:style/Theme.Holo">
         <!--(EW) from Theme in themes (23 (M) through at least 31 (S)) that the android Holo theme
             inherits from-->

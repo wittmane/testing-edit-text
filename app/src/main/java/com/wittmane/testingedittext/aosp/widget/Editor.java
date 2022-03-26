@@ -1,6 +1,8 @@
 package com.wittmane.testingedittext.aosp.widget;
 
 import android.app.PendingIntent;
+import android.content.ClipData;
+import android.content.ClipData.Item;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -44,6 +46,8 @@ import android.util.SparseArray;
 import android.view.ActionMode;
 import android.view.ActionMode.Callback;
 import android.view.ContextThemeWrapper;
+import android.view.DragAndDropPermissions;
+import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
@@ -52,6 +56,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.DragShadowBuilder;
+import android.view.View.MeasureSpec;
 import android.view.View.OnClickListener;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -824,11 +830,15 @@ public class Editor {
         }
         final int start = mTextView.getSelectionStart();
         final int end = mTextView.getSelectionEnd();
-//        CharSequence selectedText = mTextView.getTransformedText(start, end);
-//        ClipData data = ClipData.newPlainText(null, selectedText);
-//        DragLocalState localState = new DragLocalState(mTextView, start, end);
-//        mTextView.startDragAndDrop(data, getTextThumbnailBuilder(start, end), localState,
-//                View.DRAG_FLAG_GLOBAL);
+        CharSequence selectedText = mTextView.getTransformedText(start, end);
+        ClipData data = ClipData.newPlainText(null, selectedText);
+        DragLocalState localState = new DragLocalState(mTextView, start, end);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            mTextView.startDragAndDrop(data, getTextThumbnailBuilder(start, end), localState,
+                    View.DRAG_FLAG_GLOBAL);
+        } else {
+            mTextView.startDrag(data, getTextThumbnailBuilder(start, end), localState, 0);
+        }
         stopTextActionMode();
         if (hasSelectionController()) {
             getSelectionController().resetTouchOffsets();
@@ -2204,6 +2214,142 @@ public class Editor {
 
         void uncancel() {
             mCancelled = false;
+        }
+    }
+
+    private DragShadowBuilder getTextThumbnailBuilder(int start, int end) {
+        android.widget.TextView shadowView = (android.widget.TextView) View.inflate(mTextView.getContext(),
+                R.layout.text_drag_thumbnail, null);
+
+        if (shadowView == null) {
+            throw new IllegalArgumentException("Unable to inflate text drag thumbnail");
+        }
+
+        if (end - start > DRAG_SHADOW_MAX_TEXT_LENGTH) {
+            final long range = getCharClusterRange(start + DRAG_SHADOW_MAX_TEXT_LENGTH);
+            end = HiddenTextUtils.unpackRangeEndFromLong(range);
+        }
+        final CharSequence text = mTextView.getTransformedText(start, end);
+        shadowView.setText(text);
+        shadowView.setTextColor(mTextView.getTextColors());
+
+        // (EW) the AOSP version just passed R.styleable.Theme_textAppearanceLarge into
+        // setTextAppearance, but that contains a reference to a styleable, rather than actually
+        // being the styleable. Android Studio shows the error "Expected resource of type style" due
+        // to this. setting android:textAppearanceLarge in the theme didn't have any impact, so this
+        // seems like it was just a bug, so I fixed it to actually look up the styleable.
+        TypedArray a = mTextView.getContext().obtainStyledAttributes(new int[]{
+                android.R.attr.textAppearanceLarge
+        });
+        int textAppearanceLarge = a.getResourceId(0, 0);
+        a.recycle();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            shadowView.setTextAppearance(textAppearanceLarge);
+        } else {
+            shadowView.setTextAppearance(mTextView.getContext(), textAppearanceLarge);
+        }
+        shadowView.setGravity(Gravity.CENTER);
+
+        shadowView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT));
+
+        final int size = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+        shadowView.measure(size, size);
+
+        shadowView.layout(0, 0, shadowView.getMeasuredWidth(), shadowView.getMeasuredHeight());
+        shadowView.invalidate();
+        return new DragShadowBuilder(shadowView);
+    }
+
+    private static class DragLocalState {
+        public EditText sourceTextView;
+        public int start, end;
+
+        public DragLocalState(EditText sourceTextView, int start, int end) {
+            this.sourceTextView = sourceTextView;
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    void onDrop(DragEvent event) {
+        SpannableStringBuilder content = new SpannableStringBuilder();
+
+        // (EW) the AOSP version called DragAndDropPermissions.obtain to get the permissions and
+        // then called takeTransient on it, but app devs don't have access to those, so we have to
+        // we have to look up the activity and get it from that.
+        final DragAndDropPermissions permissions;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            permissions = mTextView.getActivity().requestDragAndDropPermissions(event);
+        } else {
+            permissions = null;
+        }
+
+        try {
+            ClipData clipData = event.getClipData();
+            final int itemCount = clipData.getItemCount();
+            for (int i = 0; i < itemCount; i++) {
+                Item item = clipData.getItemAt(i);
+                content.append(item.coerceToStyledText(mTextView.getContext()));
+            }
+        } finally {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && permissions != null) {
+                permissions.release();
+            }
+        }
+
+        mTextView.beginBatchEdit();
+        mUndoInputFilter.freezeLastEdit();
+        try {
+            final int offset = mTextView.getOffsetForPosition(event.getX(), event.getY());
+            Object localState = event.getLocalState();
+            DragLocalState dragLocalState = null;
+            if (localState instanceof DragLocalState) {
+                dragLocalState = (DragLocalState) localState;
+            }
+            boolean dragDropIntoItself = dragLocalState != null
+                    && dragLocalState.sourceTextView == mTextView;
+
+            if (dragDropIntoItself) {
+                if (offset >= dragLocalState.start && offset < dragLocalState.end) {
+                    // A drop inside the original selection discards the drop.
+                    return;
+                }
+            }
+
+            final int originalLength = mTextView.getText().length();
+            int min = offset;
+            int max = offset;
+
+            Selection.setSelection((Spannable) mTextView.getText(), max);
+            mTextView.replaceText_internal(min, max, content);
+
+            if (dragDropIntoItself) {
+                int dragSourceStart = dragLocalState.start;
+                int dragSourceEnd = dragLocalState.end;
+                if (max <= dragSourceStart) {
+                    // Inserting text before selection has shifted positions
+                    final int shift = mTextView.getText().length() - originalLength;
+                    dragSourceStart += shift;
+                    dragSourceEnd += shift;
+                }
+
+                // Delete original selection
+                mTextView.deleteText_internal(dragSourceStart, dragSourceEnd);
+
+                // Make sure we do not leave two adjacent spaces.
+                final int prevCharIdx = Math.max(0,  dragSourceStart - 1);
+                final int nextCharIdx = Math.min(mTextView.getText().length(), dragSourceStart + 1);
+                if (nextCharIdx > prevCharIdx + 1) {
+                    CharSequence t = mTextView.getTransformedText(prevCharIdx, nextCharIdx);
+                    if (Character.isSpaceChar(t.charAt(0)) && Character.isSpaceChar(t.charAt(1))) {
+                        mTextView.deleteText_internal(prevCharIdx, prevCharIdx + 1);
+                    }
+                }
+            }
+        } finally {
+            mTextView.endBatchEdit();
+            mUndoInputFilter.freezeLastEdit();
         }
     }
 

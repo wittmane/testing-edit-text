@@ -10,6 +10,9 @@
 
         <!-- Specifies that a theme has a light background with dark text on top. -->
         <attr name="isLightTheme" format="boolean" />
+
+        <!-- Text color, typeface, size, and style for "large" text. Defaults to primary text color. -->
+        <attr name="android:textAppearanceLarge" />
     </declare-styleable>
     <declare-styleable name="CustomSimpleTextView2">
         <attr name="android:text" />

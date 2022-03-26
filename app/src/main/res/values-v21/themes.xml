@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Base.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
+        <!--TODO: (EW) isLightTheme is the same in v19, so the base possibly should shift to be
+             there-->
+
         <!--(EW) android Theme.DeviceDefault inherits from Theme.Material (as of versions 21 (L)
             through at least 31 (S)), so matching our Theme.Base.Material since this can't inherit
             from both-->
