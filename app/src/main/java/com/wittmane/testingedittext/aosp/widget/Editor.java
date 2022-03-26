@@ -276,14 +276,19 @@ public class Editor {
 //    private final CursorAnchorInfoNotifier mCursorAnchorInfoNotifier =
 //            new CursorAnchorInfoNotifier();
 
-//    private final Runnable mShowFloatingToolbar = new Runnable() {
-//        @Override
-//        public void run() {
-//            if (mTextActionMode != null) {
-//                mTextActionMode.hide(0);  // hide off.
-//            }
-//        }
-//    };
+    private final Runnable mShowFloatingToolbar = new Runnable() {
+        @Override
+        public void run() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                // (EW) this wasn't done prior to M because there was a fixed, rather than floating,
+                // toolbar
+                return;
+            }
+            if (mTextActionMode != null) {
+                mTextActionMode.hide(0);  // hide off.
+            }
+        }
+    };
 
     boolean mIsInsertionActionModeStartPending = false;
 
@@ -421,7 +426,7 @@ public class Editor {
             mTextView.removeCallbacks(mInsertionActionModeRunnable);
         }
 
-//        mTextView.removeCallbacks(mShowFloatingToolbar);
+        mTextView.removeCallbacks(mShowFloatingToolbar);
 
 //        discardTextDisplayLists();
 
@@ -1165,8 +1170,7 @@ public class Editor {
             return;
         }
         updateTapState(event);
-        //TODO: (EW) is this necessary? is this the paste popup in lollipop?
-//        updateFloatingToolbarVisibility(event);
+        updateFloatingToolbarVisibility(event);
 
         if (hasSelectionController()) {
             getSelectionController().onTouchEvent(event);
@@ -1276,39 +1280,46 @@ public class Editor {
 //        }
 //    }
 
-//    private void updateFloatingToolbarVisibility(MotionEvent event) {
-//        if (mTextActionMode != null) {
-//            switch (event.getActionMasked()) {
-//                case MotionEvent.ACTION_MOVE:
-//                    hideFloatingToolbar(ActionMode.DEFAULT_HIDE_DURATION);
-//                    break;
-//                case MotionEvent.ACTION_UP:  // fall through
-//                case MotionEvent.ACTION_CANCEL:
-//                    showFloatingToolbar();
-//            }
-//        }
-//    }
-//
-//    void hideFloatingToolbar(int duration) {
-//        if (mTextActionMode != null) {
-//            mTextView.removeCallbacks(mShowFloatingToolbar);
-//            mTextActionMode.hide(duration);
-//        }
-//    }
-//
-//    private void showFloatingToolbar() {
-//        if (mTextActionMode != null) {
-//            // Delay "show" so it doesn't interfere with click confirmations
-//            // or double-clicks that could "dismiss" the floating toolbar.
-//            int delay = ViewConfiguration.getDoubleTapTimeout();
-//            mTextView.postDelayed(mShowFloatingToolbar, delay);
-//
-//            // This classifies the text and most likely returns before the toolbar is actually
-//            // shown. If not, it will update the toolbar with the result when classification
-//            // returns. We would rather not wait for a long running classification process.
-//            invalidateActionModeAsync();
-//        }
-//    }
+    private void updateFloatingToolbarVisibility(MotionEvent event) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            // (EW) this wasn't done prior to M because there was a fixed, rather than floating,
+            // toolbar
+            return;
+        }
+        if (mTextActionMode != null) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_MOVE:
+                    hideFloatingToolbar(ActionMode.DEFAULT_HIDE_DURATION);
+                    break;
+                case MotionEvent.ACTION_UP:  // fall through
+                case MotionEvent.ACTION_CANCEL:
+                    showFloatingToolbar();
+            }
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void hideFloatingToolbar(int duration) {
+        if (mTextActionMode != null) {
+            mTextView.removeCallbacks(mShowFloatingToolbar);
+            mTextActionMode.hide(duration);
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void showFloatingToolbar() {
+        if (mTextActionMode != null) {
+            // Delay "show" so it doesn't interfere with click confirmations
+            // or double-clicks that could "dismiss" the floating toolbar.
+            int delay = ViewConfiguration.getDoubleTapTimeout();
+            mTextView.postDelayed(mShowFloatingToolbar, delay);
+
+            // This classifies the text and most likely returns before the toolbar is actually
+            // shown. If not, it will update the toolbar with the result when classification
+            // returns. We would rather not wait for a long running classification process.
+            invalidateActionModeAsync();
+        }
+    }
 
     private InputMethodManager getInputMethodManager() {
         return mTextView.getInputMethodManager();
@@ -4453,7 +4464,7 @@ public class Editor {
 
         @Override
         public boolean onTouchEvent(MotionEvent ev) {
-//        updateFloatingToolbarVisibility(ev);
+            updateFloatingToolbarVisibility(ev);
 
             switch (ev.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN: {

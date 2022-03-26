@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="Theme">
+        <!-- (EW) android:textEditSuggestionContainerLayout is private, so we have to copy it
+             here-->
         <!-- Layout of the container of the suggestion popup window. -->
         <attr name="textEditSuggestionContainerLayout" format="reference" />
+        <!-- (EW) android:textEditSuggestionHighlightStyle is private, so we have to copy it here-->
         <!-- Text appearance of the focused words to be replaced by suggested word. -->
         <attr name="textEditSuggestionHighlightStyle" format="reference" />
 
+        <!-- (EW) android:floatingToolbarPopupBackgroundDrawable is private, so we have to copy it
+             here-->
         <attr name="floatingToolbarPopupBackgroundDrawable" format="reference" />
 
+        <!-- (EW) android:isLightTheme was added in version 23 (M), but it wasn't made public until
+             version 29 (Q), so we have to copy it to use on versions prior to Q.-->
         <!-- Specifies that a theme has a light background with dark text on top. -->
         <attr name="isLightTheme" format="boolean" />
 
@@ -351,11 +358,11 @@
 
         <!-- Layout of the TextView item that will populate the suggestion popup window. -->
         <attr name="android:textEditSuggestionItemLayout" />
+        <!-- (EW) android:textEditSuggestionContainerLayout is private, so use our copy instead-->
         <!-- Layout of the container of the suggestion popup window. -->
-<!--        <attr name="android:textEditSuggestionContainerLayout" />-->
         <attr name="textEditSuggestionContainerLayout" />
+        <!-- (EW) android:textEditSuggestionHighlightStyle is private, so use our copy instead-->
         <!-- Style of the highlighted string in the suggestion popup window. -->
-<!--        <attr name="android:textEditSuggestionHighlightStyle" />-->
         <attr name="textEditSuggestionHighlightStyle" />
 
 
@@ -369,8 +376,8 @@
         <!-- Elegant text height, especially for less compacted complex script text. -->
         <attr name="android:elegantTextHeight" />
         <!-- Whether to respect the ascent and descent of the fallback fonts that are used in
-        displaying the text. When true, fallback fonts that end up getting used can increase
-        the ascent and descent of the lines that they are used on. -->
+             displaying the text. When true, fallback fonts that end up getting used can increase
+             the ascent and descent of the lines that they are used on. -->
         <attr name="android:fallbackLineSpacing" />
         <!-- Text letter-spacing. -->
         <attr name="android:letterSpacing" />
@@ -383,15 +390,15 @@
         <!-- Frequency of automatic hyphenation. -->
         <attr name="android:hyphenationFrequency" />
         <!-- Specify the type of auto-size. Note that this feature is not supported by EditText,
-        works only for TextView. -->
+             works only for TextView. -->
         <attr name="android:autoSizeTextType" />
         <!-- Specify the auto-size step size if <code>autoSizeTextType</code> is set to
-        <code>uniform</code>. The default is 1px. Overwrites
-        <code>autoSizePresetSizes</code> if set. -->
+             <code>uniform</code>. The default is 1px. Overwrites
+             <code>autoSizePresetSizes</code> if set. -->
         <attr name="android:autoSizeStepGranularity" />
         <!-- Resource array of dimensions to be used in conjunction with
-        <code>autoSizeTextType</code> set to <code>uniform</code>. Overrides
-        <code>autoSizeStepGranularity</code> if set. -->
+             <code>autoSizeTextType</code> set to <code>uniform</code>. Overrides
+             <code>autoSizeStepGranularity</code> if set. -->
         <attr name="android:autoSizePresetSizes"/>
         <!-- The minimum text size constraint to be used when auto-sizing text. -->
         <attr name="android:autoSizeMinTextSize" />
