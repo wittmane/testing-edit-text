@@ -52,6 +52,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
@@ -268,6 +269,15 @@ public class Editor {
 
 //    private final CursorAnchorInfoNotifier mCursorAnchorInfoNotifier =
 //            new CursorAnchorInfoNotifier();
+
+//    private final Runnable mShowFloatingToolbar = new Runnable() {
+//        @Override
+//        public void run() {
+//            if (mTextActionMode != null) {
+//                mTextActionMode.hide(0);  // hide off.
+//            }
+//        }
+//    };
 
     boolean mIsInsertionActionModeStartPending = false;
 
@@ -1256,6 +1266,40 @@ public class Editor {
 //        }
 //    }
 
+//    private void updateFloatingToolbarVisibility(MotionEvent event) {
+//        if (mTextActionMode != null) {
+//            switch (event.getActionMasked()) {
+//                case MotionEvent.ACTION_MOVE:
+//                    hideFloatingToolbar(ActionMode.DEFAULT_HIDE_DURATION);
+//                    break;
+//                case MotionEvent.ACTION_UP:  // fall through
+//                case MotionEvent.ACTION_CANCEL:
+//                    showFloatingToolbar();
+//            }
+//        }
+//    }
+//
+//    void hideFloatingToolbar(int duration) {
+//        if (mTextActionMode != null) {
+//            mTextView.removeCallbacks(mShowFloatingToolbar);
+//            mTextActionMode.hide(duration);
+//        }
+//    }
+//
+//    private void showFloatingToolbar() {
+//        if (mTextActionMode != null) {
+//            // Delay "show" so it doesn't interfere with click confirmations
+//            // or double-clicks that could "dismiss" the floating toolbar.
+//            int delay = ViewConfiguration.getDoubleTapTimeout();
+//            mTextView.postDelayed(mShowFloatingToolbar, delay);
+//
+//            // This classifies the text and most likely returns before the toolbar is actually
+//            // shown. If not, it will update the toolbar with the result when classification
+//            // returns. We would rather not wait for a long running classification process.
+//            invalidateActionModeAsync();
+//        }
+//    }
+
     private InputMethodManager getInputMethodManager() {
         return mTextView.getInputMethodManager();
     }
@@ -1779,6 +1823,18 @@ public class Editor {
     }
 
     /**
+     * @return <code>true</code> if the cursor/current selection overlaps a {@link SuggestionSpan}.
+     */
+    private boolean isCursorInsideSuggestionSpan() {
+        CharSequence text = mTextView.getText();
+        if (!(text instanceof Spannable)) return false;
+
+        SuggestionSpan[] suggestionSpans = ((Spannable) text).getSpans(
+                mTextView.getSelectionStart(), mTextView.getSelectionEnd(), SuggestionSpan.class);
+        return (suggestionSpans.length > 0);
+    }
+
+    /**
      * @return <code>true</code> if it's reasonable to offer to show suggestions depending on
      * the current cursor position or selection range. This method is consistent with the
      * method to show suggestions {@link SuggestionsPopupWindow#updateSuggestions}.
@@ -2064,6 +2120,18 @@ public class Editor {
 
         mCorrectionHighlighter.highlight(info);
         mUndoInputFilter.freezeLastEdit();
+    }
+
+    void showSuggestions() {
+        if (mSuggestionsPopupWindow == null) {
+            mSuggestionsPopupWindow = new SuggestionsPopupWindow();
+        }
+        hideCursorAndSpanControllers();
+        mSuggestionsPopupWindow.show();
+    }
+
+    boolean areSuggestionsShown() {
+        return mSuggestionsPopupWindow != null && mSuggestionsPopupWindow.isShowing();
     }
 
     void onScrollChanged() {
@@ -3585,6 +3653,100 @@ public class Editor {
         }
     }
 
+    // (EW) only used prior to M. this was essentially replaced by the TextActionModeCallback menu
+    private class ActionPopupWindow extends PinnedPopupWindow implements OnClickListener {
+        private /*static*/ final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
+        private android.widget.TextView mPasteTextView;
+        private android.widget.TextView mReplaceTextView;
+
+        @Override
+        protected void createPopupWindow() {
+            mPopupWindow = new PopupWindow(mTextView.getContext(), null,
+                    android.R.attr.textSelectHandleWindowStyle);
+            mPopupWindow.setClippingEnabled(true);
+        }
+
+        @Override
+        protected void initContentView() {
+            LinearLayout linearLayout = new LinearLayout(mTextView.getContext());
+            linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+            mContentView = linearLayout;
+            mContentView.setBackgroundResource(R.drawable.text_edit_paste_window);
+
+            LayoutInflater inflater = (LayoutInflater) mTextView.getContext().
+                    getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+            LayoutParams wrapContent = new LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+            mPasteTextView = (android.widget.TextView) inflater.inflate(POPUP_TEXT_LAYOUT, null);
+            mPasteTextView.setLayoutParams(wrapContent);
+            mContentView.addView(mPasteTextView);
+            mPasteTextView.setText(android.R.string.paste);
+            mPasteTextView.setOnClickListener(this);
+
+            mReplaceTextView = (android.widget.TextView) inflater.inflate(POPUP_TEXT_LAYOUT, null);
+            mReplaceTextView.setLayoutParams(wrapContent);
+            mContentView.addView(mReplaceTextView);
+            mReplaceTextView.setText(R.string.replace);
+            mReplaceTextView.setOnClickListener(this);
+        }
+
+        @Override
+        public void show() {
+            boolean canPaste = mTextView.canPaste();
+            boolean canSuggest = mTextView.isSuggestionsEnabled() && isCursorInsideSuggestionSpan();
+            mPasteTextView.setVisibility(canPaste ? View.VISIBLE : View.GONE);
+            mReplaceTextView.setVisibility(canSuggest ? View.VISIBLE : View.GONE);
+
+            if (!canPaste && !canSuggest) return;
+
+            super.show();
+        }
+
+        @Override
+        public void onClick(View view) {
+            if (view == mPasteTextView && mTextView.canPaste()) {
+                mTextView.onTextContextMenuItem(EditText.ID_PASTE);
+                hide();
+            } else if (view == mReplaceTextView) {
+                int middle = (mTextView.getSelectionStart() + mTextView.getSelectionEnd()) / 2;
+                stopTextActionMode();
+                Selection.setSelection((Spannable) mTextView.getText(), middle);
+                //TODO: (EW) this is very similar to replace(). should we just call that instead
+                // since showSuggestions doesn't exist in newer versions?
+                showSuggestions();
+            }
+        }
+
+        @Override
+        protected int getTextOffset() {
+            return (mTextView.getSelectionStart() + mTextView.getSelectionEnd()) / 2;
+        }
+
+        @Override
+        protected int getVerticalLocalPosition(int line) {
+            return mTextView.getLayout().getLineTop(line) - mContentView.getMeasuredHeight();
+        }
+
+        @Override
+        protected int clipVertically(int positionY) {
+            if (positionY < 0) {
+                final int offset = getTextOffset();
+                final Layout layout = mTextView.getLayout();
+                final int line = layout.getLineForOffset(offset);
+                positionY += layout.getLineBottom(line) - layout.getLineTop(line);
+                positionY += mContentView.getMeasuredHeight();
+
+                // Assumes insertion and selection handles share the same height
+                final Drawable handle = getDrawable(mTextView.mTextSelectHandleRes);
+                positionY += handle.getIntrinsicHeight();
+            }
+
+            return positionY;
+        }
+    }
+
     abstract class HandleView extends View implements TextViewPositionListener {
         private /*static */final String TAG = HandleView.class.getSimpleName();
 
@@ -3610,10 +3772,16 @@ public class Editor {
         private int mLastParentX, mLastParentY;
         // Parent's (TextView) previous position on screen
         private int mLastParentXOnScreen, mLastParentYOnScreen;
+        // Transient action popup window for Paste and Replace actions
+        // (EW) only used prior to M
+        protected ActionPopupWindow mActionPopupWindow;
         // Previous text character offset
         protected int mPreviousOffset = -1;
         // Previous text character offset
         private boolean mPositionHasChanged = true;
+        // Used to delay the appearance of the action popup window
+        // (EW) only used prior to M
+        private Runnable mActionPopupShower;
         // Minimum touch target size for handles
         private int mMinSize;
         // Indicates the line of text that the handle is on.
@@ -3755,6 +3923,8 @@ public class Editor {
             // Make sure the offset is always considered new, even when focusing at same position
             mPreviousOffset = -1;
             positionAtCursorOffset(getCurrentCursorOffset(), false, false);
+
+            hideActionPopupWindow();
         }
 
         protected void dismiss() {
@@ -3767,6 +3937,35 @@ public class Editor {
             dismiss();
 
             getPositionListener().removeSubscriber(this);
+        }
+
+        // (EW) this should only be used in versions prior to M since the floating
+        // TextActionModeCallback menu added in M essentially replaces this functionality
+        void showActionPopupWindow(int delay) {
+            if (mActionPopupWindow == null) {
+                mActionPopupWindow = new ActionPopupWindow();
+            }
+            if (mActionPopupShower == null) {
+                mActionPopupShower = new Runnable() {
+                    public void run() {
+                        mActionPopupWindow.show();
+                    }
+                };
+            } else {
+                mTextView.removeCallbacks(mActionPopupShower);
+            }
+            mTextView.postDelayed(mActionPopupShower, delay);
+        }
+
+        // (EW) this is only really necessary in versions prior to M since the ActionPopupWindow
+        // shouldn't be used in more recent versions, so there won't be anything to hide
+        protected void hideActionPopupWindow() {
+            if (mActionPopupShower != null) {
+                mTextView.removeCallbacks(mActionPopupShower);
+            }
+            if (mActionPopupWindow != null) {
+                mActionPopupWindow.hide();
+            }
         }
 
         public boolean isShowing() {
@@ -4171,9 +4370,13 @@ public class Editor {
             return mIsDragging;
         }
 
-        void onHandleMoved() {}
+        void onHandleMoved() {
+            hideActionPopupWindow();
+        }
 
-        public void onDetached() {}
+        public void onDetached() {
+            hideActionPopupWindow();
+        }
     }
 
     private class InsertionHandleView extends HandleView {
@@ -4181,6 +4384,7 @@ public class Editor {
         private static final int RECENT_CUT_COPY_DURATION = 15 * 1000; // seconds
 
         // Used to detect taps on the insertion handle, which will affect the insertion action mode
+        // and ActionPopupWindow
         private float mDownPositionX, mDownPositionY;
         private Runnable mHider;
 
@@ -4194,6 +4398,10 @@ public class Editor {
 
             final long durationSinceCutOrCopy =
                     SystemClock.uptimeMillis() - EditText.sLastCutCopyOrTextChangedTime;
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M
+                    && durationSinceCutOrCopy < RECENT_CUT_COPY_DURATION) {
+                showActionPopupWindow(0);
+            }
 
             // Cancel the single tap delayed runnable.
             if (mInsertionActionModeRunnable != null
@@ -4225,6 +4433,12 @@ public class Editor {
             }
 
             hideAfterDelay();
+        }
+
+        // (EW) this should only be used prior to M. see showActionPopupWindow
+        public void showWithActionPopup() {
+            show();
+            showActionPopupWindow(0);
         }
 
         private void hideAfterDelay() {
@@ -4302,11 +4516,20 @@ public class Editor {
                         final int touchSlop = viewConfiguration.getScaledTouchSlop();
 
                         if (distanceSquared < touchSlop * touchSlop) {
-                            // Tapping on the handle toggles the insertion action mode.
-                            if (mTextActionMode != null) {
-                                stopTextActionMode();
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                // Tapping on the handle toggles the insertion action mode.
+                                if (mTextActionMode != null) {
+                                    stopTextActionMode();
+                                } else {
+                                    startInsertionActionMode();
+                                }
                             } else {
-                                startInsertionActionMode();
+                                if (mActionPopupWindow != null && mActionPopupWindow.isShowing()) {
+                                    // Tapping on the handle dismisses the displayed action popup
+                                    mActionPopupWindow.hide();
+                                } else {
+                                    showWithActionPopup();
+                                }
                             }
                         }
                     } else {
@@ -4765,6 +4988,14 @@ public class Editor {
                     : /*MagnifierHandleTrigger.SELECTION_END*/2;
         }
 
+        public ActionPopupWindow getActionPopupWindow() {
+            return mActionPopupWindow;
+        }
+
+        public void setActionPopupWindow(ActionPopupWindow actionPopupWindow) {
+            mActionPopupWindow = actionPopupWindow;
+        }
+
 
 
         // copied from Layout
@@ -4934,6 +5165,7 @@ public class Editor {
     class SelectionModifierCursorController implements CursorController {
         private /*static */final String TAG = SelectionModifierCursorController.class.getSimpleName();
 
+        private static final int DELAY_BEFORE_REPLACE_ACTION = 200; // milliseconds
         // The cursor controller handles, lazily created when shown.
         SelectionHandleView mStartHandle;
         private SelectionHandleView mEndHandle;
@@ -4999,6 +5231,13 @@ public class Editor {
 
             mStartHandle.show();
             mEndHandle.show();
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                // Make sure both left and right handles share the same ActionPopupWindow (so that
+                // moving any of the handles hides the action popup).
+                mStartHandle.showActionPopupWindow(DELAY_BEFORE_REPLACE_ACTION);
+                mEndHandle.setActionPopupWindow(mStartHandle.getActionPopupWindow());
+            }
 
             hideInsertionPointCursorController();
         }
