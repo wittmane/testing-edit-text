@@ -14,57 +14,594 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!--    <TextView-->
-    <!--        android:layout_width="wrap_content"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:text="Hello World!"-->
-    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--        app:layout_constraintLeft_toLeftOf="parent"-->
-    <!--        app:layout_constraintRight_toRightOf="parent"-->
-    <!--        app:layout_constraintTop_toTopOf="parent" />-->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Standard EditText"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Custom EditText"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:id="@+id/nativeEditText1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="0dp"
+                        android:singleLine="false"
+                        android:gravity="top"
+                        android:inputType="text"
+                        android:includeFontPadding="true"
+                        android:textIsSelectable="false"
+                        android:lineHeight="100sp"
+                        android:firstBaselineToTopHeight="40sp"
+                        android:imeActionLabel="my action"
+                        android:imeActionId="42"
+                        android:text="example text with extra content to see how this scrolls"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:id="@+id/customEditText1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="0dp"
+                        android:singleLine="false"
+                        android:gravity="top"
+                        android:inputType="text"
+                        android:includeFontPadding="true"
+                        android:textIsSelectable="false"
+                        android:lineHeight="100sp"
+                        android:firstBaselineToTopHeight="40sp"
+                        android:imeActionLabel="my action"
+                        android:imeActionId="42"
+                        android:text="example text with extra content to see how this scrolls"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:imeActionLabel="my action"
+                        android:imeActionId="42"
+                        android:text="example text with extra content to see how this scrolls automatically"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:imeActionLabel="my action"
+                        android:imeActionId="42"
+                        android:text="example text with extra content to see how this scrolls automatically"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:text="example text with extra content to see how this wraps automatically"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:text="example text with extra content to see how this wraps automatically"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="4dp"
+                        android:fontVariationSettings="'ital' 1"
+                        android:singleLine="false"
+                        android:gravity="top"
+                        android:ellipsize="end"
+                        android:shadowColor="@color/teal_700"
+                        android:shadowDx="5"
+                        android:shadowDy="10"
+                        android:shadowRadius="3"
+                        android:inputType="textMultiLine"
+                        android:text="example text somereallylongsinglewordtodemonstratehowellipsizemightwork"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="4dp"
+                        android:fontVariationSettings="'ital' 1"
+                        android:singleLine="false"
+                        android:gravity="top"
+                        android:ellipsize="end"
+                        android:shadowColor="@color/teal_700"
+                        android:shadowDx="5"
+                        android:shadowDy="10"
+                        android:shadowRadius="3"
+                        android:inputType="textMultiLine"
+                        android:text="example text somereallylongsinglewordtodemonstratehowellipsizemightwork"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:shadowColor="@color/teal_700"
+                        android:shadowDx="5"
+                        android:shadowDy="10"
+                        android:shadowRadius="3"
+                        android:inputType="textMultiLine"
+                        android:selectAllOnFocus="true"
+                        android:text="example text\nnew line"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:shadowColor="@color/teal_700"
+                        android:shadowDx="5"
+                        android:shadowDy="10"
+                        android:shadowRadius="3"
+                        android:inputType="textMultiLine"
+                        android:selectAllOnFocus="true"
+                        android:text="example text\nnew line"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapWords"
+                        android:allowUndo="false"
+                        android:hint="textCapWords, no undo"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapWords"
+                        android:allowUndo="false"
+                        android:hint="textCapWords, no undo"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:paddingLeft="4dp"
+                        android:fontVariationSettings="'ital' 1"
+                        android:textSize="18dp"
+                        android:maxLines="1"
+                        android:gravity="top"
+                        android:ellipsize="end"
+                        android:scrollHorizontally="false"
+                        android:text="somereallylongsinglewordtodemonstratehowellipsizemightwork"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:paddingLeft="4dp"
+                        android:fontVariationSettings="'ital' 1"
+                        android:textSize="18dp"
+                        android:maxLines="1"
+                        android:gravity="top"
+                        android:ellipsize="end"
+                        android:scrollHorizontally="false"
+                        android:text="somereallylongsinglewordtodemonstratehowellipsizemightwork"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:digits="123z"
+                        android:selectAllOnFocus="true"
+                        android:singleLine="false"
+                        android:inputType="textMultiLine"
+                        android:hint="digits 123z selectAllOnFocus"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:digits="123z"
+                        android:selectAllOnFocus="true"
+                        android:singleLine="false"
+                        android:inputType="textMultiLine"
+                        android:hint="digits 123z selectAllOnFocus"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:autoLink="all"
+                        android:linksClickable="true"
+                        android:paddingLeft="10dp"
+                        android:singleLine="false"
+                        android:inputType="textMultiLine"
+                        android:text="example text http://www.example.com asdf\nmyemail@example.com 9205551234"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:autoLink="all"
+                        android:linksClickable="true"
+                        android:paddingLeft="10dp"
+                        android:singleLine="false"
+                        android:inputType="textMultiLine"
+                        android:text="example text http://www.example.com asdf\nmyemail@example.com 9205551234"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:includeFontPadding="false"
+                        android:inputType="textMultiLine"
+                        android:hint="hint text\nsecond line"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:includeFontPadding="false"
+                        android:inputType="textMultiLine"
+                        android:hint="hint text\nsecond line"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:inputType="textMultiLine"
+                        android:digits="123"
+                        android:hint="hint text\nsecond line"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:inputType="textMultiLine"
+                        android:digits="123"
+                        android:hint="hint text\nsecond line"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:inputType="textPassword"
+                        android:text="foo bar baz"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:inputType="textPassword"
+                        android:text="foo bar baz"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:hint="textPassword" />
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:hint="textPassword" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:inputType="textPassword"
+                        android:ems="9"
+                        android:minLines="2"
+                        android:imeOptions="actionGo"
+                        android:text="foo\nbar\nbaz"
+                        android:justificationMode="inter_word"
+                        android:hint="hint text\nsecond line"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:gravity="top"
+                        android:inputType="textPassword"
+                        android:ems="9"
+                        android:minLines="2"
+                        android:imeOptions="actionGo"
+                        android:text="foo\nbar\nbaz"
+                        android:justificationMode="inter_word"
+                        android:hint="hint text\nsecond line"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="4dp"
+                        android:paddingRight="4dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="11dp"
+                        android:inputType="text"
+                        android:hint="single line hint"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="4dp"
+                        android:paddingRight="4dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="11dp"
+                        android:inputType="text"
+                        android:hint="single line hint"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="0dp"
+                        android:singleLine="false"
+                        android:gravity="top"
+                        android:inputType="text"
+                        android:includeFontPadding="true"
+                        android:textIsSelectable="false"
+                        android:enabled="false"
+                        android:lineHeight="100sp"
+                        android:firstBaselineToTopHeight="40sp"
+                        android:text="example text with extra content to see how this scrolls"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="0dp"
+                        android:singleLine="false"
+                        android:gravity="top"
+                        android:inputType="text"
+                        android:includeFontPadding="true"
+                        android:textIsSelectable="false"
+                        android:enabled="false"
+                        android:lineHeight="100sp"
+                        android:firstBaselineToTopHeight="40sp"
+                        android:text="example text with extra content to see how this scrolls"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                </LinearLayout>
+            </LinearLayout>
+
+<!--            <TextView-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Hello World!"-->
+<!--                app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                app:layout_constraintLeft_toLeftOf="parent"-->
+<!--                app:layout_constraintRight_toRightOf="parent"-->
+<!--                app:layout_constraintTop_toTopOf="parent" />-->
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="test" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Standard EditText"/>
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="0dp"
-                android:singleLine="false"
-                android:gravity="top"
-                android:inputType="text"
-                android:includeFontPadding="true"
-                android:textIsSelectable="false"
-                android:enabled="false"
-                android:lineHeight="100sp"
-                android:firstBaselineToTopHeight="40sp"
-                android:text="example text with extra content to see how this scrolls"/>
-            <EditText
-                android:id="@+id/nativeEditText1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="0dp"
-                android:singleLine="false"
-                android:gravity="top"
-                android:inputType="text"
-                android:includeFontPadding="true"
-                android:textIsSelectable="false"
-                android:lineHeight="100sp"
-                android:firstBaselineToTopHeight="40sp"
-                android:imeActionLabel="my action"
-                android:imeActionId="42"
-                android:text="example text with extra content to see how this scrolls"/>
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapWords"
-                android:allowUndo="false"
-                android:hint="textCapWords"/>
 <!--            <EditText-->
 <!--                android:layout_width="match_parent"-->
 <!--                android:layout_height="wrap_content"-->
@@ -77,136 +614,8 @@
 <!--                android:inputType="text"-->
 <!--                android:textLocale="ko-KR"-->
 <!--                android:hint="ko-KR"/>-->
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="4dp"
-                android:fontVariationSettings="'ital' 1"
-                android:singleLine="false"
-                android:gravity="top"
-                android:ellipsize="end"
-                android:shadowColor="@color/teal_700"
-                android:shadowDx="5"
-                android:shadowDy="10"
-                android:shadowRadius="3"
-                android:inputType="textMultiLine"
-                android:text="example text somereallylongsinglewordtodemonstratehowellipsizemightwork"/>
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="4dp"
-                android:fontVariationSettings="'ital' 1"
-                android:textSize="18dp"
-                android:maxLines="1"
-                android:gravity="top"
-                android:ellipsize="end"
-                android:scrollHorizontally="false"
-                android:text="somereallylongsinglewordtodemonstratehowellipsizemightwork"/>
-            <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="100dp"
-                android:digits="123z"
-                android:selectAllOnFocus="true"
-                android:autoLink="all"
-                android:linksClickable="true"
-                android:paddingLeft="10dp"
-                android:singleLine="false"
-                android:inputType="textMultiLine"
-                android:text="example text http://www.example.com asdf\nmyemail@example.com 9205551234"/>
-            <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:gravity="top"
-                android:includeFontPadding="false"
-                android:inputType="textMultiLine"
-                android:digits="123"
-                android:hint="hint text\nsecond line"/>
-            <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:gravity="top"
-                android:inputType="textPassword"
-                android:text="foo bar baz"/>
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword"
-                android:hint="textPassword" />
-            <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:gravity="top"
-                android:inputType="textPassword"
-                android:ems="9"
-                android:minLines="2"
-                android:imeOptions="actionGo"
-                android:text="foo\nbar\nbaz"
-                android:justificationMode="inter_word"
-                android:hint="hint text\nsecond line"/>
 
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="30sp"
-                android:textColor="@color/design_default_color_primary"
-                android:text="AOSP copy"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:gravity="top"
-                android:inputType="textMultiLine"
-                android:digits="123"
-                android:hint="hint text\nsecond line"/>
-
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:gravity="top"
-                android:inputType="textMultiLine"
-                android:hint="hint text\nsecond line"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:gravity="top"
-                android:inputType="textPassword"
-                android:ems="9"
-                android:minLines="2"
-                android:imeOptions="actionGo"
-                android:text="foo\nbar\nbaz"
-                android:justificationMode="inter_word"
-                android:hint="hint text\nsecond line"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="11dp"
-                android:inputType="text"
-                android:hint="single line hint"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="100dp"
-                android:shadowColor="@color/teal_700"
-                android:shadowDx="5"
-                android:shadowDy="10"
-                android:shadowRadius="3"
-                android:inputType="textMultiLine"
-                android:selectAllOnFocus="true"
-                android:text="example text\nnew line"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapWords"
-                android:allowUndo="false"
-                android:hint="textCapWords"/>
 <!--            <com.wittmane.testingedittext.aosp.widget.EditText-->
 <!--                android:layout_width="match_parent"-->
 <!--                android:layout_height="wrap_content"-->
@@ -219,45 +628,6 @@
 <!--                android:inputType="text"-->
 <!--                android:textLocale="ko-KR"-->
 <!--                android:hint="ko-KR"/>-->
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:id="@+id/customEditText1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:inputType="text"
-                android:imeActionLabel="my action"
-                android:imeActionId="42"
-                android:text="example text with extra content to see how this scrolls automatically"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:text="example text with extra content to see how this wraps automatically"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="wrap_content"
-                android:layout_height="100dp"
-                android:digits="true"
-                android:selectAllOnFocus="true"
-                android:autoLink="web"
-                android:linksClickable="true"
-                android:paddingLeft="10dp"
-                android:singleLine="false"
-                android:inputType="textMultiLine"
-                android:text="example text http://www.example.com asdf"/>
-            <com.wittmane.testingedittext.aosp.widget.EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="0dp"
-                android:singleLine="false"
-                android:gravity="top"
-                android:inputType="text"
-                android:includeFontPadding="true"
-                android:textIsSelectable="false"
-                android:enabled="false"
-                android:lineHeight="100sp"
-                android:firstBaselineToTopHeight="40sp"
-                android:text="example text with extra content to see how this scrolls"/>
-
-
         </LinearLayout>
     </ScrollView>
 
