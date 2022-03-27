@@ -2486,9 +2486,9 @@ public class Editor {
 
         private static final int DISPLAY_TIMEOUT_MS = 3000; // 3 secs
 
-//        private EasyEditPopupWindow mPopupWindow;
-//
-//        private Runnable mHidePopup;
+        private EasyEditPopupWindow mPopupWindow;
+
+        private Runnable mHidePopup;
 
         // This function is pure but inner classes can't have static functions
         private boolean isNonIntermediateSelectionSpan(final Spannable text,
@@ -2502,55 +2502,63 @@ public class Editor {
             if (isNonIntermediateSelectionSpan(text, span)) {
                 sendUpdateSelection();
             } else if (span instanceof EasyEditSpan) {
-//                if (mPopupWindow == null) {
-//                    mPopupWindow = new EasyEditPopupWindow();
-//                    mHidePopup = new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            hide();
-//                        }
-//                    };
-//                }
-//
-//                // Make sure there is only at most one EasyEditSpan in the text
-//                if (mPopupWindow.mEasyEditSpan != null) {
-//                    mPopupWindow.mEasyEditSpan.setDeleteEnabled(false);//@hide
-//                }
-//
-//                mPopupWindow.setEasyEditSpan((EasyEditSpan) span);
-//                mPopupWindow.setOnDeleteListener(new EasyEditDeleteListener() {
-//                    @Override
-//                    public void onDeleteClick(EasyEditSpan span) {
-//                        Editable editable = (Editable) mTextView.getText();
-//                        int start = editable.getSpanStart(span);
-//                        int end = editable.getSpanEnd(span);
-//                        if (start >= 0 && end >= 0) {
-//                            sendEasySpanNotification(EasyEditSpan.TEXT_DELETED, span);
-//                            mTextView.deleteText_internal(start, end);
-//                        }
-//                        editable.removeSpan(span);
-//                    }
-//                });
-//
-//                if (mTextView.getWindowVisibility() != View.VISIBLE) {
-//                    // The window is not visible yet, ignore the text change.
-//                    return;
-//                }
-//
-//                if (mTextView.getLayout() == null) {
-//                    // The view has not been laid out yet, ignore the text change
-//                    return;
-//                }
-//
-//                if (extractedTextModeWillBeStarted()) {
-//                    // The input is in extract mode. Do not handle the easy edit in
-//                    // the original TextView, as the ExtractEditText will do
-//                    return;
-//                }
-//
-//                mPopupWindow.show();
-//                mTextView.removeCallbacks(mHidePopup);
-//                mTextView.postDelayed(mHidePopup, DISPLAY_TIMEOUT_MS);
+                if (mPopupWindow == null) {
+                    mPopupWindow = new EasyEditPopupWindow();
+                    mHidePopup = new Runnable() {
+                        @Override
+                        public void run() {
+                            hide();
+                        }
+                    };
+                }
+
+                // Make sure there is only at most one EasyEditSpan in the text
+                if (mPopupWindow.mEasyEditSpan != null) {
+                    // (EW) starting in JB-MR2 the AOSP version called setDeleteEnabled with false
+                    // on the EasyEditSpan, which is not accessible by app devs. as far as I can
+                    // tell, this function is only used here. prior to that version, it just removed
+                    // the span. this seems to have been changed in order to still be able to send
+                    // the notification that the span changed, but we can't send the notification
+                    // (see comment in sendEasySpanNotification), so leaving it with the old
+                    // functionality should be fine. if there ever is a way that we're allowed to
+                    // send the notification, this will need to change.
+                    text.removeSpan(mPopupWindow.mEasyEditSpan);
+                }
+
+                mPopupWindow.setEasyEditSpan((EasyEditSpan) span);
+                mPopupWindow.setOnDeleteListener(new EasyEditDeleteListener() {
+                    @Override
+                    public void onDeleteClick(EasyEditSpan span) {
+                        Editable editable = (Editable) mTextView.getText();
+                        int start = editable.getSpanStart(span);
+                        int end = editable.getSpanEnd(span);
+                        if (start >= 0 && end >= 0) {
+                            sendEasySpanNotification(EasyEditSpan.TEXT_DELETED, span);
+                            mTextView.deleteText_internal(start, end);
+                        }
+                        editable.removeSpan(span);
+                    }
+                });
+
+                if (mTextView.getWindowVisibility() != View.VISIBLE) {
+                    // The window is not visible yet, ignore the text change.
+                    return;
+                }
+
+                if (mTextView.getLayout() == null) {
+                    // The view has not been laid out yet, ignore the text change
+                    return;
+                }
+
+                if (extractedTextModeWillBeStarted()) {
+                    // The input is in extract mode. Do not handle the easy edit in
+                    // the original TextView, as the ExtractEditText will do
+                    return;
+                }
+
+                mPopupWindow.show();
+                mTextView.removeCallbacks(mHidePopup);
+                mTextView.postDelayed(mHidePopup, DISPLAY_TIMEOUT_MS);
             }
         }
 
@@ -2558,8 +2566,8 @@ public class Editor {
         public void onSpanRemoved(Spannable text, Object span, int start, int end) {
             if (isNonIntermediateSelectionSpan(text, span)) {
                 sendUpdateSelection();
-//            } else if (mPopupWindow != null && span == mPopupWindow.mEasyEditSpan) {
-//                hide();
+            } else if (mPopupWindow != null && span == mPopupWindow.mEasyEditSpan) {
+                hide();
             }
         }
 
@@ -2568,35 +2576,148 @@ public class Editor {
                                   int newStart, int newEnd) {
             if (isNonIntermediateSelectionSpan(text, span)) {
                 sendUpdateSelection();
-//            } else if (mPopupWindow != null && span instanceof EasyEditSpan) {
-//                EasyEditSpan easyEditSpan = (EasyEditSpan) span;
-//                sendEasySpanNotification(EasyEditSpan.TEXT_MODIFIED, easyEditSpan);
-//                text.removeSpan(easyEditSpan);
+            } else if (mPopupWindow != null && span instanceof EasyEditSpan) {
+                EasyEditSpan easyEditSpan = (EasyEditSpan) span;
+                sendEasySpanNotification(EasyEditSpan.TEXT_MODIFIED, easyEditSpan);
+                text.removeSpan(easyEditSpan);
             }
         }
 
         public void hide() {
-//            if (mPopupWindow != null) {
-//                mPopupWindow.hide();
-//                mTextView.removeCallbacks(mHidePopup);
-//            }
+            if (mPopupWindow != null) {
+                mPopupWindow.hide();
+                mTextView.removeCallbacks(mHidePopup);
+            }
         }
 
         private void sendEasySpanNotification(int textChangedType, EasyEditSpan span) {
-//            try {
-//                PendingIntent pendingIntent = span.getPendingIntent();//@hide
-//                if (pendingIntent != null) {
-//                    Intent intent = new Intent();
-//                    intent.putExtra(EasyEditSpan.EXTRA_TEXT_CHANGED_TYPE, textChangedType);
-//                    pendingIntent.send(mTextView.getContext(), 0, intent);
-//                }
-//            } catch (PendingIntent.CanceledException e) {
-//                // This should not happen, as we should try to send the intent only once.
-//                Log.w(TAG, "PendingIntent for notification cannot be sent", e);
-//            }
+            //TODO: (EW) getPendingIntent is hidden from app devs, which seems weird since setting
+            // it in the constructor can be used by app devs. I'm not sure how non-framework text
+            // editors are expected to be able to handle this. I'm leaving this here for visibility
+            // in case there ever is a way for us to do this.
+            //try {
+            //    PendingIntent pendingIntent = span.getPendingIntent(); // @hide
+            //    if (pendingIntent != null) {
+            //        Intent intent = new Intent();
+            //        intent.putExtra(EasyEditSpan.EXTRA_TEXT_CHANGED_TYPE, textChangedType);
+            //        pendingIntent.send(mTextView.getContext(), 0, intent);
+            //    }
+            //} catch (PendingIntent.CanceledException e) {
+            //    // This should not happen, as we should try to send the intent only once.
+            //    Log.w(TAG, "PendingIntent for notification cannot be sent", e);
+            //}
         }
     }
 
+    /**
+     * Listens for the delete event triggered by {@link EasyEditPopupWindow}.
+     */
+    private interface EasyEditDeleteListener {
+
+        /**
+         * Clicks the delete pop-up.
+         */
+        void onDeleteClick(EasyEditSpan span);
+    }
+
+    /**
+     * Displays the actions associated to an {@link EasyEditSpan}. The pop-up is controlled
+     * by {@link SpanController}.
+     */
+    private class EasyEditPopupWindow extends PinnedPopupWindow
+            implements OnClickListener {
+        private /*static*/ final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
+        private android.widget.TextView mDeleteTextView;
+        private EasyEditSpan mEasyEditSpan;
+        private EasyEditDeleteListener mOnDeleteListener;
+
+        @Override
+        protected void createPopupWindow() {
+            mPopupWindow = new PopupWindow(mTextView.getContext(), null,
+                    android.R.attr.textSelectHandleWindowStyle);
+            mPopupWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+            mPopupWindow.setClippingEnabled(true);
+        }
+
+        @Override
+        protected void initContentView() {
+            LinearLayout linearLayout = new LinearLayout(mTextView.getContext());
+            linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+            mContentView = linearLayout;
+            mContentView.setBackgroundResource(R.drawable.text_edit_side_paste_window);
+
+            LayoutInflater inflater = (LayoutInflater) mTextView.getContext()
+                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+            LayoutParams wrapContent = new LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+            mDeleteTextView = (android.widget.TextView) inflater.inflate(POPUP_TEXT_LAYOUT, null);
+            mDeleteTextView.setLayoutParams(wrapContent);
+            mDeleteTextView.setText(R.string.delete);
+            mDeleteTextView.setOnClickListener(this);
+            mContentView.addView(mDeleteTextView);
+        }
+
+        public void setEasyEditSpan(EasyEditSpan easyEditSpan) {
+            mEasyEditSpan = easyEditSpan;
+        }
+
+        private void setOnDeleteListener(EasyEditDeleteListener listener) {
+            mOnDeleteListener = listener;
+        }
+
+        @Override
+        public void onClick(View view) {
+            // (EW) the AOSP version also checked isDeleteEnabled on the EasyEditSpan, which is
+            // isn't accessible by app devs. as far as I can tell, setDeleteEnabled is the only way
+            // to disable delete, which seems to only be called from the AOSP Editor for this, so it
+            // should be safe to ignore since we're just removing the span instead of flagging
+            // deleting as disabled. see comment in SpanController#onSpanAdded
+            if (view == mDeleteTextView
+                    && mEasyEditSpan != null/* && mEasyEditSpan.isDeleteEnabled()*/
+                    && mOnDeleteListener != null) {
+                mOnDeleteListener.onDeleteClick(mEasyEditSpan);
+            }
+        }
+
+        @Override
+        public void hide() {
+            if (mEasyEditSpan != null) {
+                // (EW) prior to JB-MR2 (where the AOSP version started calling setDeleteEnabled
+                // with false on the EasyEditSpan), this function didn't exist, but it probably
+                // makes sense to match how SpanController#onSpanAdded handles the alternative to
+                // setDeleteEnabled by just removing the span. see comment in
+                // SpanController#onSpanAdded
+                Editable editable = (Editable) mTextView.getText();
+                if (editable != null) {
+                    editable.removeSpan(mEasyEditSpan);
+                }
+                mEasyEditSpan = null;
+            }
+            mOnDeleteListener = null;
+            super.hide();
+        }
+
+        @Override
+        protected int getTextOffset() {
+            // Place the pop-up at the end of the span
+            Editable editable = (Editable) mTextView.getText();
+            return editable.getSpanEnd(mEasyEditSpan);
+        }
+
+        @Override
+        protected int getVerticalLocalPosition(int line) {
+            final Layout layout = mTextView.getLayout();
+            return layout./*getLineBottomWithoutSpacing*/getLineBottom(line);//(EW) hidden - hopefully this is good enough
+        }
+
+        @Override
+        protected int clipVertically(int positionY) {
+            // As we display the pop-up below the span, no vertical clipping is required.
+            return positionY;
+        }
+    }
 
     private class PositionListener implements ViewTreeObserver.OnPreDrawListener {
         // 3 handles

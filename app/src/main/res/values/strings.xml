@@ -12,4 +12,7 @@
 
     <!-- Item on EditText context menu. This action is used to replace the current word by other suggested words, suggested by the IME or the spell checker -->
     <string name="replace">Replace\u2026</string>
+
+    <!-- Item on EditText pop-up window. This action is used to delete the text that the user recently added. [CHAR LIMIT=15] -->
+    <string name="delete">Delete</string>
 </resources>
