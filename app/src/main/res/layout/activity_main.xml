@@ -420,6 +420,7 @@
                         android:singleLine="true"
                         android:gravity="top"
                         android:inputType="textPassword"
+                        android:importantForAutofill="no"
                         android:text="foo bar baz"/>
                 </LinearLayout>
                 <LinearLayout
@@ -432,6 +433,7 @@
                         android:singleLine="true"
                         android:gravity="top"
                         android:inputType="textPassword"
+                        android:importantForAutofill="no"
                         android:text="foo bar baz"/>
                 </LinearLayout>
             </LinearLayout>
@@ -447,6 +449,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
+                        android:importantForAutofill="no"
                         android:hint="textPassword" />
                 </LinearLayout>
                 <LinearLayout
@@ -457,6 +460,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
+                        android:importantForAutofill="no"
                         android:hint="textPassword" />
                 </LinearLayout>
             </LinearLayout>
@@ -474,6 +478,7 @@
                         android:singleLine="true"
                         android:gravity="top"
                         android:inputType="textPassword"
+                        android:importantForAutofill="no"
                         android:ems="9"
                         android:minLines="2"
                         android:imeOptions="actionGo"
@@ -491,6 +496,7 @@
                         android:singleLine="true"
                         android:gravity="top"
                         android:inputType="textPassword"
+                        android:importantForAutofill="no"
                         android:ems="9"
                         android:minLines="2"
                         android:imeOptions="actionGo"
@@ -530,6 +536,33 @@
                         android:paddingBottom="11dp"
                         android:inputType="text"
                         android:hint="single line hint"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:autofillHints="username"
+                        android:hint="username autofill"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:autofillHints="password"
+                        android:hint="password autofill"/>
                 </LinearLayout>
             </LinearLayout>
 

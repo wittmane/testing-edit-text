@@ -583,6 +583,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (attr == R.styleable.EditText_android_hint) {
                 hint = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_text) {
+                textIsSetFromXml = true;
+                mTextId = typedArray.getResourceId(attr, /*ResourceId.ID_NULL*/0);
                 text = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_scrollHorizontally) {
                 //skipping - doesn't seem to have any effect in an EditText
@@ -7167,11 +7169,35 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     }
                 }
                 structure.setMaxTextLength(maxLength);
+            } else {
+                //TODO: (EW) handle?
             }
         }
         structure.setHint(getHint());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             structure.setInputType(getInputType());
+        } else {
+            //TODO: (EW) handle?
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    boolean canRequestAutofill() {
+        if (!isAutofillable()) {
+            return false;
+        }
+        final AutofillManager afm = getContext().getSystemService(AutofillManager.class);
+        if (afm != null) {
+            return afm.isEnabled();
+        }
+        return false;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void requestAutofill() {
+        final AutofillManager afm = getContext().getSystemService(AutofillManager.class);
+        if (afm != null) {
+            afm.requestAutofill(this);
         }
     }
 
@@ -7502,9 +7528,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 return true;
 
             case ID_AUTOFILL:
-//                requestAutofill();
-//                stopTextActionMode();
-                return true;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    requestAutofill();
+                    stopTextActionMode();
+                    return true;
+                }
+                break;
         }
         return false;
     }

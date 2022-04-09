@@ -3602,14 +3602,15 @@ public class Editor {
 //                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
 //        }
 
-//        if (mTextView.canRequestAutofill()) {
-//            final String selected = mTextView.getSelectedText();
-//            if (selected == null || selected.isEmpty()) {
-//                menu.add(Menu.NONE, EditText.ID_AUTOFILL, MENU_ITEM_ORDER_AUTOFILL,
-//                        com.android.internal.R.string.autofill)
-//                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-//            }
-//        }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mTextView.canRequestAutofill()) {
+                final String selected = mTextView.getSelectedText();
+                if (selected == null || selected.isEmpty()) {
+                    menu.add(Menu.NONE, EditText.ID_AUTOFILL, MENU_ITEM_ORDER_AUTOFILL,
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
+                                    ? android.R.string.autofill : R.string.autofill)
+                            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+                }
+            }
 
             //TODO: (EW) skipping because of the resource missing in older api levels. consider
             // implementing to have consistent functionality across versions
