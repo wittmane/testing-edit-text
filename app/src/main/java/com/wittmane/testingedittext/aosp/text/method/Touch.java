@@ -1,14 +1,19 @@
 package com.wittmane.testingedittext.aosp.text.method;
 
 import android.text.Layout;
+import android.text.Layout.Alignment;
 import android.text.NoCopySpan;
 import android.text.Spannable;
+import android.text.method.MetaKeyKeyListener;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
+/**
+ * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView
+ */
 public class Touch {
     private Touch() { }
 
@@ -23,7 +28,7 @@ public class Touch {
         final int availableWidth = widget.getWidth() - horizontalPadding;
 
         final int top = layout.getLineForVertical(y);
-        Layout.Alignment a = layout.getParagraphAlignment(top);
+        Alignment a = layout.getParagraphAlignment(top);
         boolean ltr = layout.getParagraphDirection(top) > 0;
 
         int left, right;
@@ -46,10 +51,10 @@ public class Touch {
         final int actualWidth = right - left;
 
         if (actualWidth < availableWidth) {
-            if (a == Layout.Alignment.ALIGN_CENTER) {
+            if (a == Alignment.ALIGN_CENTER) {
                 x = left - ((availableWidth - actualWidth) / 2);
-            } else if ((ltr && (a == Layout.Alignment.ALIGN_OPPOSITE)) ||
-                    (!ltr && (a == Layout.Alignment.ALIGN_NORMAL))/* ||
+            } else if ((ltr && (a == Alignment.ALIGN_OPPOSITE)) ||
+                    (!ltr && (a == Alignment.ALIGN_NORMAL))/* ||
                     (a == Alignment.ALIGN_RIGHT)*/) {//TODO: (EW) does this need to be handled?
                 // align_opposite does NOT mean align_right, we need the paragraph
                 // direction to resolve it to left or right
@@ -71,23 +76,23 @@ public class Touch {
      */
     public static boolean onTouchEvent(EditText widget, Spannable buffer,
                                        MotionEvent event) {
-        Touch.DragState[] ds;
+        DragState[] ds;
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                ds = buffer.getSpans(0, buffer.length(), Touch.DragState.class);
+                ds = buffer.getSpans(0, buffer.length(), DragState.class);
 
                 for (int i = 0; i < ds.length; i++) {
                     buffer.removeSpan(ds[i]);
                 }
 
-                buffer.setSpan(new Touch.DragState(event.getX(), event.getY(),
+                buffer.setSpan(new DragState(event.getX(), event.getY(),
                                 widget.getScrollX(), widget.getScrollY()),
                         0, 0, Spannable.SPAN_MARK_MARK);
                 return true;
 
             case MotionEvent.ACTION_UP:
-                ds = buffer.getSpans(0, buffer.length(), Touch.DragState.class);
+                ds = buffer.getSpans(0, buffer.length(), DragState.class);
 
                 for (int i = 0; i < ds.length; i++) {
                     buffer.removeSpan(ds[i]);
@@ -100,7 +105,7 @@ public class Touch {
                 }
 
             case MotionEvent.ACTION_MOVE:
-                ds = buffer.getSpans(0, buffer.length(), Touch.DragState.class);
+                ds = buffer.getSpans(0, buffer.length(), DragState.class);
 
                 if (ds.length > 0) {
                     if (ds[0].mFarEnough == false) {
@@ -116,9 +121,9 @@ public class Touch {
                         ds[0].mUsed = true;
                         boolean cap = (event.getMetaState() & KeyEvent.META_SHIFT_ON) != 0
                                 || MetaKeyKeyListener.getMetaState(buffer,
-                                MetaKeyKeyListener.META_SHIFT_ON) == 1
+                                        MetaKeyKeyListener.META_SHIFT_ON) == 1
                                 || MetaKeyKeyListener.getMetaState(buffer,
-                                MetaKeyKeyListener.META_SELECTING) != 0;
+                                        ProtectedMetaKeyKeyListener.META_SELECTING) != 0;
 
                         float dx;
                         float dy;
@@ -166,7 +171,7 @@ public class Touch {
      * @param buffer The text buffer.
      */
     public static int getInitialScrollX(EditText widget, Spannable buffer) {
-        Touch.DragState[] ds = buffer.getSpans(0, buffer.length(), Touch.DragState.class);
+        DragState[] ds = buffer.getSpans(0, buffer.length(), DragState.class);
         return ds.length > 0 ? ds[0].mScrollX : -1;
     }
 
@@ -175,7 +180,7 @@ public class Touch {
      * @param buffer The text buffer.
      */
     public static int getInitialScrollY(EditText widget, Spannable buffer) {
-        Touch.DragState[] ds = buffer.getSpans(0, buffer.length(), Touch.DragState.class);
+        DragState[] ds = buffer.getSpans(0, buffer.length(), DragState.class);
         return ds.length > 0 ? ds[0].mScrollY : -1;
     }
 

@@ -16,23 +16,25 @@ import com.wittmane.testingedittext.aosp.widget.EditText;
  * This interface is intended for use by the framework; it should not be implemented
  * directly by applications.
  * </p>
+ *
+ * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView
  */
 public interface MovementMethod {
-    public void initialize(EditText widget, Spannable text);
-    public boolean onKeyDown(EditText widget, Spannable text, int keyCode, KeyEvent event);
-    public boolean onKeyUp(EditText widget, Spannable text, int keyCode, KeyEvent event);
+    void initialize(EditText widget, Spannable text);
+    boolean onKeyDown(EditText widget, Spannable text, int keyCode, KeyEvent event);
+    boolean onKeyUp(EditText widget, Spannable text, int keyCode, KeyEvent event);
 
     /**
      * If the key listener wants to other kinds of key events, return true,
      * otherwise return false and the caller (i.e. the widget host)
      * will handle the key.
      */
-    public boolean onKeyOther(EditText view, Spannable text, KeyEvent event);
+    boolean onKeyOther(EditText view, Spannable text, KeyEvent event);
 
-    public void onTakeFocus(EditText widget, Spannable text, int direction);
-    public boolean onTrackballEvent(EditText widget, Spannable text, MotionEvent event);
-    public boolean onTouchEvent(EditText widget, Spannable text, MotionEvent event);
-    public boolean onGenericMotionEvent(EditText widget, Spannable text, MotionEvent event);
+    void onTakeFocus(EditText widget, Spannable text, int direction);
+    boolean onTrackballEvent(EditText widget, Spannable text, MotionEvent event);
+    boolean onTouchEvent(EditText widget, Spannable text, MotionEvent event);
+    boolean onGenericMotionEvent(EditText widget, Spannable text, MotionEvent event);
 
     /**
      * Returns true if this movement method allows arbitrary selection
@@ -41,5 +43,5 @@ public interface MovementMethod {
      * limited to links.  The "Select All" menu item is disabled
      * if arbitrary selection is not allowed.
      */
-    public boolean canSelectArbitrarily();
+    boolean canSelectArbitrarily();
 }

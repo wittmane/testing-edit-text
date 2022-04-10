@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.aosp.text;
 
 import android.os.Parcelable;
 import android.text.Spanned;
@@ -12,6 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class HiddenTextUtils {
+    /** @hide */
+    public static final int SUGGESTION_RANGE_SPAN = 21;
+
     /**
      * Intent size limitations prevent sending over a megabyte of data. Limit
      * text length to 100K characters - 200KB.

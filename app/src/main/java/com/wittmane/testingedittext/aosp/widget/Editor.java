@@ -1,6 +1,5 @@
 package com.wittmane.testingedittext.aosp.widget;
 
-import android.app.PendingIntent;
 import android.content.ClipData;
 import android.content.ClipData.Item;
 import android.content.Context;
@@ -10,7 +9,6 @@ import android.content.pm.ResolveInfo;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorSpace;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -83,7 +81,6 @@ import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.core.content.ContextCompat;
 
 import com.wittmane.testingedittext.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;
@@ -93,10 +90,11 @@ import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 //import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
-import com.wittmane.testingedittext.CustomInputConnection;
-import com.wittmane.testingedittext.HiddenTextUtils;
+import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
+import com.wittmane.testingedittext.aosp.widget.EditText.OnEditorActionListener;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -1542,8 +1540,8 @@ public class Editor {
                 int candEnd = -1;
                 if (mTextView.getText() instanceof Spannable) {
                     final Spannable sp = (Spannable) mTextView.getText();
-                    candStart = CustomInputConnection.getComposingSpanStart(sp);
-                    candEnd = CustomInputConnection.getComposingSpanEnd(sp);
+                    candStart = EditableInputConnection.getComposingSpanStart(sp);
+                    candEnd = EditableInputConnection.getComposingSpanEnd(sp);
                 }
                 // InputMethodManager#updateSelection skips sending the message if
                 // none of the parameters have changed since the last time we called it.
@@ -6014,7 +6012,7 @@ public class Editor {
         public CharSequence imeActionLabel;
         public int imeActionId;
         public Bundle extras;
-//        OnEditorActionListener onEditorActionListener;
+        OnEditorActionListener onEditorActionListener;
         public boolean enterDown;
         public LocaleList imeHintLocales;
     }

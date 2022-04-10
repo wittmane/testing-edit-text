@@ -4,23 +4,29 @@ import android.graphics.Rect;
 import android.text.Layout;
 import android.text.Selection;
 import android.text.Spannable;
+import android.text.method.MetaKeyKeyListener;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.wittmane.testingedittext.BreakIterator;
+import com.wittmane.testingedittext.aosp.text.HiddenSelection;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
 /**
  * A movement method that provides cursor movement and selection.
  * Supports displaying the context menu on DPad Center.
+ *
+ * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView and
+ * a couple methods were hidden.
  */
 public class ArrowKeyMovementMethod extends BaseMovementMethod implements MovementMethod {
     static final String TAG = ArrowKeyMovementMethod.class.getSimpleName();
 
     private static boolean isSelecting(Spannable buffer) {
         return ((MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SHIFT_ON) == 1) ||
-                (MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SELECTING) != 0));
+                (MetaKeyKeyListener.getMetaState(buffer, ProtectedMetaKeyKeyListener.META_SELECTING) != 0));
     }
 
     private static int getCurrentLineTop(Spannable buffer, Layout layout) {
@@ -44,7 +50,7 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
                     if (event.getAction() == KeyEvent.ACTION_DOWN
                             && event.getRepeatCount() == 0
                             && MetaKeyKeyListener.getMetaState(buffer,
-                            MetaKeyKeyListener.META_SELECTING, event) != 0) {
+                                    ProtectedMetaKeyKeyListener.META_SELECTING, event) != 0) {
                         return widget.showContextMenu();
                     }
                 }
@@ -59,15 +65,7 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
         if (isSelecting(buffer)) {
             return Selection.extendLeft(buffer, layout);
         } else {
-            Log.w(TAG, "left: buffer=\"" + buffer + "\"");
-            Log.w(TAG, "left: widgetinitialSelectionStart=" + widget.getSelectionStart()
-                    + ", widgetinitialSelectionEnd=" + widget.getSelectionEnd());
-            Log.w(TAG, "left: initialSelectionStart=" + Selection.getSelectionStart(buffer)
-                    + ", initialSelectionEnd=" + Selection.getSelectionEnd(buffer));
-            boolean result = Selection.moveLeft(buffer, layout);
-            Log.w(TAG, "left: updatedSelectionStart=" + Selection.getSelectionStart(buffer)
-                    + ", updatedSelectionEnd=" + Selection.getSelectionEnd(buffer));
-            return result;
+            return Selection.moveLeft(buffer, layout);
         }
     }
 
@@ -192,21 +190,19 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
     /** {@hide} */
     @Override
     protected boolean leftWord(EditText widget, Spannable buffer) {
-//        final int selectionEnd = widget.getSelectionEnd();
-//        final WordIterator wordIterator = widget.getWordIterator();
-//        wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
-//        return Selection.moveToPreceding(buffer, wordIterator, isSelecting(buffer));
-        return false;
+        final int selectionEnd = widget.getSelectionEnd();
+        final WordIterator wordIterator = widget.getWordIterator();
+        wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
+        return HiddenSelection.moveToPreceding(buffer, wordIterator, isSelecting(buffer));
     }
 
     /** {@hide} */
     @Override
     protected boolean rightWord(EditText widget, Spannable buffer) {
-//        final int selectionEnd = widget.getSelectionEnd();
-//        final WordIterator wordIterator = widget.getWordIterator();
-//        wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
-//        return Selection.moveToFollowing(buffer, wordIterator, isSelecting(buffer));
-        return false;
+        final int selectionEnd = widget.getSelectionEnd();
+        final WordIterator wordIterator = widget.getWordIterator();
+        wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
+        return HiddenSelection.moveToFollowing(buffer, wordIterator, isSelecting(buffer));
     }
 
     @Override
@@ -292,7 +288,7 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
                 }
 
                 MetaKeyKeyListener.adjustMetaAfterKeypress(buffer);
-                MetaKeyKeyListener.resetLockedMeta(buffer);
+                ProtectedMetaKeyKeyListener.resetLockedMeta(buffer);
 
                 return true;
             }

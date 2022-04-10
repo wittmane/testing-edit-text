@@ -44,20 +44,45 @@ public final class SelectionActionModeHelper {
     private final SelectionTracker mSelectionTracker;
 
     public SelectionActionModeHelper(@NonNull Editor editor) {
-//        mEditor = Preconditions.checkNotNull(editor);
-        mEditor = editor;
+        mEditor = Objects.requireNonNull(editor);
         mTextView = mEditor.getTextView();
         mSelectionTracker = new SelectionTracker(mTextView);
+    }
+
+    /**
+     * Swap the selection index if the start index is greater than end index.
+     *
+     * @return the swap result, index 0 is the start index and index 1 is the end index.
+     */
+    private static int[] sortSelectionIndices(int selectionStart, int selectionEnd) {
+        if (selectionStart < selectionEnd) {
+            return new int[]{selectionStart, selectionEnd};
+        }
+        return new int[]{selectionEnd, selectionStart};
+    }
+
+    /**
+     * The {@link EditText} selection start and end index may not be sorted, this method will swap
+     * the {@link EditText} selection index if the start index is greater than end index.
+     *
+     * @param textView the selected TextView.
+     * @return the swap result, index 0 is the start index and index 1 is the end index.
+     */
+    private static int[] sortSelectionIndicesFromTextView(EditText textView) {
+        int selectionStart = textView.getSelectionStart();
+        int selectionEnd = textView.getSelectionEnd();
+        return sortSelectionIndices(selectionStart, selectionEnd);
     }
 
     /**
      * Starts Selection ActionMode.
      */
     public void startSelectionActionModeAsync() {
+        int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mTextView);
         mSelectionTracker.onOriginalSelection(
                 getText(mTextView),
-                mTextView.getSelectionStart(),
-                mTextView.getSelectionEnd(),
+                sortedSelectionIndices[0],
+                sortedSelectionIndices[1],
                 false /*isLink*/);
         startSelectionActionMode();
     }
@@ -66,7 +91,9 @@ public final class SelectionActionModeHelper {
      * Starts Link ActionMode.
      */
     public void startLinkActionModeAsync(int start, int end) {
-        mSelectionTracker.onOriginalSelection(getText(mTextView), start, end, true /*isLink*/);
+        int[] indexResult = sortSelectionIndices(start, end);
+        mSelectionTracker.onOriginalSelection(getText(mTextView), indexResult[0], indexResult[1],
+                true /*isLink*/);
         startLinkActionMode();
     }
 
@@ -83,7 +110,8 @@ public final class SelectionActionModeHelper {
     }
 
     public void onTextChanged(int start, int end) {
-        mSelectionTracker.onTextChanged(start, end);
+        int[] sortedSelectionIndices = sortSelectionIndices(start, end);
+        mSelectionTracker.onTextChanged(sortedSelectionIndices[0], sortedSelectionIndices[1]);
     }
 
     public boolean resetSelection(int textIndex) {
@@ -107,13 +135,12 @@ public final class SelectionActionModeHelper {
     }
 
     private void startActionMode(@Editor.TextActionMode int actionMode) {
-        if (mEditor.startActionModeInternal(actionMode)) {
-            final SelectionModifierCursorController controller = mEditor.getSelectionController();
-            if (controller != null
-                    && (mTextView.isTextSelectable() || mTextView.isTextEditable())) {
-                controller.show();
-            }
+        final SelectionModifierCursorController controller = mEditor.getSelectionController();
+        if (controller != null
+                && (mTextView.isTextSelectable() || mTextView.isTextEditable())) {
+            controller.show();
         }
+        mEditor.startActionModeInternal(actionMode);
         mEditor.setRestartActionModeOnNextRefresh(false);
     }
 
@@ -122,8 +149,9 @@ public final class SelectionActionModeHelper {
         if (actionMode != null) {
             actionMode.invalidate();
         }
+        final int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mTextView);
         mSelectionTracker.onSelectionUpdated(
-                mTextView.getSelectionStart(), mTextView.getSelectionEnd());
+                sortedSelectionIndices[0], sortedSelectionIndices[1]);
     }
 
     /**
@@ -141,8 +169,7 @@ public final class SelectionActionModeHelper {
         private final SelectionTracker.LogAbandonRunnable mDelayedLogAbandon = new SelectionTracker.LogAbandonRunnable();
 
         SelectionTracker(EditText textView) {
-//            mTextView = Preconditions.checkNotNull(textView);
-            mTextView = textView;
+            mTextView = Objects.requireNonNull(textView);
         }
 
         /**
@@ -167,6 +194,8 @@ public final class SelectionActionModeHelper {
                 mSelectionStart = selectionStart;
                 mSelectionEnd = selectionEnd;
                 mAllowReset = false;
+                //TODO: (EW) implement?
+//                mTextView.notifyContentCaptureTextChanged();
             }
         }
 
@@ -175,6 +204,8 @@ public final class SelectionActionModeHelper {
          */
         public void onSelectionDestroyed() {
             mAllowReset = false;
+            //TODO: (EW) implement?
+//            mTextView.notifyContentCaptureTextChanged();
             // Wait a few ms to see if the selection was destroyed because of a text change event.
             mDelayedLogAbandon.schedule(100 /* ms */);
         }
@@ -203,8 +234,9 @@ public final class SelectionActionModeHelper {
                 mAllowReset = false;
                 boolean selected = editor.selectCurrentWord();
                 if (selected) {
-                    mSelectionStart = editor.getTextView().getSelectionStart();
-                    mSelectionEnd = editor.getTextView().getSelectionEnd();
+                    final int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(textView);
+                    mSelectionStart = sortedSelectionIndices[0];
+                    mSelectionEnd = sortedSelectionIndices[1];
                 }
                 return selected;
             }

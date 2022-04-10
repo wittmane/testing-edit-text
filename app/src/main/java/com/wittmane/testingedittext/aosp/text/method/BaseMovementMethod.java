@@ -2,6 +2,7 @@ package com.wittmane.testingedittext.aosp.text.method;
 
 import android.text.Layout;
 import android.text.Spannable;
+import android.text.method.MetaKeyKeyListener;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -12,6 +13,9 @@ import com.wittmane.testingedittext.aosp.widget.EditText;
 
 /**
  * Base classes for movement methods.
+ *
+ * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView and
+ * a couple methods were hidden.
  */
 public class BaseMovementMethod implements MovementMethod {
     static final String TAG = BaseMovementMethod.class.getSimpleName();
@@ -30,7 +34,7 @@ public class BaseMovementMethod implements MovementMethod {
         boolean handled = handleMovementKey(widget, text, keyCode, movementMetaState, event);
         if (handled) {
             MetaKeyKeyListener.adjustMetaAfterKeypress(text);
-            MetaKeyKeyListener.resetLockedMeta(text);
+            ProtectedMetaKeyKeyListener.resetLockedMeta(text);
         }
         return handled;
     }
@@ -51,7 +55,7 @@ public class BaseMovementMethod implements MovementMethod {
             }
             if (handled) {
                 MetaKeyKeyListener.adjustMetaAfterKeypress(text);
-                MetaKeyKeyListener.resetLockedMeta(text);
+                ProtectedMetaKeyKeyListener.resetLockedMeta(text);
             }
             return handled;
         }
@@ -82,7 +86,6 @@ public class BaseMovementMethod implements MovementMethod {
         if ((event.getSource() & InputDevice.SOURCE_CLASS_POINTER) != 0) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_SCROLL: {
-                    Log.w(TAG, "onGenericMotionEvent ACTION_SCROLL");
                     final float vscroll;
                     final float hscroll;
                     if ((event.getMetaState() & KeyEvent.META_SHIFT_ON) != 0) {

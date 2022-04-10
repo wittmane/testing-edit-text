@@ -6,6 +6,8 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.CharacterStyle;
 
+import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
+
 /**
  * A SuggestionRangeSpan is used to show which part of an EditText is affected by a suggestion
  * popup window.
@@ -46,7 +48,8 @@ public class SuggestionRangeSpan extends CharacterStyle implements ParcelableSpa
 
     /** @hide */
     public int getSpanTypeIdInternal() {
-        return /*TextUtils.SUGGESTION_RANGE_SPAN*/21;//TODO: (EW) probably don't do this
+        //TODO: (EW) maybe don't reuse a hidden id
+        return HiddenTextUtils.SUGGESTION_RANGE_SPAN;
     }
 
     public void setBackgroundColor(int backgroundColor) {

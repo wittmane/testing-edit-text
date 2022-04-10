@@ -1,7 +1,6 @@
 package com.wittmane.testingedittext.aosp.widget;
 
 import android.app.Activity;
-import android.app.assist.AssistStructure;
 import android.app.assist.AssistStructure.ViewNode;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -15,7 +14,6 @@ import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
-import android.content.res.XmlResourceParser;
 import android.graphics.Canvas;
 import android.graphics.fonts.FontVariationAxis;
 import android.graphics.Paint;
@@ -52,7 +50,6 @@ import android.text.TextDirectionHeuristic;
 import android.text.TextDirectionHeuristics;
 import android.text.TextPaint;
 import android.text.TextUtils;
-import android.text.TextUtils.TruncateAt;
 import android.text.TextWatcher;
 import android.text.method.DateKeyListener;
 import android.text.method.DateTimeKeyListener;
@@ -73,7 +70,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseIntArray;
 import android.util.TypedValue;
-import android.view.ContextMenu;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -102,13 +98,10 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
-import android.view.textclassifier.TextClassificationManager;
-import android.view.textclassifier.TextClassifier;
 import android.widget.Scroller;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.CallSuper;
 import androidx.annotation.ColorInt;
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
@@ -119,16 +112,16 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
-import androidx.annotation.XmlRes;
 import androidx.core.content.ContextCompat;
 
-import com.wittmane.testingedittext.CustomInputConnection;
-import com.wittmane.testingedittext.HiddenTextUtils;
+import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
-import com.wittmane.testingedittext.aosp.text.comutil.Preconditions;
+import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
+import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -3948,6 +3941,102 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
+     * Set a special listener to be called when an action is performed
+     * on the text view.  This will be called when the enter key is pressed,
+     * or when an action supplied to the IME is selected by the user.  Setting
+     * this means that the normal hard key event will not insert a newline
+     * into the text view, even if it is multi-line; holding down the ALT
+     * modifier will, however, allow the user to insert a newline character.
+     */
+    public void setOnEditorActionListener(OnEditorActionListener l) {
+        mEditor.createInputContentTypeIfNeeded();
+        mEditor.mInputContentType.onEditorActionListener = l;
+    }
+
+    /**
+     * Called when an attached input method calls
+     * {@link InputConnection#performEditorAction(int)
+     * InputConnection.performEditorAction()}
+     * for this text view.  The default implementation will call your action
+     * listener supplied to {@link #setOnEditorActionListener}, or perform
+     * a standard operation for {@link EditorInfo#IME_ACTION_NEXT
+     * EditorInfo.IME_ACTION_NEXT}, {@link EditorInfo#IME_ACTION_PREVIOUS
+     * EditorInfo.IME_ACTION_PREVIOUS}, or {@link EditorInfo#IME_ACTION_DONE
+     * EditorInfo.IME_ACTION_DONE}.
+     *
+     * <p>For backwards compatibility, if no IME options have been set and the
+     * text view would not normally advance focus on enter, then
+     * the NEXT and DONE actions received here will be turned into an enter
+     * key down/up pair to go through the normal key handling.
+     *
+     * @param actionCode The code of the action being performed.
+     *
+     * @see #setOnEditorActionListener
+     */
+    public void onEditorAction(int actionCode) {
+        final Editor.InputContentType ict = mEditor == null ? null : mEditor.mInputContentType;
+        if (ict != null) {
+            if (ict.onEditorActionListener != null) {
+                if (ict.onEditorActionListener.onEditorAction(this,
+                        actionCode, null)) {
+                    return;
+                }
+            }
+
+            // This is the handling for some default action.
+            // Note that for backwards compatibility we don't do this
+            // default handling if explicit ime options have not been given,
+            // instead turning this into the normal enter key codes that an
+            // app may be expecting.
+            if (actionCode == EditorInfo.IME_ACTION_NEXT) {
+                View v = focusSearch(FOCUS_FORWARD);//TODO: (EW) figure out if this is a real issue
+                if (v != null) {
+                    if (!v.requestFocus(FOCUS_FORWARD)) {
+                        throw new IllegalStateException("focus search returned a view "
+                                + "that wasn't able to take focus!");
+                    }
+                }
+                return;
+
+            } else if (actionCode == EditorInfo.IME_ACTION_PREVIOUS) {
+                View v = focusSearch(FOCUS_BACKWARD);//TODO: (EW) figure out if this is a real issue
+                if (v != null) {
+                    if (!v.requestFocus(FOCUS_BACKWARD)) {
+                        throw new IllegalStateException("focus search returned a view "
+                                + "that wasn't able to take focus!");
+                    }
+                }
+                return;
+
+            } else if (actionCode == EditorInfo.IME_ACTION_DONE) {
+                InputMethodManager imm = getInputMethodManager();
+                if (imm != null && imm.isActive(this)) {
+                    imm.hideSoftInputFromWindow(getWindowToken(), 0);
+                }
+                return;
+            }
+        }
+
+        //TODO: (EW) figure out how to do this
+//        ViewRootImpl viewRootImpl = getViewRootImpl();
+//        if (viewRootImpl != null) {
+//            long eventTime = SystemClock.uptimeMillis();
+//            viewRootImpl.dispatchKeyFromIme(
+//                    new KeyEvent(eventTime, eventTime,
+//                            KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0, 0,
+//                            KeyCharacterMap.VIRTUAL_KEYBOARD, 0,
+//                            KeyEvent.FLAG_SOFT_KEYBOARD | KeyEvent.FLAG_KEEP_TOUCH_MODE
+//                                    | KeyEvent.FLAG_EDITOR_ACTION));
+//            viewRootImpl.dispatchKeyFromIme(
+//                    new KeyEvent(SystemClock.uptimeMillis(), eventTime,
+//                            KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0, 0,
+//                            KeyCharacterMap.VIRTUAL_KEYBOARD, 0,
+//                            KeyEvent.FLAG_SOFT_KEYBOARD | KeyEvent.FLAG_KEEP_TOUCH_MODE
+//                                    | KeyEvent.FLAG_EDITOR_ACTION));
+//        }
+    }
+
+    /**
      * Set the private content type of the text, which is the
      * {@link EditorInfo#privateImeOptions EditorInfo.privateImeOptions}
      * field that will be filled in when creating an input connection.
@@ -5168,7 +5257,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             outAttrs.hintText = mHint;
             if (mText instanceof Editable) {
-                InputConnection ic = new CustomInputConnection(this);
+                InputConnection ic = new EditableInputConnection(this);
                 outAttrs.initialSelStart = getSelectionStart();
                 outAttrs.initialSelEnd = getSelectionEnd();
                 outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
@@ -5340,6 +5429,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public void onEndBatchEdit() {
         // intentionally empty
+    }
+
+    /**
+     * Called by the framework in response to a private command from the
+     * current method, provided by it calling
+     * {@link InputConnection#performPrivateCommand
+     * InputConnection.performPrivateCommand()}.
+     *
+     * @param action The action name of the command.
+     * @param data Any additional data for the command.  This may be null.
+     * @return Return true if you handled the command, else false.
+     */
+    public boolean onPrivateIMECommand(String action, Bundle data) {
+        return false;
     }
 
     private void nullLayouts() {
@@ -7001,6 +7104,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public boolean isInExtractedMode() {
         return false;
+    }
+
+    /**
+     * This method is used by the ArrowKeyMovementMethod to jump from one word to the other.
+     * Made available to achieve a consistent behavior.
+     * @hide
+     */
+    public WordIterator getWordIterator() {
+        return mEditor.getWordIterator();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)

@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.BreakIterator;
 import com.wittmane.testingedittext.aosp.text.CharSequenceCharacterIterator;
+import com.wittmane.testingedittext.aosp.text.HiddenSelection;
 
 import java.util.Locale;
 
@@ -21,7 +22,7 @@ import java.util.Locale;
  * Also provides methods to determine word boundaries.
  * {@hide}
  */
-public class WordIterator /*implements Selection.PositionIterator*/ {
+public class WordIterator implements HiddenSelection.PositionIterator {
     private static final String TAG = WordIterator.class.getSimpleName();
     // Size of the window for the word iterator, should be greater than the longest word's length
     private static final int WINDOW_WIDTH = 50;
@@ -50,7 +51,8 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
             mCharSeq = charSequence;
             mStart = Math.max(0, start - WINDOW_WIDTH);
             mEnd = Math.min(charSequence.length(), end + WINDOW_WIDTH);
-            //(EW) O changed to use CharSequenceCharacterIterator instead of a substring of charSequence
+            // (EW) Oreo changed to use CharSequenceCharacterIterator instead of a substring of
+            // charSequence
             mIterator.setText(new CharSequenceCharacterIterator(charSequence, mStart, mEnd));
         } else {
             throw new IndexOutOfBoundsException("input indexes are outside the CharSequence");
@@ -204,7 +206,7 @@ public class WordIterator /*implements Selection.PositionIterator*/ {
         if (isOnLetterOrDigit(offset)) {
             if (mIterator.isBoundary(offset)
                     && (!isAfterLetterOrDigit(offset)
-                    || !getPrevWordBeginningOnTwoWordsBoundary)) {
+                            || !getPrevWordBeginningOnTwoWordsBoundary)) {
                 return offset;
             } else {
                 return mIterator.preceding(offset);

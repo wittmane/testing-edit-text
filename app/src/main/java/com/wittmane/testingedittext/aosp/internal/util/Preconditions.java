@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext.aosp.text.comutil;
+package com.wittmane.testingedittext.aosp.internal.util;
 
 import android.text.TextUtils;
 
@@ -438,8 +438,7 @@ public class Preconditions {
      * @return the validated {@link Collection}
      * @throws NullPointerException if the {@code value} or any of its elements were {@code null}
      */
-    public static @NonNull
-    <C extends Collection<T>, T> C checkCollectionElementsNotNull(
+    public static @NonNull <C extends Collection<T>, T> C checkCollectionElementsNotNull(
             final C value, final String valueName) {
         if (value == null) {
             throw new NullPointerException(valueName + " must not be null");
