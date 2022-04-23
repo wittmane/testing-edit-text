@@ -7636,7 +7636,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 return true;
 
             case ID_SHARE:
-//                shareSelectedText();
+                shareSelectedText();
                 return true;
 
             case ID_AUTOFILL:

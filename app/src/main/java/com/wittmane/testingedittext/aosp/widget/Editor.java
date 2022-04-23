@@ -910,14 +910,6 @@ public class Editor {
         }
     }
 
-    float getLastUpPositionX() {
-        return mLastUpPositionX;
-    }
-
-    float getLastUpPositionY() {
-        return mLastUpPositionY;
-    }
-
     private long getLastTouchOffsets() {
         SelectionModifierCursorController selectionController = getSelectionController();
         final int minOffset = selectionController.getMinTouchOffset();
@@ -2147,10 +2139,6 @@ public class Editor {
         }
         hideCursorAndSpanControllers();
         mSuggestionsPopupWindow.show();
-    }
-
-    boolean areSuggestionsShown() {
-        return mSuggestionsPopupWindow != null && mSuggestionsPopupWindow.isShowing();
     }
 
     void onScrollChanged() {
@@ -3594,11 +3582,10 @@ public class Editor {
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             }
 
-//        if (mTextView.canShare()) {
-//            menu.add(Menu.NONE, EditText.ID_SHARE, MENU_ITEM_ORDER_SHARE,
-//                    com.android.internal.R.string.share)
-//                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        }
+        if (mTextView.canShare()) {
+            menu.add(Menu.NONE, EditText.ID_SHARE, MENU_ITEM_ORDER_SHARE, R.string.share)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mTextView.canRequestAutofill()) {
                 final String selected = mTextView.getSelectedText();
@@ -5306,10 +5293,11 @@ public class Editor {
 //    }
     }
 
-    public void setLineChangeSlopMinMaxForTesting(final int min, final int max) {
-        mLineChangeSlopMin = min;
-        mLineChangeSlopMax = max;
-    }
+    //(EW) unused
+//    public void setLineChangeSlopMinMaxForTesting(final int min, final int max) {
+//        mLineChangeSlopMin = min;
+//        mLineChangeSlopMax = max;
+//    }
 
     private int getCurrentLineAdjustedForSlop(Layout layout, int prevLine, float y) {
         final int trueLine = mTextView.getLineAtCoordinate(y);

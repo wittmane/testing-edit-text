@@ -87,15 +87,16 @@ public final class SelectionActionModeHelper {
         startSelectionActionMode();
     }
 
-    /**
-     * Starts Link ActionMode.
-     */
-    public void startLinkActionModeAsync(int start, int end) {
-        int[] indexResult = sortSelectionIndices(start, end);
-        mSelectionTracker.onOriginalSelection(getText(mTextView), indexResult[0], indexResult[1],
-                true /*isLink*/);
-        startLinkActionMode();
-    }
+    //(EW) unused
+//    /**
+//     * Starts Link ActionMode.
+//     */
+//    public void startLinkActionModeAsync(int start, int end) {
+//        int[] indexResult = sortSelectionIndices(start, end);
+//        mSelectionTracker.onOriginalSelection(getText(mTextView), indexResult[0], indexResult[1],
+//                true /*isLink*/);
+//        startLinkActionMode();
+//    }
 
     public void invalidateActionModeAsync() {
         invalidateActionMode();
@@ -126,9 +127,10 @@ public final class SelectionActionModeHelper {
         mSelectionTracker.onSelectionDestroyed();
     }
 
-    private void startLinkActionMode() {
-        startActionMode(Editor.TextActionMode.TEXT_LINK);
-    }
+    //(EW) unused
+//    private void startLinkActionMode() {
+//        startActionMode(Editor.TextActionMode.TEXT_LINK);
+//    }
 
     private void startSelectionActionMode() {
         startActionMode(Editor.TextActionMode.SELECTION);
