@@ -151,6 +151,11 @@ public class Editor {
         int TEXT_LINK = 2;
     }
 
+    // Default content insertion handler.
+    private final TextViewOnReceiveContentListener mDefaultOnReceiveContentListener =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    ? new TextViewOnReceiveContentListener() : null;
+
     // Each Editor manages its own undo stack.
     private final UndoManager mUndoManager = new UndoManager();
     private UndoOwner mUndoOwner = mUndoManager.getOwner(UNDO_OWNER_TAG, this);
@@ -160,7 +165,7 @@ public class Editor {
 //    private final MetricsLogger mMetricsLogger = new MetricsLogger();
 
     // Cursor Controllers.
-    private InsertionPointCursorController mInsertionPointCursorController;
+    InsertionPointCursorController mInsertionPointCursorController;
     SelectionModifierCursorController mSelectionModifierCursorController;
     // Action mode used when text is selected or when actions on an insertion cursor are triggered.
     private ActionMode mTextActionMode;
@@ -171,6 +176,20 @@ public class Editor {
 
     // Used to highlight a word when it is corrected by the IME
     private CorrectionHighlighter mCorrectionHighlighter;
+
+    /**
+     * {@code true} when {@link TextView#setText(CharSequence, boolean, int)}
+     * is being executed and {@link InputMethodManager#restartInput(View)} is scheduled to be
+     * called.
+     *
+     * <p>This is also used to avoid an unnecessary invocation of
+     * {@link InputMethodManager#updateSelection(View, int, int, int, int)} when
+     * {@link InputMethodManager#restartInput(View)} is scheduled to be called already
+     * See bug 186582769 for details.</p>
+     *
+     * <p>TODO(186582769): Come up with better way.</p>
+     */
+    private boolean mHasPendingRestartInputForSetText = false;
 
     InputContentType mInputContentType;
     InputMethodState mInputMethodState;
@@ -319,6 +338,21 @@ public class Editor {
     }
 
     /**
+     * Returns the default handler for receiving content in an editable {@link TextView}. This
+     * listener impl is used to encapsulate the default behavior but it is not part of the public
+     * API. If an app wants to execute the default platform behavior for receiving content, it
+     * should call {@link View#onReceiveContent}. Alternatively, if an app implements a custom
+     * listener for receiving content and wants to delegate some of the content to be handled by
+     * the platform, it should return the corresponding content from its listener. See
+     * {@link View#setOnReceiveContentListener} and {@link OnReceiveContentListener} for more info.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    @NonNull
+    public TextViewOnReceiveContentListener getDefaultOnReceiveContentListener() {
+        return mDefaultOnReceiveContentListener;
+    }
+
+    /**
      * Forgets all undo and redo operations for this Editor.
      */
     void forgetUndoRedo() {
@@ -445,6 +479,11 @@ public class Editor {
         hideCursorAndSpanControllers();
         stopTextActionModeWithPreservingSelection();
         mTemporaryDetach = false;
+
+        if (mDefaultOnReceiveContentListener != null
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            mDefaultOnReceiveContentListener.clearInputConnectionInfo();
+        }
     }
 
     void createInputContentTypeIfNeeded() {
@@ -1387,6 +1426,29 @@ public class Editor {
         }
     }
 
+    /**
+     * Called from {@link EditText#setText(CharSequence, boolean, int)} to
+     * schedule {@link InputMethodManager#restartInput(View)}.
+     */
+    void scheduleRestartInputForSetText() {
+        mHasPendingRestartInputForSetText = true;
+    }
+
+    /**
+     * Called from {@link TextView#setText(CharSequence, boolean, int)} to
+     * actually call {@link InputMethodManager#restartInput(View)} if it's scheduled.  Does nothing
+     * otherwise.
+     */
+    void maybeFireScheduledRestartInputForSetText() {
+        if (mHasPendingRestartInputForSetText) {
+            final InputMethodManager imm = getInputMethodManager();
+            if (imm != null) {
+                imm.restartInput(mTextView);
+            }
+            mHasPendingRestartInputForSetText = false;
+        }
+    }
+
     static final int EXTRACT_NOTHING = -2;
     static final int EXTRACT_UNKNOWN = -1;
 
@@ -1523,7 +1585,8 @@ public class Editor {
     }
 
     private void sendUpdateSelection() {
-        if (null != mInputMethodState && mInputMethodState.mBatchEditNesting <= 0) {
+        if (null != mInputMethodState && mInputMethodState.mBatchEditNesting <= 0
+                && !mHasPendingRestartInputForSetText) {
             final InputMethodManager imm = getInputMethodManager();
             if (null != imm) {
                 final int selectionStart = mTextView.getSelectionStart();
@@ -5367,7 +5430,7 @@ public class Editor {
     }
 
     /** Controller for the insertion cursor. */
-    private class InsertionPointCursorController implements CursorController {
+    class InsertionPointCursorController implements CursorController {
         private InsertionHandleView mHandle;
 
         public void show() {

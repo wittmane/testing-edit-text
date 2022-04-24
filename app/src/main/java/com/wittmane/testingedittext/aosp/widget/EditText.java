@@ -14,11 +14,12 @@ import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
+import android.graphics.BlendMode;
 import android.graphics.Canvas;
+import android.graphics.fonts.FontStyle;
 import android.graphics.fonts.FontVariationAxis;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
@@ -70,6 +71,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseIntArray;
 import android.util.TypedValue;
+import android.view.ContentInfo;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -89,6 +91,8 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.AnimationUtils;
 import android.view.autofill.AutofillManager;
 import android.view.autofill.AutofillValue;
+import android.view.contentcapture.ContentCaptureManager;
+import android.view.contentcapture.ContentCaptureSession;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
@@ -128,6 +132,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Locale;
 
+import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
+import static android.view.ContentInfo.FLAG_CONVERT_TO_PLAIN_TEXT;
+import static android.view.ContentInfo.SOURCE_AUTOFILL;
+import static android.view.ContentInfo.SOURCE_CLIPBOARD;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
@@ -138,6 +146,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     static final String LOG_TAG = "TextView";
     static final boolean DEBUG_EXTRACT = false;
+    static final boolean DEBUG_CURSOR = false;
+
     private static final float[] TEMP_POSITION = new float[2];
 
     // Enum for the "typeface" XML parameter.
@@ -166,6 +176,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private static final int LINES = 1;
     private static final int EMS = LINES;
     private static final int PIXELS = 2;
+
+    // Maximum text length for single line input.
+    private static final int MAX_LENGTH_FOR_SINGLE_LINE_EDIT_TEXT = 5000;
+    private InputFilter.LengthFilter mSingleLineLengthFilter = null;
 
     private static final RectF TEMP_RECTF = new RectF();
 
@@ -222,7 +236,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Editable.Factory mEditableFactory = Editable.Factory.getInstance();
     private Spannable.Factory mSpannableFactory = Spannable.Factory.getInstance();
 
-    private float mShadowRadius, mShadowDx, mShadowDy;
+    private float mShadowRadius;
+    private float mShadowDx;
+    private float mShadowDy;
     private int mShadowColor;
 
     private boolean mPreDrawRegistered;
@@ -237,6 +253,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private boolean mPreventDefaultMovement;
 
     private TextUtils.TruncateAt mEllipsize;
+
+    // A flag to indicate the cursor was hidden by IME.
+    private boolean mImeIsConsumingInput;
+
+    // Whether cursor is visible without regard to {@link mImeConsumesInput}.
+    // {@code true} is the default value.
+    private boolean mCursorVisibleFromAttr = true;
 
     private CharWrapper mCharWrapper;
 
@@ -262,6 +285,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private boolean mUserSetTextScaleX;
     private Layout mLayout;
     private boolean mLocalesChanged = false;
+    private int mTextSizeUnit = -1;
+
+    // This is used to reflect the current user preference for changing font weight and making text
+    // more bold.
+    private int mFontWeightAdjustment;
+    private Typeface mOriginalTypeface;
 
     // True if setKeyListener() has been explicitly called
     private boolean mListenerChanged = false;
@@ -269,6 +298,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private final boolean mUseInternationalizedInput;
     // True if fallback fonts that end up getting used should be allowed to affect line spacing.
     /* package */ boolean mUseFallbackLineSpacing;
+    // True if the view text can be padded for compat reasons, when the view is translated.
+    private final boolean mUseTextPaddingForUiTranslation;
 
     @ViewDebug.ExportedProperty(category = "text")
     private int mGravity = Gravity.TOP | Gravity.START;
@@ -305,12 +336,27 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Scroller mScroller;
     private TextPaint mTempTextPaint;
 
-    private BoringLayout.Metrics mBoring, mHintBoring;
-    private BoringLayout mSavedLayout, mSavedHintLayout;
+    private BoringLayout.Metrics mBoring;
+    private BoringLayout.Metrics mHintBoring;
+    private BoringLayout mSavedLayout;
+    private BoringLayout mSavedHintLayout;
 
     private TextDirectionHeuristic mTextDir;
 
     private InputFilter[] mFilters = NO_FILTERS;
+
+//    /**
+//     * {@link UserHandle} that represents the logical owner of the text. {@code null} when it is
+//     * the same as {@link Process#myUserHandle()}.
+//     *
+//     * <p>Most of applications should not worry about this. Some privileged apps that host UI for
+//     * other apps may need to set this so that the system can use right user's resources and
+//     * services such as input methods and spell checkers.</p>
+//     *
+//     * @see #setTextOperationUser(UserHandle)
+//     */
+//    @Nullable
+//    private UserHandle mTextOperationUser;
 
     private volatile Locale mCurrentSpellCheckerLocaleCache;
 
@@ -324,17 +370,35 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // Although these fields are specific to editable text, they are not added to Editor because
     // they are defined by the TextView's style and are theme-dependent.
     int mCursorDrawableRes;
-    // These six fields, could be moved to Editor, since we know their default values and we
-    // could condition the creation of the Editor to a non standard value. This is however
-    // brittle since the hardcoded values here (such as
-    // com.android.internal.R.drawable.text_select_handle_left) would have to be updated if the
-    // default style is modified.
+    private Drawable mCursorDrawable;
+    // Note: this might be stale if setTextSelectHandleLeft is used. We could simplify the code
+    // by removing it, but we would break apps targeting <= P that use it by reflection.
     int mTextSelectHandleLeftRes;
+    private Drawable mTextSelectHandleLeft;
+    // Note: this might be stale if setTextSelectHandleRight is used. We could simplify the code
+    // by removing it, but we would break apps targeting <= P that use it by reflection.
     int mTextSelectHandleRightRes;
+    private Drawable mTextSelectHandleRight;
+    // Note: this might be stale if setTextSelectHandle is used. We could simplify the code
+    // by removing it, but we would break apps targeting <= P that use it by reflection.
     int mTextSelectHandleRes;
+    private Drawable mTextSelectHandle;
     int mTextEditSuggestionItemLayout;
     int mTextEditSuggestionContainerLayout;
     int mTextEditSuggestionHighlightStyle;
+
+    private static final int NO_POINTER_ID = -1;
+    /**
+     * The prime (the 1st finger) pointer id which is used as a lock to prevent multi touch among
+     * TextView and the handle views which are rendered on popup windows.
+     */
+    private int mPrimePointerId = NO_POINTER_ID;
+
+    /**
+     * Whether the prime pointer is from the event delivered to selection handle or insertion
+     * handle.
+     */
+    private boolean mIsPrimePointerFromHandleView;
 
     /**
      * {@link EditText} specific data, created on demand when one of the Editor fields is used.
@@ -351,18 +415,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     private int mDeviceProvisionedState = DEVICE_PROVISIONED_UNKNOWN;
 
+    private static final int RESOURCES_ID_NULL =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
+
     // Autofill-related attributes
     //
     // Indicates whether the text was set statically or dynamically, so it can be used to
     // sanitize autofill requests.
     private boolean mTextSetFromXmlOrResourceId = false;
     // Resource id used to set the text.
-    private @StringRes int mTextId = /*ResourceId.ID_NULL*/0;
+    private @StringRes int mTextId = RESOURCES_ID_NULL;
+    // Resource id used to set the hint.
+    private @StringRes int mHintId = RESOURCES_ID_NULL;
     // Last value used on AFM.notifyValueChanged(), used to optimize autofill workflow by avoiding
     // calls when the value did not change
-    private CharSequence mLastValueSentToAutofillManager;
+    private CharSequence mLastValueSentToAutofillManager;//TODO: (EW) not in aosp31 - maybe remove
     //
     // End of autofill-related attributes
+
+    private static final int FONT_WEIGHT_MIN = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? FontStyle.FONT_WEIGHT_MIN : 1;
+    private static final int FONT_WEIGHT_MAX = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? FontStyle.FONT_WEIGHT_MAX : 1000;
 
     /**
      * Interface definition for a callback to be invoked when an action is
@@ -393,12 +465,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     public EditText(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+        this(context, attrs, defStyleAttr, 0);
+    }
+
+    public EditText(
+            Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr/*, defStyleRes*/);//TODO: (EW) figure out how to call the version with defStyleRes on lollipop+
         // TextView is important by default, unless app developer overrode attribute.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // autofill support started in O
             if (getImportantForAutofill() == IMPORTANT_FOR_AUTOFILL_AUTO) {
                 setImportantForAutofill(IMPORTANT_FOR_AUTOFILL_YES);
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (getImportantForContentCapture() == IMPORTANT_FOR_CONTENT_CAPTURE_AUTO) {
+                setImportantForContentCapture(IMPORTANT_FOR_CONTENT_CAPTURE_YES);
             }
         }
 
@@ -430,13 +512,21 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          * for this View override it.
          */
         TypedArray typedArray = theme.obtainStyledAttributes(attrs,
-                R.styleable.TextViewAppearance, defStyleAttr, /*defStyleRes*/0);
+                R.styleable.TextViewAppearance, defStyleAttr, defStyleRes);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveAttributeDataForStyleable(context, R.styleable.TextViewAppearance,
+                    attrs, typedArray, defStyleAttr, defStyleRes);
+        }
         TypedArray appearance = null;
         int ap = typedArray.getResourceId(
                 R.styleable.TextViewAppearance_android_textAppearance, -1);
         typedArray.recycle();
         if (ap != -1) {
             appearance = theme.obtainStyledAttributes(ap, R.styleable.TextAppearance);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                saveAttributeDataForStyleable(context, R.styleable.TextAppearance,
+                        null, appearance, 0, ap);
+            }
         }
         if (appearance != null) {
             readTextAppearance(context, appearance, attributes, false /* styleArray */);
@@ -449,7 +539,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         Drawable drawableLeft = null, drawableTop = null, drawableRight = null,
                 drawableBottom = null, drawableStart = null, drawableEnd = null;
         ColorStateList drawableTint = null;
-        Mode drawableTintMode = null;
+        BlendMode drawableTintMode = null;
         int drawablePadding = 0;
         int ellipsize = ELLIPSIZE_NOT_SET;
         boolean singleLine = false;
@@ -459,7 +549,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         boolean password = false;
         int inputType = EditorInfo.TYPE_NULL;
         typedArray = theme.obtainStyledAttributes(
-                attrs, R.styleable.EditText, defStyleAttr, /*defStyleRes*/0);
+                attrs, R.styleable.EditText, defStyleAttr, defStyleRes);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveAttributeDataForStyleable(context, R.styleable.EditText, attrs, typedArray,
+                    defStyleAttr, defStyleRes);
+        }
         int firstBaselineToTopHeight = -1;
         int lastBaselineToBottomHeight = -1;
         int lineHeight = -1;
@@ -574,10 +668,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // smaller than the view.
                 setGravity(typedArray.getInt(attr, -1));
             } else if (attr == R.styleable.EditText_android_hint) {
+                mHintId = typedArray.getResourceId(attr, RESOURCES_ID_NULL);
                 hint = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_text) {
                 textIsSetFromXml = true;
-                mTextId = typedArray.getResourceId(attr, /*ResourceId.ID_NULL*/0);
+                mTextId = typedArray.getResourceId(attr, RESOURCES_ID_NULL);
                 text = typedArray.getText(attr);
             } else if (attr == R.styleable.EditText_android_scrollHorizontally) {
                 //skipping - doesn't seem to have any effect in an EditText
@@ -751,6 +846,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
         mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
+        // TODO(b/179693024): Use a ChangeId instead.
+        mUseTextPaddingForUiTranslation = targetSdkVersion <= Build.VERSION_CODES.R;
 
         if (digits != null) {
             mEditor.mKeyListener = DigitsKeyListener.getInstance(digits.toString());
@@ -778,7 +875,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line TextViews.
         setInputTypeSingleLine(singleLine);
-        applySingleLine(singleLine, singleLine, singleLine);
+        applySingleLine(singleLine, singleLine, singleLine,
+                // Does not apply automated max length filter since length filter will be resolved
+                // later in this function.
+                false
+        );
 
         final boolean isPassword = password || passwordInputType || webPasswordInputType
                 || numberPasswordInputType;
@@ -786,28 +887,47 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION))
                 == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD));
         if (isMonospaceEnforced) {
-            //TODO: for some reason when using appcompat the default EditText doesn't use monospace
-            // while this code, which is copied from it does. figure out if that's just a bug with
-            // appcompat or if we should be pulling in something that would override the change to
-            // monospace. if I set fontFamily="sans-serif" on this, it overrides the monospace and
-            // looks like the default EditText, so maybe something like that is being set somewhere
-            // and we just need to pull it in.
+            //TODO: (EW) for some reason when using appcompat the default EditText doesn't use
+            // monospace while this code, which is copied from it does. figure out if that's just a
+            // bug with appcompat or if we should be pulling in something that would override the
+            // change to monospace. if I set fontFamily="sans-serif" on this, it overrides the
+            // monospace and looks like the default EditText, so maybe something like that is being
+            // set somewhere and we just need to pull it in.
             attributes.mTypefaceIndex = MONOSPACE;
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            mFontWeightAdjustment = getContext().getResources().getConfiguration().fontWeightAdjustment;
+        }
         applyTextAppearance(attributes);
 
         if (isPassword) {
             setTransformationMethod(PasswordTransformationMethod.getInstance());
         }
 
-        if (maxlength >= 0) {
-            setFilters(new InputFilter[] { new LengthFilter(maxlength) });
+        // For addressing b/145128646
+        // For the performance reason, we limit characters for single line text field.
+        if (singleLine && maxlength == -1) {
+            mSingleLineLengthFilter = new InputFilter.LengthFilter(
+                MAX_LENGTH_FOR_SINGLE_LINE_EDIT_TEXT);
+        }
+
+        if (mSingleLineLengthFilter != null) {
+            setFilters(new InputFilter[] { mSingleLineLengthFilter });
+        } else if (maxlength >= 0) {
+            setFilters(new InputFilter[] { new InputFilter.LengthFilter(maxlength) });
         } else {
             setFilters(NO_FILTERS);
         }
 
         setText(text);
+        if (mText == null) {//TODO: (EW) is this even possible - probably should make sure it's not and remove this
+            mText = Editable.Factory.getInstance().newEditable("");
+        }
+        if (mTransformed == null) {
+            mTransformed = "";
+        }
+
         if (textIsSetFromXml) {
             mTextSetFromXmlOrResourceId = true;
         }
@@ -822,7 +942,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          */
         //TODO: (EW) can this get merged with the other typedArray styleable
         typedArray = context.obtainStyledAttributes(
-                attrs, /*com.android.internal.*/R.styleable.View, defStyleAttr, /*defStyleRes*/0);
+                attrs, /*com.android.internal.*/R.styleable.View, defStyleAttr, defStyleRes);
         boolean canInputOrMove = (mMovement != null || getKeyListener() != null);
         boolean clickable = canInputOrMove || isClickable();
         boolean longClickable = canInputOrMove || isLongClickable();
@@ -903,7 +1023,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private void setTextInternal(@Nullable CharSequence text) {
         setTextInternal(text == null ? null : Editable.Factory.getInstance().newEditable(text));
     }
-    private void setTextInternal(@Nullable Editable text) {
+    private void setTextInternal(@Nullable Editable text) {//TODO: (EW) probably should make this not nullable
         mText = text;
         mSpannable = (text instanceof Spannable) ? (Spannable) text : null;
     }
@@ -919,7 +1039,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     @RequiresApi(api = Build.VERSION_CODES.P)
     private void setTypefaceFromAttrs(@Nullable Typeface typeface, @Nullable String familyName,
-                                      int typefaceIndex, int style, int weight) {
+                                      int typefaceIndex, int style,
+                                      @IntRange(from = -1, to = FontStyle.FONT_WEIGHT_MAX) int weight) {
         if (typeface == null && familyName != null) {
             // Lookup normal Typeface from system font map.
             final Typeface normalTypeface = Typeface.create(familyName, Typeface.NORMAL);
@@ -971,10 +1092,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     @RequiresApi(api = Build.VERSION_CODES.P)
-    private void resolveStyleAndSetTypeface(@NonNull Typeface typeface, int style, int weight) {
+    private void resolveStyleAndSetTypeface(@NonNull Typeface typeface, int style,
+                                            @IntRange(from = -1, to = FontStyle.FONT_WEIGHT_MAX) int weight) {
         if (weight >= 0) {
+            final int limitedWeight = Math.min(FONT_WEIGHT_MAX, Math.max(1, weight));
             final boolean italic = (style & Typeface.ITALIC) != 0;
-            setTypeface(Typeface.create(typeface, weight, italic));
+            setTypeface(Typeface.create(typeface, limitedWeight, italic));
         } else {
             setTypeface(typeface, style);
         }
@@ -1507,14 +1630,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Updates the top padding of the TextView so that {@code firstBaselineToTopHeight} is
-     * equal to the distance between the firt text baseline and the top of this TextView.
+     * the distance between the top of the TextView and first line's baseline.
+     * <p>
+     * <img src="{@docRoot}reference/android/images/text/widget/first_last_baseline.png" />
+     * <figcaption>First and last baseline metrics for a TextView.</figcaption>
+     *
      * <strong>Note</strong> that if {@code FontMetrics.top} or {@code FontMetrics.ascent} was
      * already greater than {@code firstBaselineToTopHeight}, the top padding is not updated.
+     * Moreover since this function sets the top padding, if the height of the TextView is less than
+     * the sum of top padding, line height and bottom padding, top of the line will be pushed
+     * down and bottom will be clipped.
      *
      * @param firstBaselineToTopHeight distance between first baseline to top of the container
      *      in pixels
      *
      * @see #getFirstBaselineToTopHeight()
+     * @see #setLastBaselineToBottomHeight(int)
      * @see #setPadding(int, int, int, int)
      * @see #setPaddingRelative(int, int, int, int)
      *
@@ -1542,14 +1673,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Updates the bottom padding of the TextView so that {@code lastBaselineToBottomHeight} is
-     * equal to the distance between the last text baseline and the bottom of this TextView.
+     * the distance between the bottom of the TextView and the last line's baseline.
+     * <p>
+     * <img src="{@docRoot}reference/android/images/text/widget/first_last_baseline.png" />
+     * <figcaption>First and last baseline metrics for a TextView.</figcaption>
+     *
      * <strong>Note</strong> that if {@code FontMetrics.bottom} or {@code FontMetrics.descent} was
      * already greater than {@code lastBaselineToBottomHeight}, the bottom padding is not updated.
+     * Moreover since this function sets the bottom padding, if the height of the TextView is less
+     * than the sum of top padding, line height and bottom padding, bottom of the text will be
+     * clipped.
      *
      * @param lastBaselineToBottomHeight distance between last baseline to bottom of the container
      *      in pixels
      *
      * @see #getLastBaselineToBottomHeight()
+     * @see #setFirstBaselineToTopHeight(int)
      * @see #setPadding(int, int, int, int)
      * @see #setPaddingRelative(int, int, int, int)
      *
@@ -1624,12 +1763,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int mTextColorHighlight = 0;
         ColorStateList mTextColor = null;
         ColorStateList mTextColorHint = null;
-        int mTextSize = 0;
+        int mTextSize = -1;
+        int mTextSizeUnit = -1;
+        LocaleList mTextLocales = null;
         String mFontFamily = null;
         Typeface mFontTypeface = null;
         boolean mFontFamilyExplicit = false;
         int mTypefaceIndex = -1;
-        int mStyleIndex = -1;
+        int mTextStyle = 0;
         int mFontWeight = -1;
         boolean mAllCaps = false;
         int mShadowColor = 0;
@@ -1641,6 +1782,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         boolean mHasLetterSpacing = false;
         float mLetterSpacing = 0;
         String mFontFeatureSettings = null;
+        String mFontVariationSettings = null;
 
         @Override
         public String toString() {
@@ -1649,11 +1791,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     + "    mTextColor:" + mTextColor + "\n"
                     + "    mTextColorHint:" + mTextColorHint + "\n"
                     + "    mTextSize:" + mTextSize + "\n"
+                    + "    mTextSizeUnit:" + mTextSizeUnit + "\n"
+                    + "    mTextLocales:" + mTextLocales + "\n"
                     + "    mFontFamily:" + mFontFamily + "\n"
                     + "    mFontTypeface:" + mFontTypeface + "\n"
                     + "    mFontFamilyExplicit:" + mFontFamilyExplicit + "\n"
                     + "    mTypefaceIndex:" + mTypefaceIndex + "\n"
-                    + "    mStyleIndex:" + mStyleIndex + "\n"
+                    + "    mTextStyle:" + mTextStyle + "\n"
                     + "    mFontWeight:" + mFontWeight + "\n"
                     + "    mAllCaps:" + mAllCaps + "\n"
                     + "    mShadowColor:" + mShadowColor + "\n"
@@ -1684,6 +1828,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 R.styleable.TextAppearance_android_textColorLink);
         sAppearanceValues.put(R.styleable.EditText_android_textSize,
                 R.styleable.TextAppearance_android_textSize);
+        sAppearanceValues.put(R.styleable.TextAppearance_android_textLocale,
+                R.styleable.TextAppearance_textLocale);
         sAppearanceValues.put(R.styleable.EditText_android_typeface,
                 R.styleable.TextAppearance_android_typeface);
         sAppearanceValues.put(R.styleable.EditText_android_fontFamily,
@@ -1710,6 +1856,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 R.styleable.TextAppearance_android_letterSpacing);
         sAppearanceValues.put(R.styleable.EditText_android_fontFeatureSettings,
                 R.styleable.TextAppearance_android_fontFeatureSettings);
+        sAppearanceValues.put(R.styleable.TextAppearance_android_fontVariationSettings,
+                R.styleable.TextAppearance_fontVariationSettings);
     }
 
     /**
@@ -1748,6 +1896,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (index == R.styleable.TextAppearance_android_textSize) {
                 attributes.mTextSize =
                         appearance.getDimensionPixelSize(attr, attributes.mTextSize);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    attributes.mTextSizeUnit = appearance.peekValue(attr).getComplexUnit();
+                }
+            } else if (index == R.styleable.TextAppearance_android_textLocale) {
+                // (EW) only used in API level 29 and higher
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    final String localeString = appearance.getString(attr);
+                    if (localeString != null) {
+                        final LocaleList localeList = LocaleList.forLanguageTags(localeString);
+                        if (!localeList.isEmpty()) {
+                            attributes.mTextLocales = localeList;
+                        }
+                    }
+                }
             } else if (index == R.styleable.TextAppearance_android_typeface) {
                 attributes.mTypefaceIndex = appearance.getInt(attr, attributes.mTypefaceIndex);
                 if (attributes.mTypefaceIndex != -1 && !attributes.mFontFamilyExplicit) {
@@ -1769,7 +1931,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
                 attributes.mFontFamilyExplicit = true;
             } else if (index == R.styleable.TextAppearance_android_textStyle) {
-                attributes.mStyleIndex = appearance.getInt(attr, attributes.mStyleIndex);
+                attributes.mTextStyle = appearance.getInt(attr, attributes.mTextStyle);
             } else if (index == R.styleable.TextAppearance_android_textFontWeight) {
                 // API 28
                 attributes.mFontWeight = appearance.getInt(attr, attributes.mFontWeight);
@@ -1799,6 +1961,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (index == R.styleable.TextAppearance_android_fontFeatureSettings) {
                 // (EW) only used in API level 21 and higher
                 attributes.mFontFeatureSettings = appearance.getString(attr);
+            } else if (index == R.styleable.TextAppearance_android_fontVariationSettings) {
+                // (EW) only used in API level 28 and higher
+                attributes.mFontVariationSettings = appearance.getString(attr);
             }
         }
     }
@@ -1816,8 +1981,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             setHighlightColor(attributes.mTextColorHighlight);
         }
 
-        if (attributes.mTextSize != 0) {
+        if (attributes.mTextSize != -1) {
+            mTextSizeUnit = attributes.mTextSizeUnit;
             setRawTextSize(attributes.mTextSize, true /* shouldRequestLayout */);
+        }
+
+        if (attributes.mTextLocales != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            setTextLocales(attributes.mTextLocales);
         }
 
         if (attributes.mTypefaceIndex != -1 && !attributes.mFontFamilyExplicit) {
@@ -1825,10 +1995,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             setTypefaceFromAttrs(attributes.mFontTypeface, attributes.mFontFamily,
-                    attributes.mTypefaceIndex, attributes.mStyleIndex, attributes.mFontWeight);
+                    attributes.mTypefaceIndex, attributes.mTextStyle, attributes.mFontWeight);
         } else {
             setTypefaceFromAttrs(attributes.mFontTypeface, attributes.mFontFamily,
-                    attributes.mTypefaceIndex, attributes.mStyleIndex);
+                    attributes.mTypefaceIndex, attributes.mTextStyle);
         }
 
         if (attributes.mShadowColor != 0) {
@@ -1856,6 +2026,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         if (attributes.mFontFeatureSettings != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             setFontFeatureSettings(attributes.mFontFeatureSettings);
+        }
+
+        if (attributes.mFontVariationSettings != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            setFontVariationSettings(attributes.mFontVariationSettings);
         }
     }
 
@@ -1969,6 +2143,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 invalidate();
             }
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (mFontWeightAdjustment != newConfig.fontWeightAdjustment) {
+                mFontWeightAdjustment = newConfig.fontWeightAdjustment;
+                setTypeface(getTypeface());
+            }
+        }
     }
 
     /**
@@ -2031,6 +2211,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             r = c.getResources();
         }
 
+        mTextSizeUnit = unit;
         setRawTextSize(TypedValue.applyDimension(unit, size, r.getDisplayMetrics()),
                 shouldRequestLayout);
     }
@@ -2045,6 +2226,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 invalidate();
             }
         }
+    }
+
+    /**
+     * Gets the text size unit defined by the developer. It may be specified in resources or be
+     * passed as the unit argument of {@link #setTextSize(int, float)} at runtime.
+     *
+     * @return the dimension type of the text size unit originally defined.
+     * @see TypedValue#TYPE_DIMENSION
+     */
+    public int getTextSizeUnit() {
+        return mTextSizeUnit;
     }
 
     /**
@@ -2090,6 +2282,23 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_textStyle
      */
     public void setTypeface(@Nullable Typeface tf) {
+        mOriginalTypeface = tf;
+        // (EW) mFontWeightAdjustment is only set starting in S
+        if (mFontWeightAdjustment != 0
+                && mFontWeightAdjustment != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) {
+            if (tf == null) {
+                tf = Typeface.DEFAULT;
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    int newWeight = Math.min(
+                            Math.max(tf.getWeight() + mFontWeightAdjustment, FONT_WEIGHT_MIN),
+                            FONT_WEIGHT_MAX);
+                    int typefaceStyle = tf.getStyle();
+                    boolean italic = (typefaceStyle & Typeface.ITALIC) != 0;
+                    tf = Typeface.create(tf, newWeight, italic);
+                }
+            }
+        }
         if (mTextPaint.getTypeface() != tf) {
             mTextPaint.setTypeface(tf);
 
@@ -2112,7 +2321,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_textStyle
      */
     public Typeface getTypeface() {
-        return mTextPaint.getTypeface();
+        return mOriginalTypeface;
     }
 
     /**
@@ -2327,6 +2536,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @see #getFontVariationSettings()
      * @see FontVariationAxis
+     *
+     * @attr ref android.R.styleable#TextView_fontVariationSettings
      */
     @RequiresApi(api = Build.VERSION_CODES.O)
     public boolean setFontVariationSettings(@Nullable String fontVariationSettings) {
@@ -2675,6 +2886,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 invalidate();
             }
         }
+    }
+
+    /**
+     * Returns whether the text is allowed to be wider than the View.
+     * If false, the text will be wrapped to the width of the View.
+     *
+     * @attr ref android.R.styleable#TextView_scrollHorizontally
+     * @see #setHorizontallyScrolling(boolean)
+     */
+    public final boolean isHorizontallyScrollable() {
+        return mHorizontallyScrolling;
     }
 
     /**
@@ -3389,15 +3611,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         mEditor.forgetUndoRedo();
+        mEditor.scheduleRestartInputForSetText();
         Editable t = Editable.Factory.getInstance().newEditable(text);
         text = t;
 
         setFilters(t, mFilters);
-
-        InputMethodManager imm = getInputMethodManager();
-        if (imm != null) {
-            imm.restartInput(this);
-        }
 
         setTextInternal(t);
 
@@ -3459,11 +3677,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (needEditableForNotification) {
             sendAfterTextChanged((Editable) text);
         } else {
-            notifyAutoFillManagerAfterTextChangedIfNeeded();//notifyListeningManagersAfterTextChanged();
+            notifyListeningManagersAfterTextChanged();
         }
 
         // SelectionModifierCursorController depends on textCanBeSelected, which depends on text
         mEditor.prepareCursorControllers();
+
+        mEditor.maybeFireScheduledRestartInputForSetText();
     }
 
     /**
@@ -3590,6 +3810,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_hint
      */
     public final void setHint(@StringRes int resid) {
+        mHintId = resid;
         setHint(getContext().getResources().getText(resid));
     }
 
@@ -3705,7 +3926,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (mSingleLine != singleLine || forceUpdate) {
             // Change single line mode, but only change the transformation if
             // we are not in password mode.
-            applySingleLine(singleLine, !isPassword, true);
+            applySingleLine(singleLine, !isPassword, true, true);
         }
 
         if (!isSuggestionsEnabled()) {
@@ -4451,6 +4672,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 + (int) Math.max(0, mShadowDx + mShadowRadius);
     }
 
+    @Override
+    public boolean hasOverlappingRendering() {
+        // horizontal fading edge causes SaveLayerAlpha, which doesn't support alpha modulation
+        return ((getBackground() != null && getBackground().getCurrent() != null)
+                || mSpannable != null || hasSelection() || isHorizontalFadingEdgeEnabled()
+                || mShadowColor != 0);
+    }
+
     //TODO: (EW) documentation says EditText can always be selected, so this probably should be
     // removed
     /**
@@ -4884,22 +5113,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return false;
     }
 
-    /**
-     * Returns true if pressing TAB in this field advances focus instead
-     * of inserting the character.  Insert tabs only in multi-line editors.
-     */
-    private boolean shouldAdvanceFocusOnTab() {
-        if (getKeyListener() != null && !mSingleLine
-                && (mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS)
-                        == EditorInfo.TYPE_CLASS_TEXT) {
-            int variation = mEditor.mInputType & EditorInfo.TYPE_MASK_VARIATION;
-            if (variation == EditorInfo.TYPE_TEXT_FLAG_IME_MULTI_LINE
-                    || variation == EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) {
-                return false;
-            }
-        }
-        return true;
-    }
+//    /**
+//     * Returns true if pressing TAB in this field advances focus instead
+//     * of inserting the character.  Insert tabs only in multi-line editors.
+//     */
+//    private boolean shouldAdvanceFocusOnTab() {
+//        if (getKeyListener() != null && !mSingleLine
+//                && (mEditor.mInputType & EditorInfo.TYPE_MASK_CLASS)
+//                        == EditorInfo.TYPE_CLASS_TEXT) {
+//            int variation = mEditor.mInputType & EditorInfo.TYPE_MASK_VARIATION;
+//            if (variation == EditorInfo.TYPE_TEXT_FLAG_IME_MULTI_LINE
+//                    || variation == EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     private boolean isDirectionalNavigationKey(int keyCode) {
         switch(keyCode) {
@@ -4972,7 +5201,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 if (event.hasNoModifiers() || event.hasModifiers(KeyEvent.META_SHIFT_ON)) {
                     // Tab is used to move focus.
                     //TODO: (EW) aosp28 checks shouldAdvanceFocusOnTab before returning this, but
-                    // aosp30 doesn't. verify this is what we should do too.
+                    // aosp30 doesn't. verify this is what we should do too or if it should vary by
+                    // version.
                     return KEY_EVENT_NOT_HANDLED;
                 }
                 break;
@@ -5251,16 +5481,28 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
                 }
             }
+            if (getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT) {
+                //TODO: (EW) added sometime after aosp28, but these are inaccessible. can we just ignore?
+//                outAttrs.internalImeOptions |= EditorInfo.IME_INTERNAL_FLAG_APP_WINDOW_PORTRAIT;
+            }
             if (isMultilineInputType(outAttrs.inputType)) {
                 // Multi-line text editors should always show an enter key.
                 outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
             }
             outAttrs.hintText = mHint;
+            //TODO: (EW) added sometime after aosp28, but this is inaccessible. can we just ignore?
+//            outAttrs.targetInputMethodUser = mTextOperationUser;
             if (mText instanceof Editable) {
                 InputConnection ic = new EditableInputConnection(this);
                 outAttrs.initialSelStart = getSelectionStart();
                 outAttrs.initialSelEnd = getSelectionEnd();
                 outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    outAttrs.setInitialSurroundingText(mText);
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
+                }
                 return ic;
             }
         }
@@ -6372,7 +6614,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     private void applySingleLine(boolean singleLine, boolean applyTransformation,
-                                 boolean changeMaxLines) {
+                                 boolean changeMaxLines, boolean changeMaxLength) {
         mSingleLine = singleLine;
         if (singleLine) {
             setLines(1);
@@ -6380,6 +6622,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (applyTransformation) {
                 setTransformationMethod(SingleLineTransformationMethod.getInstance());
             }
+            if (!changeMaxLength) return;
+            final InputFilter[] prevFilters = getFilters();
+            for (InputFilter filter: getFilters()) {
+                // We don't add LengthFilter if already there.
+                if (filter instanceof InputFilter.LengthFilter) return;
+            }
+            if (mSingleLineLengthFilter == null) {
+                mSingleLineLengthFilter = new InputFilter.LengthFilter(
+                        MAX_LENGTH_FOR_SINGLE_LINE_EDIT_TEXT);
+            }
+            final InputFilter[] newFilters = new InputFilter[prevFilters.length + 1];
+            System.arraycopy(prevFilters, 0, newFilters, 0, prevFilters.length);
+            newFilters[prevFilters.length] = mSingleLineLengthFilter;
+            setFilters(newFilters);
+            // Since filter doesn't apply to existing text, trigger filter by setting text.
+            setText(getText());
         } else {
             if (changeMaxLines) {
                 setMaxLines(Integer.MAX_VALUE);
@@ -6388,6 +6646,38 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (applyTransformation) {
                 setTransformationMethod(null);
             }
+            if (!changeMaxLength) return;
+            final InputFilter[] prevFilters = getFilters();
+            if (prevFilters.length == 0) return;
+            // Short Circuit: if mSingleLineLengthFilter is not allocated, nobody sets automated
+            // single line char limit filter.
+            if (mSingleLineLengthFilter == null) return;
+            // If we need to remove mSingleLineLengthFilter, we need to allocate another array.
+            // Since filter list is expected to be small and want to avoid unnecessary array
+            // allocation, check if there is mSingleLengthFilter first.
+            int targetIndex = -1;
+            for (int i = 0; i < prevFilters.length; ++i) {
+                if (prevFilters[i] == mSingleLineLengthFilter) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+            if (targetIndex == -1) return;  // not found. Do nothing.
+            if (prevFilters.length == 1) {
+                setFilters(NO_FILTERS);
+                return;
+            }
+            // Create new array which doesn't include mSingleLengthFilter.
+            final InputFilter[] newFilters = new InputFilter[prevFilters.length - 1];
+            System.arraycopy(prevFilters, 0, newFilters, 0, targetIndex);
+            System.arraycopy(
+                    prevFilters,
+                    targetIndex + 1,
+                    newFilters,
+                    targetIndex,
+                    prevFilters.length - targetIndex - 1);
+            setFilters(newFilters);
+            mSingleLineLengthFilter = null;
         }
     }
 
@@ -6407,7 +6697,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Set whether the cursor is visible. The default is true. Note that this property only
-     * makes sense for editable TextView.
+     * makes sense for editable TextView. If IME is consuming the input, the cursor will always be
+     * invisible, visibility will be updated as the last state when IME does not consume
+     * the input anymore.
      *
      * @see #isCursorVisible()
      *
@@ -6426,7 +6718,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * @return whether or not the cursor is visible (assuming this TextView is editable)
+     * @return whether or not the cursor is visible (assuming this TextView is editable). This
+     * method may return {@code false} when the IME is consuming the input even if the
+     * {@code mEditor.mCursorVisible} attribute is {@code true} or {@code #setCursorVisible(true)}
+     * is called.
      *
      * @see #setCursorVisible(boolean)
      *
@@ -6523,12 +6818,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         Editable text = (Editable) mText;
 
         T[] spans = text.getSpans(start, end, type);
-        final int length = spans.length;
-        for (int i = 0; i < length; i++) {
-            final int spanStart = text.getSpanStart(spans[i]);
-            final int spanEnd = text.getSpanEnd(spans[i]);
-            if (spanEnd == start || spanStart == end) break;
-            text.removeSpan(spans[i]);
+        ArrayList<T> spansToRemove = new ArrayList<>();
+        for (T span : spans) {
+            final int spanStart = text.getSpanStart(span);
+            final int spanEnd = text.getSpanEnd(span);
+            if (spanEnd == start || spanStart == end) continue;
+            spansToRemove.add(span);
+        }
+        for (T span : spansToRemove) {
+            text.removeSpan(span);
         }
     }
 
@@ -6561,33 +6859,54 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
         }
 
-        // Always notify AutoFillManager - it will return right away if autofill is disabled.
-        notifyAutoFillManagerAfterTextChangedIfNeeded();//notifyListeningManagersAfterTextChanged();
+        notifyListeningManagersAfterTextChanged();
     }
 
-    private void notifyAutoFillManagerAfterTextChangedIfNeeded() {
-        // It is important to not check whether the view is important for autofill
-        // since the user can trigger autofill manually on not important views.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAutofillable()) {
-            return;
-        }
-        final AutofillManager afm;
-        afm = getContext().getSystemService(AutofillManager.class);
-        if (afm == null) {
-            return;
+    /**
+     * Notify managers (such as {@link AutofillManager} and {@link ContentCaptureManager}) that are
+     * interested on text changes.
+     */
+    private void notifyListeningManagersAfterTextChanged() {
+
+        // Autofill
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAutofillable()) {
+            // It is important to not check whether the view is important for autofill
+            // since the user can trigger autofill manually on not important views.
+            final AutofillManager afm = getContext().getSystemService(AutofillManager.class);
+            if (afm != null) {
+//                if (android.view.autofill.Helper.sVerbose) {
+//                    Log.v(LOG_TAG, "notifyAutoFillManagerAfterTextChanged");
+//                }
+                //TODO: (EW) sometime after aosp28 mLastValueSentToAutofillManager stopped being
+                // checked to skip notifying. should that be version specific or is this new lack of
+                // handling better overall?
+                afm.notifyValueChanged(EditText.this);
+            }
         }
 
-        if (mLastValueSentToAutofillManager == null
-                || !mLastValueSentToAutofillManager.equals(mText)) {
-//            if (android.view.autofill.Helper.sVerbose) {
-//                Log.v(LOG_TAG, "notifying AFM after text changed");
-//            }
-            afm.notifyValueChanged(EditText.this);
-            mLastValueSentToAutofillManager = mText;
-        } else {
-//            if (android.view.autofill.Helper.sVerbose) {
-//                Log.v(LOG_TAG, "not notifying AFM on unchanged text");
-//            }
+        notifyContentCaptureTextChanged();
+    }
+
+    /**
+     * Notifies the ContentCapture service that the text of the view has changed (only if
+     * ContentCapture has been notified of this view's existence already).
+     *
+     * @hide
+     */
+    public void notifyContentCaptureTextChanged() {
+        // TODO(b/121045053): should use a flag / boolean to keep status of SHOWN / HIDDEN instead
+        // of using isLaidout(), so it's not called in cases where it's laid out but a
+        // notifyAppeared was not sent.
+        //TODO: (EW) getNotifiedContentCaptureAppeared from View is hidden. can it just be ignored?
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && isLaidOut() && isImportantForContentCapture()/* && getNotifiedContentCaptureAppeared()*/) {
+            final ContentCaptureManager cm = getContext().getSystemService(ContentCaptureManager.class);
+            if (cm != null && cm.isContentCaptureEnabled()) {
+                final ContentCaptureSession session = getContentCaptureSession();
+                if (session != null) {
+                    // TODO(b/111276913): pass flags when edited by user / add CTS test
+                    session.notifyViewTextChanged(getAutofillId(), getText());
+                }
+            }
         }
     }
 
@@ -6846,17 +7165,65 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
+    /**
+     * Called from onTouchEvent() to prevent the touches by secondary fingers.
+     * Dragging on handles can revise cursor/selection, so can dragging on the text view.
+     * This method is a lock to avoid processing multiple fingers on both text view and handles.
+     * Note: multiple fingers on handles (e.g. 2 fingers on the 2 selection handles) should work.
+     *
+     * @param event The motion event that is being handled and carries the pointer info.
+     * @param fromHandleView true if the event is delivered to selection handle or insertion
+     * handle; false if this event is delivered to TextView.
+     * @return Returns true to indicate that onTouchEvent() can continue processing the motion
+     * event, otherwise false.
+     *  - Always returns true for the first finger.
+     *  - For secondary fingers, if the first or current finger is from TextView, returns false.
+     *    This is to make touch mutually exclusive between the TextView and the handles, but
+     *    not among the handles.
+     */
+    boolean isFromPrimePointer(MotionEvent event, boolean fromHandleView) {
+        boolean res = true;
+        if (mPrimePointerId == NO_POINTER_ID)  {
+            mPrimePointerId = event.getPointerId(0);
+            mIsPrimePointerFromHandleView = fromHandleView;
+        } else if (mPrimePointerId != event.getPointerId(0)) {
+            res = mIsPrimePointerFromHandleView && fromHandleView;
+        }
+        if (event.getActionMasked() == MotionEvent.ACTION_UP
+                || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+            mPrimePointerId = -1;
+        }
+        return res;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (DEBUG_CURSOR) {
+//            logCursor("onTouchEvent", "%d: %s (%f,%f)",
+//                    event.getSequenceNumber(),
+//                    MotionEvent.actionToString(event.getActionMasked()),
+//                    event.getX(), event.getY());
+        }
         final int action = event.getActionMasked();
+        if (!isFromPrimePointer(event, false)) {
+            return true;
+        }
+
         mEditor.onTouchEvent(event);
 
+        if (mEditor.mInsertionPointCursorController != null
+                && mEditor.mInsertionPointCursorController.isCursorBeingModified()) {
+            return true;
+        }
         if (mEditor.mSelectionModifierCursorController != null
                 && mEditor.mSelectionModifierCursorController.isDragAcceleratorActive()) {
             return true;
         }
 
         final boolean superResult = super.onTouchEvent(event);
+        if (DEBUG_CURSOR) {
+//            logCursor("onTouchEvent", "superResult=%s", superResult);
+        }
 
         /*
          * Don't handle the release after a long press, because it will move the selection away from
@@ -6865,7 +7232,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          */
         if (mEditor.mDiscardNextActionUp && action == MotionEvent.ACTION_UP) {
             mEditor.mDiscardNextActionUp = false;
-
+            if (DEBUG_CURSOR) {
+//                logCursor("onTouchEvent", "release after long press detected");
+            }
             if (mEditor.mIsInsertionActionModeStartPending) {
                 mEditor.startInsertionActionMode();
                 mEditor.mIsInsertionActionModeStartPending = false;
@@ -7078,6 +7447,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 : mCurrentSpellCheckerLocaleCache;
     }
 
+    @Nullable
+    final ClipboardManager getClipboardManager() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return getServiceManager(ClipboardManager.class);
+        }
+        return (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Nullable
+    final <T> T getServiceManager(Class<T> managerClazz) {
+        return getContext().getSystemService(managerClazz);
+    }
+
     /**
      * This is a temporary method. Future versions may support multi-locale text.
      * Caveat: This method may not return the latest text services locale, but this should be
@@ -7121,6 +7504,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return EditText.class.getName();
     }
 
+    //TODO: (EW) sometime after aosp28 a different override that is hidden is used instead
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onProvideStructure(ViewStructure structure) {
@@ -7128,6 +7512,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         onProvideAutoStructureForAssistOrAutofill(structure, false);
     }
 
+    //TODO: (EW) sometime after aosp28 this is handled in a different override of onProvideStructure
+    // that is hidden instead
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onProvideAutofillStructure(ViewStructure structure, int flags) {
@@ -7135,6 +7521,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         onProvideAutoStructureForAssistOrAutofill(structure, true);
     }
 
+    //TODO: (EW) sometime after aosp28 this is handled in a different override of onProvideStructure
+    // that is hidden instead
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void onProvideAutoStructureForAssistOrAutofill(ViewStructure structure,
                                                            boolean forAutofill) {
@@ -7285,6 +7673,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 //TODO: (EW) handle?
             }
         }
+        if (mHintId != Resources.ID_NULL && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                structure.setHintIdEntry(getResources().getResourceEntryName(mHintId));
+            } catch (Resources.NotFoundException e) {
+//                if (android.view.autofill.Helper.sVerbose) {
+//                    Log.v(LOG_TAG, "onProvideAutofillStructure(): cannot set name for hint id "
+//                            + mHintId + ": " + e.getMessage());
+//                }
+            }
+        }
         structure.setHint(getHint());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             structure.setInputType(getInputType());
@@ -7316,20 +7714,30 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void autofill(AutofillValue value) {
-        if (!value.isText() || !isTextEditable()) {
-            Log.w(LOG_TAG, value + " could not be autofilled into " + this);
+        if (!isTextEditable()) {
+            Log.w(LOG_TAG, "cannot autofill non-editable TextView: " + this);
             return;
         }
+        if (!value.isText()) {
+            Log.w(LOG_TAG, "value of type " + value.describeContents()
+                    + " cannot be autofilled into " + this);
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            final ClipData clip = ClipData.newPlainText("", value.getTextValue());
+            final ContentInfo payload = new ContentInfo.Builder(clip, SOURCE_AUTOFILL).build();
+            performReceiveContent(payload);
+        } else {
+            final CharSequence autofilledValue = value.getTextValue();
 
-        final CharSequence autofilledValue = value.getTextValue();
+            // First autofill it...
+            setText(autofilledValue, true, 0);
 
-        // First autofill it...
-        setText(autofilledValue, true, 0);
-
-        // ...then move cursor to the end.
-        final CharSequence text = getText();
-        if ((text instanceof Spannable)) {
-            Selection.setSelection((Spannable) text, text.length());
+            // ...then move cursor to the end.
+            final CharSequence text = getText();
+            if ((text instanceof Spannable)) {
+                Selection.setSelection((Spannable) text, text.length());
+            }
         }
     }
 
@@ -7362,11 +7770,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public void addExtraDataToAccessibilityNodeInfo(
             AccessibilityNodeInfo info, String extraDataKey, Bundle arguments) {
-        // The only extra data we support requires arguments.
-        if (arguments == null) {
-            return;
-        }
-        if (extraDataKey.equals(EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)) {
+        if (arguments != null && extraDataKey.equals(EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)) {
             int positionInfoStartIndex = arguments.getInt(
                     EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, -1);
             int positionInfoLength = arguments.getInt(
@@ -7394,6 +7798,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
             }
             info.getExtras().putParcelableArray(extraDataKey, boundingRects);
+            return;
+        }
+        if (extraDataKey.equals(AccessibilityNodeInfo.EXTRA_DATA_RENDERING_INFO_KEY)) {
+            //TODO: (EW) is this necessary? it isn't accessible. are there alternatives? this was
+            // only added sometime after aosp28
+//            final AccessibilityNodeInfo.ExtraRenderingInfo extraRenderingInfo =
+//                    AccessibilityNodeInfo.ExtraRenderingInfo.obtain();
+//            extraRenderingInfo.setLayoutSize(getLayoutParams().width, getLayoutParams().height);
+//            extraRenderingInfo.setTextSizeInPx(getTextSize());
+//            extraRenderingInfo.setTextSizeUnit(getTextSizeUnit());
+//            info.setExtraRenderingInfo(extraRenderingInfo);
         }
     }
 
@@ -7658,6 +8073,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public boolean performLongClick() {
+        if (DEBUG_CURSOR) {
+//            logCursor("performLongClick", null);
+        }
+
         boolean handled = false;
         boolean performedHapticFeedback = false;
 
@@ -7779,8 +8198,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 && mEditor.mKeyListener != null
                 && getSelectionStart() >= 0
                 && getSelectionEnd() >= 0
-                && ((ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE))
-                .hasPrimaryClip());
+                && getClipboardManager().hasPrimaryClip());
     }
 
     boolean canPasteAsPlainText() {
@@ -7788,16 +8206,23 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return false;
         }
 
-        final ClipData clipData =
-                ((ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE))
-                        .getPrimaryClip();
-        final ClipDescription description = clipData.getDescription();
+        final ClipboardManager clipboardManager = getClipboardManager();
+        final ClipDescription description = clipboardManager.getPrimaryClipDescription();
         final boolean isPlainType = description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
-        final CharSequence text = clipData.getItemAt(0).getText();
-        if (isPlainType && (text instanceof Spanned)) {
-            Spanned spanned = (Spanned) text;
-            if (HiddenTextUtils.hasStyleSpan(spanned)) {
-                return true;
+        if (isPlainType) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (description.isStyledText()) {
+                    return true;
+                }
+            } else {
+                final ClipData clipData = clipboardManager.getPrimaryClip();
+                final CharSequence text = clipData.getItemAt(0).getText();
+                if (text instanceof Spanned) {
+                    Spanned spanned = (Spanned) text;
+                    if (HiddenTextUtils.hasStyleSpan(spanned)) {
+                        return true;
+                    }
+                }
             }
         }
         return description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML);
@@ -7811,7 +8236,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     boolean canSelectAllText() {
-        return /*canSelectText() &&*/ !hasPasswordTransformationMethod()
+        return canSelectText() && !hasPasswordTransformationMethod()
                 && !(getSelectionStart() == 0 && getSelectionEnd() == mText.length());
     }
 
@@ -7823,18 +8248,25 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return length > 0;
     }
 
-    void replaceSelectionWithText(CharSequence text) {
-        ((Editable) mText).replace(getSelectionStart(), getSelectionEnd(), text);
-    }
+//    void replaceSelectionWithText(CharSequence text) {
+//        ((Editable) mText).replace(getSelectionStart(), getSelectionEnd(), text);
+//    }
 
     /**
      * Paste clipboard content between min and max positions.
      */
     private void paste(int min, int max, boolean withFormatting) {
-        ClipboardManager clipboard =
-                (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipboardManager clipboard = getClipboardManager();
         ClipData clip = clipboard.getPrimaryClip();
-        if (clip != null) {
+        if (clip == null) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            final ContentInfo payload = new ContentInfo.Builder(clip, SOURCE_CLIPBOARD)
+                    .setFlags(withFormatting ? 0 : FLAG_CONVERT_TO_PLAIN_TEXT)
+                    .build();
+            performReceiveContent(payload);
+        } else {
             boolean didFirst = false;
             for (int i = 0; i < clip.getItemCount(); i++) {
                 final CharSequence paste;
@@ -7856,8 +8288,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     }
                 }
             }
-            sLastCutCopyOrTextChangedTime = 0;
         }
+        sLastCutCopyOrTextChangedTime = 0;
     }
 
     private void shareSelectedText() {
@@ -7874,8 +8306,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     private boolean setPrimaryClip(ClipData clip) {
-        ClipboardManager clipboard =
-                (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipboardManager clipboard = getClipboardManager();
         try {
             clipboard.setPrimaryClip(clip);
         } catch (Throwable t) {
@@ -7930,11 +8361,37 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return getLayout().getOffsetForHorizontal(line, x);
     }
 
+    /**
+     * Handles drag events sent by the system following a call to
+     * {@link android.view.View#startDragAndDrop(ClipData,DragShadowBuilder,Object,int)
+     * startDragAndDrop()}.
+     *
+     * <p>If this text view is not editable, delegates to the default {@link View#onDragEvent}
+     * implementation.
+     *
+     * <p>If this text view is editable, accepts all drag actions (returns true for an
+     * {@link android.view.DragEvent#ACTION_DRAG_STARTED ACTION_DRAG_STARTED} event and all
+     * subsequent drag events). While the drag is in progress, updates the cursor position
+     * to follow the touch location. Once a drop event is received, handles content insertion
+     * via {@link #performReceiveContent}.
+     *
+     * @param event The {@link android.view.DragEvent} sent by the system.
+     * The {@link android.view.DragEvent#getAction()} method returns an action type constant
+     * defined in DragEvent, indicating the type of drag event represented by this object.
+     * @return Returns true if this text view is editable and delegates to super otherwise.
+     * See {@link View#onDragEvent}.
+     */
     @Override
     public boolean onDragEvent(DragEvent event) {
+        if (!mEditor.hasInsertionController()) {
+            // If this TextView is not editable, defer to the default View implementation. This
+            // will check for the presence of an OnReceiveContentListener and accept/reject
+            // drag events depending on whether the listener is/isn't set.
+            return super.onDragEvent(event);
+        }
         switch (event.getAction()) {
             case DragEvent.ACTION_DRAG_STARTED:
-                return mEditor.hasInsertionController();
+                return true;
 
             case DragEvent.ACTION_DRAG_ENTERED:
                 EditText.this.requestFocus();
@@ -7981,12 +8438,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the current {@link TextDirectionHeuristic}.
-     *
-     * @return the current {@link TextDirectionHeuristic}.
-     * @hide
+     * Returns resolved {@link TextDirectionHeuristic} that will be used for text layout.
+     * The {@link TextDirectionHeuristic} that is used by TextView is only available after
+     * {@link #getTextDirection()} and {@link #getLayoutDirection()} is resolved. Therefore the
+     * return value may not be the same as the one TextView uses if the View's layout direction is
+     * not resolved or detached from parent root view.
      */
-    protected TextDirectionHeuristic getTextDirectionHeuristic() {
+    public @NonNull TextDirectionHeuristic getTextDirectionHeuristic() {
         if (hasPasswordTransformationMethod()) {
             // passwords fields should be LTR
             return TextDirectionHeuristics.LTR;
@@ -8132,7 +8590,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         @SuppressWarnings("hiding")
-        public static final Parcelable.Creator<SavedState> CREATOR =
+        public static final @NonNull Parcelable.Creator<SavedState> CREATOR =
                 new Parcelable.Creator<SavedState>() {
                     public SavedState createFromParcel(Parcel in) {
                         return new SavedState(in);
@@ -8238,11 +8696,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //                    advancesIndex);
 //        }
 //
-//        public int getTextRunCursor(int contextStart, int contextEnd, int dir,
+//        public int getTextRunCursor(int contextStart, int contextEnd, boolean isRtl,
 //                                    int offset, int cursorOpt, Paint p) {
 //            int contextCount = contextEnd - contextStart;
 //            return p.getTextRunCursor(mChars, contextStart + mStart,
-//                    contextCount, dir, offset + mStart, cursorOpt);
+//                    contextCount, isRtl, offset + mStart, cursorOpt);
 //        }
     }
 
@@ -8311,6 +8769,30 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             EditText.this.spanChange(buf, what, s, -1, e, -1);
         }
+    }
+
+    /**
+     * Default {@link TextView} implementation for receiving content. Apps wishing to provide
+     * custom behavior should configure a listener via {@link #setOnReceiveContentListener}.
+     *
+     * <p>For non-editable TextViews the default behavior is a no-op (returns the passed-in
+     * content without acting on it).
+     *
+     * <p>For editable TextViews the default behavior is to insert text into the view, coercing
+     * non-text content to text as needed. The MIME types "text/plain" and "text/html" have
+     * well-defined behavior for this, while other MIME types have reasonable fallback behavior
+     * (see {@link ClipData.Item#coerceToStyledText}).
+     *
+     * @param payload The content to insert and related metadata.
+     *
+     * @return The portion of the passed-in content that was not handled (may be all, some, or none
+     * of the passed-in content).
+     */
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    @Nullable
+    @Override
+    public ContentInfo onReceiveContent(@NonNull ContentInfo payload) {
+        return mEditor.getDefaultOnReceiveContentListener().onReceiveContent(this, payload);
     }
 
 

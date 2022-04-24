@@ -56,8 +56,7 @@
              May be a string value, which is a comma-separated language tag list, such as "ja-JP,zh-CN".
              When not specified or an empty string is given, it will fallback to the default one.
              {@see android.os.LocaleList#forLanguageTags(String)} -->
-        <!-- TODO: add back when changing the target API (only supported since 29) or just delete if it isn't necessary -->
-<!--        <attr name="android:textLocale" />-->
+        <attr name="android:textLocale" />
         <!-- Color of the text selection highlight. -->
         <attr name="android:textColorHighlight" />
         <!-- Color of the hint text. -->
