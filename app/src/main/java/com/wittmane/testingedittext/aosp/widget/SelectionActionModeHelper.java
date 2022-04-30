@@ -102,6 +102,7 @@ public final class SelectionActionModeHelper {
         invalidateActionMode();
     }
 
+    /** Reports a selection action event. */
     public void onSelectionAction(int menuItemId) {
         mSelectionTracker.onSelectionAction();
     }

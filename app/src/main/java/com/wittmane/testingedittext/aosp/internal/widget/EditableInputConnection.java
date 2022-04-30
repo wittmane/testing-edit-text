@@ -421,10 +421,8 @@ public class EditableInputConnection extends BaseInputConnection {
         if (mTextView == null) {
             return super.setImeConsumesInput(imeConsumesInput);
         }
-        //TODO: (EW) implement
-//        mTextView.setImeConsumesInput(imeConsumesInput);
-//        return true;
-        return false;
+        mTextView.setImeConsumesInput(imeConsumesInput);
+        return true;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)

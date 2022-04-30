@@ -107,6 +107,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
@@ -140,6 +141,7 @@ import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_C
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
 import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
+import static com.wittmane.testingedittext.aosp.widget.Editor.logCursor;
 
 public class EditText extends View implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
@@ -373,15 +375,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Drawable mCursorDrawable;
     // Note: this might be stale if setTextSelectHandleLeft is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    int mTextSelectHandleLeftRes;
+    private int mTextSelectHandleLeftRes;
     private Drawable mTextSelectHandleLeft;
     // Note: this might be stale if setTextSelectHandleRight is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    int mTextSelectHandleRightRes;
+    private int mTextSelectHandleRightRes;
     private Drawable mTextSelectHandleRight;
     // Note: this might be stale if setTextSelectHandle is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    int mTextSelectHandleRes;
+    private int mTextSelectHandleRes;
     private Drawable mTextSelectHandle;
     int mTextEditSuggestionItemLayout;
     int mTextEditSuggestionContainerLayout;
@@ -1733,6 +1735,215 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public int getLastBaselineToBottomHeight() {
         return getPaddingBottom() + getPaint().getFontMetricsInt().bottom;
+    }
+
+    /**
+     * Sets the Drawable corresponding to the selection handle used for
+     * positioning the cursor within text. The Drawable defaults to the value
+     * of the textSelectHandle attribute.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @see #setTextSelectHandle(int)
+     * @attr ref android.R.styleable#TextView_textSelectHandle
+     */
+    public void setTextSelectHandle(@NonNull Drawable textSelectHandle) {
+        //TODO: (EW) maybe change to Objects.requireNonNull since others places made this change
+        Preconditions.checkNotNull(textSelectHandle,
+                "The text select handle should not be null.");
+        mTextSelectHandle = textSelectHandle;
+        mTextSelectHandleRes = 0;
+        mEditor.loadHandleDrawables(true /* overwrite */);
+    }
+
+    /**
+     * Sets the Drawable corresponding to the selection handle used for
+     * positioning the cursor within text. The Drawable defaults to the value
+     * of the textSelectHandle attribute.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @see #setTextSelectHandle(Drawable)
+     * @attr ref android.R.styleable#TextView_textSelectHandle
+     */
+    public void setTextSelectHandle(@DrawableRes int textSelectHandle) {
+        Preconditions.checkArgument(textSelectHandle != 0,
+                "The text select handle should be a valid drawable resource id.");
+        setTextSelectHandle(getDrawable(textSelectHandle));
+    }
+
+    /**
+     * Returns the Drawable corresponding to the selection handle used
+     * for positioning the cursor within text.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @return the text select handle drawable
+     *
+     * @see #setTextSelectHandle(Drawable)
+     * @see #setTextSelectHandle(int)
+     * @attr ref android.R.styleable#TextView_textSelectHandle
+     */
+    @Nullable public Drawable getTextSelectHandle() {
+        if (mTextSelectHandle == null && mTextSelectHandleRes != 0) {
+            mTextSelectHandle = getDrawable(mTextSelectHandleRes);
+        }
+        return mTextSelectHandle;
+    }
+
+    /**
+     * Sets the Drawable corresponding to the left handle used
+     * for selecting text. The Drawable defaults to the value of the
+     * textSelectHandleLeft attribute.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @see #setTextSelectHandleLeft(int)
+     * @attr ref android.R.styleable#TextView_textSelectHandleLeft
+     */
+    public void setTextSelectHandleLeft(@NonNull Drawable textSelectHandleLeft) {
+        //TODO: (EW) maybe change to Objects.requireNonNull since others places made this change
+        Preconditions.checkNotNull(textSelectHandleLeft,
+                "The left text select handle should not be null.");
+        mTextSelectHandleLeft = textSelectHandleLeft;
+        mTextSelectHandleLeftRes = 0;
+        mEditor.loadHandleDrawables(true /* overwrite */);
+    }
+
+    /**
+     * Sets the Drawable corresponding to the left handle used
+     * for selecting text. The Drawable defaults to the value of the
+     * textSelectHandleLeft attribute.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @see #setTextSelectHandleLeft(Drawable)
+     * @attr ref android.R.styleable#TextView_textSelectHandleLeft
+     */
+    public void setTextSelectHandleLeft(@DrawableRes int textSelectHandleLeft) {
+        Preconditions.checkArgument(textSelectHandleLeft != 0,
+                "The text select left handle should be a valid drawable resource id.");
+        setTextSelectHandleLeft(getDrawable(textSelectHandleLeft));
+    }
+
+    /**
+     * Returns the Drawable corresponding to the left handle used
+     * for selecting text.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @return the left text selection handle drawable
+     *
+     * @see #setTextSelectHandleLeft(Drawable)
+     * @see #setTextSelectHandleLeft(int)
+     * @attr ref android.R.styleable#TextView_textSelectHandleLeft
+     */
+    @Nullable public Drawable getTextSelectHandleLeft() {
+        if (mTextSelectHandleLeft == null && mTextSelectHandleLeftRes != 0) {
+            mTextSelectHandleLeft = getDrawable(mTextSelectHandleLeftRes);
+        }
+        return mTextSelectHandleLeft;
+    }
+
+    /**
+     * Sets the Drawable corresponding to the right handle used
+     * for selecting text. The Drawable defaults to the value of the
+     * textSelectHandleRight attribute.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @see #setTextSelectHandleRight(int)
+     * @attr ref android.R.styleable#TextView_textSelectHandleRight
+     */
+    public void setTextSelectHandleRight(@NonNull Drawable textSelectHandleRight) {
+        //TODO: (EW) maybe change to Objects.requireNonNull since others places made this change
+        Preconditions.checkNotNull(textSelectHandleRight,
+                "The right text select handle should not be null.");
+        mTextSelectHandleRight = textSelectHandleRight;
+        mTextSelectHandleRightRes = 0;
+        mEditor.loadHandleDrawables(true /* overwrite */);
+    }
+
+    /**
+     * Sets the Drawable corresponding to the right handle used
+     * for selecting text. The Drawable defaults to the value of the
+     * textSelectHandleRight attribute.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @see #setTextSelectHandleRight(Drawable)
+     * @attr ref android.R.styleable#TextView_textSelectHandleRight
+     */
+    public void setTextSelectHandleRight(@DrawableRes int textSelectHandleRight) {
+        Preconditions.checkArgument(textSelectHandleRight != 0,
+                "The text select right handle should be a valid drawable resource id.");
+        setTextSelectHandleRight(getDrawable(textSelectHandleRight));
+    }
+
+    /**
+     * Returns the Drawable corresponding to the right handle used
+     * for selecting text.
+     * Note that any change applied to the handle Drawable will not be visible
+     * until the handle is hidden and then drawn again.
+     *
+     * @return the right text selection handle drawable
+     *
+     * @see #setTextSelectHandleRight(Drawable)
+     * @see #setTextSelectHandleRight(int)
+     * @attr ref android.R.styleable#TextView_textSelectHandleRight
+     */
+    @Nullable public Drawable getTextSelectHandleRight() {
+        if (mTextSelectHandleRight == null && mTextSelectHandleRightRes != 0) {
+            mTextSelectHandleRight = getDrawable(mTextSelectHandleRightRes);
+        }
+        return mTextSelectHandleRight;
+    }
+
+    /**
+     * Sets the Drawable corresponding to the text cursor. The Drawable defaults to the
+     * value of the textCursorDrawable attribute.
+     * Note that any change applied to the cursor Drawable will not be visible
+     * until the cursor is hidden and then drawn again.
+     *
+     * @see #setTextCursorDrawable(int)
+     * @attr ref android.R.styleable#TextView_textCursorDrawable
+     */
+    public void setTextCursorDrawable(@Nullable Drawable textCursorDrawable) {
+        mCursorDrawable = textCursorDrawable;
+        mCursorDrawableRes = 0;
+        mEditor.loadCursorDrawable();
+    }
+
+    /**
+     * Sets the Drawable corresponding to the text cursor. The Drawable defaults to the
+     * value of the textCursorDrawable attribute.
+     * Note that any change applied to the cursor Drawable will not be visible
+     * until the cursor is hidden and then drawn again.
+     *
+     * @see #setTextCursorDrawable(Drawable)
+     * @attr ref android.R.styleable#TextView_textCursorDrawable
+     */
+    public void setTextCursorDrawable(@DrawableRes int textCursorDrawable) {
+        setTextCursorDrawable(
+                textCursorDrawable != 0 ? getDrawable(textCursorDrawable) : null);
+    }
+
+    /**
+     * Returns the Drawable corresponding to the text cursor.
+     * Note that any change applied to the cursor Drawable will not be visible
+     * until the cursor is hidden and then drawn again.
+     *
+     * @return the text cursor drawable
+     *
+     * @see #setTextCursorDrawable(Drawable)
+     * @see #setTextCursorDrawable(int)
+     * @attr ref android.R.styleable#TextView_textCursorDrawable
+     */
+    @Nullable public Drawable getTextCursorDrawable() {
+        if (mCursorDrawable == null && mCursorDrawableRes != 0) {
+            mCursorDrawable = getDrawable(mCursorDrawableRes);
+        }
+        return mCursorDrawable;
     }
 
     /**
@@ -3574,7 +3785,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    private void setText(CharSequence text, boolean notifyBefore, int oldlen) {
+    //TODO: (EW) changed scope from private to avoid issues in the javadoc in Editor, but it isn't
+    // actually called outside of this class, so private still makes the most sense. see if there is
+    // a better way to handle this
+    /*private*/ void setText(CharSequence text, boolean notifyBefore, int oldlen) {
         mTextSetFromXmlOrResourceId = false;
         if (text == null) {
             text = "";
@@ -6706,6 +6920,25 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_cursorVisible
      */
     public void setCursorVisible(boolean visible) {
+        mCursorVisibleFromAttr = visible;
+        updateCursorVisibleInternal();
+    }
+
+    /**
+     * Sets the IME is consuming the input and make the cursor invisible if {@code imeConsumesInput}
+     * is {@code true}. Otherwise, make the cursor visible.
+     *
+     * @param imeConsumesInput {@code true} if IME is consuming the input
+     *
+     * @hide
+     */
+    public void setImeConsumesInput(boolean imeConsumesInput) {
+        mImeIsConsumingInput = imeConsumesInput;
+        updateCursorVisibleInternal();
+    }
+
+    private void updateCursorVisibleInternal()  {
+        boolean visible = mCursorVisibleFromAttr && !mImeIsConsumingInput;
         if (mEditor.mCursorVisible != visible) {
             mEditor.mCursorVisible = visible;
             invalidate();
@@ -6715,6 +6948,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // InsertionPointCursorController depends on mCursorVisible
             mEditor.prepareCursorControllers();
         }
+    }
+
+    /**
+     * @return whether cursor is visible without regard to {@code mImeIsConsumingInput}.
+     * {@code true} is the default value.
+     *
+     * @see #setCursorVisible(boolean)
+     * @hide
+     */
+    public boolean isCursorVisibleFromAttr() {
+        return mCursorVisibleFromAttr;
     }
 
     /**
@@ -7222,7 +7466,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         final boolean superResult = super.onTouchEvent(event);
         if (DEBUG_CURSOR) {
-//            logCursor("onTouchEvent", "superResult=%s", superResult);
+            logCursor("onTouchEvent", "superResult=%s", superResult);
         }
 
         /*
@@ -7233,7 +7477,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (mEditor.mDiscardNextActionUp && action == MotionEvent.ACTION_UP) {
             mEditor.mDiscardNextActionUp = false;
             if (DEBUG_CURSOR) {
-//                logCursor("onTouchEvent", "release after long press detected");
+                logCursor("onTouchEvent", "release after long press detected");
             }
             if (mEditor.mIsInsertionActionModeStartPending) {
                 mEditor.startInsertionActionMode();
@@ -7948,7 +8192,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             return getContext().getSystemService(InputMethodManager.class);
         }
-        //TODO: verify this works
+        //TODO: (EW) verify this works or see what older versions did
         return (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     }
 
@@ -8074,7 +8318,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public boolean performLongClick() {
         if (DEBUG_CURSOR) {
-//            logCursor("performLongClick", null);
+            logCursor("performLongClick", null);
         }
 
         boolean handled = false;
@@ -8793,6 +9037,19 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public ContentInfo onReceiveContent(@NonNull ContentInfo payload) {
         return mEditor.getDefaultOnReceiveContentListener().onReceiveContent(this, payload);
+    }
+
+
+    //TODO: (EW) see if this should live in EditText instead
+    Drawable getDrawable(int res) {
+        //TODO: (EW) should we use ContextCompat to avoid the version check or should we avoid using
+        // the compatibility libraries?
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return getContext().getDrawable(res);
+        } else {
+            return getContext().getResources().getDrawable(res);
+        }
+//        return ContextCompat.getDrawable(mTextView.getContext(), res);
     }
 
 
