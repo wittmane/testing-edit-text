@@ -294,7 +294,7 @@ public class Editor {
     private SpanController mSpanController;
 
     private WordIterator mWordIterator;
-//    SpellChecker mSpellChecker;
+    SpellChecker mSpellChecker;
 
     // This word iterator is set with text and used to determine word boundaries
     // when a user is selecting text.
@@ -506,8 +506,8 @@ public class Editor {
 //            }
         }
 
-//        updateSpellCheckSpans(0, mTextView.getText().length(),
-//                true /* create the spell checker if needed */);
+        updateSpellCheckSpans(0, mTextView.getText().length(),
+                true /* create the spell checker if needed */);
 
         if (mTextView.hasSelection()) {
             refreshTextActionMode();
@@ -547,12 +547,12 @@ public class Editor {
 
 //        discardTextDisplayLists();
 
-//        if (mSpellChecker != null) {
-//            mSpellChecker.closeSession();
-//            // Forces the creation of a new SpellChecker next time this window is created.
-//            // Will handle the cases where the settings has been changed in the meantime.
-//            mSpellChecker = null;
-//        }
+        if (mSpellChecker != null) {
+            mSpellChecker.closeSession();
+            // Forces the creation of a new SpellChecker next time this window is created.
+            // Will handle the cases where the settings has been changed in the meantime.
+            mSpellChecker = null;
+        }
 
 //        if (FLAG_USE_MAGNIFIER) {
 //            final ViewTreeObserver observer = mTextView.getViewTreeObserver();
@@ -664,6 +664,33 @@ public class Editor {
             mSuggestionsPopupWindow.hide();
         }
         hideInsertionPointCursorController();
+    }
+
+    /**
+     * Create new SpellCheckSpans on the modified region.
+     */
+    private void updateSpellCheckSpans(int start, int end, boolean createSpellChecker) {
+        // Remove spans whose adjacent characters are text not punctuation
+        mTextView.removeAdjacentSuggestionSpans(start);
+        mTextView.removeAdjacentSuggestionSpans(end);
+
+        if (mTextView.isTextEditable() && mTextView.isSuggestionsEnabled()
+                && !(mTextView.isInExtractedMode())) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                final InputMethodManager imm = getInputMethodManager();
+                if (imm != null && imm.isInputMethodSuppressingSpellChecker()) {
+                    // Do not close mSpellChecker here as it may be reused when the current IME has been
+                    // changed.
+                    return;
+                }
+            }
+            if (mSpellChecker == null && createSpellChecker) {
+                mSpellChecker = new SpellChecker(mTextView);
+            }
+            if (mSpellChecker != null) {
+                mSpellChecker.spellCheck(start, end);
+            }
+        }
     }
 
     void onScreenStateChanged(int screenState) {
@@ -1169,7 +1196,7 @@ public class Editor {
 
     void sendOnTextChanged(int start, int before, int after) {
         getSelectionActionModeHelper().onTextChanged(start, start + before);
-//        updateSpellCheckSpans(start, start + after, false);
+        updateSpellCheckSpans(start, start + after, false);
 
         // Flip flag to indicate the word iterator needs to have the text reset.
         mUpdateWordIteratorText = true;
@@ -2092,10 +2119,10 @@ public class Editor {
             final boolean shouldInsertCursor = !mRequestingLinkActionMode;
             if (shouldInsertCursor) {
                 Selection.setSelection((Spannable) text, offset);
-//                if (mSpellChecker != null) {
-//                    // When the cursor moves, the word that was typed may need spell check
-//                    mSpellChecker.onSelectionChanged();
-//                }
+                if (mSpellChecker != null) {
+                    // When the cursor moves, the word that was typed may need spell check
+                    mSpellChecker.onSelectionChanged();
+                }
             }
 
             Log.w(TAG, "onTouchUpEvent: extractedTextModeWillBeStarted=" + extractedTextModeWillBeStarted()
@@ -3386,7 +3413,7 @@ public class Editor {
                     // TODO The ExtractEditText should remove the span in the original text instead
                     editable.removeSpan(mMisspelledSpanInfo.mSuggestionSpan);
                     Selection.setSelection(editable, spanEnd);
-//                    updateSpellCheckSpans(spanStart, spanEnd, false);
+                    updateSpellCheckSpans(spanStart, spanEnd, false);
                     hideWithCleanUp();
                 }
             });

@@ -25,6 +25,7 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DecimalFormatSymbols;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
@@ -102,6 +103,8 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.view.textservice.SpellCheckerSubtype;
+import android.view.textservice.TextServicesManager;
 import android.widget.Scroller;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -127,9 +130,12 @@ import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
+import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -5887,6 +5893,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // intentionally empty
     }
 
+    /** @hide */
+    public void onPerformSpellCheck() {
+        if (mEditor.mSpellChecker != null) {
+            mEditor.mSpellChecker.onPerformSpellCheck();
+        }
+    }
+
     /**
      * Called by the framework in response to a private command from the
      * current method, provided by it calling
@@ -7052,7 +7065,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         // The spans that are inside or intersect the modified region no longer make sense
-//        removeIntersectingNonAdjacentSpans(start, start + before, SpellCheckSpan.class);
+        removeIntersectingNonAdjacentSpans(start, start + before, SpellCheckSpan.class);
         removeIntersectingNonAdjacentSpans(start, start + before, SuggestionSpan.class);
     }
 
@@ -7071,6 +7084,23 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         for (T span : spansToRemove) {
             text.removeSpan(span);
+        }
+    }
+
+    void removeAdjacentSuggestionSpans(final int pos) {
+        if (!(mText instanceof Editable)) return;
+        final Editable text = (Editable) mText;
+
+        final SuggestionSpan[] spans = text.getSpans(pos, pos, SuggestionSpan.class);
+        final int length = spans.length;
+        for (int i = 0; i < length; i++) {
+            final int spanStart = text.getSpanStart(spans[i]);
+            final int spanEnd = text.getSpanEnd(spans[i]);
+            if (spanEnd == pos || spanStart == pos) {
+                if (SpellChecker.haveWordBoundariesChanged(text, pos, pos, spanStart, spanEnd)) {
+                    text.removeSpan(spans[i]);
+                }
+            }
         }
     }
 
@@ -7320,10 +7350,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
         }
 
-//        if (mEditor.mSpellChecker != null && newStart < 0
-//                && what instanceof SpellCheckSpan) {
-//            mEditor.mSpellChecker.onSpellCheckSpanRemoved((SpellCheckSpan) what);
-//        }
+        if (mEditor.mSpellChecker != null && newStart < 0
+                && what instanceof SpellCheckSpan) {
+            mEditor.mSpellChecker.onSpellCheckSpanRemoved((SpellCheckSpan) what);
+        }
     }
 
     @Override
@@ -7684,11 +7714,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Locale getTextServicesLocale(boolean allowNullLocale) {
         // Start fetching the text services locale asynchronously.
         //TODO: (EW) either implement or simplify if this is unnecessary
-//        updateTextServicesLocaleAsync();
+        updateTextServicesLocaleAsync();
         // If !allowNullLocale and there is no cached text services locale, just return the default
         // locale.
         return (mCurrentSpellCheckerLocaleCache == null && !allowNullLocale) ? Locale.getDefault()
                 : mCurrentSpellCheckerLocaleCache;
+    }
+
+    @Nullable
+    final TextServicesManager getTextServicesManager() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return getContext().getSystemService(TextServicesManager.class);
+        }
+        return (TextServicesManager) getContext().getSystemService(
+                Context.TEXT_SERVICES_MANAGER_SERVICE);
     }
 
     @Nullable
@@ -7731,6 +7770,91 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public boolean isInExtractedMode() {
         return false;
+    }
+
+    /**
+     * This is a temporary method. Future versions may support multi-locale text.
+     * Caveat: This method may not return the latest spell checker locale, but this should be
+     * acceptable and it's more important to make this method asynchronous.
+     *
+     * @return The locale that should be used for a spell checker in this TextView,
+     * based on the current spell checker settings, the current IME's locale, or the system default
+     * locale.
+     * @hide
+     */
+    public Locale getSpellCheckerLocale() {
+        return getTextServicesLocale(true /* allowNullLocale */);
+    }
+
+    private void updateTextServicesLocaleAsync() {
+        // AsyncTask.execute() uses a serial executor which means we don't have
+        // to lock around updateTextServicesLocaleLocked() to prevent it from
+        // being executed n times in parallel.
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                updateTextServicesLocaleLocked();
+            }
+        });
+    }
+
+    private void updateTextServicesLocaleLocked() {
+        final TextServicesManager textServicesManager = getTextServicesManager();
+        if (textServicesManager == null) {
+            return;
+        }
+        //TODO: (EW) the AOSP version gets the locale from the hidden
+        // TextServicesManager#getCurrentSpellCheckerSubtype since at least kitkat through at least
+        // S. This seems to be the locale configured in android settings for the spell checker. I
+        // haven't figured out a way to get that an alternate way. I tried calling
+        // TextServicesManager#newSpellCheckerSession with a null locale and
+        // referToSpellCheckerLanguageSettings set to true to get the subtype from the
+        // SpellCheckerInfo, but that seems to return all of the possible subtypes for the enabled
+        // spell checker, rather than the enabled one. TextServicesManager added a few methods in S,
+        // such as #getCurrentSpellCheckerInfo that might work, but I haven't tested that, and even
+        // if that does, something needs to be done for older versions.
+        Locale locale = null;
+        try {
+            Method getCurrentSpellCheckerSubtypeMethod = TextServicesManager.class.getMethod(
+                    "getCurrentSpellCheckerSubtype", boolean.class);
+            final SpellCheckerSubtype subtype = (SpellCheckerSubtype) getCurrentSpellCheckerSubtypeMethod.invoke(
+                    textServicesManager, true);
+            if (subtype != null) {
+                String localeStr = subtype.getLocale();
+                // from SpellCheckerSubtype#constructLocaleFromString since that's hidden
+                if (!TextUtils.isEmpty(localeStr)) {
+                    String[] localeParams = localeStr.split("_", 3);
+                    // The length of localeStr is guaranteed to always return a 1 <= value <= 3
+                    // because localeStr is not empty.
+                    if (localeParams.length == 1) {
+                        locale = new Locale(localeParams[0]);
+                    } else if (localeParams.length == 2) {
+                        locale = new Locale(localeParams[0], localeParams[1]);
+                    } else if (localeParams.length == 3) {
+                        locale = new Locale(localeParams[0], localeParams[1], localeParams[2]);
+                    }
+                }
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            Log.e(TAG, "updateTextServicesLocaleLocked: " + e);
+            // (EW) this isn't the same as what the AOSP version does. this is just getting the
+            // current locale, rather than the enabled locale for spell check in the system. it's
+            // probably not very common for the enabled spell check locale to differ from the
+            // current locale, so most of the time this would be the same. since it seems that apps
+            // aren't allowed to get the enabled spell check locale, maybe this is just how spell
+            // we're expected to do this. simply trying to spell check based on the current locale
+            // seems reasonable, but it would just be nice to match AOSP functionality.
+            //TODO: (EW) maybe just always do this and don't use reflection
+            locale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                    ? getContext().getResources().getConfiguration().getLocales().get(0)
+                    : getContext().getResources().getConfiguration().locale;
+        }
+
+        mCurrentSpellCheckerLocaleCache = locale;
+    }
+
+    void onLocaleChanged() {
+        mEditor.onLocaleChanged();
     }
 
     /**

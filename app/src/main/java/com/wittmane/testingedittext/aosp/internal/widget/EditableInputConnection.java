@@ -335,10 +335,8 @@ public class EditableInputConnection extends BaseInputConnection {
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     public boolean performSpellCheck() {
-        //TODO: (EW) maybe implement
-//        mTextView.onPerformSpellCheck();
-//        return true;
-        return false;
+        mTextView.onPerformSpellCheck();
+        return true;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
