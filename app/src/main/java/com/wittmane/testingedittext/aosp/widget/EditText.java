@@ -6649,8 +6649,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // right where it is most likely to be annoying.
         final boolean clamped = grav > 0;
         // FIXME: Is it okay to truncate this, or should we round?
-        //TODO: (EW) verify if it's fine to just ignore clamped
-        final int x = (int) layout.getPrimaryHorizontal(offset/*, clamped*/);
+        final int x = (int) HiddenLayout.getPrimaryHorizontal(layout, mTextDir, offset, clamped);
         final int top = layout.getLineTop(line);
         final int bottom = layout.getLineTop(line + 1);
 

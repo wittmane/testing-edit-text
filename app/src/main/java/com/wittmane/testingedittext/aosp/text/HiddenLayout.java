@@ -54,6 +54,153 @@ public class HiddenLayout {
         return need;
     }
 
+    /**
+     * Returns the directional run information for the specified line.
+     * The array alternates counts of characters in left-to-right
+     * and right-to-left segments of the line.
+     *
+     * <p>NOTE: this is inadequate to support bidirectional text, and will change.
+     */
+    public static Directions getLineDirections(Layout layout, TextDirectionHeuristic textDir, int line) {
+        // (EW) custom logic to get a Directions object that we can actually do something with
+        int lineStart = layout.getLineStart(line);
+        int lineEnd = layout.getLineEnd(line);
+
+        MeasuredParagraph mt = null;
+        try {
+            mt = MeasuredParagraph.buildForBidi(layout.getText(), 0, layout.getText().length(), textDir, mt);
+            return mt.getDirections(lineStart, lineEnd);
+        } finally {
+            if (mt != null) {
+                mt.recycle();
+            }
+        }
+    }
+
+    /**
+     * Checks if the trailing BiDi level should be used for an offset
+     *
+     * This method is useful when the offset is at the BiDi level transition point and determine
+     * which run need to be used. For example, let's think about following input: (L* denotes
+     * Left-to-Right characters, R* denotes Right-to-Left characters.)
+     * Input (Logical Order): L1 L2 L3 R1 R2 R3 L4 L5 L6
+     * Input (Display Order): L1 L2 L3 R3 R2 R1 L4 L5 L6
+     *
+     * Then, think about selecting the range (3, 6). The offset=3 and offset=6 are ambiguous here
+     * since they are at the BiDi transition point.  In Android, the offset is considered to be
+     * associated with the trailing run if the BiDi level of the trailing run is higher than of the
+     * previous run.  In this case, the BiDi level of the input text is as follows:
+     *
+     * Input (Logical Order): L1 L2 L3 R1 R2 R3 L4 L5 L6
+     *              BiDi Run: [ Run 0 ][ Run 1 ][ Run 2 ]
+     *            BiDi Level:  0  0  0  1  1  1  0  0  0
+     *
+     * Thus, offset = 3 is part of Run 1 and this method returns true for offset = 3, since the BiDi
+     * level of Run 1 is higher than the level of Run 0.  Similarly, the offset = 6 is a part of Run
+     * 1 and this method returns false for the offset = 6 since the BiDi level of Run 1 is higher
+     * than the level of Run 2.
+     *
+     * @returns true if offset is at the BiDi level transition point and trailing BiDi level is
+     *          higher than previous BiDi level. See above for the detail.
+     * @hide
+     */
+    public static boolean primaryIsTrailingPrevious(Layout layout, TextDirectionHeuristic textDir,
+                                                    int offset) {
+        int line = layout.getLineForOffset(offset);
+        int lineStart = layout.getLineStart(line);
+        int lineEnd = layout.getLineEnd(line);
+        int[] runs = getLineDirections(layout, textDir, line).mDirections;
+
+        int levelAt = -1;
+        for (int i = 0; i < runs.length; i += 2) {
+            int start = lineStart + runs[i];
+            int limit = start + (runs[i+1] & RUN_LENGTH_MASK);
+            if (limit > lineEnd) {
+                limit = lineEnd;
+            }
+            if (offset >= start && offset < limit) {
+                if (offset > start) {
+                    // Previous character is at same level, so don't use trailing.
+                    return false;
+                }
+                levelAt = (runs[i+1] >>> RUN_LEVEL_SHIFT) & RUN_LEVEL_MASK;
+                break;
+            }
+        }
+        if (levelAt == -1) {
+            // Offset was limit of line.
+            levelAt = layout.getParagraphDirection(line) == 1 ? 0 : 1;
+        }
+
+        // At level boundary, check previous level.
+        int levelBefore = -1;
+        if (offset == lineStart) {
+            levelBefore = layout.getParagraphDirection(line) == 1 ? 0 : 1;
+        } else {
+            offset -= 1;
+            for (int i = 0; i < runs.length; i += 2) {
+                int start = lineStart + runs[i];
+                int limit = start + (runs[i+1] & RUN_LENGTH_MASK);
+                if (limit > lineEnd) {
+                    limit = lineEnd;
+                }
+                if (offset >= start && offset < limit) {
+                    levelBefore = (runs[i+1] >>> RUN_LEVEL_SHIFT) & RUN_LEVEL_MASK;
+                    break;
+                }
+            }
+        }
+
+        return levelBefore < levelAt;
+    }
+
+    /**
+     * Get the primary horizontal position for the specified text offset, but
+     * optionally clamp it so that it doesn't exceed the width of the layout.
+     * @hide
+     */
+    public static float getPrimaryHorizontal(Layout layout, TextDirectionHeuristic textDir,
+                                             int offset, boolean clamped) {
+        float unclampedPrimaryHorizontal = layout.getPrimaryHorizontal(offset);
+        // (EW) custom logic based on Layout since the overload to specify clamped is hidden.
+        // textDir had to be passed because Layout#getTextDirectionHeuristic is hidden, so we can't
+        // get that from the layout.
+        if (clamped) {
+            int line = layout.getLineForOffset(offset);
+            int start = layout.getLineStart(line);
+            int end = layout.getLineEnd(line);
+            int dir = layout.getParagraphDirection(line);
+            boolean hasTab = layout.getLineContainsTab(line);
+            Directions directions = getLineDirections(layout, textDir, line);
+            boolean trailing = primaryIsTrailingPrevious(layout, textDir, offset);
+
+            TabStops tabStops = null;
+            if (hasTab && layout.getText() instanceof Spanned) {
+                // Just checking this line should be good enough, tabs should be
+                // consistent across all lines in a paragraph.
+                TabStopSpan[] tabs = getParagraphSpans((Spanned) layout.getText(), start, end,
+                        TabStopSpan.class);
+                if (tabs.length > 0) {
+                    tabStops = new TabStops(TAB_INCREMENT, tabs); // XXX should reuse
+                }
+            }
+
+            TextLine tl = TextLine.obtain();
+            tl.set(layout.getPaint(), layout.getText(), start, end, dir, directions, hasTab,
+                    tabStops, layout.getEllipsisStart(line),
+                    layout.getEllipsisStart(line) + layout.getEllipsisCount(line));
+            float wid = tl.measure(offset - start, trailing, null);
+            TextLine.recycle(tl);
+
+            if (wid > layout.getWidth()) {
+                // Layout#getPrimaryHorizontal already added wid, which is incorrect, so that needs
+                // to be removed and the correct (max) width needs to be added instead
+                return unclampedPrimaryHorizontal - wid + layout.getWidth();
+            }
+        }
+        return unclampedPrimaryHorizontal;
+    }
+
     private static float measurePara(TextPaint paint, CharSequence text, int start, int end,
             TextDirectionHeuristic textDir) {
         MeasuredParagraph mt = null;

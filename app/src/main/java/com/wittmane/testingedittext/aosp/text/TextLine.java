@@ -2,6 +2,7 @@ package com.wittmane.testingedittext.aosp.text;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import android.graphics.Paint;
@@ -355,7 +356,7 @@ public class TextLine {
      *         value means the offset is left from the leading edge.
      */
     public float measure(@IntRange(from = 0) int offset, boolean trailing,
-                         @NonNull FontMetricsInt fmi) {
+                         @Nullable FontMetricsInt fmi) {
         if (offset > mLen) {
             throw new IndexOutOfBoundsException(
                     "offset(" + offset + ") should be less than line limit(" + mLen + ")");
