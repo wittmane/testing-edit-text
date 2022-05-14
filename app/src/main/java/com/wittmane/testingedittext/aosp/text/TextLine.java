@@ -5,8 +5,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.FontMetricsInt;
+import android.graphics.text.PositionedGlyphs;
+import android.graphics.text.TextRunShaper;
 import android.os.Build;
 //import android.text.Layout.Directions;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout.Directions;
@@ -16,6 +19,7 @@ import android.text.Layout;
 import android.text.PrecomputedText;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.TextShaper;
 import android.text.TextUtils;
 import android.text.style.CharacterStyle;
 import android.text.style.MetricAffectingSpan;
@@ -224,24 +228,24 @@ public class TextLine {
         return mCharsValid ? mChars[i] : mText.charAt(i + mStart);
     }
 
-//    /**
-//     * Justify the line to the given width.
-//     */
-//    public void justify(float justifyWidth) {
-//        int end = mLen;
-//        while (end > 0 && isLineEndSpace(mText.charAt(mStart + end - 1))) {
-//            end--;
-//        }
-//        final int spaces = countStretchableSpaces(0, end);
-//        if (spaces == 0) {
-//            // There are no stretchable spaces, so we can't help the justification by adding any
-//            // width.
-//            return;
-//        }
-//        final float width = Math.abs(measure(end, false, null));
-//        mAddedWidthForJustify = (justifyWidth - width) / spaces;
-//        mIsJustifying = true;
-//    }
+    /**
+     * Justify the line to the given width.
+     */
+    public void justify(float justifyWidth) {
+        int end = mLen;
+        while (end > 0 && isLineEndSpace(mText.charAt(mStart + end - 1))) {
+            end--;
+        }
+        final int spaces = countStretchableSpaces(0, end);
+        if (spaces == 0) {
+            // There are no stretchable spaces, so we can't help the justification by adding any
+            // width.
+            return;
+        }
+        final float width = Math.abs(measure(end, false, null));
+        mAddedWidthForJustify = (justifyWidth - width) / spaces;
+        mIsJustifying = true;
+    }
 
 //    /**
 //     * Renders the TextLine.
@@ -408,65 +412,65 @@ public class TextLine {
         return h;
     }
 
-//    /**
-//     * @see #measure(int, boolean, FontMetricsInt)
-//     * @return The measure results for all possible offsets
-//     */
-//    public float[] measureAllOffsets(boolean[] trailing, FontMetricsInt fmi) {
-//        float[] measurement = new float[mLen + 1];
-//
-//        int[] target = new int[mLen + 1];
-//        for (int offset = 0; offset < target.length; ++offset) {
-//            target[offset] = trailing[offset] ? offset - 1 : offset;
-//        }
-//        if (target[0] < 0) {
-//            measurement[0] = 0;
-//        }
-//
-//        float h = 0;
-//        for (int runIndex = 0; runIndex < mDirections.getRunCount(); runIndex++) {
-//            final int runStart = mDirections.getRunStart(runIndex);
-//            if (runStart > mLen) break;
-//            final int runLimit = Math.min(runStart + mDirections.getRunLength(runIndex), mLen);
-//            final boolean runIsRtl = mDirections.isRunRtl(runIndex);
-//
-//            int segStart = runStart;
-//            for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; ++j) {
-//                if (j == runLimit || charAt(j) == TAB_CHAR) {
-//                    final  float oldh = h;
-//                    final boolean advance = (mDir == Layout.DIR_RIGHT_TO_LEFT) == runIsRtl;
-//                    final float w = measureRun(segStart, j, j, runIsRtl, fmi);
-//                    h += advance ? w : -w;
-//
-//                    final float baseh = advance ? oldh : h;
-//                    FontMetricsInt crtfmi = advance ? fmi : null;
-//                    for (int offset = segStart; offset <= j && offset <= mLen; ++offset) {
-//                        if (target[offset] >= segStart && target[offset] < j) {
-//                            measurement[offset] =
-//                                    baseh + measureRun(segStart, offset, j, runIsRtl, crtfmi);
-//                        }
-//                    }
-//
-//                    if (j != runLimit) {  // charAt(j) == TAB_CHAR
-//                        if (target[j] == j) {
-//                            measurement[j] = h;
-//                        }
-//                        h = mDir * nextTab(h * mDir);
-//                        if (target[j + 1] == j) {
-//                            measurement[j + 1] =  h;
-//                        }
-//                    }
-//
-//                    segStart = j + 1;
-//                }
-//            }
-//        }
-//        if (target[mLen] == mLen) {
-//            measurement[mLen] = h;
-//        }
-//
-//        return measurement;
-//    }
+    /**
+     * @see #measure(int, boolean, FontMetricsInt)
+     * @return The measure results for all possible offsets
+     */
+    public float[] measureAllOffsets(boolean[] trailing, FontMetricsInt fmi) {
+        float[] measurement = new float[mLen + 1];
+
+        int[] target = new int[mLen + 1];
+        for (int offset = 0; offset < target.length; ++offset) {
+            target[offset] = trailing[offset] ? offset - 1 : offset;
+        }
+        if (target[0] < 0) {
+            measurement[0] = 0;
+        }
+
+        float h = 0;
+        for (int runIndex = 0; runIndex < mDirections.getRunCount(); runIndex++) {
+            final int runStart = mDirections.getRunStart(runIndex);
+            if (runStart > mLen) break;
+            final int runLimit = Math.min(runStart + mDirections.getRunLength(runIndex), mLen);
+            final boolean runIsRtl = mDirections.isRunRtl(runIndex);
+
+            int segStart = runStart;
+            for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; ++j) {
+                if (j == runLimit || charAt(j) == TAB_CHAR) {
+                    final  float oldh = h;
+                    final boolean advance = (mDir == Layout.DIR_RIGHT_TO_LEFT) == runIsRtl;
+                    final float w = measureRun(segStart, j, j, runIsRtl, fmi);
+                    h += advance ? w : -w;
+
+                    final float baseh = advance ? oldh : h;
+                    FontMetricsInt crtfmi = advance ? fmi : null;
+                    for (int offset = segStart; offset <= j && offset <= mLen; ++offset) {
+                        if (target[offset] >= segStart && target[offset] < j) {
+                            measurement[offset] =
+                                    baseh + measureRun(segStart, offset, j, runIsRtl, crtfmi);
+                        }
+                    }
+
+                    if (j != runLimit) {  // charAt(j) == TAB_CHAR
+                        if (target[j] == j) {
+                            measurement[j] = h;
+                        }
+                        h = mDir * nextTab(h * mDir);
+                        if (target[j + 1] == j) {
+                            measurement[j + 1] =  h;
+                        }
+                    }
+
+                    segStart = j + 1;
+                }
+            }
+        }
+        if (target[mLen] == mLen) {
+            measurement[mLen] = h;
+        }
+
+        return measurement;
+    }
 
 //    /**
 //     * Draws a unidirectional (but possibly multi-styled) run of text.
@@ -543,296 +547,296 @@ public class TextLine {
 //    }
 
 
-//    /**
-//     * Walk the cursor through this line, skipping conjuncts and
-//     * zero-width characters.
-//     *
-//     * <p>This function cannot properly walk the cursor off the ends of the line
-//     * since it does not know about any shaping on the previous/following line
-//     * that might affect the cursor position. Callers must either avoid these
-//     * situations or handle the result specially.
-//     *
-//     * @param cursor the starting position of the cursor, between 0 and the
-//     * length of the line, inclusive
-//     * @param toLeft true if the caret is moving to the left.
-//     * @return the new offset.  If it is less than 0 or greater than the length
-//     * of the line, the previous/following line should be examined to get the
-//     * actual offset.
-//     */
-//    int getOffsetToLeftRightOf(int cursor, boolean toLeft) {
-//        // 1) The caret marks the leading edge of a character. The character
-//        // logically before it might be on a different level, and the active caret
-//        // position is on the character at the lower level. If that character
-//        // was the previous character, the caret is on its trailing edge.
-//        // 2) Take this character/edge and move it in the indicated direction.
-//        // This gives you a new character and a new edge.
-//        // 3) This position is between two visually adjacent characters.  One of
-//        // these might be at a lower level.  The active position is on the
-//        // character at the lower level.
-//        // 4) If the active position is on the trailing edge of the character,
-//        // the new caret position is the following logical character, else it
-//        // is the character.
-//
-//        int lineStart = 0;
-//        int lineEnd = mLen;
-//        boolean paraIsRtl = mDir == -1;
-//        int[] runs = mDirections.mDirections;
-//
-//        int runIndex, runLevel = 0, runStart = lineStart, runLimit = lineEnd, newCaret = -1;
-//        boolean trailing = false;
-//
-//        if (cursor == lineStart) {
-//            runIndex = -2;
-//        } else if (cursor == lineEnd) {
-//            runIndex = runs.length;
-//        } else {
-//            // First, get information about the run containing the character with
-//            // the active caret.
-//            for (runIndex = 0; runIndex < runs.length; runIndex += 2) {
-//                runStart = lineStart + runs[runIndex];
-//                if (cursor >= runStart) {
-//                    runLimit = runStart + (runs[runIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
-//                    if (runLimit > lineEnd) {
-//                        runLimit = lineEnd;
-//                    }
-//                    if (cursor < runLimit) {
-//                        runLevel = (runs[runIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT) &
-//                                HiddenLayout.RUN_LEVEL_MASK;
-//                        if (cursor == runStart) {
-//                            // The caret is on a run boundary, see if we should
-//                            // use the position on the trailing edge of the previous
-//                            // logical character instead.
-//                            int prevRunIndex, prevRunLevel, prevRunStart, prevRunLimit;
-//                            int pos = cursor - 1;
-//                            for (prevRunIndex = 0; prevRunIndex < runs.length; prevRunIndex += 2) {
-//                                prevRunStart = lineStart + runs[prevRunIndex];
-//                                if (pos >= prevRunStart) {
-//                                    prevRunLimit = prevRunStart +
-//                                            (runs[prevRunIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
-//                                    if (prevRunLimit > lineEnd) {
-//                                        prevRunLimit = lineEnd;
-//                                    }
-//                                    if (pos < prevRunLimit) {
-//                                        prevRunLevel = (runs[prevRunIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT)
-//                                                & HiddenLayout.RUN_LEVEL_MASK;
-//                                        if (prevRunLevel < runLevel) {
-//                                            // Start from logically previous character.
-//                                            runIndex = prevRunIndex;
-//                                            runLevel = prevRunLevel;
-//                                            runStart = prevRunStart;
-//                                            runLimit = prevRunLimit;
-//                                            trailing = true;
-//                                            break;
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        break;
-//                    }
-//                }
-//            }
-//
-//            // caret might be == lineEnd.  This is generally a space or paragraph
-//            // separator and has an associated run, but might be the end of
-//            // text, in which case it doesn't.  If that happens, we ran off the
-//            // end of the run list, and runIndex == runs.length.  In this case,
-//            // we are at a run boundary so we skip the below test.
-//            if (runIndex != runs.length) {
-//                boolean runIsRtl = (runLevel & 0x1) != 0;
-//                boolean advance = toLeft == runIsRtl;
-//                if (cursor != (advance ? runLimit : runStart) || advance != trailing) {
-//                    // Moving within or into the run, so we can move logically.
-//                    newCaret = getOffsetBeforeAfter(runIndex, runStart, runLimit,
-//                            runIsRtl, cursor, advance);
-//                    // If the new position is internal to the run, we're at the strong
-//                    // position already so we're finished.
-//                    if (newCaret != (advance ? runLimit : runStart)) {
-//                        return newCaret;
-//                    }
-//                }
-//            }
-//        }
-//
-//        // If newCaret is -1, we're starting at a run boundary and crossing
-//        // into another run. Otherwise we've arrived at a run boundary, and
-//        // need to figure out which character to attach to.  Note we might
-//        // need to run this twice, if we cross a run boundary and end up at
-//        // another run boundary.
-//        while (true) {
-//            boolean advance = toLeft == paraIsRtl;
-//            int otherRunIndex = runIndex + (advance ? 2 : -2);
-//            if (otherRunIndex >= 0 && otherRunIndex < runs.length) {
-//                int otherRunStart = lineStart + runs[otherRunIndex];
-//                int otherRunLimit = otherRunStart +
-//                        (runs[otherRunIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
-//                if (otherRunLimit > lineEnd) {
-//                    otherRunLimit = lineEnd;
-//                }
-//                int otherRunLevel = (runs[otherRunIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT) &
-//                        HiddenLayout.RUN_LEVEL_MASK;
-//                boolean otherRunIsRtl = (otherRunLevel & 1) != 0;
-//
-//                advance = toLeft == otherRunIsRtl;
-//                if (newCaret == -1) {
-//                    newCaret = getOffsetBeforeAfter(otherRunIndex, otherRunStart,
-//                            otherRunLimit, otherRunIsRtl,
-//                            advance ? otherRunStart : otherRunLimit, advance);
-//                    if (newCaret == (advance ? otherRunLimit : otherRunStart)) {
-//                        // Crossed and ended up at a new boundary,
-//                        // repeat a second and final time.
-//                        runIndex = otherRunIndex;
-//                        runLevel = otherRunLevel;
-//                        continue;
-//                    }
-//                    break;
-//                }
-//
-//                // The new caret is at a boundary.
-//                if (otherRunLevel < runLevel) {
-//                    // The strong character is in the other run.
-//                    newCaret = advance ? otherRunStart : otherRunLimit;
-//                }
-//                break;
-//            }
-//
-//            if (newCaret == -1) {
-//                // We're walking off the end of the line.  The paragraph
-//                // level is always equal to or lower than any internal level, so
-//                // the boundaries get the strong caret.
-//                newCaret = advance ? mLen + 1 : -1;
-//                break;
-//            }
-//
-//            // Else we've arrived at the end of the line.  That's a strong position.
-//            // We might have arrived here by crossing over a run with no internal
-//            // breaks and dropping out of the above loop before advancing one final
-//            // time, so reset the caret.
-//            // Note, we use '<=' below to handle a situation where the only run
-//            // on the line is a counter-directional run.  If we're not advancing,
-//            // we can end up at the 'lineEnd' position but the caret we want is at
-//            // the lineStart.
-//            if (newCaret <= lineEnd) {
-//                newCaret = advance ? lineEnd : lineStart;
-//            }
-//            break;
-//        }
-//
-//        return newCaret;
-//    }
+    /**
+     * Walk the cursor through this line, skipping conjuncts and
+     * zero-width characters.
+     *
+     * <p>This function cannot properly walk the cursor off the ends of the line
+     * since it does not know about any shaping on the previous/following line
+     * that might affect the cursor position. Callers must either avoid these
+     * situations or handle the result specially.
+     *
+     * @param cursor the starting position of the cursor, between 0 and the
+     * length of the line, inclusive
+     * @param toLeft true if the caret is moving to the left.
+     * @return the new offset.  If it is less than 0 or greater than the length
+     * of the line, the previous/following line should be examined to get the
+     * actual offset.
+     */
+    int getOffsetToLeftRightOf(int cursor, boolean toLeft) {
+        // 1) The caret marks the leading edge of a character. The character
+        // logically before it might be on a different level, and the active caret
+        // position is on the character at the lower level. If that character
+        // was the previous character, the caret is on its trailing edge.
+        // 2) Take this character/edge and move it in the indicated direction.
+        // This gives you a new character and a new edge.
+        // 3) This position is between two visually adjacent characters.  One of
+        // these might be at a lower level.  The active position is on the
+        // character at the lower level.
+        // 4) If the active position is on the trailing edge of the character,
+        // the new caret position is the following logical character, else it
+        // is the character.
 
-//    /**
-//     * Returns the next valid offset within this directional run, skipping
-//     * conjuncts and zero-width characters.  This should not be called to walk
-//     * off the end of the line, since the returned values might not be valid
-//     * on neighboring lines.  If the returned offset is less than zero or
-//     * greater than the line length, the offset should be recomputed on the
-//     * preceding or following line, respectively.
-//     *
-//     * @param runIndex the run index
-//     * @param runStart the start of the run
-//     * @param runLimit the limit of the run
-//     * @param runIsRtl true if the run is right-to-left
-//     * @param offset the offset
-//     * @param after true if the new offset should logically follow the provided
-//     * offset
-//     * @return the new offset
-//     */
-//    private int getOffsetBeforeAfter(int runIndex, int runStart, int runLimit,
-//                                     boolean runIsRtl, int offset, boolean after) {
-//
-//        if (runIndex < 0 || offset == (after ? mLen : 0)) {
-//            // Walking off end of line.  Since we don't know
-//            // what cursor positions are available on other lines, we can't
-//            // return accurate values.  These are a guess.
-//            if (after) {
-//                return TextUtils.getOffsetAfter(mText, offset + mStart) - mStart;
-//            }
-//            return TextUtils.getOffsetBefore(mText, offset + mStart) - mStart;
-//        }
-//
-//        TextPaint wp = mWorkPaint;
-//        wp.set(mPaint);
-//        if (mIsJustifying && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            wp.setWordSpacing(mAddedWidthForJustify);
-//        }
-//
-//        int spanStart = runStart;
-//        int spanLimit;
-//        if (mSpanned == null) {
-//            spanLimit = runLimit;
-//        } else {
-//            int target = after ? offset + 1 : offset;
-//            int limit = mStart + runLimit;
-//            while (true) {
-//                spanLimit = mSpanned.nextSpanTransition(mStart + spanStart, limit,
-//                        MetricAffectingSpan.class) - mStart;
-//                if (spanLimit >= target) {
-//                    break;
-//                }
-//                spanStart = spanLimit;
-//            }
-//
-//            MetricAffectingSpan[] spans = mSpanned.getSpans(mStart + spanStart,
-//                    mStart + spanLimit, MetricAffectingSpan.class);
-//            spans = HiddenTextUtils.removeEmptySpans(spans, mSpanned, MetricAffectingSpan.class);
-//
-//            if (spans.length > 0) {
-//                ReplacementSpan replacement = null;
-//                for (int j = 0; j < spans.length; j++) {
-//                    MetricAffectingSpan span = spans[j];
-//                    if (span instanceof ReplacementSpan) {
-//                        replacement = (ReplacementSpan)span;
-//                    } else {
-//                        span.updateMeasureState(wp);
-//                    }
-//                }
-//
-//                if (replacement != null) {
-//                    // If we have a replacement span, we're moving either to
-//                    // the start or end of this span.
-//                    return after ? spanLimit : spanStart;
-//                }
-//            }
-//        }
-//
-//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            int cursorOpt = after ? Paint.CURSOR_AFTER : Paint.CURSOR_BEFORE;
-//            if (mCharsValid) {
-//                return wp.getTextRunCursor(mChars, spanStart, spanLimit - spanStart,
-//                        runIsRtl, offset, cursorOpt);
-//            } else {
-//                return wp.getTextRunCursor(mText, mStart + spanStart,
-//                        mStart + spanLimit, runIsRtl, mStart + offset, cursorOpt) - mStart;
-//            }
-//        } else {
-//            //TODO: (EW) Paint#getTextRunCursor was called at least since Kitkat, but it only became
-//            // available for apps to call in Q (some changed parameters). see if there is some
-//            // alternative to reflection. this is at least relatively safe since it's only done on
-//            // old versions so it shouldn't just stop working at some point in the future.
-//            int dir = runIsRtl ? /*Paint.DIRECTION_RTL*/1 : /*Paint.DIRECTION_LTR*/0;
-//            int cursorOpt = after ? /*Paint.CURSOR_AFTER*/0 : /*Paint.CURSOR_BEFORE*/2;
-//            try {
-//                if (mCharsValid) {
-//                    Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
-//                            char[].class, int.class, int.class, int.class, int.class, int.class);
-//                    return (int) getTextRunCursorMethod.invoke(wp, mChars, spanStart, spanLimit - spanStart,
-//                            dir, offset, cursorOpt);
-//                } else {
-//                    Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
-//                            CharSequence.class, int.class, int.class, int.class, int.class,
-//                            int.class);
-//                    return (int) getTextRunCursorMethod.invoke(wp, mText, mStart + spanStart,
-//                            mStart + spanLimit, dir, mStart + offset, cursorOpt) - mStart;
-//                }
-//            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-//                Log.e("TextLine", "getOffsetBeforeAfter: Failed to call getTextRunCursor: "
-//                        + e.getMessage());
-//                return -1;
-//            }
-//        }
-//    }
+        int lineStart = 0;
+        int lineEnd = mLen;
+        boolean paraIsRtl = mDir == -1;
+        int[] runs = mDirections.mDirections;
+
+        int runIndex, runLevel = 0, runStart = lineStart, runLimit = lineEnd, newCaret = -1;
+        boolean trailing = false;
+
+        if (cursor == lineStart) {
+            runIndex = -2;
+        } else if (cursor == lineEnd) {
+            runIndex = runs.length;
+        } else {
+            // First, get information about the run containing the character with
+            // the active caret.
+            for (runIndex = 0; runIndex < runs.length; runIndex += 2) {
+                runStart = lineStart + runs[runIndex];
+                if (cursor >= runStart) {
+                    runLimit = runStart + (runs[runIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
+                    if (runLimit > lineEnd) {
+                        runLimit = lineEnd;
+                    }
+                    if (cursor < runLimit) {
+                        runLevel = (runs[runIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT) &
+                                HiddenLayout.RUN_LEVEL_MASK;
+                        if (cursor == runStart) {
+                            // The caret is on a run boundary, see if we should
+                            // use the position on the trailing edge of the previous
+                            // logical character instead.
+                            int prevRunIndex, prevRunLevel, prevRunStart, prevRunLimit;
+                            int pos = cursor - 1;
+                            for (prevRunIndex = 0; prevRunIndex < runs.length; prevRunIndex += 2) {
+                                prevRunStart = lineStart + runs[prevRunIndex];
+                                if (pos >= prevRunStart) {
+                                    prevRunLimit = prevRunStart +
+                                            (runs[prevRunIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
+                                    if (prevRunLimit > lineEnd) {
+                                        prevRunLimit = lineEnd;
+                                    }
+                                    if (pos < prevRunLimit) {
+                                        prevRunLevel = (runs[prevRunIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT)
+                                                & HiddenLayout.RUN_LEVEL_MASK;
+                                        if (prevRunLevel < runLevel) {
+                                            // Start from logically previous character.
+                                            runIndex = prevRunIndex;
+                                            runLevel = prevRunLevel;
+                                            runStart = prevRunStart;
+                                            runLimit = prevRunLimit;
+                                            trailing = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // caret might be == lineEnd.  This is generally a space or paragraph
+            // separator and has an associated run, but might be the end of
+            // text, in which case it doesn't.  If that happens, we ran off the
+            // end of the run list, and runIndex == runs.length.  In this case,
+            // we are at a run boundary so we skip the below test.
+            if (runIndex != runs.length) {
+                boolean runIsRtl = (runLevel & 0x1) != 0;
+                boolean advance = toLeft == runIsRtl;
+                if (cursor != (advance ? runLimit : runStart) || advance != trailing) {
+                    // Moving within or into the run, so we can move logically.
+                    newCaret = getOffsetBeforeAfter(runIndex, runStart, runLimit,
+                            runIsRtl, cursor, advance);
+                    // If the new position is internal to the run, we're at the strong
+                    // position already so we're finished.
+                    if (newCaret != (advance ? runLimit : runStart)) {
+                        return newCaret;
+                    }
+                }
+            }
+        }
+
+        // If newCaret is -1, we're starting at a run boundary and crossing
+        // into another run. Otherwise we've arrived at a run boundary, and
+        // need to figure out which character to attach to.  Note we might
+        // need to run this twice, if we cross a run boundary and end up at
+        // another run boundary.
+        while (true) {
+            boolean advance = toLeft == paraIsRtl;
+            int otherRunIndex = runIndex + (advance ? 2 : -2);
+            if (otherRunIndex >= 0 && otherRunIndex < runs.length) {
+                int otherRunStart = lineStart + runs[otherRunIndex];
+                int otherRunLimit = otherRunStart +
+                        (runs[otherRunIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
+                if (otherRunLimit > lineEnd) {
+                    otherRunLimit = lineEnd;
+                }
+                int otherRunLevel = (runs[otherRunIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT) &
+                        HiddenLayout.RUN_LEVEL_MASK;
+                boolean otherRunIsRtl = (otherRunLevel & 1) != 0;
+
+                advance = toLeft == otherRunIsRtl;
+                if (newCaret == -1) {
+                    newCaret = getOffsetBeforeAfter(otherRunIndex, otherRunStart,
+                            otherRunLimit, otherRunIsRtl,
+                            advance ? otherRunStart : otherRunLimit, advance);
+                    if (newCaret == (advance ? otherRunLimit : otherRunStart)) {
+                        // Crossed and ended up at a new boundary,
+                        // repeat a second and final time.
+                        runIndex = otherRunIndex;
+                        runLevel = otherRunLevel;
+                        continue;
+                    }
+                    break;
+                }
+
+                // The new caret is at a boundary.
+                if (otherRunLevel < runLevel) {
+                    // The strong character is in the other run.
+                    newCaret = advance ? otherRunStart : otherRunLimit;
+                }
+                break;
+            }
+
+            if (newCaret == -1) {
+                // We're walking off the end of the line.  The paragraph
+                // level is always equal to or lower than any internal level, so
+                // the boundaries get the strong caret.
+                newCaret = advance ? mLen + 1 : -1;
+                break;
+            }
+
+            // Else we've arrived at the end of the line.  That's a strong position.
+            // We might have arrived here by crossing over a run with no internal
+            // breaks and dropping out of the above loop before advancing one final
+            // time, so reset the caret.
+            // Note, we use '<=' below to handle a situation where the only run
+            // on the line is a counter-directional run.  If we're not advancing,
+            // we can end up at the 'lineEnd' position but the caret we want is at
+            // the lineStart.
+            if (newCaret <= lineEnd) {
+                newCaret = advance ? lineEnd : lineStart;
+            }
+            break;
+        }
+
+        return newCaret;
+    }
+
+    /**
+     * Returns the next valid offset within this directional run, skipping
+     * conjuncts and zero-width characters.  This should not be called to walk
+     * off the end of the line, since the returned values might not be valid
+     * on neighboring lines.  If the returned offset is less than zero or
+     * greater than the line length, the offset should be recomputed on the
+     * preceding or following line, respectively.
+     *
+     * @param runIndex the run index
+     * @param runStart the start of the run
+     * @param runLimit the limit of the run
+     * @param runIsRtl true if the run is right-to-left
+     * @param offset the offset
+     * @param after true if the new offset should logically follow the provided
+     * offset
+     * @return the new offset
+     */
+    private int getOffsetBeforeAfter(int runIndex, int runStart, int runLimit,
+                                     boolean runIsRtl, int offset, boolean after) {
+
+        if (runIndex < 0 || offset == (after ? mLen : 0)) {
+            // Walking off end of line.  Since we don't know
+            // what cursor positions are available on other lines, we can't
+            // return accurate values.  These are a guess.
+            if (after) {
+                return TextUtils.getOffsetAfter(mText, offset + mStart) - mStart;
+            }
+            return TextUtils.getOffsetBefore(mText, offset + mStart) - mStart;
+        }
+
+        TextPaint wp = mWorkPaint;
+        wp.set(mPaint);
+        if (mIsJustifying && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            wp.setWordSpacing(mAddedWidthForJustify);
+        }
+
+        int spanStart = runStart;
+        int spanLimit;
+        if (mSpanned == null) {
+            spanLimit = runLimit;
+        } else {
+            int target = after ? offset + 1 : offset;
+            int limit = mStart + runLimit;
+            while (true) {
+                spanLimit = mSpanned.nextSpanTransition(mStart + spanStart, limit,
+                        MetricAffectingSpan.class) - mStart;
+                if (spanLimit >= target) {
+                    break;
+                }
+                spanStart = spanLimit;
+            }
+
+            MetricAffectingSpan[] spans = mSpanned.getSpans(mStart + spanStart,
+                    mStart + spanLimit, MetricAffectingSpan.class);
+            spans = HiddenTextUtils.removeEmptySpans(spans, mSpanned, MetricAffectingSpan.class);
+
+            if (spans.length > 0) {
+                ReplacementSpan replacement = null;
+                for (int j = 0; j < spans.length; j++) {
+                    MetricAffectingSpan span = spans[j];
+                    if (span instanceof ReplacementSpan) {
+                        replacement = (ReplacementSpan)span;
+                    } else {
+                        span.updateMeasureState(wp);
+                    }
+                }
+
+                if (replacement != null) {
+                    // If we have a replacement span, we're moving either to
+                    // the start or end of this span.
+                    return after ? spanLimit : spanStart;
+                }
+            }
+        }
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            int cursorOpt = after ? Paint.CURSOR_AFTER : Paint.CURSOR_BEFORE;
+            if (mCharsValid) {
+                return wp.getTextRunCursor(mChars, spanStart, spanLimit - spanStart,
+                        runIsRtl, offset, cursorOpt);
+            } else {
+                return wp.getTextRunCursor(mText, mStart + spanStart,
+                        mStart + spanLimit, runIsRtl, mStart + offset, cursorOpt) - mStart;
+            }
+        } else {
+            //TODO: (EW) Paint#getTextRunCursor was called at least since Kitkat, but it only became
+            // available for apps to call in Q (some changed parameters). see if there is some
+            // alternative to reflection. this is at least relatively safe since it's only done on
+            // old versions so it shouldn't just stop working at some point in the future.
+            int dir = runIsRtl ? /*Paint.DIRECTION_RTL*/1 : /*Paint.DIRECTION_LTR*/0;
+            int cursorOpt = after ? /*Paint.CURSOR_AFTER*/0 : /*Paint.CURSOR_BEFORE*/2;
+            try {
+                if (mCharsValid) {
+                    Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
+                            char[].class, int.class, int.class, int.class, int.class, int.class);
+                    return (int) getTextRunCursorMethod.invoke(wp, mChars, spanStart, spanLimit - spanStart,
+                            dir, offset, cursorOpt);
+                } else {
+                    Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
+                            CharSequence.class, int.class, int.class, int.class, int.class,
+                            int.class);
+                    return (int) getTextRunCursorMethod.invoke(wp, mText, mStart + spanStart,
+                            mStart + spanLimit, dir, mStart + offset, cursorOpt) - mStart;
+                }
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                Log.e("TextLine", "getOffsetBeforeAfter: Failed to call getTextRunCursor: "
+                        + e.getMessage());
+                return -1;
+            }
+        }
+    }
 
     /**
      * @param wp
@@ -859,24 +863,24 @@ public class TextLine {
         fmi.leading = Math.max(fmi.leading, previousLeading);
     }
 
-//    private static void drawStroke(TextPaint wp, Canvas c, int color, float position,
-//                                   float thickness, float xleft, float xright, float baseline) {
-//        final float strokeTop = baseline + wp.baselineShift + position;
-//
-//        final int previousColor = wp.getColor();
-//        final Paint.Style previousStyle = wp.getStyle();
-//        final boolean previousAntiAlias = wp.isAntiAlias();
-//
-//        wp.setStyle(Paint.Style.FILL);
-//        wp.setAntiAlias(true);
-//
-//        wp.setColor(color);
-//        c.drawRect(xleft, strokeTop, xright, strokeTop + thickness, wp);
-//
-//        wp.setStyle(previousStyle);
-//        wp.setColor(previousColor);
-//        wp.setAntiAlias(previousAntiAlias);
-//    }
+    private static void drawStroke(TextPaint wp, Canvas c, int color, float position,
+                                   float thickness, float xleft, float xright, float baseline) {
+        final float strokeTop = baseline + wp.baselineShift + position;
+
+        final int previousColor = wp.getColor();
+        final Paint.Style previousStyle = wp.getStyle();
+        final boolean previousAntiAlias = wp.isAntiAlias();
+
+        wp.setStyle(Paint.Style.FILL);
+        wp.setAntiAlias(true);
+
+        wp.setColor(color);
+        c.drawRect(xleft, strokeTop, xright, strokeTop + thickness, wp);
+
+        wp.setStyle(previousStyle);
+        wp.setColor(previousColor);
+        wp.setAntiAlias(previousAntiAlias);
+    }
 
     private float getRunAdvance(TextPaint wp, int start, int end, int contextStart, int contextEnd,
                                 boolean runIsRtl, int offset) {
@@ -1334,45 +1338,46 @@ public class TextLine {
 //        }
 //    }
 
-//    /**
-//     * Shape a text run with the set-up paint.
-//     *
-//     * @param consumer the output positioned glyphs list
-//     * @param paint the paint used to render the text
-//     * @param start the start of the run
-//     * @param end the end of the run
-//     * @param contextStart the start of context for the run
-//     * @param contextEnd the end of the context for the run
-//     * @param runIsRtl true if the run is right-to-left
-//     * @param x the x position of the left edge of the run
-//     */
-//    private void shapeTextRun(TextShaper.GlyphsConsumer consumer, TextPaint paint,
-//                              int start, int end, int contextStart, int contextEnd, boolean runIsRtl, float x) {
-//
-//        int count = end - start;
-//        int contextCount = contextEnd - contextStart;
-//        PositionedGlyphs glyphs;
-//        if (mCharsValid) {
-//            glyphs = TextRunShaper.shapeTextRun(
-//                    mChars,
-//                    start, count,
-//                    contextStart, contextCount,
-//                    x, 0f,
-//                    runIsRtl,
-//                    paint
-//            );
-//        } else {
-//            glyphs = TextRunShaper.shapeTextRun(
-//                    mText,
-//                    mStart + start, count,
-//                    mStart + contextStart, contextCount,
-//                    x, 0f,
-//                    runIsRtl,
-//                    paint
-//            );
-//        }
-//        consumer.accept(start, count, glyphs, paint);
-//    }
+    /**
+     * Shape a text run with the set-up paint.
+     *
+     * @param consumer the output positioned glyphs list
+     * @param paint the paint used to render the text
+     * @param start the start of the run
+     * @param end the end of the run
+     * @param contextStart the start of context for the run
+     * @param contextEnd the end of the context for the run
+     * @param runIsRtl true if the run is right-to-left
+     * @param x the x position of the left edge of the run
+     */
+    @RequiresApi(api = Build.VERSION_CODES.S) // (EW) for shapeTextRun
+    private void shapeTextRun(TextShaper.GlyphsConsumer consumer, TextPaint paint,
+                              int start, int end, int contextStart, int contextEnd, boolean runIsRtl, float x) {
+
+        int count = end - start;
+        int contextCount = contextEnd - contextStart;
+        PositionedGlyphs glyphs;
+        if (mCharsValid) {
+            glyphs = TextRunShaper.shapeTextRun(
+                    mChars,
+                    start, count,
+                    contextStart, contextCount,
+                    x, 0f,
+                    runIsRtl,
+                    paint
+            );
+        } else {
+            glyphs = TextRunShaper.shapeTextRun(
+                    mText,
+                    mStart + start, count,
+                    mStart + contextStart, contextCount,
+                    x, 0f,
+                    runIsRtl,
+                    paint
+            );
+        }
+        consumer.accept(start, count, glyphs, paint);
+    }
 
 
     /**
@@ -1388,29 +1393,29 @@ public class TextLine {
         return TabStops.nextDefaultStop(h, TAB_INCREMENT);
     }
 
-//    private boolean isStretchableWhitespace(int ch) {
-//        // TODO: Support NBSP and other stretchable whitespace (b/34013491 and b/68204709).
-//        return ch == 0x0020;
-//    }
+    private boolean isStretchableWhitespace(int ch) {
+        // TODO: Support NBSP and other stretchable whitespace (b/34013491 and b/68204709).
+        return ch == 0x0020;
+    }
 
-//    /* Return the number of spaces in the text line, for the purpose of justification */
-//    private int countStretchableSpaces(int start, int end) {
-//        int count = 0;
-//        for (int i = start; i < end; i++) {
-//            final char c = mCharsValid ? mChars[i] : mText.charAt(i + mStart);
-//            if (isStretchableWhitespace(c)) {
-//                count++;
-//            }
-//        }
-//        return count;
-//    }
+    /* Return the number of spaces in the text line, for the purpose of justification */
+    private int countStretchableSpaces(int start, int end) {
+        int count = 0;
+        for (int i = start; i < end; i++) {
+            final char c = mCharsValid ? mChars[i] : mText.charAt(i + mStart);
+            if (isStretchableWhitespace(c)) {
+                count++;
+            }
+        }
+        return count;
+    }
 
-//    // Note: keep this in sync with Minikin LineBreaker::isLineEndSpace()
-//    public static boolean isLineEndSpace(char ch) {
-//        return ch == ' ' || ch == '\t' || ch == 0x1680
-//                || (0x2000 <= ch && ch <= 0x200A && ch != 0x2007)
-//                || ch == 0x205F || ch == 0x3000;
-//    }
+    // Note: keep this in sync with Minikin LineBreaker::isLineEndSpace()
+    public static boolean isLineEndSpace(char ch) {
+        return ch == ' ' || ch == '\t' || ch == 0x1680
+                || (0x2000 <= ch && ch <= 0x200A && ch != 0x2007)
+                || ch == 0x205F || ch == 0x3000;
+    }
 
     private static final int TAB_INCREMENT = 20;
 

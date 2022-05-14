@@ -358,7 +358,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private BoringLayout mSavedLayout;
     private BoringLayout mSavedHintLayout;
 
-    private TextDirectionHeuristic mTextDir;
+    //TODO: (EW) probably keep this private but somehow allow Editor to pass it to HiddenLayout
+    /*private */TextDirectionHeuristic mTextDir;
 
     private InputFilter[] mFilters = NO_FILTERS;
 

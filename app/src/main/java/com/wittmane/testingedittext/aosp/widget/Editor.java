@@ -91,6 +91,7 @@ import com.wittmane.testingedittext.aosp.content.UndoManager;
 import com.wittmane.testingedittext.aosp.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.content.UndoOwner;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
+import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 //import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
@@ -831,7 +832,6 @@ public class Editor {
 
         Selection.setSelection((Spannable) mTextView.getText(), selectionStart, selectionEnd);
         return selectionEnd > selectionStart;
-//        return false;
     }
 
     /**
@@ -1224,14 +1224,6 @@ public class Editor {
                 return lastTapPosition;
             }
         }
-//        int lastTapPosition = mTouchManager.getMinTouchOffset();
-//        if (lastTapPosition >= 0) {
-//            // Safety check, should not be possible.
-//            if (lastTapPosition > mText.length()) {
-//                lastTapPosition = mText.length();
-//            }
-//            return lastTapPosition;
-//        }
 
         return -1;
     }
@@ -1329,89 +1321,6 @@ public class Editor {
             mIgnoreActionUpEvent = false;
         }
     }
-//    /**
-//     * Handles touch events on an editable text view, implementing cursor movement, selection, etc.
-//     */
-//    public void onTouchEvent(MotionEvent event) {
-//        final boolean filterOutEvent = shouldFilterOutTouchEvent(event);
-//        mLastButtonState = event.getButtonState();
-//        if (filterOutEvent) {
-//            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-//                mDiscardNextActionUp = true;
-//            }
-//            return;
-//        }
-//        ViewConfiguration viewConfiguration = ViewConfiguration.get(getContext());
-//        mTouchState.update(event, viewConfiguration);
-////        updateFloatingToolbarVisibility(event);
-////
-////        if (hasInsertionController()) {
-////            getInsertionController().onTouchEvent(event);
-////        }
-////        if (hasSelectionController()) {
-////            getSelectionController().onTouchEvent(event);
-////        }
-////
-////        if (mShowSuggestionRunnable != null) {
-////            mTextView.removeCallbacks(mShowSuggestionRunnable);
-////            mShowSuggestionRunnable = null;
-////        }
-//
-//        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-//            // Reset this state; it will be re-set if super.onTouchEvent
-//            // causes focus to move to the view.
-//            mTouchFocusSelected = false;
-//            mIgnoreActionUpEvent = false;
-//        }
-//    }
-//    void onTouchUpEvent(MotionEvent event) {
-////        if (TextView.DEBUG_CURSOR) {
-////            logCursor("onTouchUpEvent", null);
-////        }
-//        if (getSelectionActionModeHelper().resetSelection(
-//                /*getTextView().*/getOffsetForPosition(event.getX(), event.getY()))) {
-//            return;
-//        }
-//
-//        boolean selectAllGotFocus = mSelectAllOnFocus && /*mTextView.*/didTouchFocusSelect();
-//        hideCursorAndSpanControllers();
-//        stopTextActionMode();
-//        CharSequence text = mText;
-//        if (!selectAllGotFocus && text.length() > 0) {
-//            // Move cursor
-//            final int offset = getOffsetForPosition(event.getX(), event.getY());
-//
-//            final boolean shouldInsertCursor = !mRequestingLinkActionMode;
-//            if (shouldInsertCursor) {
-//                Selection.setSelection((Spannable) text, offset);
-////                if (mSpellChecker != null) {
-////                    // When the cursor moves, the word that was typed may need spell check
-////                    mSpellChecker.onSelectionChanged();
-////                }
-//            }
-//
-////            if (!extractedTextModeWillBeStarted()) {
-////                if (isCursorInsideEasyCorrectionSpan()) {
-////                    // Cancel the single tap delayed runnable.
-////                    if (mInsertionActionModeRunnable != null) {
-////                        removeCallbacks(mInsertionActionModeRunnable);
-////                    }
-////
-////                    mShowSuggestionRunnable = this::replace;
-////
-////                    // removeCallbacks is performed on every touch
-////                    postDelayed(mShowSuggestionRunnable,
-////                            ViewConfiguration.getDoubleTapTimeout());
-////                } else if (hasInsertionController()) {
-////                    if (shouldInsertCursor) {
-////                        getInsertionController().show();
-////                    } else {
-////                        getInsertionController().hide();
-////                    }
-////                }
-////            }
-//        }
-//    }
 
     private void updateFloatingToolbarVisibility(MotionEvent event) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
@@ -1782,11 +1691,11 @@ public class Editor {
         final int offset = mTextView.getSelectionStart();
         final int line = layout.getLineForOffset(offset);
         final int top = layout.getLineTop(line);
-        final int bottom = layout./*getLineBottomWithoutSpacing(line)*/getLineBottom(line);//(EW) hidden - hopefully this is good enough
+        final int bottom = HiddenLayout.getLineBottomWithoutSpacing(layout, line);
 //        final int bottom = layout.getLineTop(line + 1);
 
-//        final boolean clamped = layout.shouldClampCursor(line);
-        updateCursorPosition(top, bottom, layout.getPrimaryHorizontal(offset/*, clamped*/));
+        final boolean clamped = HiddenLayout.shouldClampCursor(layout, line);
+        updateCursorPosition(top, bottom, HiddenLayout.getPrimaryHorizontal(layout, mTextView.mTextDir, offset, clamped));
     }
 
     void refreshTextActionMode() {
@@ -2865,7 +2774,7 @@ public class Editor {
         @Override
         protected int getVerticalLocalPosition(int line) {
             final Layout layout = mTextView.getLayout();
-            return layout./*getLineBottomWithoutSpacing*/getLineBottom(line);//(EW) hidden - hopefully this is good enough
+            return HiddenLayout.getLineBottomWithoutSpacing(layout, line);
         }
 
         @Override
@@ -3562,7 +3471,7 @@ public class Editor {
         @Override
         protected int getVerticalLocalPosition(int line) {
             final Layout layout = mTextView.getLayout();
-            return layout./*getLineBottomWithoutSpacing*/getLineBottom(line) - mContainerMarginTop;//(EW) hidden - hopefully this is good enough
+            return HiddenLayout.getLineBottomWithoutSpacing(layout, line) - mContainerMarginTop;
         }
 
         @Override
@@ -5193,7 +5102,7 @@ public class Editor {
             final Layout layout = mTextView.getLayout();
             final int line = layout.getLineForOffset(getCurrentCursorOffset());
             final int textHeight =
-                    layout./*getLineBottomWithoutSpacing(line)*/getLineBottom(line) - layout.getLineTop(line);//(EW) hidden - hopefully this is good enough
+                    HiddenLayout.getLineBottomWithoutSpacing(layout, line) - layout.getLineTop(line);
             // Transforms the touch events to screen coordinates.
             // And also shift up to make the hit point is on the text.
             // Note:
@@ -5417,13 +5326,13 @@ public class Editor {
             final int currentOffset = getCurrentCursorOffset();
             final boolean rtlAtCurrentOffset = isAtRtlRun(layout, currentOffset);
             final boolean atRtl = isAtRtlRun(layout, offset);
-            //TODO: (EW) can this just be skipped?
-//            final boolean isLvlBoundary = layout.isLevelBoundary(offset);
+            final boolean isLvlBoundary = HiddenLayout.isLevelBoundary(layout, mTextView.mTextDir,
+                    offset);
 
             // We can't determine if the user is expanding or shrinking the selection if they're
             // on a bi-di boundary, so until they've moved past the boundary we'll just place
             // the cursor at the current position.
-            if (/*isLvlBoundary || */(rtlAtCurrentOffset && !atRtl) || (!rtlAtCurrentOffset && atRtl)) {
+            if (isLvlBoundary || (rtlAtCurrentOffset && !atRtl) || (!rtlAtCurrentOffset && atRtl)) {
                 // We're on a boundary or this is the first direction change -- just update
                 // to the current position.
                 mLanguageDirectionChanged = true;
@@ -5660,26 +5569,28 @@ public class Editor {
         @Override
         protected int getOffsetAtCoordinate(@NonNull Layout layout, int line, float x) {
             final float localX = mTextView.convertToLocalHorizontalCoordinate(x);
-            //TODO: (EW) handle better
-            final int primaryOffset = layout.getOffsetForHorizontal(line, localX/*, true*/);
-//        if (!layout.isLevelBoundary(primaryOffset)) {
-//            return primaryOffset;
-//        }
-            final int secondaryOffset = layout.getOffsetForHorizontal(line, localX/*, false*/);
-            final int currentOffset = getCurrentCursorOffset();
-            final int primaryDiff = Math.abs(primaryOffset - currentOffset);
-            final int secondaryDiff = Math.abs(secondaryOffset - currentOffset);
-            if (primaryDiff < secondaryDiff) {
-                return primaryOffset;
-            } else if (primaryDiff > secondaryDiff) {
-                return secondaryOffset;
-            } else {
-                final int offsetToCheck = isStartHandle()
-                        ? currentOffset : Math.max(currentOffset - 1, 0);
-                final boolean isRtlChar = layout.isRtlCharAt(offsetToCheck);
-                final boolean isRtlParagraph = layout.getParagraphDirection(line) == -1;
-                return isRtlChar == isRtlParagraph ? primaryOffset : secondaryOffset;
-            }
+            //TODO: (EW) this doesn't match AOSP. as of S, it got Layout#getOffsetForHorizontal for
+            // both the primary and secondary horizontal and had some logic to determine which to
+            // use, but the overload with the boolean primary argument isn't accessible. I'm not
+            // completely sure what the separate horizontals are for, but it seems related to LTR vs
+            // RTL or bidirectional text.
+            // prior to Nougat, mTextView.getOffsetAtCoordinate was just used instead. at that time
+            // Layout#getOffsetForHorizontal didn't take the boolean primary argument, although
+            // Layout#getPrimaryHorizontal and Layout#getSecondaryHorizontal did exist by then.
+            // Layout#getOffsetForHorizontal seemed to just work off of the primary horizontal.
+            // I tried to just copy the logic from Layout#getOffsetForHorizontal, but it called into
+            // Layout#getIndentAdjust, Layout#getStartHyphenEdit, and Layout#getEndHyphenEdit,
+            // which are hidden and are overridden by some child Layout classes, so there isn't a
+            // good way to call those. it also checks Layout#mJustificationMode, which is only set
+            // by a hidden method and there isn't a good way to access it.
+            // since we only have access to the Layout#getOffsetForHorizontal for the primary
+            // horizontal (which is similar to logic used in previous version) and just copying the
+            // logic isn't really an option, this will have to be good enough for now. maybe if AOSP
+            // changes logic or opens up an API in the future, we can pull that in. also, if I know
+            // a specific bug that this causes, maybe there is something more that can be done then
+            // to mitigate it.
+            final int primaryOffset = layout.getOffsetForHorizontal(line, localX);
+            return primaryOffset;
         }
 
         //    @MagnifierHandleTrigger
