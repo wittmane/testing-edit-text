@@ -10,7 +10,6 @@ import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.text.HiddenLayout.Directions;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -35,7 +34,6 @@ public class AndroidBidi {
             throw new IndexOutOfBoundsException();
         }
 
-        byte result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             final byte paraLevel;
             switch (dir) {
@@ -60,47 +58,25 @@ public class AndroidBidi {
             for (int i = 0; i < length; i++) {
                 chInfo[i] = icuBidi.getLevelAt(i);
             }
-            result = icuBidi.getParaLevel();
-        } else {
-            final byte paraLevel;
-            switch (dir) {
-                case HiddenLayout.DIR_REQUEST_LTR:
-                    paraLevel = /*Bidi.LTR*/0;
-                    break;
-                case HiddenLayout.DIR_REQUEST_RTL:
-                    paraLevel = /*Bidi.RTL*/1;
-                    break;
-                case HiddenLayout.DIR_REQUEST_DEFAULT_LTR:
-                    paraLevel = /*Bidi.LEVEL_DEFAULT_LTR*/126;
-                    break;
-                case HiddenLayout.DIR_REQUEST_DEFAULT_RTL:
-                    paraLevel = /*Bidi.LEVEL_DEFAULT_RTL*/127;
-                    break;
-                default:
-                    paraLevel = /*Bidi.LTR*/0;
-                    break;
-            }
-            try {
-                Class<?> bidiClass = Class.forName("android.icu.text.Bidi");
-                Constructor<?> bidiConstructor = bidiClass.getConstructor(int.class, int.class);
-                Method setParaMethod = bidiClass.getMethod("setPara", char[].class, byte.class, byte[].class);
-                Method getLevelAtMethod = bidiClass.getMethod("getLevelAt", int.class);
-                Method getParaLevelMethod = bidiClass.getMethod("getParaLevel");
-
-                Object icuBidiObj = bidiConstructor.newInstance(length /* maxLength */, 0 /* maxRunCount */);
-                setParaMethod.invoke(icuBidiObj, chs, paraLevel, null /* embeddingLevels */);
-                for (int i = 0; i < length; i++) {
-                    chInfo[i] = (byte) getLevelAtMethod.invoke(icuBidiObj, i);
-                }
-                result = (byte) getParaLevelMethod.invoke(icuBidiObj);
-
-            } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                Log.e(TAG, "bidi: Failed to use Bidi: " + e.getClass().getSimpleName() + ": " + e.getMessage());
-                //TODO: (EW) what should the fallback value be?
-                result = 0;
-            }
+            final byte result = icuBidi.getParaLevel();
+            return (result & 0x1) == 0 ? Layout.DIR_LEFT_TO_RIGHT : Layout.DIR_RIGHT_TO_LEFT;
         }
-        return (result & 0x1) == 0 ? Layout.DIR_LEFT_TO_RIGHT : Layout.DIR_RIGHT_TO_LEFT;
+
+        // (EW) ICU Bidi was used in Pie, but it wasn't made accessible until Q. for some reason
+        // using reflection on the constructor doesn't seem to work, so we'll just have to use
+        // reflection on the AOSP version of this copied method.
+        try {
+            Class<?> androidBidiClass = Class.forName("android.text.AndroidBidi");
+            Method bidiMethod = androidBidiClass.getMethod("bidi", int.class, char[].class,
+                    byte[].class);
+            return (int) bidiMethod.invoke(null, dir, chs, chInfo);
+
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
+                | InvocationTargetException e) {
+            Log.e(TAG, "bidi: Failed to use AndroidBidi: " + e.getClass().getSimpleName() + ": "
+                    + e.getMessage());
+            return Layout.DIR_LEFT_TO_RIGHT;
+        }
     }
 
     // (EW) only can be called prior to Pie
@@ -266,8 +242,7 @@ public class AndroidBidi {
                 return (int) runBidiMethod.invoke(null, dir, chs, chInfo, n, haveInfo);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassNotFoundException e) {
             Log.e(TAG, "getRunAdvance: Failed to call runBidi: " + e.getClass().getSimpleName() + ": " + e.getMessage());
-            //TODO: (EW) what should the fallback value be?
-            return 0;
+            return Layout.DIR_LEFT_TO_RIGHT;
         }
     }
 }
