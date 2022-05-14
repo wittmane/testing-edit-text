@@ -11,47 +11,92 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.lang.reflect.Array;
+
 public class HiddenTextUtils {
     /** @hide */
     public static final int SUGGESTION_RANGE_SPAN = 21;
 
-    /**
-     * Intent size limitations prevent sending over a megabyte of data. Limit
-     * text length to 100K characters - 200KB.
-     */
-    private static final int PARCEL_SAFE_TEXT_LENGTH = 100000;
+    // Returns true if the character's presence could affect RTL layout.
+    //
+    // In order to be fast, the code is intentionally rough and quite conservative in its
+    // considering inclusion of any non-BMP or surrogate characters or anything in the bidi
+    // blocks or any bidi formatting characters with a potential to affect RTL layout.
+    /* package */
+    static boolean couldAffectRtl(char c) {
+        return (0x0590 <= c && c <= 0x08FF) ||  // RTL scripts
+                c == 0x200E ||  // Bidi format character
+                c == 0x200F ||  // Bidi format character
+                (0x202A <= c && c <= 0x202E) ||  // Bidi format characters
+                (0x2066 <= c && c <= 0x2069) ||  // Bidi format characters
+                (0xD800 <= c && c <= 0xDFFF) ||  // Surrogate pairs
+                (0xFB1D <= c && c <= 0xFDFF) ||  // Hebrew and Arabic presentation forms
+                (0xFE70 <= c && c <= 0xFEFE);  // Arabic presentation forms
+    }
 
-    /**
-     * Trims the text to {@link #PARCEL_SAFE_TEXT_LENGTH} length. Returns the string as it is if
-     * the length() is smaller than {@link #PARCEL_SAFE_TEXT_LENGTH}. Used for text that is parceled
-     * into a {@link Parcelable}.
-     *
-     * @hide
-     */
-    @Nullable
-    public static <T extends CharSequence> T trimToParcelableSize(@Nullable T text) {
-        return trimToSize(text, PARCEL_SAFE_TEXT_LENGTH);
+    // Returns true if there is no character present that may potentially affect RTL layout.
+    // Since this calls couldAffectRtl() above, it's also quite conservative, in the way that
+    // it may return 'false' (needs bidi) although careful consideration may tell us it should
+    // return 'true' (does not need bidi).
+    /* package */
+    static boolean doesNotNeedBidi(char[] text, int start, int len) {
+        final int end = start + len;
+        for (int i = start; i < end; i++) {
+            if (couldAffectRtl(text[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
-     * Trims the text to {@code size} length. Returns the string as it is if the length() is
-     * smaller than {@code size}. If chars at {@code size-1} and {@code size} is a surrogate
-     * pair, returns a CharSequence of length {@code size-1}.
+     * Removes empty spans from the <code>spans</code> array.
      *
-     * @param size length of the result, should be greater than 0
+     * When parsing a Spanned using {@link Spanned#nextSpanTransition(int, int, Class)}, empty spans
+     * will (correctly) create span transitions, and calling getSpans on a slice of text bounded by
+     * one of these transitions will (correctly) include the empty overlapping span.
      *
+     * However, these empty spans should not be taken into account when layouting or rendering the
+     * string and this method provides a way to filter getSpans' results accordingly.
+     *
+     * @param spans A list of spans retrieved using {@link Spanned#getSpans(int, int, Class)} from
+     * the <code>spanned</code>
+     * @param spanned The Spanned from which spans were extracted
+     * @return A subset of spans where empty spans ({@link Spanned#getSpanStart(Object)}  ==
+     * {@link Spanned#getSpanEnd(Object)} have been removed. The initial order is preserved
      * @hide
      */
-    @Nullable
-    public static <T extends CharSequence> T trimToSize(@Nullable T text,
-                                                        @IntRange(from = 1) int size) {
-//        Preconditions.checkArgument(size > 0);
-        if (TextUtils.isEmpty(text) || text.length() <= size) return text;
-        if (Character.isHighSurrogate(text.charAt(size - 1))
-                && Character.isLowSurrogate(text.charAt(size))) {
-            size = size - 1;
+    @SuppressWarnings("unchecked")
+    public static <T> T[] removeEmptySpans(T[] spans, Spanned spanned, Class<T> klass) {
+        T[] copy = null;
+        int count = 0;
+
+        for (int i = 0; i < spans.length; i++) {
+            final T span = spans[i];
+            final int start = spanned.getSpanStart(span);
+            final int end = spanned.getSpanEnd(span);
+
+            if (start == end) {
+                if (copy == null) {
+                    copy = (T[]) Array.newInstance(klass, spans.length - 1);
+                    System.arraycopy(spans, 0, copy, 0, i);
+                    count = i;
+                }
+            } else {
+                if (copy != null) {
+                    copy[count] = span;
+                    count++;
+                }
+            }
         }
-        return (T) text.subSequence(0, size);
+
+        if (copy != null) {
+            T[] result = (T[]) Array.newInstance(klass, count);
+            System.arraycopy(copy, 0, result, 0, count);
+            return result;
+        } else {
+            return spans;
+        }
     }
 
     /**
@@ -98,5 +143,44 @@ public class HiddenTextUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Intent size limitations prevent sending over a megabyte of data. Limit
+     * text length to 100K characters - 200KB.
+     */
+    private static final int PARCEL_SAFE_TEXT_LENGTH = 100000;
+
+    /**
+     * Trims the text to {@link #PARCEL_SAFE_TEXT_LENGTH} length. Returns the string as it is if
+     * the length() is smaller than {@link #PARCEL_SAFE_TEXT_LENGTH}. Used for text that is parceled
+     * into a {@link Parcelable}.
+     *
+     * @hide
+     */
+    @Nullable
+    public static <T extends CharSequence> T trimToParcelableSize(@Nullable T text) {
+        return trimToSize(text, PARCEL_SAFE_TEXT_LENGTH);
+    }
+
+    /**
+     * Trims the text to {@code size} length. Returns the string as it is if the length() is
+     * smaller than {@code size}. If chars at {@code size-1} and {@code size} is a surrogate
+     * pair, returns a CharSequence of length {@code size-1}.
+     *
+     * @param size length of the result, should be greater than 0
+     *
+     * @hide
+     */
+    @Nullable
+    public static <T extends CharSequence> T trimToSize(@Nullable T text,
+                                                        @IntRange(from = 1) int size) {
+//        Preconditions.checkArgument(size > 0);
+        if (TextUtils.isEmpty(text) || text.length() <= size) return text;
+        if (Character.isHighSurrogate(text.charAt(size - 1))
+                && Character.isLowSurrogate(text.charAt(size))) {
+            size = size - 1;
+        }
+        return (T) text.subSequence(0, size);
     }
 }

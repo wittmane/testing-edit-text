@@ -33,6 +33,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
 import android.text.BoringLayout;
+import android.text.BoringLayout.Metrics;
 import android.text.DynamicLayout;
 import android.text.Editable;
 import android.text.GetChars;
@@ -40,6 +41,7 @@ import android.text.InputFilter;
 import android.text.InputFilter.LengthFilter;
 import android.text.InputType;
 import android.text.Layout;
+import android.text.Layout.Alignment;
 import android.text.ParcelableSpan;
 import android.text.Selection;
 import android.text.SpanWatcher;
@@ -52,6 +54,7 @@ import android.text.TextDirectionHeuristic;
 import android.text.TextDirectionHeuristics;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.TextUtils.TruncateAt;
 import android.text.TextWatcher;
 import android.text.method.DateKeyListener;
 import android.text.method.DateTimeKeyListener;
@@ -123,6 +126,7 @@ import androidx.annotation.StyleRes;
 import androidx.core.content.ContextCompat;
 
 import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
@@ -238,6 +242,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private boolean mFreezesText;
     private boolean mDispatchTemporaryDetach;
 
+    // (EW) removed in the AOSP version in Nougat, but we still need it for older versions since
+    // View#isTemporarilyDetached doesn't exist yet.
     /** Whether this view is temporarily detached from the parent view. */
     boolean mTemporaryDetach;
 
@@ -260,6 +266,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // changing.
     private boolean mPreventDefaultMovement;
 
+    //TODO: (EW) this is never set. either use or remove it (probably remove).
     private TextUtils.TruncateAt mEllipsize;
 
     // A flag to indicate the cursor was hidden by IME.
@@ -344,6 +351,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Scroller mScroller;
     private TextPaint mTempTextPaint;
 
+    //TODO: (EW) I don't think we're really taking advantage of the boring layouts. either start
+    // fully using it to match aosp or remove it as unnecessary code.
     private BoringLayout.Metrics mBoring;
     private BoringLayout.Metrics mHintBoring;
     private BoringLayout mSavedLayout;
@@ -3046,8 +3055,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             int want = mLayout.getWidth();
             int hintWant = mHintLayout == null ? 0 : mHintLayout.getWidth();
 
-            makeNewLayout(want, hintWant, /*UNKNOWN_BORING, UNKNOWN_BORING,
-                    getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight(),*/ true);
+            makeNewLayout(want, hintWant, /*UNKNOWN_BORING, UNKNOWN_BORING,*/
+                    getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight(),
+                    true);
         }
     }
 
@@ -5020,10 +5030,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final int left = getLeft();
         final int bottom = getBottom();
         final int top = getTop();
-//        final boolean isLayoutRtl = isLayoutRtl();
-//        final int offset = getHorizontalOffsetForDrawables();
-//        final int leftOffset = isLayoutRtl ? 0 : offset;
-//        final int rightOffset = isLayoutRtl ? offset : 0;
 
         int color = mCurTextColor;
 
@@ -5937,7 +5943,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             width = VERY_WIDE;
         }
 
-        makeNewLayout(width, physicalWidth, false);
+        makeNewLayout(width, physicalWidth, physicalWidth, false);
     }
 
     private Layout.Alignment getLayoutAlignment() {
@@ -5951,12 +5957,23 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     case Gravity.END:
                         alignment = Layout.Alignment.ALIGN_OPPOSITE;
                         break;
-//                    case Gravity.LEFT:
-//                        alignment = Layout.Alignment.ALIGN_LEFT;
-//                        break;
-//                    case Gravity.RIGHT:
-//                        alignment = Layout.Alignment.ALIGN_RIGHT;
-//                        break;
+                    case Gravity.LEFT:
+                        //TODO: (EW) this value eventually gets passed to Layout, which checks
+                        // getParagraphDirection for each line in drawText to determine the
+                        // conversion to ALIGN_NORMAL or ALIGN_OPPOSITE, so I don't think we can
+                        // replicate this functionality just using those. we could check something
+                        // like getResources().getConfiguration().getLayoutDirection() instead to at
+                        // least base left/right on the current language. I think that's still
+                        // incorrect, but that might be the best option if we want to try to handle
+                        // this case in a normal acceptable way. realistically, Gravity.LEFT just
+                        // shouldn't be used for this view (that seems to be what Android is pushing
+                        // for).
+                        alignment = HiddenLayout.ALIGNMENT_ALIGN_LEFT;
+                        break;
+                    case Gravity.RIGHT:
+                        //TODO: (EW) see Gravity.LEFT case comment
+                        alignment = HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
+                        break;
                     case Gravity.CENTER_HORIZONTAL:
                         alignment = Layout.Alignment.ALIGN_CENTER;
                         break;
@@ -5974,14 +5991,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             case TEXT_ALIGNMENT_CENTER:
                 alignment = Layout.Alignment.ALIGN_CENTER;
                 break;
-//            case TEXT_ALIGNMENT_VIEW_START:
-//                alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
-//                        ? Layout.Alignment.ALIGN_RIGHT : Layout.Alignment.ALIGN_LEFT;
-//                break;
-//            case TEXT_ALIGNMENT_VIEW_END:
-//                alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
-//                        ? Layout.Alignment.ALIGN_LEFT : Layout.Alignment.ALIGN_RIGHT;
-//                break;
+            case TEXT_ALIGNMENT_VIEW_START:
+                //TODO: (EW) see Gravity.LEFT case comment
+                alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
+                        ? HiddenLayout.ALIGNMENT_ALIGN_RIGHT : HiddenLayout.ALIGNMENT_ALIGN_LEFT;
+                break;
+            case TEXT_ALIGNMENT_VIEW_END:
+                //TODO: (EW) see Gravity.LEFT case comment
+                alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
+                        ? HiddenLayout.ALIGNMENT_ALIGN_LEFT : HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
+                break;
             case TEXT_ALIGNMENT_INHERIT:
                 // This should never happen as we have already resolved the text alignment
                 // but better safe than sorry so we just fall through
@@ -5997,7 +6016,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * not the full view width with padding.
      * {@hide}
      */
-    public void makeNewLayout(int wantWidth, int hintWidth, boolean bringIntoView) {
+    public void makeNewLayout(int wantWidth, int hintWidth, int ellipsisWidth, boolean bringIntoView) {
         // Update "old" cached values
         mOldMaximum = mMaximum;
         mOldMaxMode = mMaxMode;
@@ -6017,12 +6036,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         || alignment == Layout.Alignment.ALIGN_OPPOSITE);
         int oldDir = 0;
         if (testDirChange) oldDir = mLayout.getParagraphDirection(0);
+        TruncateAt effectiveEllipsize = mEllipsize;
 
         if (mTextDir == null) {
             mTextDir = getTextDirectionHeuristic();
         }
 
-        mLayout = makeSingleLayout(wantWidth, alignment);
+        mLayout = makeSingleLayout(wantWidth, ellipsisWidth, alignment, effectiveEllipsize);
 
         mHintLayout = null;
 
@@ -6032,7 +6052,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 builder = StaticLayout.Builder.obtain(mHint, 0,
                         mHint.length(), mTextPaint, hintWidth)
                         .setAlignment(alignment)
-//                        .setTextDirection(mTextDir)
+                        .setTextDirection(mTextDir)
                         .setLineSpacing(mSpacingAdd, mSpacingMult)
                         .setIncludePad(mIncludePad)
 //                        .setBreakStrategy(mBreakStrategy)
@@ -6060,29 +6080,54 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * @hide
      */
-    protected Layout makeSingleLayout(int wantWidth, Layout.Alignment alignment) {
+    protected Layout makeSingleLayout(int wantWidth, int ellipsisWidth, Layout.Alignment alignment, TruncateAt effectiveEllipsize) {
         Layout result = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             final DynamicLayout.Builder builder = DynamicLayout.Builder.obtain(mText, mTextPaint,
                     wantWidth)
                     .setDisplayText(mTransformed)
                     .setAlignment(alignment)
-//                    .setTextDirection(mTextDir)
+                    .setTextDirection(mTextDir)
                     .setLineSpacing(mSpacingAdd, mSpacingMult)
                     .setIncludePad(mIncludePad)
                     .setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing)
 //                    .setBreakStrategy(mBreakStrategy)
 //                    .setHyphenationFrequency(mHyphenationFrequency)
-                    .setJustificationMode(mJustificationMode);
+                    .setJustificationMode(mJustificationMode)
+                    .setEllipsize(getKeyListener() == null ? effectiveEllipsize : null)
+                    .setEllipsizedWidth(ellipsisWidth);
             result = builder.build();
         } else {
 //            mLayout = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth,
 //                    alignment, mTextDir, mSpacingMult, mSpacingAdd, mIncludePad,
 //                    mBreakStrategy, mHyphenationFrequency, mJustificationMode,
 //                    getKeyListener() == null ? effectiveEllipsize : null, ellipsisWidth);
-            result = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+            result = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth, alignment,
+                    mSpacingMult, mSpacingAdd, mIncludePad,
+                    getKeyListener() == null ? effectiveEllipsize : null, ellipsisWidth);
         }
         return result;
+    }
+
+    private static int desired(Layout layout) {
+        int n = layout.getLineCount();
+        CharSequence text = layout.getText();
+        float max = 0;
+
+        // if any line was wrapped, we can't use it.
+        // but it's ok for the last line not to have a newline
+
+        for (int i = 0; i < n - 1; i++) {
+            if (text.charAt(layout.getLineEnd(i) - 1) != '\n') {
+                return -1;
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            max = Math.max(max, layout.getLineMax(i));
+        }
+
+        return (int) Math.ceil(max);
     }
 
     /**
@@ -6118,10 +6163,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mIncludePad;
     }
 
+    public static final BoringLayout.Metrics UNKNOWN_BORING = new BoringLayout.Metrics();
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         //TODO: (EW) I think there were a decent number of changes between aosp28 and aosp30 and I
-        // simplified dome things to initially get things to work. clean this up
+        // simplified some things to initially get things to work. clean this up
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
         int widthSize = MeasureSpec.getSize(widthMeasureSpec);
@@ -6130,27 +6177,74 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int width;
         int height;
 
+        BoringLayout.Metrics boring = UNKNOWN_BORING;
+        BoringLayout.Metrics hintBoring = UNKNOWN_BORING;
+
         if (mTextDir == null) {
             mTextDir = getTextDirectionHeuristic();
         }
 
         int des = -1;
         boolean fromexisting = false;
+        final float widthLimit = (widthMode == MeasureSpec.AT_MOST)
+                ?  (float) widthSize : Float.MAX_VALUE;
 
         if (widthMode == MeasureSpec.EXACTLY) {
             // Parent has told us how big to be. So be it.
             width = widthSize;
         } else {
-//                    des = (int) Math.ceil(/*Layout*/HiddenLayoutInfo.getDesiredWidthWithLimit(mTransformed, 0,
-//                            mTransformed.length(), mTextPaint, mTextDir, widthLimit));
-            width = (int) /*FloatMath*/Math.ceil(Layout.getDesiredWidth(mTransformed, mTextPaint));
+            if (mLayout != null && mEllipsize == null) {
+                des = desired(mLayout);
+            }
+
+            if (des < 0) {
+                boring = isBoring(mTransformed, mTextPaint, mTextDir, mBoring);
+                if (boring != null) {
+                    Log.w(TAG, "onMeasure: isBoring");
+                    mBoring = boring;
+                }
+            } else {
+                fromexisting = true;
+            }
+
+            if (boring == null || boring == UNKNOWN_BORING) {
+                if (des < 0) {
+                    // (EW) Layout.getDesiredWidthWithLimit started getting called in Pie (instead
+                    // of Layout.getDesiredWidth). Layout.getDesiredWidthWithLimit was also created
+                    // in Pie.
+                    des = (int) Math.ceil(HiddenLayout.getDesiredWidthWithLimit(mTransformed, 0,
+                            mTransformed.length(), mTextPaint, mTextDir, widthLimit));
+                }
+                width = des;
+            } else {
+                width = boring.width;
+            }
 
             if (mHint != null) {
+                int hintDes = -1;
                 int hintWidth;
 
-//                        hintDes = (int) Math.ceil(/*Layout*/HiddenLayoutInfo.getDesiredWidthWithLimit(mHint, 0,
-//                                mHint.length(), mTextPaint, mTextDir, widthLimit));
-                hintWidth = (int) /*FloatMath*/Math.ceil(Layout.getDesiredWidth(mHint, mTextPaint));
+                if (mHintLayout != null && mEllipsize == null) {
+                    hintDes = desired(mHintLayout);
+                }
+
+                if (hintDes < 0) {
+                    hintBoring = isBoring(mHint, mTextPaint, mTextDir, mHintBoring);
+                    if (hintBoring != null) {
+                        mHintBoring = hintBoring;
+                        Log.w(TAG, "onMeasure: isBoring hint");
+                    }
+                }
+
+                if (hintBoring == null || hintBoring == UNKNOWN_BORING) {
+                    if (hintDes < 0) {
+                        hintDes = (int) Math.ceil(HiddenLayout.getDesiredWidthWithLimit(mHint, 0,
+                                mHint.length(), mTextPaint, mTextDir, widthLimit));
+                    }
+                    hintWidth = hintDes;
+                } else {
+                    hintWidth = hintBoring.width;
+                }
 
                 if (hintWidth > width) {
                     width = hintWidth;
@@ -6181,6 +6275,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         int want = width - getCompoundPaddingLeft() - getCompoundPaddingRight();
         int unpaddedWidth = want;
+        Log.w(TAG, "onMeasure: width=" + width + ", want=" + want + ", unpaddedWidth="
+                + unpaddedWidth + ", mHorizontallyScrolling=" + mHorizontallyScrolling);
 
         if (mHorizontallyScrolling) want = VERY_WIDE;
 
@@ -6188,24 +6284,31 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int hintWidth = (mHintLayout == null) ? hintWant : mHintLayout.getWidth();
 
         if (mLayout == null) {
-            makeNewLayout(want, hintWant, false);
+            Log.w(TAG, "onMeasure: makeNewLayout null");
+            makeNewLayout(want, hintWant,
+                    width - getCompoundPaddingLeft() - getCompoundPaddingRight(), false);
         } else {
             final boolean layoutChanged = (mLayout.getWidth() != want) || (hintWidth != hintWant)
                     || (mLayout.getEllipsizedWidth()
-                    != width - getCompoundPaddingLeft() - getCompoundPaddingRight());
+                            != width - getCompoundPaddingLeft() - getCompoundPaddingRight());
 
-//            final boolean widthChanged = (mHint == null) && (mEllipsize == null)
-//                    && (want > mLayout.getWidth())
-//                    && (mLayout instanceof BoringLayout);
+            //TODO: currently mLayout is always a DynamicLayout, so this will always be false.
+            // either start using BoringLayout if that's useful or simplify this.
+            final boolean widthChanged = (mHint == null) && (mEllipsize == null)
+                    && (want > mLayout.getWidth())
+                    && (mLayout instanceof BoringLayout
+                            || (fromexisting && des >= 0 && des <= want));
 
             final boolean maximumChanged = (mMaxMode != mOldMaxMode) || (mMaximum != mOldMaximum);
 
             if (layoutChanged || maximumChanged) {
-//                if (!maximumChanged && widthChanged) {
-//                    mLayout.increaseWidthTo(want);
-//                } else {
-                makeNewLayout(want, hintWant, false);
-//                }
+                if (!maximumChanged && widthChanged) {
+                    mLayout.increaseWidthTo(want);
+                } else {
+                    Log.w(TAG, "onMeasure: makeNewLayout changed");
+                    makeNewLayout(want, hintWant,
+                            width - getCompoundPaddingLeft() - getCompoundPaddingRight(), false);
+                }
             } else {
                 // Nothing has changed
             }
@@ -6216,8 +6319,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             height = heightSize;
             mDesiredHeightAtMeasure = -1;
         } else {
-            height = getDesiredHeight();
-            mDesiredHeightAtMeasure = height;
+            int desired = getDesiredHeight();
+
+            height = desired;
+            mDesiredHeightAtMeasure = desired;
             Log.w(TAG, "onMeasure: desiredHeight=" + height);// 97, 160 (px)
             //30px top padding, 21px bottom padding
             //46px 1 line, 109px 2 lines -> 17px space between lines
@@ -6225,7 +6330,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             //overall height should be: 136, 199
 
             if (heightMode == MeasureSpec.AT_MOST) {
-                height = Math.min(height, heightSize);
+                height = Math.min(desired, heightSize);
             }
         }
 
@@ -6248,6 +6353,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         setMeasuredDimension(width, height);
         Log.w(TAG, "onMeasure: setMeasuredDimension: width=" + width + ", height=" + height);
+    }
+
+    // based on hidden method from BoringLayout
+    private static Metrics isBoring(CharSequence text, TextPaint paint,
+                                   TextDirectionHeuristic textDir, Metrics metrics) {
+        final int textLength = text.length();
+        if (textDir != null && textDir.isRtl(text, 0, textLength)) {
+            return null;  // The heuristic considers the whole text RTL. Not boring.
+        }
+        return BoringLayout.isBoring(text, paint, metrics);
     }
 
     private int getDesiredHeight() {
@@ -6307,20 +6422,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         boolean sizeChanged = false;
 
         if (mLayout != null) {
+            final LayoutParams layoutParams = getLayoutParams();
+
             // Check if our width changed
-            if (getLayoutParams().width == ViewGroup.LayoutParams.WRAP_CONTENT) {
+            if (layoutParams.width == LayoutParams.WRAP_CONTENT) {
                 sizeChanged = true;
                 invalidate();
             }
 
             // Check if our height changed
-            if (getLayoutParams().height == ViewGroup.LayoutParams.WRAP_CONTENT) {
+            if (layoutParams.height == LayoutParams.WRAP_CONTENT) {
                 int desiredHeight = getDesiredHeight();
 
                 if (desiredHeight != this.getHeight()) {
                     sizeChanged = true;
                 }
-            } else if (getLayoutParams().height == ViewGroup.LayoutParams.MATCH_PARENT) {
+            } else if (layoutParams.height == LayoutParams.MATCH_PARENT) {
                 if (mDesiredHeightAtMeasure >= 0) {
                     int desiredHeight = getDesiredHeight();
 
@@ -6345,10 +6462,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // If we have a fixed width, we can just swap in a new text layout
         // if the text height stays the same or if the view height is fixed.
 
-        if ((getLayoutParams().width != LayoutParams.WRAP_CONTENT
+        final LayoutParams layoutParams = getLayoutParams();
+        final int left = getLeft();
+        final int right = getRight();
+
+        if ((layoutParams.width != LayoutParams.WRAP_CONTENT
                 || (mMaxWidthMode == mMinWidthMode && mMaxWidth == mMinWidth))
                 && (mHint == null || mHintLayout != null)
-                && (getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight() > 0)) {
+                && (right - left - getCompoundPaddingLeft() - getCompoundPaddingRight() > 0)) {
             // Static width, so try making a new text layout.
 
             int oldht = mLayout.getHeight();
@@ -6360,12 +6481,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
              * changing (unless we do the requestLayout(), in which case it
              * will happen at measure).
              */
-            makeNewLayout(want, hintWant, false);
+            makeNewLayout(want, hintWant,
+                    right - left - getCompoundPaddingLeft() - getCompoundPaddingRight(),
+                    false);
 
             if (mEllipsize != TextUtils.TruncateAt.MARQUEE) {
                 // In a fixed-height view, so use our new text layout.
-                if (getLayoutParams().height != LayoutParams.WRAP_CONTENT
-                        && getLayoutParams().height != LayoutParams.MATCH_PARENT) {
+                if (layoutParams.height != LayoutParams.WRAP_CONTENT
+                        && layoutParams.height != LayoutParams.MATCH_PARENT) {
                     //TODO: (EW) since we're not auto-sizing the text, is invalidate necessary?
                     invalidate();
                     return;
@@ -6418,7 +6541,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             line = layout.getLineCount() - 1;
         }
 
-        /*Layout.*/Alignment a = convertAlignment(layout.getParagraphAlignment(line));
+        Layout.Alignment a = layout.getParagraphAlignment(line);
         int dir = layout.getParagraphDirection(line);
         int hspace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
         int vspace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
@@ -6427,15 +6550,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int scrollx, scrolly;
 
         // Convert to left, center, or right alignment.
-        if (a == /*Layout.*/Alignment.ALIGN_NORMAL) {
+        if (a == Layout.Alignment.ALIGN_NORMAL) {
             a = dir == Layout.DIR_LEFT_TO_RIGHT
-                    ? /*Layout.*/Alignment.ALIGN_LEFT : /*Layout.*/Alignment.ALIGN_RIGHT;
-        } else if (a == /*Layout.*/Alignment.ALIGN_OPPOSITE) {
+                    ? HiddenLayout.ALIGNMENT_ALIGN_LEFT : HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
+        } else if (a == Layout.Alignment.ALIGN_OPPOSITE) {
             a = dir == Layout.DIR_LEFT_TO_RIGHT
-                    ? /*Layout.*/Alignment.ALIGN_RIGHT : /*Layout.*/Alignment.ALIGN_LEFT;
+                    ? HiddenLayout.ALIGNMENT_ALIGN_RIGHT : HiddenLayout.ALIGNMENT_ALIGN_LEFT;
         }
 
-        if (a == /*Layout.*/Alignment.ALIGN_CENTER) {
+        if (a == Layout.Alignment.ALIGN_CENTER) {
             /*
              * Keep centered if possible, or, if it is too wide to fit,
              * keep leading edge in view.
@@ -6453,10 +6576,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     scrollx = left;
                 }
             }
-        } else if (a == /*Layout.*/Alignment.ALIGN_RIGHT) {
+        } else if (a == Layout.Alignment.ALIGN_NORMAL || a == Layout.Alignment.ALIGN_OPPOSITE) {
+            // (EW) duplicate case to check the fallback for the hidden values first to avoid extra
+            // broken behavior if the hidden values couldn't be found
+            scrollx = (int) Math.floor(layout.getLineLeft(line));
+        } else if (a == HiddenLayout.ALIGNMENT_ALIGN_RIGHT) {
             int right = (int) Math.ceil(layout.getLineRight(line));
             scrollx = right - hspace;
-        } else { // a == Layout.Alignment.ALIGN_LEFT (will also be the default)
+        } else { // a == HiddenLayout.ALIGNMENT_ALIGN_LEFT (will also be the default)
             scrollx = (int) Math.floor(layout.getLineLeft(line));
         }
 
@@ -6497,23 +6624,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         int grav;
 
-        switch (layout.getParagraphAlignment(line)) {
-//            case ALIGN_LEFT:
-//                grav = 1;
-//                break;
-//            case ALIGN_RIGHT:
-//                grav = -1;
-//                break;
-            case ALIGN_NORMAL:
-                grav = layout.getParagraphDirection(line);
-                break;
-            case ALIGN_OPPOSITE:
-                grav = -layout.getParagraphDirection(line);
-                break;
-            case ALIGN_CENTER:
-            default:
-                grav = 0;
-                break;
+        Layout.Alignment alignment = layout.getParagraphAlignment(line);
+        if (alignment == Layout.Alignment.ALIGN_NORMAL) {
+            grav = layout.getParagraphDirection(line);
+        } else if (alignment == Layout.Alignment.ALIGN_OPPOSITE) {
+            grav = -layout.getParagraphDirection(line);
+        } else if (alignment == HiddenLayout.ALIGNMENT_ALIGN_LEFT) {
+            grav = 1;
+        } else if (alignment == HiddenLayout.ALIGNMENT_ALIGN_RIGHT) {
+            grav = -1;
+        } else {
+            grav = 0;
         }
 
         // We only want to clamp the cursor to fit within the layout width
@@ -9370,7 +9491,18 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 //        rect.offset(mAttachInfo.mWindowLeft, mAttachInfo.mWindowTop);
     }
 
-
+    // from View
+    /**
+     * Indicates whether or not this view's layout is right-to-left. This is resolved from
+     * layout attribute and/or the inherited value from the parent
+     *
+     * @return true if the layout is right-to-left.
+     *
+     * @hide
+     */
+    public boolean isLayoutRtl() {
+        return (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
+    }
 
 
 
