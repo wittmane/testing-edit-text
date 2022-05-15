@@ -179,6 +179,31 @@ public class HiddenLayout {
     }
 
     /**
+     * Returns the range of the run that the character at offset belongs to.
+     * @param offset the offset
+     * @return The range of the run
+     * @hide
+     */
+    public static long getRunRange(Layout layout, TextDirectionHeuristic textDir, int offset) {
+        int line = layout.getLineForOffset(offset);
+        Directions dirs = getLineDirections(layout, textDir, line);
+        if (dirs == DIRS_ALL_LEFT_TO_RIGHT || dirs == DIRS_ALL_RIGHT_TO_LEFT) {
+            return HiddenTextUtils.packRangeInLong(0, layout.getLineEnd(line));
+        }
+        int[] runs = dirs.mDirections;
+        int lineStart = layout.getLineStart(line);
+        for (int i = 0; i < runs.length; i += 2) {
+            int start = lineStart + runs[i];
+            int limit = start + (runs[i+1] & RUN_LENGTH_MASK);
+            if (offset >= start && offset < limit) {
+                return HiddenTextUtils.packRangeInLong(start, limit);
+            }
+        }
+        // Should happen only if the offset is "out of bounds"
+        return HiddenTextUtils.packRangeInLong(0, layout.getLineEnd(line));
+    }
+
+    /**
      * Checks if the trailing BiDi level should be used for an offset
      *
      * This method is useful when the offset is at the BiDi level transition point and determine
@@ -646,8 +671,10 @@ public class HiddenLayout {
      */
     public static int getLineBottomWithoutSpacing(Layout layout, int line) {
 //        return layout.getLineTop(line + 1) - layout.getLineExtra(line);
-        //TODO: (EW) figure out how to call Layout#getLineExtra (public hidden, and is overridden in
-        // some child classes, so we can't just copy from Layout) or verify if this is good enough for now
+        //TODO: (EW) this is wrong. figure out how to call Layout#getLineExtra (public hidden, and
+        // is overridden in some child classes, so we can't just copy from Layout) or verify if this
+        // is good enough for now. in older versions (eg Lollipop) Editor#updateCursorsPositions
+        // checked layout.getLineTop(line + 1) instead, so maybe that would be a better placeholder.
         return layout.getLineBottom(line);
     }
 
@@ -693,6 +720,11 @@ public class HiddenLayout {
         Layout.Alignment paragraphAlignment = layout.getParagraphAlignment(line);
         if (paragraphAlignment == Layout.Alignment.ALIGN_NORMAL) {
             return layout.getParagraphDirection(line) > 0;
+        }
+        if (paragraphAlignment == Layout.Alignment.ALIGN_OPPOSITE) {
+            // (EW) duplicate case to check the fallback for the hidden values first to avoid extra
+            // broken behavior if the hidden values couldn't be found
+            return false;
         }
         if (paragraphAlignment == ALIGNMENT_ALIGN_LEFT) {
             return true;

@@ -454,6 +454,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private static final int FONT_WEIGHT_MIN = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? FontStyle.FONT_WEIGHT_MIN : 1;
     private static final int FONT_WEIGHT_MAX = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? FontStyle.FONT_WEIGHT_MAX : 1000;
 
+    private EditableInputConnection mInputConnection;
+
     /**
      * Interface definition for a callback to be invoked when an action is
      * performed on the editor.
@@ -3757,18 +3759,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
         }
 
-        if (ss.error != null) {
-            final CharSequence error = ss.error;
-            // Display the error later, after the first layout pass
-            post(new Runnable() {
-                public void run() {
-                    if (!mEditor.mErrorWasChanged) {
-//                        setError(error);
-                    }
-                }
-            });
-        }
-
         if (ss.editorState != null) {
             mEditor.restoreInstanceState(ss.editorState);
         }
@@ -5720,7 +5710,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             //TODO: (EW) added sometime after aosp28, but this is inaccessible. can we just ignore?
 //            outAttrs.targetInputMethodUser = mTextOperationUser;
             if (mText instanceof Editable) {
-                InputConnection ic = new EditableInputConnection(this);
+                EditableInputConnection ic = new EditableInputConnection(this);
                 outAttrs.initialSelStart = getSelectionStart();
                 outAttrs.initialSelEnd = getSelectionEnd();
                 outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
@@ -5730,10 +5720,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
                 }
+                mInputConnection = ic;
                 return ic;
             }
         }
+        mInputConnection = null;
         return null;
+    }
+
+    @Nullable EditableInputConnection getInputConnection() {
+        return mInputConnection;
     }
 
     /**
@@ -6964,26 +6960,33 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private void applySingleLine(boolean singleLine, boolean applyTransformation,
                                  boolean changeMaxLines, boolean changeMaxLength) {
         mSingleLine = singleLine;
+
         if (singleLine) {
             setLines(1);
             setHorizontallyScrolling(true);
             if (applyTransformation) {
                 setTransformationMethod(SingleLineTransformationMethod.getInstance());
             }
+
             if (!changeMaxLength) return;
+
             final InputFilter[] prevFilters = getFilters();
             for (InputFilter filter: getFilters()) {
                 // We don't add LengthFilter if already there.
                 if (filter instanceof InputFilter.LengthFilter) return;
             }
+
             if (mSingleLineLengthFilter == null) {
                 mSingleLineLengthFilter = new InputFilter.LengthFilter(
                         MAX_LENGTH_FOR_SINGLE_LINE_EDIT_TEXT);
             }
+
             final InputFilter[] newFilters = new InputFilter[prevFilters.length + 1];
             System.arraycopy(prevFilters, 0, newFilters, 0, prevFilters.length);
             newFilters[prevFilters.length] = mSingleLineLengthFilter;
+
             setFilters(newFilters);
+
             // Since filter doesn't apply to existing text, trigger filter by setting text.
             setText(getText());
         } else {
@@ -6994,12 +6997,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (applyTransformation) {
                 setTransformationMethod(null);
             }
+
             if (!changeMaxLength) return;
+
             final InputFilter[] prevFilters = getFilters();
             if (prevFilters.length == 0) return;
+
             // Short Circuit: if mSingleLineLengthFilter is not allocated, nobody sets automated
             // single line char limit filter.
             if (mSingleLineLengthFilter == null) return;
+
             // If we need to remove mSingleLineLengthFilter, we need to allocate another array.
             // Since filter list is expected to be small and want to avoid unnecessary array
             // allocation, check if there is mSingleLengthFilter first.
@@ -7011,10 +7018,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
             }
             if (targetIndex == -1) return;  // not found. Do nothing.
+
             if (prevFilters.length == 1) {
                 setFilters(NO_FILTERS);
                 return;
             }
+
             // Create new array which doesn't include mSingleLengthFilter.
             final InputFilter[] newFilters = new InputFilter[prevFilters.length - 1];
             System.arraycopy(prevFilters, 0, newFilters, 0, targetIndex);
@@ -8312,9 +8321,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param viewportToContentVerticalOffset The vertical offset from the viewport to the content
      * @hide
      */
-    // (EW) although the API level doesn't need to be this high, this was added in this version, so
-    // leaving this set this high for now
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     void populateCharacterBounds(CursorAnchorInfo.Builder builder,
             int startIndex, int endIndex, float viewportToContentHorizontalOffset,
             float viewportToContentVerticalOffset) {
@@ -9037,7 +9044,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int selEnd = -1;
         CharSequence text;
         boolean frozenWithFocus;
-        CharSequence error;
         ParcelableParcel editorState;  // Optional state from Editor.
 
         SavedState(Parcelable superState) {
@@ -9051,13 +9057,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             out.writeInt(selEnd);
             out.writeInt(frozenWithFocus ? 1 : 0);
             TextUtils.writeToParcel(text, out, flags);
-
-            if (error == null) {
-                out.writeInt(0);
-            } else {
-                out.writeInt(1);
-                TextUtils.writeToParcel(error, out, flags);
-            }
 
             if (editorState == null) {
                 out.writeInt(0);
@@ -9096,10 +9095,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             selEnd = in.readInt();
             frozenWithFocus = (in.readInt() != 0);
             text = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in);
-
-            if (in.readInt() != 0) {
-                error = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in);
-            }
 
             if (in.readInt() != 0) {
                 editorState = ParcelableParcel.CREATOR.createFromParcel(in);

@@ -9,9 +9,11 @@ import android.text.Editable;
 import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
+import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
@@ -40,6 +42,17 @@ public class EditableInputConnection extends BaseInputConnection {
     // balanced impact on its associated TextView.
     // A negative value means that this connection has been finished by the InputMethodManager.
     private int mBatchEditNesting;
+
+    // (EW) from InputMethodManager
+    private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
+    //TODO: (EW) InputMethodManager.Handler#handleMessage resets this in the AOSP version. I'm not
+    // sure how that method is called. there may not need to be an equivalent for that since we're
+    // managing this here, but it might be worth looking into to verify.
+    /**
+     * The monitor mode for
+     * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
+     */
+    private int mRequestUpdateCursorAnchorInfoMonitorMode = REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE;
 
     public EditableInputConnection(EditText targetView) {
         super(targetView, true);
@@ -380,6 +393,8 @@ public class EditableInputConnection extends BaseInputConnection {
                 InputConnection.CURSOR_UPDATE_MONITOR;
         final int unknownFlags = cursorUpdateMode & ~KNOWN_FLAGS_MASK;
         if (unknownFlags != 0) {
+            //TODO: (EW) failing because of an unknown flag seems weird, but the documentation does
+            // call this out. still might be a decent thing for configurable handling.
             if (DEBUG) {
                 Log.d(TAG, "Rejecting requestUpdateCursorAnchorInfo due to unknown flags." +
                         " cursorUpdateMode=" + cursorUpdateMode +
@@ -393,8 +408,12 @@ public class EditableInputConnection extends BaseInputConnection {
             // CursorAnchorInfo is temporarily unavailable.
             return false;
         }
-        //TODO: (EW) is there anything we can do to replace this, or is it fine to just skip it?
-//        mIMM.setUpdateCursorAnchorInfoMode(cursorUpdateMode);
+        // (EW) AOSP version calls InputMethodManager#setUpdateCursorAnchorInfoMode, but that is
+        // hidden and marked with UnsupportedAppUsage. it's used to track the mode, mostly so
+        // InputMethodManager#isCursorAnchorInfoEnabled can be checked in
+        // Editor.CursorAnchorInfoNotifier#updatePosition. we just need to track it separately
+        // since we're not allowed to use those for some reason.
+        setUpdateCursorAnchorInfoMode(cursorUpdateMode);
         if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0) {
             if (mTextView == null) {
                 // In this case, FLAG_CURSOR_ANCHOR_INFO_IMMEDIATE is silently ignored.
@@ -411,6 +430,62 @@ public class EditableInputConnection extends BaseInputConnection {
             }
         }
         return true;
+    }
+
+    // (EW) from InputMethodManager
+    /**
+     * Return true if the current input method wants to be notified when cursor/anchor location
+     * is changed.
+     */
+    public boolean isCursorAnchorInfoEnabled() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return false;
+        }
+        //TODO: (EW) do we need the synchronized?
+//        synchronized (mH) {
+            final boolean isImmediate = (mRequestUpdateCursorAnchorInfoMonitorMode &
+                    InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0;
+            final boolean isMonitoring = (mRequestUpdateCursorAnchorInfoMonitorMode &
+                    InputConnection.CURSOR_UPDATE_MONITOR) != 0;
+            return isImmediate || isMonitoring;
+//        }
+    }
+
+    // (EW) based on InputMethodManager#updateCursorAnchorInfo
+    public boolean isCursorAnchorInfoModeImmediate() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return false;
+        }
+        //TODO: (EW) do we need the synchronized?
+//        synchronized (mH) {
+            return (mRequestUpdateCursorAnchorInfoMonitorMode &
+                    InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0;
+//        }
+    }
+
+    // (EW) based on InputMethodManager#updateCursorAnchorInfo
+    public void clearCursorAnchorInfoModeImmediate() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return;
+        }
+        //TODO: (EW) do we need the synchronized?
+//        synchronized (mH) {
+            // Clear immediate bit (if any).
+            mRequestUpdateCursorAnchorInfoMonitorMode &= ~InputConnection.CURSOR_UPDATE_IMMEDIATE;
+//        }
+    }
+
+    // (EW) from InputMethodManager
+    /**
+     * Set the requested mode for {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
+     *
+     * @hide
+     */
+    public void setUpdateCursorAnchorInfoMode(int flags) {
+        //TODO: (EW) do we need the synchronized?
+//        synchronized (mH) {
+            mRequestUpdateCursorAnchorInfoMonitorMode = flags;
+//        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
