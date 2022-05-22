@@ -1,6 +1,7 @@
 package com.wittmane.testingedittext.aosp.widget;
 
 import android.app.Activity;
+import android.app.Instrumentation;
 import android.app.assist.AssistStructure.ViewNode;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -25,6 +26,7 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DecimalFormatSymbols;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -5756,8 +5758,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     //TODO: (EW) I only see this getting called from InputMethodService for ExtractEditText, but it
-    // is a public method so maybe app devs have some use to call it. consider if this can get
-    // removed
+    // is a public method so maybe apps have some use to call it. consider if this can get removed
     /**
      * Apply to this text view the given extracted text, as previously
      * returned by {@link #extractText(ExtractedTextRequest, ExtractedText)}.
@@ -8725,6 +8726,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     boolean canProcessText() {
+        //TODO: (EW) why does this need an id defined in the layout? it's in AOSP, but it seems odd
         if (getId() == View.NO_ID) {
             return false;
         }
@@ -9423,7 +9425,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return false;
     }
 
-    // from View
+    // based on View
     /**
      * Call { @link Context#startActivityForResult(String, Intent, int, Bundle)} for the View's
      * Context, creating a unique View identifier to retrieve the result.
@@ -9433,8 +9435,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     public void startActivityForResult(Intent intent, int requestCode) {
-//        mStartActivityRequestWho = "@android:view:" + System.identityHashCode(this);
-//        getContext().startActivityForResult(mStartActivityRequestWho, intent, requestCode, null);
+        getActivity().startActivityForResult(intent, requestCode, null);
     }
 
     // from View
@@ -9499,6 +9500,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
     }
 
+    // from View
+    public int[] getLocationOnScreen() {
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+        return location;
+    }
+
 
 
     // from DigitsKeyListener
@@ -9524,8 +9532,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
 
     // (EW) from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
-    // DragAndDropPermissions isn't accessible for app devs, so we need to find the activity to get
-    // it.
+    // DragAndDropPermissions isn't accessible for apps, so we need to find the activity to get it.
     Activity getActivity() {
         // Gross way of unwrapping the Activity so we can get the FragmentManager
         Context context = getContext();

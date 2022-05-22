@@ -1,7 +1,10 @@
 package com.wittmane.testingedittext.aosp.widget;
 
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipData.Item;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -17,12 +20,15 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
+import android.provider.Settings;
+import android.provider.UserDictionary;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -105,12 +111,15 @@ import com.wittmane.testingedittext.aosp.widget.EditText.OnEditorActionListener;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
@@ -329,7 +338,11 @@ public class Editor {
 
     Editor(EditText textView) {
         mTextView = textView;
-        mProcessTextIntentActionsHandler = new ProcessTextIntentActionsHandler(this);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mProcessTextIntentActionsHandler = new ProcessTextIntentActionsHandler(this);
+        } else {
+            mProcessTextIntentActionsHandler = null;
+        }
         //TODO: (EW) where should this be defined?
         mHapticTextHandleEnabled = /*mTextView.getContext().getResources().getBoolean(
                 R.bool.config_enableHapticTextHandle)*/false;
@@ -1124,7 +1137,7 @@ public class Editor {
                 stopTextActionModeWithPreservingSelection();
             } else {
                 hideCursorAndSpanControllers();
-                //TODO: (EW) the M version set mPreserveDetachedSelection around doing some actions.
+                //TODO: (EW) Marshmallow set mPreserveDetachedSelection around doing some actions.
                 // it looks like the code was just restructured and the variable and function for
                 // checking temporarily detached are essentially checking the same thing. verify
                 // there isn't some need to do this the old way when running on an older version
@@ -2346,8 +2359,8 @@ public class Editor {
         }
 
         // (EW) the AOSP version called DragAndDropPermissions.obtain to get the permissions and
-        // then called takeTransient on it, but app devs don't have access to those, so we have to
-        // we have to look up the activity and get it from that.
+        // then called takeTransient on it, but apps don't have access to those, so we have to look
+        // up the activity and get it from that.
         final DragAndDropPermissions permissions;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             permissions = mTextView.getActivity().requestDragAndDropPermissions(event);
@@ -2362,8 +2375,10 @@ public class Editor {
             Selection.setSelection((Spannable) mTextView.getText(), offset);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 final ClipData clip = event.getClipData();
+                // (EW) the AOSP version called setDragAndDropPermissions on the builder. it seems
+                // to work fine without it. maybe that's only necessary because of how they're
+                // getting the permissions
                 final ContentInfo payload = new ContentInfo.Builder(clip, SOURCE_DRAG_AND_DROP)
-//                        .setDragAndDropPermissions(permissions)//TODO: (EW) can I just drop this? is other alternate permission handling enough
                         .build();
                 mTextView.performReceiveContent(payload);
             } else {
@@ -2505,7 +2520,7 @@ public class Editor {
         // swapping texts. This stopped being called in version 29 (Q), and
         // SuggestionSpan#notifySelection was deprecated and does nothing. Based on that, it's
         // probably fine to skip on the older versions too. Maybe it was some sort of internal
-        // prototype feature that was going to be added for app devs to use but ended up getting
+        // prototype feature that was going to be added for apps to use but ended up getting
         // dropped.
 
         // Swap text content between actual text and Suggestion span
@@ -2571,14 +2586,14 @@ public class Editor {
 
                 // Make sure there is only at most one EasyEditSpan in the text
                 if (mPopupWindow.mEasyEditSpan != null) {
-                    // (EW) starting in JB-MR2 the AOSP version called setDeleteEnabled with false
-                    // on the EasyEditSpan, which is not accessible by app devs. as far as I can
-                    // tell, this function is only used here. prior to that version, it just removed
-                    // the span. this seems to have been changed in order to still be able to send
-                    // the notification that the span changed, but we can't send the notification
-                    // (see comment in sendEasySpanNotification), so leaving it with the old
-                    // functionality should be fine. if there ever is a way that we're allowed to
-                    // send the notification, this will need to change.
+                    // (EW) starting in JB-MR2 the AOSP version called EasyEditSpan#setDeleteEnabled
+                    // with false on the EasyEditSpan, which is not accessible by apps. as far as I
+                    // can tell, this function is only used here. prior to that version, it just
+                    // removed the span. this seems to have been changed in order to still be able
+                    // to send the notification that the span changed, but we can't send the
+                    // notification (see comment in #sendEasySpanNotification), so leaving it with
+                    // the old functionality should be fine. if there ever is a way that we're
+                    // allowed to send the notification, this will need to change.
                     text.removeSpan(mPopupWindow.mEasyEditSpan);
                 }
 
@@ -2648,21 +2663,10 @@ public class Editor {
         }
 
         private void sendEasySpanNotification(int textChangedType, EasyEditSpan span) {
-            //TODO: (EW) getPendingIntent is hidden from app devs, which seems weird since setting
-            // it in the constructor can be used by app devs. I'm not sure how non-framework text
-            // editors are expected to be able to handle this. I'm leaving this here for visibility
-            // in case there ever is a way for us to do this.
-            //try {
-            //    PendingIntent pendingIntent = span.getPendingIntent(); // @hide
-            //    if (pendingIntent != null) {
-            //        Intent intent = new Intent();
-            //        intent.putExtra(EasyEditSpan.EXTRA_TEXT_CHANGED_TYPE, textChangedType);
-            //        pendingIntent.send(mTextView.getContext(), 0, intent);
-            //    }
-            //} catch (PendingIntent.CanceledException e) {
-            //    // This should not happen, as we should try to send the intent only once.
-            //    Log.w(TAG, "PendingIntent for notification cannot be sent", e);
-            //}
+            //TODO: (EW) EasyEditSpan#getPendingIntent is hidden from apps, which seems weird since
+            // setting it in the constructor can be used by apps. I'm not sure how non-framework
+            // text editors are expected to be able to handle this. I'm leaving this here for
+            // visibility in case there ever is a way for us to do this.
         }
     }
 
@@ -2683,7 +2687,7 @@ public class Editor {
      */
     private class EasyEditPopupWindow extends PinnedPopupWindow
             implements OnClickListener {
-        private /*static*/ final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
+        private static final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
         private android.widget.TextView mDeleteTextView;
         private EasyEditSpan mEasyEditSpan;
         private EasyEditDeleteListener mOnDeleteListener;
@@ -2726,13 +2730,13 @@ public class Editor {
 
         @Override
         public void onClick(View view) {
-            // (EW) the AOSP version also checked isDeleteEnabled on the EasyEditSpan, which is
-            // isn't accessible by app devs. as far as I can tell, setDeleteEnabled is the only way
-            // to disable delete, which seems to only be called from the AOSP Editor for this, so it
-            // should be safe to ignore since we're just removing the span instead of flagging
-            // deleting as disabled. see comment in SpanController#onSpanAdded
+            // (EW) the AOSP version also checked EasyEditSpan#isDeleteEnabled on the EasyEditSpan,
+            // which is isn't accessible by apps. as far as I can tell, setDeleteEnabled is the only
+            // way to disable delete, which seems to only be called from the AOSP Editor for this,
+            // so it should be relatively safe to ignore since we're just removing the span instead
+            // of flagging deleting as disabled. see comment in SpanController#onSpanAdded
             if (view == mDeleteTextView
-                    && mEasyEditSpan != null/* && mEasyEditSpan.isDeleteEnabled()*/
+                    && mEasyEditSpan != null
                     && mOnDeleteListener != null) {
                 mOnDeleteListener.onDeleteClick(mEasyEditSpan);
             }
@@ -2741,11 +2745,11 @@ public class Editor {
         @Override
         public void hide() {
             if (mEasyEditSpan != null) {
-                // (EW) prior to JB-MR2 (where the AOSP version started calling setDeleteEnabled
-                // with false on the EasyEditSpan), this function didn't exist, but it probably
-                // makes sense to match how SpanController#onSpanAdded handles the alternative to
-                // setDeleteEnabled by just removing the span. see comment in
-                // SpanController#onSpanAdded
+                // (EW) prior to JB-MR2 (where the AOSP version started calling
+                // EasyEditSpan#setDeleteEnabled with false on the EasyEditSpan), this function
+                // didn't exist, but it probably makes sense to match how SpanController#onSpanAdded
+                // handles the alternative to EasyEditSpan#setDeleteEnabled by just removing the
+                // span. see comment in SpanController#onSpanAdded.
                 Editable editable = (Editable) mTextView.getText();
                 if (editable != null) {
                     editable.removeSpan(mEasyEditSpan);
@@ -2905,21 +2909,24 @@ public class Editor {
 
             createPopupWindow();
 
-            //TODO: (EW) figure out how to handle. I'm not sure what this does, but it doesn't seem
-            // critical
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-////                mPopupWindow.setWindowLayoutType(
-////                        WindowManager.LayoutParams.TYPE_APPLICATION_ABOVE_SUB_PANEL);
-//                mPopupWindow.setWindowLayoutType(
-//                        WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
-//            }
-            mPopupWindow.setWidth(LayoutParams.WRAP_CONTENT);
-            mPopupWindow.setHeight(LayoutParams.WRAP_CONTENT);
+            // (EW) the AOSP version set the window layout type to
+            // WindowManager.LayoutParams.TYPE_APPLICATION_ABOVE_SUB_PANEL, which is hidden from
+            // apps. prior to Marshmallow, it set it to
+            // WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL. since it's just an int, we
+            // could hard-code the value, but that value could change, so that isn't completely
+            // safe. I'm not sure what the difference is, and I haven't noticed a difference, so
+            // we'll use the old functionality at least until there is a known reason that it should
+            // be changed.
+            setWindowLayoutType(mPopupWindow,
+                    WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
+
+            mPopupWindow.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+            mPopupWindow.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
 
             initContentView();
 
-            LayoutParams wrapContent = new LayoutParams(LayoutParams.WRAP_CONTENT,
-                    LayoutParams.WRAP_CONTENT);
+            LayoutParams wrapContent = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
             mContentView.setLayoutParams(wrapContent);
 
             mPopupWindow.setContentView(mContentView);
@@ -3090,7 +3097,6 @@ public class Editor {
             int pos = mTextView.getSelectionStart();
             Spannable spannable = (Spannable) mTextView.getText();
             SuggestionSpan[] suggestionSpans = spannable.getSpans(pos, pos, SuggestionSpan.class);
-            Log.w(TAG, "getSortedSuggestionSpans: " + suggestionSpans.length);
 
             mSpansLengths.clear();
             for (SuggestionSpan suggestionSpan : suggestionSpans) {
@@ -3169,7 +3175,8 @@ public class Editor {
         }
     }
 
-    private final class SuggestionsPopupWindow extends PinnedPopupWindow implements OnItemClickListener {
+    private final class SuggestionsPopupWindow extends PinnedPopupWindow
+            implements OnItemClickListener {
         private static final int MAX_NUMBER_SUGGESTIONS = SuggestionSpan.SUGGESTIONS_MAX_SIZE;
 
         // Key of intent extras for inserting new word into user dictionary.
@@ -3301,15 +3308,37 @@ public class Editor {
                     }
                     final String originalText = TextUtils.substring(editable, spanStart, spanEnd);
 
-                    //TODO: (EW) figure out an alternative way to add a word to the user dictionary
-                    // or maybe just skip this feature
-//                    final Intent intent = new Intent(Settings.ACTION_USER_DICTIONARY_INSERT);
-//                    intent.putExtra(USER_DICTIONARY_EXTRA_WORD, originalText);
-//                    intent.putExtra(USER_DICTIONARY_EXTRA_LOCALE,
-//                            mTextView.getTextServicesLocale().toString());
-//                    intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NEW_TASK);
-////                    mTextView.getContext().startActivity(intent);
-//                    mTextView.startActivityAsTextOperationUserIfNecessary(intent);
+                    //TODO: (EW) Settings.ACTION_USER_DICTIONARY_INSERT is marked with hide and
+                    // UnsupportedAppUsage, and since it's just a string, we can just hard-code the
+                    // value, but that has the chance to suddenly break on a new version. also, the
+                    // comment for that constant says that the matching activity might not exist in
+                    // some cases. this isn't a good solution. find something better.
+                    try {
+                        final Intent intent = new Intent(/*Settings.ACTION_USER_DICTIONARY_INSERT*/
+                                "com.android.settings.USER_DICTIONARY_INSERT");
+                        intent.putExtra(USER_DICTIONARY_EXTRA_WORD, originalText);
+                        intent.putExtra(USER_DICTIONARY_EXTRA_LOCALE,
+                                mTextView.getTextServicesLocale().toString());
+                        intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        mTextView.getContext().startActivity(intent);
+                    } catch (ActivityNotFoundException e) {
+                        Log.e(TAG, "Failed to add word to dictionary: " + e);
+                        return;
+                    }
+                    //TODO: (EW) this works on kitkat (as long as we have WRITE_USER_DICTIONARY
+                    // permission), but not on pie. it's probably related to the comment on
+                    // UserDictionary saying "Starting on API 23, the user dictionary is only
+                    // accessible through IME and spellchecker." I didn't fully test to verify that
+                    // yet. also, this just adds the word, rather than show the popup for the user
+                    // to verify, which is different from AOSP, but I think that change would be
+                    // fine if this actually worked on all versions.
+                    // see https://issuetracker.google.com/issues/37078433
+                    // https://stackoverflow.com/questions/34242790/access-userdictionary-content-provider-on-android-api-level-23
+                    // https://stackoverflow.com/questions/38417746/adding-to-user-dictionary-in-android-m
+                    // https://stackoverflow.com/questions/34009849/user-dictionary-contentresolver-query-returns-0-rows-cursor
+                    //UserDictionary.Words.addWord(mTextView.getContext(), originalText, 1, "",
+                    //        mTextView.getTextServicesLocale());
+
                     // There is no way to know if the word was indeed added. Re-check.
                     // TODO The ExtractEditText should remove the span in the original text instead
                     editable.removeSpan(mMisspelledSpanInfo.mSuggestionSpan);
@@ -3332,8 +3361,8 @@ public class Editor {
                         if (spanUnionEnd < editable.length()
                                 && Character.isSpaceChar(editable.charAt(spanUnionEnd))
                                 && (spanUnionStart == 0
-                                || Character.isSpaceChar(
-                                editable.charAt(spanUnionStart - 1)))) {
+                                        || Character.isSpaceChar(
+                                                editable.charAt(spanUnionStart - 1)))) {
                             spanUnionEnd = spanUnionEnd + 1;
                         }
                         mTextView.deleteText_internal(spanUnionStart, spanUnionEnd);
@@ -3390,10 +3419,6 @@ public class Editor {
 
                 return textView;
             }
-        }
-
-        public ViewGroup getContentViewForTesting() {
-            return mContentView;
         }
 
         @Override
@@ -3578,7 +3603,6 @@ public class Editor {
      */
     @RequiresApi(api = Build.VERSION_CODES.M)
     private class TextActionModeCallback extends ActionMode.Callback2 {
-        private /*static */final String TAG = TextActionModeCallback.class.getSimpleName();
 
         private final Path mSelectionPath = new Path();
         private final RectF mSelectionBounds = new RectF();
@@ -3628,7 +3652,7 @@ public class Editor {
             }
 
             if (mTextView.canProcessText()) {
-//            mProcessTextIntentActionsHandler.onInitializeMenu(menu);
+                mProcessTextIntentActionsHandler.onInitializeMenu(menu);
             }
 
             if (mHasSelection && !mTextView.hasTransientState()) {
@@ -3646,21 +3670,21 @@ public class Editor {
         private void populateMenuWithItems(Menu menu) {
             if (mTextView.canCut()) {
                 menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT,
-                        /*com.android.internal.R.string.cut*/android.R.string.cut)
+                        android.R.string.cut)
                         .setAlphabeticShortcut('x')
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             }
 
             if (mTextView.canCopy()) {
                 menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY,
-                        /*com.android.internal.R.string.copy*/android.R.string.copy)
+                        android.R.string.copy)
                         .setAlphabeticShortcut('c')
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             }
 
             if (mTextView.canPaste()) {
                 menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE,
-                        /*com.android.internal.R.string.paste*/android.R.string.paste)
+                        android.R.string.paste)
                         .setAlphabeticShortcut('v')
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             }
@@ -3680,29 +3704,25 @@ public class Editor {
                 }
             }
 
-            //TODO: (EW) skipping because of the resource missing in older api levels. consider
-            // implementing to have consistent functionality across versions
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (mTextView.canPasteAsPlainText()) {
-                    menu.add(
-                            Menu.NONE,
-                            EditText.ID_PASTE_AS_PLAIN_TEXT,
-                            MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
-                            /*com.android.internal.R.string.paste_as_plain_text*/android.R.string.paste_as_plain_text)
-                            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-                }
+            if (mTextView.canPasteAsPlainText()) {
+                menu.add(
+                        Menu.NONE,
+                        EditText.ID_PASTE_AS_PLAIN_TEXT,
+                        MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                                ? android.R.string.paste_as_plain_text
+                                : R.string.paste_as_plain_text)
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
             }
 
             updateSelectAllItem(menu);
             updateReplaceItem(menu);
-            updateAssistMenuItems(menu);
         }
 
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             updateSelectAllItem(menu);
             updateReplaceItem(menu);
-            updateAssistMenuItems(menu);
 
             Callback customCallback = getCustomCallback();
             if (customCallback != null) {
@@ -3716,7 +3736,7 @@ public class Editor {
             boolean selectAllItemExists = menu.findItem(EditText.ID_SELECT_ALL) != null;
             if (canSelectAll && !selectAllItemExists) {
                 menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
-                        /*com.android.internal.*/android.R.string.selectAll)
+                        android.R.string.selectAll)
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
             } else if (!canSelectAll && selectAllItemExists) {
                 menu.removeItem(EditText.ID_SELECT_ALL);
@@ -3734,103 +3754,6 @@ public class Editor {
             }
         }
 
-        private void updateAssistMenuItems(Menu menu) {
-//            final TextClassification textClassification =
-//                    getSelectionActionModeHelper().getTextClassification();
-//            if (!shouldEnableAssistMenuItems()) {
-//                // Already handled.
-//                return;
-//            }
-//            clearAssistMenuItems(menu);
-//            if (textClassification == null) {
-//                return;
-//            }
-//            if (!shouldEnableAssistMenuItems()) {
-//                return;
-//            }
-//            if (!textClassification.getActions().isEmpty()) {
-//                // Primary assist action (Always shown).
-//                final MenuItem item = addAssistMenuItem(menu,
-//                        textClassification.getActions().get(0), TextView.ID_ASSIST,
-//                        MENU_ITEM_ORDER_ASSIST, MenuItem.SHOW_AS_ACTION_ALWAYS);
-//                item.setIntent(textClassification.getIntent());
-//            } else if (hasLegacyAssistItem(textClassification)) {
-//                // Legacy primary assist action (Always shown).
-//                final MenuItem item = menu.add(
-//                        TextView.ID_ASSIST, TextView.ID_ASSIST, MENU_ITEM_ORDER_ASSIST,
-//                        textClassification.getLabel())
-//                        .setIcon(textClassification.getIcon())
-//                        .setIntent(textClassification.getIntent());
-//                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-//                mAssistClickHandlers.put(item, TextClassification.createIntentOnClickListener(
-//                        TextClassification.createPendingIntent(mTextView.getContext(),
-//                                textClassification.getIntent(),
-//                                createAssistMenuItemPendingIntentRequestCode())));
-//            }
-//            final int count = textClassification.getActions().size();
-//            for (int i = 1; i < count; i++) {
-//                // Secondary assist action (Never shown).
-//                addAssistMenuItem(menu, textClassification.getActions().get(i), Menu.NONE,
-//                        MENU_ITEM_ORDER_SECONDARY_ASSIST_ACTIONS_START + i - 1,
-//                        MenuItem.SHOW_AS_ACTION_NEVER);
-//            }
-//            mPrevTextClassification = textClassification;
-        }
-
-//    private MenuItem addAssistMenuItem(Menu menu, RemoteAction action, int itemId, int order,
-//                                       int showAsAction) {
-//        final MenuItem item = menu.add(TextView.ID_ASSIST, itemId, order, action.getTitle())
-//                .setContentDescription(action.getContentDescription());
-//        if (action.shouldShowIcon()) {
-//            item.setIcon(action.getIcon().loadDrawable(mTextView.getContext()));
-//        }
-//        item.setShowAsAction(showAsAction);
-//        mAssistClickHandlers.put(item,
-//                TextClassification.createIntentOnClickListener(action.getActionIntent()));
-//        return item;
-//    }
-
-//    private void clearAssistMenuItems(Menu menu) {
-//        int i = 0;
-//        while (i < menu.size()) {
-//            final MenuItem menuItem = menu.getItem(i);
-//            if (menuItem.getGroupId() == TextView.ID_ASSIST) {
-//                menu.removeItem(menuItem.getItemId());
-//                continue;
-//            }
-//            i++;
-//        }
-//    }
-
-//    private boolean hasLegacyAssistItem(TextClassification classification) {
-//        // Check whether we have the UI data and and action.
-//        return (classification.getIcon() != null || !TextUtils.isEmpty(
-//                classification.getLabel())) && (classification.getIntent() != null
-//                || classification.getOnClickListener() != null);
-//    }
-
-        private boolean onAssistMenuItemClicked(MenuItem assistMenuItem) {
-//        Preconditions.checkArgument(assistMenuItem.getGroupId() == TextView.ID_ASSIST);
-
-            // No textClassification result to handle the click. Eat the click.
-            return true;
-        }
-
-        private int createAssistMenuItemPendingIntentRequestCode() {
-            return mTextView.hasSelection()
-                    ? mTextView.getText().subSequence(
-                    mTextView.getSelectionStart(), mTextView.getSelectionEnd())
-                    .hashCode()
-                    : 0;
-        }
-
-        private boolean shouldEnableAssistMenuItems() {
-//        return mTextView.isDeviceProvisioned()
-//                && TextClassificationManager.getSettings(mTextView.getContext())
-//                .isSmartTextShareEnabled();
-            return false;
-        }
-
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             getSelectionActionModeHelper().onSelectionAction(item.getItemId());
@@ -3842,9 +3765,6 @@ public class Editor {
             if (customCallback != null && customCallback.onActionItemClicked(mode, item)) {
                 return true;
             }
-            if (item.getGroupId() == EditText.ID_ASSIST && onAssistMenuItemClicked(item)) {
-                return true;
-            }
             return mTextView.onTextContextMenuItem(item.getItemId());
         }
 
@@ -3852,7 +3772,6 @@ public class Editor {
         public void onDestroyActionMode(ActionMode mode) {
             // Clear mTextActionMode not to recursively destroy action mode by clearing selection.
             getSelectionActionModeHelper().onDestroyActionMode();
-            Log.w(TAG, "onDestroyActionMode: mode=" + mode);
             mTextActionMode = null;
             Callback customCallback = getCustomCallback();
             if (customCallback != null) {
@@ -4045,8 +3964,8 @@ public class Editor {
         }
     }
 
-    //(EW) replaced with TextActionModeCallback in M when it move to a floating popup, rather than a
-    // fixed location
+    // (EW) replaced with TextActionModeCallback in M when it move to a floating popup, rather than
+    // a fixed location
     //TODO: (EW) deduplicate with TextActionModeCallback
     //TODO: (EW) consider renaming. pre-M only uses this for selections, but since more recent
     // version show it when tapping the insertion controller, I pushed this to do the same in
@@ -4060,10 +3979,7 @@ public class Editor {
     private class SelectionActionModeCallback implements ActionMode.Callback {
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            //TODO: (EW) I don't see this text displayed anywhere, so maybe just remove it. if not,
-            // move this to a resource
-            mode.setTitle(/*mTextView.getContext().getString(
-                    com.android.internal.R.string.textSelectionCABTitle)*/"Text selection");
+            mode.setTitle(mTextView.getContext().getString(R.string.textSelectionCABTitle));
             mode.setSubtitle(null);
             mode.setTitleOptionalHint(true);
             menu.add(Menu.NONE, EditText.ID_SELECT_ALL, 0, android.R.string.selectAll)
@@ -4140,7 +4056,7 @@ public class Editor {
 
     // (EW) only used prior to M. this was essentially replaced by the TextActionModeCallback menu
     private class ActionPopupWindow extends PinnedPopupWindow implements OnClickListener {
-        private /*static*/ final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
+        private static final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
         private android.widget.TextView mPasteTextView;
         private android.widget.TextView mReplaceTextView;
 
@@ -4233,11 +4149,6 @@ public class Editor {
     }
 
     abstract class HandleView extends View implements TextViewPositionListener {
-        private /*static */final String TAG = HandleView.class.getSimpleName();
-
-        public static final int UNSET_X_VALUE = -1;
-        public static final int UNSET_LINE = -1;
-
         protected Drawable mDrawable;
         protected Drawable mDrawableLtr;
         protected Drawable mDrawableRtl;
@@ -4259,14 +4170,14 @@ public class Editor {
         // Parent's (EditText) previous position on screen
         private int mLastParentXOnScreen, mLastParentYOnScreen;
         // Transient action popup window for Paste and Replace actions
-        // (EW) only used prior to M
+        // (EW) only used prior to Marshmallow
         protected ActionPopupWindow mActionPopupWindow;
         // Previous text character offset
         protected int mPreviousOffset = -1;
         // Previous text character offset
         private boolean mPositionHasChanged = true;
         // Used to delay the appearance of the action popup window
-        // (EW) only used prior to M
+        // (EW) only used prior to Marshmallow
         private Runnable mActionPopupShower;
         // Minimum touch target size for handles
         private int mMinSize;
@@ -4289,12 +4200,7 @@ public class Editor {
                     android.R.attr.textSelectHandleWindowStyle);
             mContainer.setSplitTouchEnabled(true);
             mContainer.setClippingEnabled(false);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                mContainer.setWindowLayoutType(WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
-            } else {
-                //TODO: (EW) handle. lollipop calls the same code. marked with @hide before being
-                // released for app devs. maybe it would be reasonable to use reflection for this
-            }
+            setWindowLayoutType(mContainer, WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
             mContainer.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
             mContainer.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
             mContainer.setContentView(this);
@@ -4302,7 +4208,7 @@ public class Editor {
             setDrawables(drawableLtr, drawableRtl);
 
             mMinSize = mTextView.getContext().getResources().getDimensionPixelSize(
-                    /*com.android.internal.*/R.dimen.text_handle_min_size);
+                    R.dimen.text_handle_min_size);
 
             final int handleHeight = getPreferredHeight();
             mTouchOffsetY = -0.3f * handleHeight;
@@ -4442,7 +4348,9 @@ public class Editor {
             mPreviousOffset = -1;
             positionAtCursorOffset(getCurrentCursorOffset(), false, false);
 
-            hideActionPopupWindow();
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                hideActionPopupWindow();
+            }
         }
 
         protected void dismiss() {
@@ -4462,8 +4370,8 @@ public class Editor {
             getPositionListener().removeSubscriber(this);
         }
 
-        // (EW) this should only be used in versions prior to M since the floating
-        // TextActionModeCallback menu added in M essentially replaces this functionality
+        // (EW) this should only be used in versions prior to Marshmallow since the floating
+        // TextActionModeCallback menu added in Marshmallow essentially replaces this functionality
         void showActionPopupWindow(int delay) {
             if (mActionPopupWindow == null) {
                 mActionPopupWindow = new ActionPopupWindow();
@@ -4480,8 +4388,9 @@ public class Editor {
             mTextView.postDelayed(mActionPopupShower, delay);
         }
 
-        // (EW) this is only really necessary in versions prior to M since the ActionPopupWindow
-        // shouldn't be used in more recent versions, so there won't be anything to hide
+        // (EW) this is only really necessary in versions prior to Marshmallow since the
+        // ActionPopupWindow shouldn't be used in more recent versions, so there won't be anything
+        // to hide
         protected void hideActionPopupWindow() {
             if (mActionPopupShower != null) {
                 mTextView.removeCallbacks(mActionPopupShower);
@@ -4729,11 +4638,15 @@ public class Editor {
         }
 
         void onHandleMoved() {
-            hideActionPopupWindow();
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                hideActionPopupWindow();
+            }
         }
 
         public void onDetached() {
-            hideActionPopupWindow();
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                hideActionPopupWindow();
+            }
         }
 
         @Override
@@ -4783,7 +4696,7 @@ public class Editor {
         private final int mDeltaHeight;
 
         InsertionHandleView(Drawable drawable) {
-            super(drawable, drawable, /*com.android.internal.*/R.id.insertion_handle);
+            super(drawable, drawable, R.id.insertion_handle);
 
             int deltaHeight = 0;
             int opacity = 255;
@@ -4811,7 +4724,7 @@ public class Editor {
             mDrawableOpacity = opacity;
         }
 
-        // (EW) this should only be used prior to M. see showActionPopupWindow
+        // (EW) this should only be used prior to Marshmallow. see showActionPopupWindow
         public void showWithActionPopup() {
             show();
             showActionPopupWindow(0);
@@ -4918,9 +4831,9 @@ public class Editor {
                         }
                     } else {
                         if (mTextActionMode != null) {
-                            // (EW) nothing needs to be done prior to M because the copy/paste/etc
-                            // popup was in a fixed position and this function only makes sense for
-                            // dynamic positioning
+                            // (EW) nothing needs to be done prior to Marshmallow because the
+                            // copy/paste/etc popup was in a fixed position and this function only
+                            // makes sense for dynamic positioning
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 mTextActionMode.invalidateContentRect();
                             }
@@ -4992,8 +4905,8 @@ public class Editor {
         private MotionEvent transformEventForTouchThrough(MotionEvent ev) {
             final Layout layout = mTextView.getLayout();
             final int line = layout.getLineForOffset(getCurrentCursorOffset());
-            final int textHeight =
-                    HiddenLayout.getLineBottomWithoutSpacing(layout, line) - layout.getLineTop(line);
+            final int textHeight = HiddenLayout.getLineBottomWithoutSpacing(layout, line)
+                    - layout.getLineTop(line);
             // Transforms the touch events to screen coordinates.
             // And also shift up to make the hit point is on the text.
             // Note:
@@ -5097,7 +5010,7 @@ public class Editor {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef(/*prefix = { "HANDLE_TYPE_" }, */value = {
+    @IntDef(value = {
             HANDLE_TYPE_SELECTION_START,
             HANDLE_TYPE_SELECTION_END
     })
@@ -5126,7 +5039,7 @@ public class Editor {
         private final int[] mTextViewLocation = new int[2];
 
         public SelectionHandleView(Drawable drawableLtr, Drawable drawableRtl, int id,
-                                     @HandleType int handleType) {
+                                   @HandleType int handleType) {
             super(drawableLtr, drawableRtl, id);
             mHandleType = handleType;
             ViewConfiguration viewConfiguration = ViewConfiguration.get(mTextView.getContext());
@@ -5224,7 +5137,7 @@ public class Editor {
                 mTouchWordDelta = 0.0f;
                 positionAndAdjustForCrossingHandles(offset, fromTouchScreen);
                 return;
-            } else if (mLanguageDirectionChanged/* && !isLvlBoundary*/) {
+            } else if (mLanguageDirectionChanged && !isLvlBoundary) {
                 // We've just moved past the boundary so update the position. After this we can
                 // figure out if the user is expanding or shrinking to go by word or character.
                 positionAndAdjustForCrossingHandles(offset, fromTouchScreen);
@@ -5390,7 +5303,8 @@ public class Editor {
                         final int currentOffset = getCurrentCursorOffset();
                         final int offsetToGetRunRange = isStartHandle()
                                 ? currentOffset : Math.max(currentOffset - 1, 0);
-                        final long range = HiddenLayout.getRunRange(layout, mTextView.mTextDir, offsetToGetRunRange);
+                        final long range = HiddenLayout.getRunRange(layout, mTextView.mTextDir,
+                                offsetToGetRunRange);
                         if (isStartHandle()) {
                             offset = HiddenTextUtils.unpackRangeStartFromLong(range);
                         } else {
@@ -5534,11 +5448,8 @@ public class Editor {
     }
 
     void loadCursorDrawable() {
-        if (mDrawableForCursor == null && mTextView.mCursorDrawableRes != 0) {
-//            mDrawableForCursor = getContext().getDrawable(mCursorDrawableRes);
-//            mDrawableForCursor = getDrawable(mTextView.mCursorDrawableRes);
+        if (mDrawableForCursor == null) {
             mDrawableForCursor = mTextView.getTextCursorDrawable();
-            Log.w(TAG, "mDrawableForCursor=" + mDrawableForCursor);
         }
     }
 
@@ -5614,10 +5525,8 @@ public class Editor {
             // In case of touch through on handle (when isOnHandle() returns true), event.getY()
             // returns the midpoint of the cursor vertical bar, while event.getRawY() returns the
             // finger location on the screen. See {@link InsertionHandleView#touchThrough}.
-            int[] locationOnScreen = new int[2];
-            mTextView.getLocationOnScreen(locationOnScreen);
             final float fingerY = mTouchState.isOnHandle()
-                    ? event.getRawY() - locationOnScreen[1]
+                    ? event.getRawY() - mTextView.getLocationOnScreen()[1]
                     : event.getY();
             final float cursorY = fingerY - getHandle().getIdealFingerToCursorOffset();
             int line = getCurrentLineAdjustedForSlop(layout, mPrevLineDuringDrag, cursorY);
@@ -5782,11 +5691,10 @@ public class Editor {
 
     /** Controller for selection. */
     class SelectionModifierCursorController implements CursorController {
-        private /*static */final String TAG = SelectionModifierCursorController.class.getSimpleName();
-
         private static final int DELAY_BEFORE_REPLACE_ACTION = 200; // milliseconds
+
         // The cursor controller handles, lazily created when shown.
-        SelectionHandleView mStartHandle;
+        private SelectionHandleView mStartHandle;
         private SelectionHandleView mEndHandle;
         // The offsets of that last touch down event. Remembered to start selection there.
         private int mMinTouchOffset, mMaxTouchOffset;
@@ -5829,12 +5737,12 @@ public class Editor {
             // Lazy object creation has to be done before updatePosition() is called.
             if (mStartHandle == null) {
                 mStartHandle = new SelectionHandleView(mSelectHandleLeft, mSelectHandleRight,
-                        /*com.android.internal.*/R.id.selection_start_handle,
+                        R.id.selection_start_handle,
                         HANDLE_TYPE_SELECTION_START);
             }
             if (mEndHandle == null) {
                 mEndHandle = new SelectionHandleView(mSelectHandleRight, mSelectHandleLeft,
-                        /*com.android.internal.*/R.id.selection_end_handle,
+                        R.id.selection_end_handle,
                         HANDLE_TYPE_SELECTION_END);
             }
 
@@ -5904,7 +5812,6 @@ public class Editor {
                         // Remember finger down position, to be able to start selection from there.
                         mMinTouchOffset = mMaxTouchOffset = mTextView.getOffsetForPosition(
                                 eventX, eventY);
-                        Log.w(TAG, "onTouchEvent: touchOffset=" + mMinTouchOffset);
 
                         // Double tap detection
                         if (mGestureStayedInTapRegion
@@ -5941,9 +5848,16 @@ public class Editor {
                     if (mGestureStayedInTapRegion) {
                         final ViewConfiguration viewConfig = ViewConfiguration.get(
                                 mTextView.getContext());
+                        // (EW) the AOSP version used ViewConfiguration#getScaledDoubleTapTouchSlop
+                        // instead of ViewConfiguration#getScaledTouchSlop, but at least as of S,
+                        // ViewConfiguration#ViewConfiguration(Context) sets mDoubleTapTouchSlop
+                        // (what ViewConfiguration#getScaledDoubleTapTouchSlop returns) to
+                        // mTouchSlop, which is what is returned in
+                        // ViewConfiguration#getScaledTouchSlop, so at least as of S, this is
+                        // equivalent to what the AOSP does.
                         mGestureStayedInTapRegion = EditorTouchState.isDistanceWithin(
                                 mTouchState.getLastDownX(), mTouchState.getLastDownY(),
-                                eventX, eventY, viewConfig./*getScaledDoubleTapTouchSlop*/getScaledTouchSlop());
+                                eventX, eventY, viewConfig.getScaledTouchSlop());
                     }
 
                     if (mHaventMovedEnoughToStartDrag) {
@@ -6128,14 +6042,8 @@ public class Editor {
             int pointerCount = event.getPointerCount();
             for (int index = 0; index < pointerCount; index++) {
                 int offset = mTextView.getOffsetForPosition(event.getX(index), event.getY(index));
-                if (offset < mMinTouchOffset) {
-                    mMinTouchOffset = offset;
-                    Log.w(TAG, "updateMinAndMaxOffsets: mMinTouchOffset=" + mMinTouchOffset);
-                }
-                if (offset > mMaxTouchOffset) {
-                    mMaxTouchOffset = offset;
-                    Log.w(TAG, "updateMinAndMaxOffsets: mMaxTouchOffset=" + mMaxTouchOffset);
-                }
+                if (offset < mMinTouchOffset) mMinTouchOffset = offset;
+                if (offset > mMaxTouchOffset) mMaxTouchOffset = offset;
             }
         }
 
@@ -6149,7 +6057,6 @@ public class Editor {
 
         public void resetTouchOffsets() {
             mMinTouchOffset = mMaxTouchOffset = -1;
-            Log.w(TAG, "resetTouchOffsets: touchOffset=" + mMinTouchOffset);
             resetDragAcceleratorState();
         }
 
@@ -6252,8 +6159,10 @@ public class Editor {
         private static final int FADE_OUT_DURATION = 400;
 
         public CorrectionHighlighter() {
-//            mPaint.setCompatibilityScaling(
-//                    mTextView.getResources().getCompatibilityInfo().applicationScale);
+            //TODO: (EW) the AOSP version calls Paint#setCompatibilityScaling using
+            // Resources#getCompatibilityInfo, both of which are not accessible from apps. is there
+            // anything that we can and should do to match that functionality?
+
             mPaint.setStyle(Paint.Style.FILL);
         }
 
@@ -6336,14 +6245,14 @@ public class Editor {
     }
 
     static class InputContentType {
-        public int imeOptions = EditorInfo.IME_NULL;
-        public String privateImeOptions;
-        public CharSequence imeActionLabel;
-        public int imeActionId;
-        public Bundle extras;
+        int imeOptions = EditorInfo.IME_NULL;
+        String privateImeOptions;
+        CharSequence imeActionLabel;
+        int imeActionId;
+        Bundle extras;
         OnEditorActionListener onEditorActionListener;
-        public boolean enterDown;
-        public LocaleList imeHintLocales;
+        boolean enterDown;
+        LocaleList imeHintLocales;
     }
 
     static class InputMethodState {
@@ -6461,7 +6370,7 @@ public class Editor {
         }
 
         @Retention(RetentionPolicy.SOURCE)
-        @IntDef(/*prefix = { "MERGE_EDIT_MODE_" }, */value = {
+        @IntDef(value = {
                 MERGE_EDIT_MODE_FORCE_MERGE,
                 MERGE_EDIT_MODE_NEVER_MERGE,
                 MERGE_EDIT_MODE_NORMAL
@@ -6473,7 +6382,8 @@ public class Editor {
         private static final int MERGE_EDIT_MODE_NORMAL = 2;
 
         private void handleEdit(CharSequence source, int start, int end,
-                                Spanned dest, int dstart, int dend, boolean shouldCreateSeparateState) {
+                                Spanned dest, int dstart, int dend,
+                                boolean shouldCreateSeparateState) {
             // An application may install a TextWatcher to provide additional modifications after
             // the initial input filters run (e.g. a credit card formatter that adds spaces to a
             // string). This results in multiple filter() calls for what the user considers to be
@@ -6576,8 +6486,8 @@ public class Editor {
             }
             // This is a composition edit if the source has a non-zero-length composing span.
             Spannable text = (Spannable) source;
-            int composeBegin = BaseInputConnection.getComposingSpanStart(text);
-            int composeEnd = BaseInputConnection.getComposingSpanEnd(text);
+            int composeBegin = EditableInputConnection.getComposingSpanStart(text);
+            int composeEnd = EditableInputConnection.getComposingSpanEnd(text);
             return composeBegin < composeEnd;
         }
 
@@ -6904,6 +6814,7 @@ public class Editor {
      * A helper for enabling and handling "PROCESS_TEXT" menu actions.
      * These allow external applications to plug into currently selected text.
      */
+    @RequiresApi(api = Build.VERSION_CODES.M)
     static final class ProcessTextIntentActionsHandler {
 
         private final Editor mEditor;
@@ -6950,54 +6861,13 @@ public class Editor {
             return fireIntent(item.getIntent());
         }
 
-//        /**
-//         * Initializes and caches "PROCESS_TEXT" accessibility actions.
-//         */
-//        public void initializeAccessibilityActions() {
-//            mAccessibilityIntents.clear();
-//            mAccessibilityActions.clear();
-//            int i = 0;
-//            loadSupportedActivities();
-//            for (ResolveInfo resolveInfo : mSupportedActivities) {
-//                int actionId = EditText.ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID + i++;
-//                mAccessibilityActions.put(
-//                        actionId,
-//                        new AccessibilityNodeInfo.AccessibilityAction(
-//                                actionId, getLabel(resolveInfo)));
-//                mAccessibilityIntents.put(
-//                        actionId, createProcessTextIntentForResolveInfo(resolveInfo));
-//            }
-//        }
-//
-//        /**
-//         * Adds "PROCESS_TEXT" accessibility actions to the specified accessibility node info.
-//         * NOTE: This needs a prior call to {@link #initializeAccessibilityActions()} to make the
-//         * latest accessibility actions available for this call.
-//         */
-//        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo nodeInfo) {
-//            for (int i = 0; i < mAccessibilityActions.size(); i++) {
-//                nodeInfo.addAction(mAccessibilityActions.valueAt(i));
-//            }
-//        }
-
-        /**
-         * Performs a "PROCESS_TEXT" action if there is one associated with the specified
-         * accessibility action id.
-         *
-         * @return True if the action was performed, false otherwise.
-         */
-        public boolean performAccessibilityAction(int actionId) {
-            return fireIntent(mAccessibilityIntents.get(actionId));
-        }
-
         private boolean fireIntent(Intent intent) {
             if (intent != null && Intent.ACTION_PROCESS_TEXT.equals(intent.getAction())) {
                 String selectedText = mTextView.getSelectedText();
                 selectedText = HiddenTextUtils.trimToParcelableSize(selectedText);
                 intent.putExtra(Intent.EXTRA_PROCESS_TEXT, selectedText);
                 mEditor.mPreserveSelection = true;
-                //TODO: (EW) find an alternative (blocked on View - UnsupportedAppUsage)
-//            mTextView.startActivityForResult(intent, EditText.PROCESS_TEXT_REQUEST_CODE);
+                mTextView.startActivityForResult(intent, EditText.PROCESS_TEXT_REQUEST_CODE);
                 return true;
             }
             return false;
@@ -7005,9 +6875,10 @@ public class Editor {
 
         private void loadSupportedActivities() {
             mSupportedActivities.clear();
-//        if (!mContext.canStartActivityForResult()) {
-//            return;
-//        }
+            // (EW) the AOSP version checked Context#canStartActivityForResult, but since
+            // View#startActivityForResult is hidden, we had to call Activity#startActivityForResult
+            // instead, which seems to always be available since we can get the activity, so I don't
+            // think the AOSP check is necessary.
             PackageManager packageManager = mTextView.getContext().getPackageManager();
             List<ResolveInfo> unfiltered =
                     packageManager.queryIntentActivities(createProcessTextIntent(), 0);
@@ -7021,10 +6892,9 @@ public class Editor {
         private boolean isSupportedActivity(ResolveInfo info) {
             return mPackageName.equals(info.activityInfo.packageName)
                     || info.activityInfo.exported
-                    && (info.activityInfo.permission == null
-                    || Build.VERSION.SDK_INT < Build.VERSION_CODES.M//TODO: (EW) verify this is right. it seems this whole class might not be used in older versions, so this may not matter and may be an excuse to drop support
-                    || mContext.checkSelfPermission(info.activityInfo.permission)
-                    == PackageManager.PERMISSION_GRANTED);
+                            && (info.activityInfo.permission == null
+                                    || mContext.checkSelfPermission(info.activityInfo.permission)
+                                            == PackageManager.PERMISSION_GRANTED);
         }
 
         private Intent createProcessTextIntentForResolveInfo(ResolveInfo info) {
@@ -7078,41 +6948,23 @@ public class Editor {
         return 0;
     }
 
-    // from SuggestionSpan
-    /**
-     * Notifies a suggestion selection.
-     *
-     * @hide
-     */
-//    private void notifySelection(SuggestionSpan span, Context context, String original, int index) {
-//        final Intent intent = new Intent();
-//
-//        if (context == null || mNotificationTargetClassName == null) {
-//            return;
-//        }
-//        // Ensures that only a class in the original IME package will receive the
-//        // notification.
-//        String[] suggestions = span.getSuggestions();
-//        if (suggestions == null || index < 0 || index >= suggestions.length) {
-//            Log.w(TAG, "Unable to notify the suggestion as the index is out of range index=" + index
-//                    + " length=" + suggestions.length);
-//            return;
-//        }
-//
-//        // The package name is not mandatory (legacy from JB), and if the package name
-//        // is missing, we try to notify the suggestion through the input method manager.
-//        if (mNotificationTargetPackageName != null) {
-//            intent.setClassName(mNotificationTargetPackageName, mNotificationTargetClassName);
-//            intent.setAction(SuggestionSpan.ACTION_SUGGESTION_PICKED);
-//            intent.putExtra(SuggestionSpan.SUGGESTION_SPAN_PICKED_BEFORE, original);
-//            intent.putExtra(SuggestionSpan.SUGGESTION_SPAN_PICKED_AFTER, suggestions[index]);
-//            intent.putExtra(SuggestionSpan.SUGGESTION_SPAN_PICKED_HASHCODE, span.hashCode());
-//            context.sendBroadcast(intent);
-//        } else {
-//            InputMethodManager imm = getInputMethodManager();
-//            if (imm != null) {
-//                imm.notifySuggestionPicked(this, original, index);
-//            }
-//        }
-//    }
+    private static void setWindowLayoutType(PopupWindow popupWindow, int layoutType) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            popupWindow.setWindowLayoutType(layoutType);
+        } else {
+            //TODO: (EW) PopupWindow#setWindowLayoutType was called at least since Kitkat, but
+            // it only became available for apps to call in Marshmallow. see if there is some
+            // alternative to reflection. this is at least relatively safe since it's only done on
+            // old versions so it shouldn't just stop working at some point in the future.
+            try {
+                Method setWindowLayoutTypeMethod = PopupWindow.class.getMethod(
+                        "setWindowLayoutType", int.class);
+                setWindowLayoutTypeMethod.invoke(popupWindow, layoutType);
+            } catch (NoSuchMethodException | IllegalAccessException
+                    | InvocationTargetException e) {
+                Log.e(TAG, "setWindowLayoutType: Failed to call PopupWindow#setWindowLayoutType: "
+                        + e.getMessage());
+            }
+        }
+    }
 }
