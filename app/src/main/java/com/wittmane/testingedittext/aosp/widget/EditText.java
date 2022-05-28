@@ -300,7 +300,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // display attributes
     private final TextPaint mTextPaint;
     private boolean mUserSetTextScaleX;
-    private Layout mLayout;
+    private Layout mLayout;//TODO: (EW) currently this is always a DynamicLayout. consider clarifying this as the type
     private boolean mLocalesChanged = false;
     private int mTextSizeUnit = -1;
 
@@ -353,11 +353,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Scroller mScroller;
     private TextPaint mTempTextPaint;
 
-    //TODO: (EW) I don't think we're really taking advantage of the boring layouts. either start
-    // fully using it to match aosp or remove it as unnecessary code.
-    private BoringLayout.Metrics mBoring;
     private BoringLayout.Metrics mHintBoring;
-    private BoringLayout mSavedLayout;
     private BoringLayout mSavedHintLayout;
 
     //TODO: (EW) probably keep this private but somehow allow Editor to pass it to HiddenLayout
@@ -1047,7 +1043,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
     private void setTextInternal(@Nullable Editable text) {//TODO: (EW) probably should make this not nullable
         mText = text;
-        mSpannable = (text instanceof Spannable) ? (Spannable) text : null;
+        mSpannable = text;//TODO: (EW) remove mSpannable since it's redundant
     }
 
     /**
@@ -3060,7 +3056,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             int want = mLayout.getWidth();
             int hintWant = mHintLayout == null ? 0 : mHintLayout.getWidth();
 
-            makeNewLayout(want, hintWant, /*UNKNOWN_BORING, UNKNOWN_BORING,*/
+            makeNewLayout(want, hintWant, UNKNOWN_BORING,
                     getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight(),
                     true);
         }
@@ -5919,7 +5915,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     private void nullLayouts() {
+        if (mHintLayout instanceof BoringLayout && mSavedHintLayout == null) {
+            mSavedHintLayout = (BoringLayout) mHintLayout;
+        }
+
         mLayout = mHintLayout = null;
+
+        mHintBoring = null;
+
         // Since it depends on the value of mLayout
         mEditor.prepareCursorControllers();
     }
@@ -5941,7 +5944,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             width = VERY_WIDE;
         }
 
-        makeNewLayout(width, physicalWidth, physicalWidth, false);
+        makeNewLayout(width, physicalWidth, UNKNOWN_BORING, physicalWidth, false);
     }
 
     private Layout.Alignment getLayoutAlignment() {
@@ -6014,7 +6017,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * not the full view width with padding.
      * {@hide}
      */
-    public void makeNewLayout(int wantWidth, int hintWidth, int ellipsisWidth, boolean bringIntoView) {
+    public void makeNewLayout(int wantWidth, int hintWidth,
+                              BoringLayout.Metrics hintBoring,
+                              int ellipsisWidth, boolean bringIntoView) {
         // Update "old" cached values
         mOldMaximum = mMaximum;
         mOldMaxMode = mMaxMode;
@@ -6042,29 +6047,69 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         mLayout = makeSingleLayout(wantWidth, ellipsisWidth, alignment, effectiveEllipsize);
 
+        boolean shouldEllipsize = mEllipsize != null;
         mHintLayout = null;
 
         if (mHint != null) {
-            StaticLayout.Builder builder = null;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                builder = StaticLayout.Builder.obtain(mHint, 0,
-                        mHint.length(), mTextPaint, hintWidth)
-                        .setAlignment(alignment)
-                        .setTextDirection(mTextDir)
-                        .setLineSpacing(mSpacingAdd, mSpacingMult)
-                        .setIncludePad(mIncludePad)
-//                        .setBreakStrategy(mBreakStrategy)
-//                        .setHyphenationFrequency(mHyphenationFrequency)
-                        .setMaxLines(mMaxMode == LINES ? mMaximum : Integer.MAX_VALUE);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    builder.setJustificationMode(mJustificationMode);
+            if (shouldEllipsize) hintWidth = wantWidth;
+
+            if (hintBoring == UNKNOWN_BORING) {
+                hintBoring = isBoring(mHint, mTextPaint, mTextDir,
+                        mHintBoring);
+                if (hintBoring != null) {
+                    mHintBoring = hintBoring;
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    builder.setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing);
+            }
+
+            if (hintBoring != null) {
+                if (hintBoring.width <= hintWidth
+                        && (!shouldEllipsize || hintBoring.width <= ellipsisWidth)) {
+                    if (mSavedHintLayout != null) {
+                        mHintLayout = mSavedHintLayout.replaceOrMake(mHint, mTextPaint,
+                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintBoring, mIncludePad);
+                    } else {
+                        mHintLayout = BoringLayout.make(mHint, mTextPaint,
+                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintBoring, mIncludePad);
+                    }
+
+                    mSavedHintLayout = (BoringLayout) mHintLayout;
+                } else if (shouldEllipsize && hintBoring.width <= hintWidth) {
+                    if (mSavedHintLayout != null) {
+                        mHintLayout = mSavedHintLayout.replaceOrMake(mHint, mTextPaint,
+                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintBoring, mIncludePad, mEllipsize,
+                                ellipsisWidth);
+                    } else {
+                        mHintLayout = BoringLayout.make(mHint, mTextPaint,
+                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintBoring, mIncludePad, mEllipsize,
+                                ellipsisWidth);
+                    }
                 }
-                mHintLayout = builder.build();
-            } else {
-                mHintLayout = new StaticLayout(mHint, mTextPaint, hintWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+            }
+            if (mHintLayout == null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    StaticLayout.Builder builder = StaticLayout.Builder.obtain(mHint, 0,
+                            mHint.length(), mTextPaint, hintWidth)
+                            .setAlignment(alignment)
+                            .setTextDirection(mTextDir)
+                            .setLineSpacing(mSpacingAdd, mSpacingMult)
+                            .setIncludePad(mIncludePad)
+//                            .setBreakStrategy(mBreakStrategy)
+//                            .setHyphenationFrequency(mHyphenationFrequency)
+                            .setMaxLines(mMaxMode == LINES ? mMaximum : Integer.MAX_VALUE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        builder.setJustificationMode(mJustificationMode);
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        builder.setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing);
+                    }
+                    mHintLayout = builder.build();
+                } else {
+                    mHintLayout = new StaticLayout(mHint, mTextPaint, hintWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+                }
             }
         }
 
@@ -6078,8 +6123,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * @hide
      */
-    protected Layout makeSingleLayout(int wantWidth, int ellipsisWidth, Layout.Alignment alignment, TruncateAt effectiveEllipsize) {
-        Layout result = null;
+    protected Layout makeSingleLayout(int wantWidth, int ellipsisWidth,
+                                      Layout.Alignment alignment, TruncateAt effectiveEllipsize) {
+        Layout result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             final DynamicLayout.Builder builder = DynamicLayout.Builder.obtain(mText, mTextPaint,
                     wantWidth)
@@ -6165,8 +6211,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        //TODO: (EW) I think there were a decent number of changes between aosp28 and aosp30 and I
-        // simplified some things to initially get things to work. clean this up
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
         int widthSize = MeasureSpec.getSize(widthMeasureSpec);
@@ -6175,7 +6219,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int width;
         int height;
 
-        BoringLayout.Metrics boring = UNKNOWN_BORING;
         BoringLayout.Metrics hintBoring = UNKNOWN_BORING;
 
         if (mTextDir == null) {
@@ -6195,28 +6238,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 des = desired(mLayout);
             }
 
-            if (des < 0) {
-                boring = isBoring(mTransformed, mTextPaint, mTextDir, mBoring);
-                if (boring != null) {
-                    Log.w(TAG, "onMeasure: isBoring");
-                    mBoring = boring;
-                }
-            } else {
+            if (des >= 0) {
                 fromexisting = true;
-            }
-
-            if (boring == null || boring == UNKNOWN_BORING) {
-                if (des < 0) {
-                    // (EW) Layout.getDesiredWidthWithLimit started getting called in Pie (instead
-                    // of Layout.getDesiredWidth). Layout.getDesiredWidthWithLimit was also created
-                    // in Pie.
-                    des = (int) Math.ceil(HiddenLayout.getDesiredWidthWithLimit(mTransformed, 0,
-                            mTransformed.length(), mTextPaint, mTextDir, widthLimit));
-                }
-                width = des;
             } else {
-                width = boring.width;
+                // (EW) Layout.getDesiredWidthWithLimit started getting called in Pie (instead
+                // of Layout.getDesiredWidth). Layout.getDesiredWidthWithLimit was also created
+                // in Pie.
+                des = (int) Math.ceil(HiddenLayout.getDesiredWidthWithLimit(mTransformed, 0,
+                        mTransformed.length(), mTextPaint, mTextDir, widthLimit));
             }
+            width = des;
 
             if (mHint != null) {
                 int hintDes = -1;
@@ -6230,7 +6261,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     hintBoring = isBoring(mHint, mTextPaint, mTextDir, mHintBoring);
                     if (hintBoring != null) {
                         mHintBoring = hintBoring;
-                        Log.w(TAG, "onMeasure: isBoring hint");
                     }
                 }
 
@@ -6273,8 +6303,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         int want = width - getCompoundPaddingLeft() - getCompoundPaddingRight();
         int unpaddedWidth = want;
-        Log.w(TAG, "onMeasure: width=" + width + ", want=" + want + ", unpaddedWidth="
-                + unpaddedWidth + ", mHorizontallyScrolling=" + mHorizontallyScrolling);
 
         if (mHorizontallyScrolling) want = VERY_WIDE;
 
@@ -6282,20 +6310,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int hintWidth = (mHintLayout == null) ? hintWant : mHintLayout.getWidth();
 
         if (mLayout == null) {
-            Log.w(TAG, "onMeasure: makeNewLayout null");
-            makeNewLayout(want, hintWant,
+            makeNewLayout(want, hintWant, hintBoring,
                     width - getCompoundPaddingLeft() - getCompoundPaddingRight(), false);
         } else {
             final boolean layoutChanged = (mLayout.getWidth() != want) || (hintWidth != hintWant)
                     || (mLayout.getEllipsizedWidth()
                             != width - getCompoundPaddingLeft() - getCompoundPaddingRight());
 
-            //TODO: currently mLayout is always a DynamicLayout, so this will always be false.
-            // either start using BoringLayout if that's useful or simplify this.
             final boolean widthChanged = (mHint == null) && (mEllipsize == null)
                     && (want > mLayout.getWidth())
-                    && (mLayout instanceof BoringLayout
-                            || (fromexisting && des >= 0 && des <= want));
+                    && (fromexisting && des >= 0 && des <= want);
 
             final boolean maximumChanged = (mMaxMode != mOldMaxMode) || (mMaximum != mOldMaximum);
 
@@ -6304,7 +6328,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     mLayout.increaseWidthTo(want);
                 } else {
                     Log.w(TAG, "onMeasure: makeNewLayout changed");
-                    makeNewLayout(want, hintWant,
+                    makeNewLayout(want, hintWant, hintBoring,
                             width - getCompoundPaddingLeft() - getCompoundPaddingRight(), false);
                 }
             } else {
@@ -6321,11 +6345,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             height = desired;
             mDesiredHeightAtMeasure = desired;
-            Log.w(TAG, "onMeasure: desiredHeight=" + height);// 97, 160 (px)
-            //30px top padding, 21px bottom padding
-            //46px 1 line, 109px 2 lines -> 17px space between lines
-            //should be: 85px 1 line, 148px 2 lines -> -22px space between lines
-            //overall height should be: 136, 199
 
             if (heightMode == MeasureSpec.AT_MOST) {
                 height = Math.min(desired, heightSize);
@@ -6350,7 +6369,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         setMeasuredDimension(width, height);
-        Log.w(TAG, "onMeasure: setMeasuredDimension: width=" + width + ", height=" + height);
     }
 
     // based on hidden method from BoringLayout
@@ -6479,7 +6497,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
              * changing (unless we do the requestLayout(), in which case it
              * will happen at measure).
              */
-            makeNewLayout(want, hintWant,
+            makeNewLayout(want, hintWant, UNKNOWN_BORING,
                     right - left - getCompoundPaddingLeft() - getCompoundPaddingRight(),
                     false);
 
