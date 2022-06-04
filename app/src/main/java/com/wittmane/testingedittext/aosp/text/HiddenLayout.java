@@ -1,5 +1,6 @@
 package com.wittmane.testingedittext.aosp.text;
 
+import android.os.Build;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -12,15 +13,44 @@ import android.text.style.TabStopSpan;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
+import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
 
 /**
  * (EW) content from Layout that is blocked for app developers to access
  */
 public class HiddenLayout {
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @IntDef(value = {
+            Layout.BREAK_STRATEGY_SIMPLE,
+            Layout.BREAK_STRATEGY_HIGH_QUALITY,
+            Layout.BREAK_STRATEGY_BALANCED
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface BreakStrategy {}
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @IntDef(value = {
+            Layout.HYPHENATION_FREQUENCY_NORMAL,
+            Layout.HYPHENATION_FREQUENCY_FULL,
+            Layout.HYPHENATION_FREQUENCY_NONE
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface HyphenationFrequency {}
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @IntDef(value = {
+            Layout.JUSTIFICATION_MODE_NONE,
+            Layout.JUSTIFICATION_MODE_INTER_WORD
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface JustificationMode {}
+
     /**
      * Return how wide a layout must be in order to display the
      * specified text slice with one line per paragraph.

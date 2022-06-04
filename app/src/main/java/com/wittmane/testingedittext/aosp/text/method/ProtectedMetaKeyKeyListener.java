@@ -10,8 +10,13 @@ import android.text.method.MetaKeyKeyListener;
  */
 public class ProtectedMetaKeyKeyListener extends android.text.method.MetaKeyKeyListener {
 
-    //TODO: (EW) is checking META_SELECTING actually necessary or can we get rid of this
-    // copy of an inaccessible constant?
+    //TODO: (EW) MetaKeyKeyListener.META_SELECTING = KeyEvent.META_SELECTING = 0x800 has been
+    // defined at least since Kitkat, but it has been hidden with a comment saying it's pending API
+    // review and at least as of S, KeyEvent.META_SELECTING has been marked UnsupportedAppUsage
+    // (maxTargetSdk R). after this long it seems unlikely for this to be released for apps to use,
+    // and this could theoretically get changed in a future version, so it isn't completely safe to
+    // just hard-code 0x800. I decided to skip it in EditText.ChangeWatcher#afterTextChanged and
+    // Editor#extractTextInternal, so it might be good to not use this anywhere else.
     /**
      * @hide pending API review
      */

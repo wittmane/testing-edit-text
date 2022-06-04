@@ -91,11 +91,6 @@
         <attr name="android:fontVariationSettings" />
     </declare-styleable>
     <declare-styleable name="EditText">
-        <!-- Determines the minimum type that getText() will return.
-             The default is "normal".
-             Note that EditText and LogTextBox always return Editable,
-             even if you specify something less powerful here. -->
-        <attr name="android:bufferType" />
         <!-- Text to display. -->
         <attr name="android:text" />
         <!-- Hint text to display when the text is empty. -->
@@ -172,23 +167,6 @@
         <!-- Whether the text is allowed to be wider than the view (and
              therefore can be scrolled horizontally). -->
         <attr name="android:scrollHorizontally" />
-        <!-- Whether the characters of the field are displayed as
-             password dots instead of themselves.
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:password" />
-        <!-- Constrains the text to a single horizontally scrolling line
-             instead of letting it wrap onto multiple lines, and advances
-             focus instead of inserting a newline when you press the
-             enter key.
-
-             The default value is false (multi-line wrapped text mode) for non-editable text, but if
-             you specify any value for inputType, the default is true (single-line input field mode).
-
-             {@deprecated This attribute is deprecated. Use <code>maxLines</code> instead to change
-             the layout of a static text, and use the <code>textMultiLine</code> flag in the
-             inputType attribute instead for editable text views (if both singleLine and inputType
-             are supplied, the inputType flags will override the value of singleLine). } -->
-        <attr name="android:singleLine" />
         <!-- Specifies whether the widget is enabled. The interpretation of the enabled state varies by subclass.
              For example, a non-enabled EditText prevents the user from editing the contained text, and
              a non-enabled Button prevents the user from tapping the button.
@@ -221,48 +199,12 @@
              to the link movement method even if autoLink causes links
              to be found. -->
         <attr name="android:linksClickable" />
-        <!-- If set, specifies that this TextView has a numeric input method.
-             The default is false.
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:numeric" />
         <!-- If set, specifies that this TextView has a numeric input method
              and that these specific characters are the ones that it will
              accept.
              If this is set, numeric is implied to be true.
              The default is false. -->
         <attr name="android:digits" />
-        <!-- If set, specifies that this TextView has a phone number input
-             method. The default is false.
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:phoneNumber" />
-        <!-- If set, specifies that this TextView should use the specified
-             input method (specified by fully-qualified class name).
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:inputMethod" />
-        <!-- If set, specifies that this TextView has a textual input method
-             and should automatically capitalize what the user types.
-             The default is "none".
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:capitalize" />
-        <!-- If set, specifies that this TextView has a textual input method
-             and automatically corrects some common spelling errors.
-             The default is "false".
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:autoText" />
-        <!-- If set, specifies that this TextView has an input method.
-             It will be a textual one unless it has otherwise been specified.
-             For TextView, this is false by default.  For EditText, it is
-             true by default.
-             {@deprecated Use inputType instead.} -->
-        <attr name="android:editable" />
-        <!-- If set, the text view will include its current complete text
-             inside of its frozen icicle in addition to meta-data such as
-             the current cursor position.  By default this is disabled;
-             it can be useful when the contents of a text view is not stored
-             in a persistent place such as a content provider. For
-             {@link android.widget.EditText} it is always enabled, regardless
-             of the value of the attribute. -->
-        <attr name="android:freezesText" />
         <!-- If set, causes words that are longer than the view is wide
              to be ellipsized instead of broken in the middle.
              You will often also want to set scrollHorizontally or singleLine
@@ -303,12 +245,20 @@
         <!-- Distance from the bottom of the TextView to the last text baseline. If set, this
              overrides the value set for paddingBottom. -->
         <attr name="android:lastBaselineToBottomHeight" />
-        <!-- The number of times to repeat the marquee animation. Only applied if the
-             TextView has marquee enabled. -->
-        <attr name="android:marqueeRepeatLimit" />
+        <!-- The type of data being placed in a text field, used to help an
+             input method decide how to let the user enter text.  The constants
+             here correspond to those defined by
+             {@link android.text.InputType}.  Generally you can select
+             a single value, though some can be combined together as
+             indicated.  Setting this attribute to anything besides
+             <var>none</var> also implies that the text is editable. -->
         <attr name="android:inputType" />
         <!-- Whether undo should be allowed for editable text. Defaults to true. -->
         <attr name="android:allowUndo" />
+        <!-- Additional features you can enable in an IME associated with an editor
+             to improve the integration with your application.  The constants
+             here correspond to those defined by
+             {@link android.view.inputmethod.EditorInfo#imeOptions}. -->
         <attr name="android:imeOptions" />
         <!-- An addition content type description to supply to the input
              method attached to the text view, which is private to the
@@ -325,15 +275,6 @@
              {@link android.view.inputmethod.EditorInfo#actionId EditorInfo.actionId}
              used when an input method is connected to the text view. -->
         <attr name="android:imeActionId" />
-        <!-- Reference to an
-             {@link android.R.styleable#InputExtras &lt;input-extras&gt;}
-             XML resource containing additional data to
-             supply to an input method, which is private to the implementation
-             of the input method.  This simply fills in
-             the {@link android.view.inputmethod.EditorInfo#extras
-             EditorInfo.extras} field when the input
-             method is connected. -->
-        <attr name="android:editorExtras" />
 
         <!-- Reference to a drawable that will be used to display a text selection
              anchor on the left side of a selection region. -->
@@ -388,21 +329,6 @@
         <attr name="android:breakStrategy" />
         <!-- Frequency of automatic hyphenation. -->
         <attr name="android:hyphenationFrequency" />
-        <!-- Specify the type of auto-size. Note that this feature is not supported by EditText,
-             works only for TextView. -->
-        <attr name="android:autoSizeTextType" />
-        <!-- Specify the auto-size step size if <code>autoSizeTextType</code> is set to
-             <code>uniform</code>. The default is 1px. Overwrites
-             <code>autoSizePresetSizes</code> if set. -->
-        <attr name="android:autoSizeStepGranularity" />
-        <!-- Resource array of dimensions to be used in conjunction with
-             <code>autoSizeTextType</code> set to <code>uniform</code>. Overrides
-             <code>autoSizeStepGranularity</code> if set. -->
-        <attr name="android:autoSizePresetSizes"/>
-        <!-- The minimum text size constraint to be used when auto-sizing text. -->
-        <attr name="android:autoSizeMinTextSize" />
-        <!-- The maximum text size constraint to be used when auto-sizing text. -->
-        <attr name="android:autoSizeMaxTextSize" />
         <!-- Mode for justification. -->
         <attr name="android:justificationMode" />
     </declare-styleable>

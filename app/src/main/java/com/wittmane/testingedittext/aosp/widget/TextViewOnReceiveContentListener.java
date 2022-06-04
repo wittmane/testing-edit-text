@@ -31,6 +31,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+//TODO: (EW) probably should change all references of TextView to EditText
 /**
  * Default implementation for {@link View#onReceiveContent} for editable {@link TextView}
  * components. This class handles insertion of text (plain text, styled text, HTML, etc) but not
@@ -225,7 +226,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
      * @hide
      */
     @Nullable
-    public String[] getFallbackMimeTypesForAutofill(@NonNull TextView view) {
+    public String[] getFallbackMimeTypesForAutofill(@NonNull EditText view) {
         if (!isUsageOfImeCommitContentEnabled(view)) {
             return null;
         }
