@@ -4,7 +4,6 @@ package com.wittmane.testingedittext.aosp.text.method;
 import android.icu.lang.UCharacter;
 import android.icu.lang.UProperty;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -20,10 +19,10 @@ import java.util.Locale;
  * for performance reasons.
  *
  * Also provides methods to determine word boundaries.
- * {@hide}
+ *
+ * (EW) the AOSP version of this is hidden from apps, so it had to be copied here.
  */
 public class WordIterator implements HiddenSelection.PositionIterator {
-    private static final String TAG = WordIterator.class.getSimpleName();
     // Size of the window for the word iterator, should be greater than the longest word's length
     private static final int WINDOW_WIDTH = 50;
 
@@ -51,8 +50,6 @@ public class WordIterator implements HiddenSelection.PositionIterator {
             mCharSeq = charSequence;
             mStart = Math.max(0, start - WINDOW_WIDTH);
             mEnd = Math.min(charSequence.length(), end + WINDOW_WIDTH);
-            // (EW) Oreo changed to use CharSequenceCharacterIterator instead of a substring of
-            // charSequence
             mIterator.setText(new CharSequenceCharacterIterator(charSequence, mStart, mEnd));
         } else {
             throw new IndexOutOfBoundsException("input indexes are outside the CharSequence");
@@ -323,7 +320,7 @@ public class WordIterator implements HiddenSelection.PositionIterator {
      * UAX #29 "Unicode Text Segmentation" at http://unicode.org/reports/tr29/). These are all the
      * characters that according to the rules WB6 and WB7 of UAX #29 prevent word breaks if they are
      * in the middle of a word, but they become word breaks if they happen at the end of a word
-     * (accroding to rule WB999 that breaks word in any place that is not prohibited otherwise).
+     * (according to rule WB999 that breaks word in any place that is not prohibited otherwise).
      *
      * @param locale the locale to consider the codepoint in. Presently ignored.
      * @param codePoint the codepoint to check.
@@ -336,8 +333,11 @@ public class WordIterator implements HiddenSelection.PositionIterator {
                     || wb == UCharacter.WordBreak.MIDNUMLET
                     || wb == UCharacter.WordBreak.SINGLE_QUOTE);
         } else {
-            //TODO: (EW) handle or delete this function if it isn't used
-            return false;
+            // (EW) this method wasn't added until Oreo, and before that, SpellChecker#spellCheck
+            // (the one place currently calling this) just checked for an apostrophe, so for
+            // simplicity and matching AOSP functionality, that's all this will check for older
+            // versions.
+            return codePoint == '\'';
         }
     }
 
@@ -363,7 +363,7 @@ public class WordIterator implements HiddenSelection.PositionIterator {
     private boolean isAfterLetterOrDigit(int offset) {
         if (mStart < offset && offset <= mEnd) {
             final int codePoint = Character.codePointBefore(mCharSeq, offset);
-            if (Character.isLetterOrDigit(codePoint)) return true;
+            return Character.isLetterOrDigit(codePoint);
         }
         return false;
     }
@@ -371,7 +371,7 @@ public class WordIterator implements HiddenSelection.PositionIterator {
     private boolean isOnLetterOrDigit(int offset) {
         if (mStart <= offset && offset < mEnd) {
             final int codePoint = Character.codePointAt(mCharSeq, offset);
-            if (Character.isLetterOrDigit(codePoint)) return true;
+            return Character.isLetterOrDigit(codePoint);
         }
         return false;
     }

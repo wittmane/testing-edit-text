@@ -7,7 +7,6 @@ import java.text.CharacterIterator;
 import java.util.Locale;
 
 public class BreakIterator {
-    private static final String TAG = BreakIterator.class.getSimpleName();
     private android.icu.text.BreakIterator mIcuBreakIterator;
     private java.text.BreakIterator mJavaBreakIterator;
     private int mBeginIndex;
@@ -33,11 +32,13 @@ public class BreakIterator {
     }
 
     public void setText(CharacterIterator newText) {
+        // Although the ICU code appears to exist in Marshmallow, it wasn't exposed to be used by
+        // apps until Nougat.
         if (VERSION.SDK_INT >= VERSION_CODES.N) {
             mIcuBreakIterator.setText(newText);
         } else {
-            // using a CharacterIterator in older versions doesn't work correctly with a non-zero
-            // begin index. Note that the following would be used:
+            // Using a CharacterIterator in older versions (non-ICU BreakIterator) doesn't work
+            // correctly with a non-zero begin index. Note that the following would be used:
             // https://android.googlesource.com/platform/libcore/+/refs/heads/lollipop-mr1-release/luni/src/main/java/java/text/RuleBasedBreakIterator.java
             // https://android.googlesource.com/platform/libcore/+/refs/heads/lollipop-mr1-release/luni/src/main/java/libcore/icu/NativeBreakIterator.java
             // https://android.googlesource.com/platform/libcore/+/refs/heads/lollipop-mr1-release/luni/src/main/native/libcore_icu_NativeBreakIterator.cpp
@@ -50,12 +51,8 @@ public class BreakIterator {
             // isn't accounted for when it passes that value to the iterator's setIndex, which
             // causes crashes when the current index excluding the offset is less than the offset,
             // such as when calling #isBoundary > RuleBasedBreakIterator#isBoundary >
-            // RuleBasedBreakIterator#checkOffset
-            //TODO: (EW) diff the java and icu versions to verify this was the problem
-            //TODO: (EW) verify this isn't a problem for other versions. the change to use the
-            // character iterator rather than just a substring started in oreo. based on the code
-            // for the icu break iterator, this issue should be fixed, but test to be sure.
-            // https://android.googlesource.com/platform/external/icu/+/refs/heads/marshmallow-release/icu4j/main/classes/core/src/com/ibm/icu/text/RuleBasedBreakIterator.java
+            // RuleBasedBreakIterator#checkOffset. To work around this, we'll have to convert to a
+            // string and manage translating the offset to break iterator.
             mBeginIndex = newText.getBeginIndex();
             StringBuilder sb = new StringBuilder();
             for (char c = newText.first(); c != CharacterIterator.DONE; c = newText.next()) {
