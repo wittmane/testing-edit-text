@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -118,6 +119,7 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.view.textservice.SpellCheckerInfo;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
 import android.view.translation.ViewTranslationCallback;
@@ -8327,9 +8329,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // TextServicesManager#newSpellCheckerSession with a null locale and
         // referToSpellCheckerLanguageSettings set to true to get the subtype from the
         // SpellCheckerInfo, but that seems to return all of the possible subtypes for the enabled
-        // spell checker, rather than the enabled one. TextServicesManager added a few methods in S,
-        // such as #getCurrentSpellCheckerInfo that might work, but I haven't tested that, and even
-        // if that does, something needs to be done for older versions.
+        // spell checker, rather than the enabled one. the fallback isn't terrible, so maybe it
+        // would be better to skip the reflection to have a more consistent behavior even if it
+        // isn't the same as AOSP.
         Locale locale = null;
         try {
             Method getCurrentSpellCheckerSubtypeMethod = TextServicesManager.class.getMethod(
@@ -8362,10 +8364,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // aren't allowed to get the enabled spell check locale, maybe this is just how spell
             // apps are expected to do this. simply trying to spell check based on the current
             // locale seems reasonable, but it would just be nice to match AOSP functionality.
-            //TODO: (EW) maybe just always do this and don't use reflection. with it being marked
-            // with UnsupportedAppUsage, I think that means reflection won't work on some newer
-            // versions, so reflection probably isn't even a decent solution for all released
-            // versions
             locale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
                     ? getContext().getResources().getConfiguration().getLocales().get(0)
                     : getContext().getResources().getConfiguration().locale;
@@ -9523,7 +9521,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     // reflection. this is at least relatively safe since it's only done on old
                     // versions so it shouldn't just stop working at some point in the future.
                     try {
-                        //TODO: (EW) actually test that this works
                         Method getDigitStringsMethod =
                                 DecimalFormatSymbols.class.getMethod("getDigitStrings");
                         zero = ((String[]) getDigitStringsMethod.invoke(symbols))[0];

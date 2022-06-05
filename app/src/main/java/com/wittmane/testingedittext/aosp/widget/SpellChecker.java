@@ -13,6 +13,7 @@ import android.text.style.SuggestionSpan;
 import android.util.Log;
 import android.util.Range;
 import android.view.textservice.SentenceSuggestionsInfo;
+import android.view.textservice.SpellCheckerInfo;
 import android.view.textservice.SpellCheckerSession;
 import android.view.textservice.SpellCheckerSession.SpellCheckerSessionListener;
 import android.view.textservice.SpellCheckerSession.SpellCheckerSessionParams;
@@ -23,6 +24,8 @@ import android.view.textservice.TextServicesManager;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.internal.util.GrowingArrayUtils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.BreakIterator;
 import java.util.Locale;
 
@@ -104,14 +107,9 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
         mTextServicesManager = mTextView.getTextServicesManager();
         if (mCurrentLocale == null
-                || mTextServicesManager == null
                 || mTextView.length() == 0
-                || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                        && !mTextServicesManager.isSpellCheckerEnabled())
-                //TODO: (EW) hidden. is there an alternative? maybe newSpellCheckerSession, which
-                // checks this internally. it's called later, so maybe that's enough. maybe check
-                // mTextServicesManager.getCurrentSpellCheckerInfo().getSubtypeCount() > 0
-                /*|| mTextServicesManager.getCurrentSpellCheckerSubtype(true) == null*/) {
+                || !isSpellCheckerEnabled(mTextServicesManager)
+                || !hasCurrentSpellCheckerSubtype(mTextServicesManager)) {
             mSpellCheckerSession = null;
         } else {
             int supportedAttributes = SuggestionsInfo.RESULT_ATTR_IN_THE_DICTIONARY
@@ -245,16 +243,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
             start = 0;
             end = mTextView.getText().length();
         } else {
-            final boolean spellCheckerActivated;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                spellCheckerActivated =
-                        mTextServicesManager != null && mTextServicesManager.isSpellCheckerEnabled();
-            } else {
-                //TODO: (EW) is there anything else to check?
-                // TextServicesManager#isSpellCheckerEnabled has existed since at least kitkat but
-                // for some reason was hidden until S.
-                spellCheckerActivated = true;
-            }
+            final boolean spellCheckerActivated = isSpellCheckerEnabled(mTextServicesManager);
             if (isSessionActive != spellCheckerActivated) {
                 // Spell checker has been turned of or off since last spellCheck
                 resetSession();
@@ -948,5 +937,67 @@ public class SpellChecker implements SpellCheckerSessionListener {
             }
             return mUpper;
         }
+    }
+
+    private static boolean isSpellCheckerEnabled(TextServicesManager textServicesManager) {
+        if (textServicesManager == null) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return textServicesManager.isSpellCheckerEnabled();
+        }
+        // (EW) TextServicesManager#isSpellCheckerEnabled has existed since at least kitkat but for
+        // some reason was hidden until S, and starting in Q, it was marked with
+        // UnsupportedAppUsage, but that seems to still be able to be called with reflection. this
+        // should be at least relatively safe since it's only done on old versions so it shouldn't
+        // just stop working at some point in the future.
+        try {
+            Method isSpellCheckerEnabledMethod = TextServicesManager.class.getMethod(
+                    "isSpellCheckerEnabled");
+            Object result = isSpellCheckerEnabledMethod.invoke(textServicesManager);
+            if (result != null) {
+                return (boolean) result;
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            Log.e(TAG, "isSpellCheckerEnabled: " + e);
+        }
+        // (EW) since we're not able to call an API to check if the spell checker is enabled, we'll
+        // have to just assume it is
+        return true;
+    }
+
+    private static boolean hasCurrentSpellCheckerSubtype(TextServicesManager textServicesManager) {
+        if (textServicesManager == null) {
+            return false;
+        }
+        // (EW) the AOSP version for this functionality checked that
+        // TextServicesManager#getCurrentSpellCheckerSubtype(true) wasn't null, but that method is
+        // hidden. we can at least check if the current spell checker has any subtypes (assuming
+        // reflection works on older versions). maybe something better will be made available in the
+        // future.
+        SpellCheckerInfo spellCheckerInfo;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            spellCheckerInfo = textServicesManager.getCurrentSpellCheckerInfo();
+        } else {
+            // (EW) the functionality of getCurrentSpellCheckerInfo existed at least since kitkat in
+            // a hidden method named getCurrentSpellChecker
+            try {
+                Method getCurrentSpellCheckerMethod = TextServicesManager.class.getMethod(
+                        "getCurrentSpellChecker");
+                spellCheckerInfo = (SpellCheckerInfo) getCurrentSpellCheckerMethod.invoke(
+                        textServicesManager);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                Log.e(TAG, "hasCurrentSpellCheckerSubtype: failed to call getCurrentSpellChecker: "
+                        + e);
+                // (EW) since that didn't works, there probably isn't really anything else to check,
+                // so we'll assume there is a spell checker subtype to avoid losing functionality.
+                // hopefully this won't cause issues.
+                return true;
+            }
+        }
+        if (spellCheckerInfo == null) {
+            return false;
+        }
+        return spellCheckerInfo.getSubtypeCount() > 0;
     }
 }
