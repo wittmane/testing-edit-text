@@ -111,6 +111,7 @@ import com.wittmane.testingedittext.aosp.widget.EditText.OnEditorActionListener;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -347,25 +348,41 @@ public class Editor {
         mHapticTextHandleEnabled = /*mTextView.getContext().getResources().getBoolean(
                 R.bool.config_enableHapticTextHandle)*/false;
 
-        //TODO: (EW) see if there is any way to get these setting or at least figure out where they
-        // come from to see if just using the defaults is appropriate (do same in other places).
-        // probably can use reflection at least as a 1 time thing to set default
-        mFlagCursorDragFromAnywhereEnabled = /*AppGlobals.getIntCoreSetting(
-                WidgetFlags.KEY_ENABLE_CURSOR_DRAG_FROM_ANYWHERE,
-                WidgetFlags.ENABLE_CURSOR_DRAG_FROM_ANYWHERE_DEFAULT ? 1 : 0) != 0*//*true*/false;// (EW) not sure where I got true from, but it prevents scrolling a single line
-        final int cursorDragMinAngleFromVertical = /*AppGlobals.getIntCoreSetting(
-                WidgetFlags.KEY_CURSOR_DRAG_MIN_ANGLE_FROM_VERTICAL,
-                WidgetFlags.CURSOR_DRAG_MIN_ANGLE_FROM_VERTICAL_DEFAULT)*/45;
+        // (EW) the AOSP version checks AppGlobals.getIntCoreSetting starting in R, which is on the
+        // hidden API blacklist, so it can't even be used with reflection. it might be nice to pull
+        // in some system settings, but at least for now that doesn't really seem to be an option.
+        // I disabled the blacklist on an emulator with
+        // adb shell settings put global hidden_api_policy 1
+        // to at least check the value, although this could be different on different devices or
+        // maybe from some system settings. from my testing using  reflection, 1 (true) was returned
+        // (not actually coming from the default value
+        // WidgetFlags.ENABLE_CURSOR_DRAG_FROM_ANYWHERE_DEFAULT (true)). based on this, it would
+        // make sense to have this be true, but it prevents scrolling a single line, which seems
+        // annoying/buggy and is different from functionality in older versions so I decided to
+        // disable this. alternatively, this could be a version check so it matches the framework
+        // view, but it seems weird to change this behavior in different versions of the app.
+        mFlagCursorDragFromAnywhereEnabled = false;
+        // (EW) the AOSP version checks AppGlobals.getIntCoreSetting starting in S with a default
+        // value of WidgetFlags.CURSOR_DRAG_MIN_ANGLE_FROM_VERTICAL_DEFAULT (45). this replaced the
+        // previously hard-coded handling in EditorTouchState, which was also 45.
+        final int cursorDragMinAngleFromVertical = 45;
         mCursorDragDirectionMinXYRatio = EditorTouchState.getXYRatio(
                 cursorDragMinAngleFromVertical);
-        mFlagInsertionHandleGesturesEnabled = /*AppGlobals.getIntCoreSetting(
-                WidgetFlags.KEY_ENABLE_INSERTION_HANDLE_GESTURES,
-                WidgetFlags.ENABLE_INSERTION_HANDLE_GESTURES_DEFAULT ? 1 : 0) != 0*/false;
-        //(EW) this replaced LINE_SLOP_MULTIPLIER_FOR_HANDLEVIEWS, which was also 0.5f, so this
-        // default is at least consistent
-        mLineSlopRatio = /*AppGlobals.getFloatCoreSetting(
-                WidgetFlags.KEY_LINE_SLOP_RATIO,
-                WidgetFlags.LINE_SLOP_RATIO_DEFAULT)*/.5f;
+        // (EW) the AOSP version checks AppGlobals.getIntCoreSetting starting in R with a default
+        // value of WidgetFlags.ENABLE_CURSOR_DRAG_FROM_ANYWHERE_DEFAULT (true). from my testing
+        // using reflection, 0 (false) was returned. there was no equivalent for this in older
+        // versions to reference. unfortunately these don't match to make a simple decision, but
+        // since all of the others that match the default aren't actually using the default
+        // (something is explicitly set to that same value), the hard-coded default may not be that
+        // important to reference. if I find cases that match the default, this should be
+        // reevaluated, but matching the framework view's functionality as much as I'm aware seems
+        // best.
+        mFlagInsertionHandleGesturesEnabled = false;
+        // (EW) the AOSP version checks AppGlobals.getFloatCoreSetting starting in S with a default
+        // value of WidgetFlags.LINE_SLOP_RATIO_DEFAULT (.5f). from my testing using reflection,
+        // 0.5f was returned (not actually coming from the default value). this replaced
+        // LINE_SLOP_MULTIPLIER_FOR_HANDLEVIEWS from older versions, which was also 0.5f.
+        mLineSlopRatio = 0.5f;
         if (EditText.DEBUG_CURSOR) {
             logCursor("Editor", "Cursor drag from anywhere is %s.",
                     mFlagCursorDragFromAnywhereEnabled ? "enabled" : "disabled");
@@ -4213,22 +4230,14 @@ public class Editor {
 
             final int handleHeight = getPreferredHeight();
             mTouchOffsetY = -0.3f * handleHeight;
-//            mIdealVerticalOffset = 0.7f * handleHeight;
-            //TODO: (EW) see if there is any way to get these setting or at least figure out where
-            // they come from to see if just using the defaults is appropriate (do same in other
-            // places)
-            final int distance = /*AppGlobals.getIntCoreSetting(
-                    WidgetFlags.KEY_FINGER_TO_CURSOR_DISTANCE,
-                    WidgetFlags.FINGER_TO_CURSOR_DISTANCE_DEFAULT)*/-1;
-            if (distance < 0 || distance > 100) {
-                mIdealVerticalOffset = 0.7f * handleHeight;
-                mIdealFingerToCursorOffset = (int)(mIdealVerticalOffset - mTouchOffsetY);
-            } else {
-                mIdealFingerToCursorOffset = (int) TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_DIP, distance,
-                        mTextView.getContext().getResources().getDisplayMetrics());
-                mIdealVerticalOffset = mIdealFingerToCursorOffset + mTouchOffsetY;
-            }
+            // (EW) the AOSP version starting in R checks AppGlobals.getIntCoreSetting (See #Editor)
+            // to get a finger to cursor distance. the default value was -1, which is the same as I
+            // found in testing with reflection (not even actually coming from the default specified
+            // here). it treats -1 as essentially no value, so instead of using that to populate
+            // mIdealFingerToCursorOffset and use that to calculate mIdealVerticalOffset, it would
+            // just do this to hard-code mIdealVerticalOffset (same as in previous versions).
+            mIdealVerticalOffset = 0.7f * handleHeight;
+            mIdealFingerToCursorOffset = (int)(mIdealVerticalOffset - mTouchOffsetY);
         }
 
         public float getIdealVerticalOffset() {
@@ -4702,22 +4711,20 @@ public class Editor {
             int deltaHeight = 0;
             int opacity = 255;
             if (mFlagInsertionHandleGesturesEnabled) {
-                //TODO: (EW) see if there is any way to get these setting or at least figure out where
-                // they come from to see if just using the defaults is appropriate (do same in other
-                // places)
-                deltaHeight = /*AppGlobals.getIntCoreSetting(
-                        WidgetFlags.KEY_INSERTION_HANDLE_DELTA_HEIGHT,
-                        WidgetFlags.INSERTION_HANDLE_DELTA_HEIGHT_DEFAULT)*/25;
-                opacity = /*AppGlobals.getIntCoreSetting(
-                        WidgetFlags.KEY_INSERTION_HANDLE_OPACITY,
-                        WidgetFlags.INSERTION_HANDLE_OPACITY_DEFAULT)*/50;
-                // Avoid invalid/unsupported values.
-                if (deltaHeight < -25 || deltaHeight > 50) {
-                    deltaHeight = 25;
-                }
-                if (opacity < 10 || opacity > 100) {
-                    opacity = 50;
-                }
+                // (EW) the AOSP version checks AppGlobals.getIntCoreSetting (See #Editor) starting
+                // in R with a default value of WidgetFlags.INSERTION_HANDLE_DELTA_HEIGHT_DEFAULT
+                // (25). from my testing using reflection, 25 was returned (not actually coming from
+                // the default value). there was no equivalent for this in older versions to
+                // reference. the AOSP version also had a second level default for values outside of
+                // some valid/supported range (-25 - 50) that also matched.
+                deltaHeight = 25;
+                // (EW) the AOSP version checks AppGlobals.getIntCoreSetting starting in R with a
+                // default value of WidgetFlags.INSERTION_HANDLE_OPACITY_DEFAULT (50). from my
+                // testing using reflection, 50 was returned (not actually coming from the default
+                // value). there was no equivalent for this in older versions to reference. the AOSP
+                // version also had a second level default for values outside of some
+                // valid/supported range (10 - 100) that also matched.
+                opacity = 50;
                 // Converts the opacity value from range {0..100} to {0..255}.
                 opacity = opacity * 255 / 100;
             }

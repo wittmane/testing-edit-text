@@ -69,7 +69,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         // notifications fired from SpannableStringBuilder when replace/insert is called.
         final ClipData clip = payload.getClip();
         final /*@Flags */int flags = payload.getFlags();
-        final Editable editable = (Editable) ((TextView) view).getText();
+        final Editable editable = (Editable) ((EditText) view).getText();
         final Context context = view.getContext();
         boolean didFirst = false;
         for (int i = 0; i < clip.getItemCount(); i++) {
