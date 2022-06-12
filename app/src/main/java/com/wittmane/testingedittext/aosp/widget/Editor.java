@@ -1547,7 +1547,8 @@ public class Editor {
         // completely safe to just hard-code 0x800. I only found this constant used in
         // getMetaState throughout AOSP code, so skipping it probably won't even cause a real lack
         // of functionality (at least currently) since other apps probably aren't using it either.
-        // same basic need to skip this in EditText.ChangeWatcher#afterTextChanged.
+        // same basic need to skip this in EditText.ChangeWatcher#afterTextChanged,
+        // ArrowKeyMovementMethod#handleMovementKey, and Touch#onTouchEvent.
         if (mTextView.isSingleLine()) {
             outText.flags |= ExtractedText.FLAG_SINGLE_LINE;
         }

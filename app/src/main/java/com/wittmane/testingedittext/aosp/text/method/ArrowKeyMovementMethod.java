@@ -24,8 +24,19 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
     static final String TAG = ArrowKeyMovementMethod.class.getSimpleName();
 
     private static boolean isSelecting(Spannable buffer) {
-        return ((MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SHIFT_ON) == 1) ||
-                (MetaKeyKeyListener.getMetaState(buffer, ProtectedMetaKeyKeyListener.META_SELECTING) != 0));
+        // (EW) the AOSP version also checked  MetaKeyKeyListener#getMetaState with
+        // MetaKeyKeyListener.META_SELECTING, which is hidden.
+        // MetaKeyKeyListener.META_SELECTING = KeyEvent.META_SELECTING = 0x800 has been defined at
+        // least since Kitkat, but it has been hidden with a comment saying it's pending API review,
+        // and at least as of S, KeyEvent.META_SELECTING has been marked UnsupportedAppUsage
+        // (maxTargetSdk R). after this long it seems unlikely for this to be released for apps to
+        // use, and this could theoretically get changed in a future version, so it wouldn't be
+        // completely safe to just hard-code 0x800. I only found this constant used in getMetaState
+        // throughout AOSP code, so skipping it probably won't even cause a real lack of
+        // functionality (at least currently) since other apps probably aren't using it either. same
+        // basic need to skip this in EditText.ChangeWatcher#afterTextChanged,
+        // Editor#extractTextInternal, and Touch#onTouchEvent.
+        return (MetaKeyKeyListener.getMetaState(buffer, MetaKeyKeyListener.META_SHIFT_ON) == 1);
     }
 
     private static int getCurrentLineTop(Spannable buffer, Layout layout) {
@@ -46,12 +57,21 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_CENTER:
                 if (KeyEvent.metaStateHasNoModifiers(movementMetaState)) {
-                    if (event.getAction() == KeyEvent.ACTION_DOWN
-                            && event.getRepeatCount() == 0
-                            && MetaKeyKeyListener.getMetaState(buffer,
-                                    ProtectedMetaKeyKeyListener.META_SELECTING, event) != 0) {
-                        return widget.showContextMenu();
-                    }
+                    // (EW) the AOSP version checked a few things including
+                    // MetaKeyKeyListener#getMetaState with MetaKeyKeyListener.META_SELECTING, which
+                    // is hidden, in order to call View#showContextMenu on the edit text.
+                    // MetaKeyKeyListener.META_SELECTING = KeyEvent.META_SELECTING = 0x800 has been
+                    // defined at least since Kitkat, but it has been hidden with a comment saying
+                    // it's pending API review, and at least as of S, KeyEvent.META_SELECTING has
+                    // been marked UnsupportedAppUsage (maxTargetSdk R). after this long it seems
+                    // unlikely for this to be released for apps to use, and this could
+                    // theoretically get changed in a future version, so it wouldn't be
+                    // completely safe to just hard-code 0x800. I only found this constant used in
+                    // getMetaState throughout AOSP code, so skipping it probably won't even cause a
+                    // real lack of functionality (at least currently) since other apps probably
+                    // aren't using it either. same basic need to skip this in
+                    // EditText.ChangeWatcher#afterTextChanged, Editor#extractTextInternal, and
+                    // Touch#onTouchEvent.
                 }
                 break;
         }

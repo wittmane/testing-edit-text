@@ -6032,8 +6032,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    //TODO: (EW) I only see this getting called from InputMethodService for ExtractEditText, but it
-    // is a public method so maybe apps have some use to call it. consider if this can get removed
     /**
      * Apply to this text view the given extracted text, as previously
      * returned by {@link #extractText(ExtractedTextRequest, ExtractedText)}.
@@ -6089,13 +6087,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         Selection.setSelection(sp, start, end);
 
         // Finally, update the selection mode.
-        if ((text.flags & ExtractedText.FLAG_SELECTING) != 0) {
-            //TODO: (EW) @hide - figure out how to handle
-//            MetaKeyKeyListener.startSelecting(this, sp);
-        } else {
-            //TODO: (EW) @hide - figure out how to handle
-//            MetaKeyKeyListener.stopSelecting(this, sp);
-        }
+        //FUTURE: (EW) the AOSP version checked text.flags for ExtractedText.FLAG_SELECTING to either
+        // call MetaKeyKeyListener.startSelecting or MetaKeyKeyListener.stopSelecting, but those are
+        // hidden and have been defined at least since Kitkat, but it has been hidden with a comment
+        // saying it's pending API review, and at least as of S, they have been marked with
+        // UnsupportedAppUsage. there doesn't seem to be much to do here for now. implement this if
+        // those APIs ever get approved.
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             setHintInternal(text.hint);
@@ -9767,8 +9764,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // constant used in getMetaState throughout AOSP code, so skipping it probably won't
             // even cause a real lack of functionality (at least currently) since other apps
             // probably aren't using it either. same basic need to skip this in
-            // Editor#extractTextInternal. also MetaKeyKeyListener#stopSelecting is hidden pending
-            // API review and marked with UnsupportedAppUsage, so there isn't much we could do.
+            // Editor#extractTextInternal, ArrowKeyMovementMethod#handleMovementKey, and
+            // Touch#onTouchEvent. also MetaKeyKeyListener#stopSelecting is hidden pending API
+            // review and marked with UnsupportedAppUsage, so there isn't much we could do.
         }
 
         public void onSpanChanged(Spannable buf, Object what, int s, int e, int st, int en) {

@@ -119,11 +119,23 @@ public class Touch {
 
                     if (ds[0].mFarEnough) {
                         ds[0].mUsed = true;
+                        // (EW) the AOSP version also checked MetaKeyKeyListener#getMetaState with
+                        // MetaKeyKeyListener.META_SELECTING, which is hidden.
+                        // MetaKeyKeyListener.META_SELECTING = KeyEvent.META_SELECTING = 0x800 has
+                        // been defined at least since Kitkat, but it has been hidden with a comment
+                        // saying it's pending API review, and at least as of S,
+                        // KeyEvent.META_SELECTING has been marked UnsupportedAppUsage (maxTargetSdk
+                        // R). after this long it seems unlikely for this to be released for apps to
+                        // use, and this could theoretically get changed in a future version, so it
+                        // wouldn't be completely safe to just hard-code 0x800. I only found this
+                        // constant used in getMetaState throughout AOSP code, so skipping it
+                        // probably won't even cause a real lack of functionality (at least
+                        // currently) since other apps probably aren't using it either. same basic
+                        // need to skip this in EditText.ChangeWatcher#afterTextChanged,
+                        // Editor#extractTextInternal, and ArrowKeyMovementMethod#handleMovementKey.
                         boolean cap = (event.getMetaState() & KeyEvent.META_SHIFT_ON) != 0
                                 || MetaKeyKeyListener.getMetaState(buffer,
-                                        MetaKeyKeyListener.META_SHIFT_ON) == 1
-                                || MetaKeyKeyListener.getMetaState(buffer,
-                                        ProtectedMetaKeyKeyListener.META_SELECTING) != 0;
+                                        MetaKeyKeyListener.META_SHIFT_ON) == 1;
 
                         float dx;
                         float dy;
