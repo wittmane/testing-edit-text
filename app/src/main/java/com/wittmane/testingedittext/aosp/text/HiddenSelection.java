@@ -3,7 +3,7 @@ package com.wittmane.testingedittext.aosp.text;
 import android.text.Selection;
 import android.text.Spannable;
 
-import com.wittmane.testingedittext.BreakIterator;
+import com.wittmane.testingedittext.wrapper.BreakIterator;
 
 /**
  * (EW) content from Selection that is blocked for app developers to access

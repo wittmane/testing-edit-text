@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.wrapper;
 
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;

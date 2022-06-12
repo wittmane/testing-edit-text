@@ -10,7 +10,6 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.wittmane.testingedittext.BreakIterator;
 import com.wittmane.testingedittext.aosp.text.HiddenSelection;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 

@@ -1,4 +1,4 @@
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.wrapper;
 
 import android.os.Build;
 import android.util.Log;

@@ -21,7 +21,7 @@ import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.BlendMode;
 import android.graphics.Canvas;
-import com.wittmane.testingedittext.Insets;
+import com.wittmane.testingedittext.wrapper.Insets;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.fonts.FontStyle;
 import android.graphics.fonts.FontVariationAxis;

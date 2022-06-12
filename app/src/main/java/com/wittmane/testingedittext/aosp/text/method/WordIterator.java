@@ -7,7 +7,7 @@ import android.os.Build;
 
 import androidx.annotation.NonNull;
 
-import com.wittmane.testingedittext.BreakIterator;
+import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.text.CharSequenceCharacterIterator;
 import com.wittmane.testingedittext.aosp.text.HiddenSelection;
 
