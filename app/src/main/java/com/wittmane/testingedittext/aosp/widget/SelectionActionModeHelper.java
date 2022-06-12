@@ -197,8 +197,7 @@ public final class SelectionActionModeHelper {
                 mSelectionStart = selectionStart;
                 mSelectionEnd = selectionEnd;
                 mAllowReset = false;
-                //TODO: (EW) implement?
-//                mTextView.notifyContentCaptureTextChanged();
+                mTextView.notifyContentCaptureTextChanged();
             }
         }
 
@@ -207,8 +206,7 @@ public final class SelectionActionModeHelper {
          */
         public void onSelectionDestroyed() {
             mAllowReset = false;
-            //TODO: (EW) implement?
-//            mTextView.notifyContentCaptureTextChanged();
+            mTextView.notifyContentCaptureTextChanged();
             // Wait a few ms to see if the selection was destroyed because of a text change event.
             mDelayedLogAbandon.schedule(100 /* ms */);
         }

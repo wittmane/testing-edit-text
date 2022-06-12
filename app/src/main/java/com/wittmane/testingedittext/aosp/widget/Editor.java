@@ -1162,9 +1162,9 @@ public class Editor {
                 } else {
                     stopTextActionMode();
                 }
-                //TODO: (EW) this makes a single click not pop up suggestions after focusing away
-                // from the text field, but the underline is still there, which seems weird. this is
-                // what AOSP does, but maybe consider ditching this.
+                //TODO: (EW) this makes a single click not pop up suggestions after having focused
+                // away from the text field, but the underline is still there, which seems weird.
+                // this is what AOSP does, but maybe consider ditching this.
                 downgradeEasyCorrectionSpans();
             }
             // No need to create the controller
@@ -1652,7 +1652,7 @@ public class Editor {
                 // (EW) InputMethodState#updateCursor was only called prior to Lollipop and was
                 // replaced with InputMethodState#updateCursorAnchorInfo in later versions (handled
                 // elsewhere)
-                //TODO: (EW) rather than just comparing versions, this might be a decent thing as a
+                //FUTURE: (EW) rather than just comparing versions, this might be a decent thing as a
                 // config option for testing (call updateCursor instead of updateCursorAnchorInfo on
                 // more recent version or maybe both)
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
@@ -2674,7 +2674,7 @@ public class Editor {
         }
 
         private void sendEasySpanNotification(int textChangedType, EasyEditSpan span) {
-            //TODO: (EW) EasyEditSpan#getPendingIntent is hidden from apps, which seems weird since
+            //FUTURE: (EW) EasyEditSpan#getPendingIntent is hidden from apps, which seems weird since
             // setting it in the constructor can be used by apps. I'm not sure how non-framework
             // text editors are expected to be able to handle this. I'm leaving this here for
             // visibility in case there ever is a way for us to do this.
@@ -5358,7 +5358,7 @@ public class Editor {
         @Override
         protected int getOffsetAtCoordinate(@NonNull Layout layout, int line, float x) {
             final float localX = mTextView.convertToLocalHorizontalCoordinate(x);
-            //TODO: (EW) this doesn't match AOSP. as of S, it got Layout#getOffsetForHorizontal for
+            //FUTURE: (EW) this doesn't match AOSP. as of S, it got Layout#getOffsetForHorizontal for
             // both the primary and secondary horizontal and had some logic to determine which to
             // use, but the overload with the boolean primary argument isn't accessible. I'm not
             // completely sure what the separate horizontals are for, but it seems related to LTR vs
@@ -6498,7 +6498,7 @@ public class Editor {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     return ((SpannableStringBuilder) text).getTextWatcherDepth() > 0;
                 } else {
-                    //TODO: (EW) AOSP EditText didn't support undo in this version, so there is
+                    //FUTURE: (EW) AOSP EditText didn't support undo in this version, so there is
                     // nothing there to copy from for this case. SpannableStringBuilder doesn't seem
                     // to even internally track this, so there doesn't seem to be any other way to
                     // do this check. This is incorrect, but I'm not sure if it actually has a bad
@@ -6953,10 +6953,10 @@ public class Editor {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             popupWindow.setWindowLayoutType(layoutType);
         } else {
-            //TODO: (EW) PopupWindow#setWindowLayoutType was called at least since Kitkat, but
-            // it only became available for apps to call in Marshmallow. see if there is some
-            // alternative to reflection. this is at least relatively safe since it's only done on
-            // old versions so it shouldn't just stop working at some point in the future.
+            // (EW) PopupWindow#setWindowLayoutType was called at least since Kitkat, but it only
+            // became available for apps to call in Marshmallow. this isn't great, but this use of
+            // reflection is at least relatively safe since it's only done on old versions so it
+            // shouldn't just stop working at some point in the future.
             try {
                 Method setWindowLayoutTypeMethod = PopupWindow.class.getMethod(
                         "setWindowLayoutType", int.class);

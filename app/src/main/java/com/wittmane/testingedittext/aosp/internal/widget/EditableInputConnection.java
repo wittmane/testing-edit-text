@@ -294,7 +294,7 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "commitCorrection: correctionInfo=" + correctionInfo);
         }
         mTextView.beginBatchEdit();
-        //TODO: (EW) the AOSP version only flashes a highlight on the new text position as if
+        //FUTURE: (EW) the AOSP version only flashes a highlight on the new text position as if
         // assuming that correction was already made and this method was only meant as a visual
         // indication despite the documentation sounding like this should actually change text. This
         // is probably a good candidate for alternate functionality options.
@@ -331,7 +331,7 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest + ", flags=" + flags);
         }
-        //TODO: (EW) if this returns null, no text is shown in the full screen text field
+        //FUTURE: (EW) if this returns null, no text is shown in the full screen text field
         // (landscape) so be sure to consider this when figuring out the weird behavior options
         if (mTextView != null) {
             ExtractedText et = new ExtractedText();
@@ -393,7 +393,7 @@ public class EditableInputConnection extends BaseInputConnection {
                 InputConnection.CURSOR_UPDATE_MONITOR;
         final int unknownFlags = cursorUpdateMode & ~KNOWN_FLAGS_MASK;
         if (unknownFlags != 0) {
-            //TODO: (EW) failing because of an unknown flag seems weird, but the documentation does
+            //FUTURE: (EW) failing because of an unknown flag seems weird, but the documentation does
             // call this out. still might be a decent thing for configurable handling.
             if (DEBUG) {
                 Log.d(TAG, "Rejecting requestUpdateCursorAnchorInfo due to unknown flags." +

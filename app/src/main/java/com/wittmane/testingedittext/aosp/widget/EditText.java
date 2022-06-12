@@ -328,7 +328,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // display attributes
     private final TextPaint mTextPaint;
     private boolean mUserSetTextScaleX;
-    private Layout mLayout;//TODO: (EW) currently this is always a DynamicLayout. consider clarifying this as the type
+    // (EW) the AOSP version was typed as Layout but this version currently always uses a
+    // DynamicLayout, so specifying that for visibility, but this could be changed back if necessary
+    private DynamicLayout mLayout;
     private boolean mLocalesChanged = false;
     private int mTextSizeUnit = -1;
 
@@ -485,6 +487,18 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          */
         boolean onEditorAction(EditText v, int actionId, KeyEvent event);
     }
+
+    // (EW) from View
+    private static final int VIEW_STRUCTURE_FOR_ASSIST = 0;
+    private  static final int VIEW_STRUCTURE_FOR_AUTOFILL = 1;
+    private  static final int VIEW_STRUCTURE_FOR_CONTENT_CAPTURE = 2;
+    @IntDef(flag = true, value = {
+            VIEW_STRUCTURE_FOR_ASSIST,
+            VIEW_STRUCTURE_FOR_AUTOFILL,
+            VIEW_STRUCTURE_FOR_CONTENT_CAPTURE
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ViewStructureType {}
 
     public EditText(Context context) {
         this(context, null);
@@ -1701,8 +1715,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_textSelectHandle
      */
     public void setTextSelectHandle(@NonNull Drawable textSelectHandle) {
-        //TODO: (EW) maybe change to Objects.requireNonNull since others places made this change
-        Preconditions.checkNotNull(textSelectHandle,
+        Objects.requireNonNull(textSelectHandle,
                 "The text select handle should not be null.");
         mTextSelectHandle = textSelectHandle;
         mTextSelectHandleRes = 0;
@@ -1755,8 +1768,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_textSelectHandleLeft
      */
     public void setTextSelectHandleLeft(@NonNull Drawable textSelectHandleLeft) {
-        //TODO: (EW) maybe change to Objects.requireNonNull since others places made this change
-        Preconditions.checkNotNull(textSelectHandleLeft,
+        Objects.requireNonNull(textSelectHandleLeft,
                 "The left text select handle should not be null.");
         mTextSelectHandleLeft = textSelectHandleLeft;
         mTextSelectHandleLeftRes = 0;
@@ -1809,8 +1821,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_textSelectHandleRight
      */
     public void setTextSelectHandleRight(@NonNull Drawable textSelectHandleRight) {
-        //TODO: (EW) maybe change to Objects.requireNonNull since others places made this change
-        Preconditions.checkNotNull(textSelectHandleRight,
+        Objects.requireNonNull(textSelectHandleRight,
                 "The right text select handle should not be null.");
         mTextSelectHandleRight = textSelectHandleRight;
         mTextSelectHandleRightRes = 0;
@@ -2256,15 +2267,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         KeyListener listener = mEditor.mKeyListener;
         if (listener instanceof DigitsKeyListener) {
-            //TODO: (EW) figure out how to handle. the overload to get a DigitsKeyListener based on
-            // an the settings of a existing DigitsKeyListener with the locale modified is hidden
-            // from apps. DigitsKeyListener doesn't seem to have any way to check the sign or
-            // decimal, and since the listener could come from setKeyListener, we can't really even
-            // track it ourself. Other than reflection, I'm not sure how we can do this. I suppose
-            // there are other types of listeners that we don't update the locale, so I guess this
-            // isn't that bad. note that DigitsKeyListener (or any of the others) didn't even start
-            // supporting a locale until Oreo, so not supporting it may not be too unreasonable.
-//            listener = DigitsKeyListener.getInstance(locale, (DigitsKeyListener) listener);
+            //FUTURE: (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
+            // that returns a DigitsKeyListener based on an the settings of a existing
+            // DigitsKeyListener, with the locale modified. DigitsKeyListener doesn't seem to have
+            // any way to check the sign or decimal, and since the listener could come from
+            // setKeyListener, we can't really even track it ourself. Other than reflection, I'm not
+            // sure how we can do this. I suppose there are other types of listeners that we don't
+            // update the locale, so I guess not doing anything isn't that bad. note that
+            // DigitsKeyListener (or any of the others) didn't even start supporting a locale until
+            // Oreo, so not supporting it may not be too unreasonable. if DigitsKeyListener changes
+            // to accomplish this, this should be updated to match functionality of AOSP.
         } else if (listener instanceof DateKeyListener) {
             listener = DateKeyListener.getInstance(locale);
         } else if (listener instanceof TimeKeyListener) {
@@ -4737,7 +4749,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    //TODO: (EW) View#focusSearch says is marked as only allowing @FocusRealDirection (like
+    //FUTURE: (EW) View#focusSearch says is marked as only allowing @FocusRealDirection (like
     // @FocusDirection, but without forward/backward), but based on looking into the implementation
     // (as of S), ViewGroup#focusSearch and ViewRootImpl#focusSearch (only implementers of
     // ViewParent that I found) both call FocusFinder#findNextFocus, which doesn't have the same
@@ -6184,7 +6196,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mSavedHintLayout = (BoringLayout) mHintLayout;
         }
 
-        mLayout = mHintLayout = null;
+        mLayout = null;
+        mHintLayout = null;
 
         mHintBoring = null;
 
@@ -6224,7 +6237,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         alignment = Layout.Alignment.ALIGN_OPPOSITE;
                         break;
                     case Gravity.LEFT:
-                        //TODO: (EW) this value eventually gets passed to Layout, which checks
+                        //FUTURE: (EW) this value eventually gets passed to Layout, which checks
                         // getParagraphDirection for each line in drawText to determine the
                         // conversion to ALIGN_NORMAL or ALIGN_OPPOSITE, so I don't think we can
                         // replicate this functionality just using those. we could check something
@@ -6237,7 +6250,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         alignment = HiddenLayout.ALIGNMENT_ALIGN_LEFT;
                         break;
                     case Gravity.RIGHT:
-                        //TODO: (EW) see Gravity.LEFT case comment
+                        //FUTURE: (EW) see Gravity.LEFT case comment
                         alignment = HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
                         break;
                     case Gravity.CENTER_HORIZONTAL:
@@ -6258,12 +6271,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 alignment = Layout.Alignment.ALIGN_CENTER;
                 break;
             case TEXT_ALIGNMENT_VIEW_START:
-                //TODO: (EW) see Gravity.LEFT case comment
+                //FUTURE: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
                         ? HiddenLayout.ALIGNMENT_ALIGN_RIGHT : HiddenLayout.ALIGNMENT_ALIGN_LEFT;
                 break;
             case TEXT_ALIGNMENT_VIEW_END:
-                //TODO: (EW) see Gravity.LEFT case comment
+                //FUTURE: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
                         ? HiddenLayout.ALIGNMENT_ALIGN_LEFT : HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
                 break;
@@ -6389,12 +6402,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         mEditor.prepareCursorControllers();
     }
 
+    // (EW) the AOSP version was typed as Layout but this version currently always uses a
+    // DynamicLayout, so specifying that for visibility, but this could be changed back if necessary
     /**
      * @hide
      */
-    protected Layout makeSingleLayout(int wantWidth, int ellipsisWidth,
+    protected DynamicLayout makeSingleLayout(int wantWidth, int ellipsisWidth,
                                       Layout.Alignment alignment, TruncateAt effectiveEllipsize) {
-        Layout result;
+        DynamicLayout result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             final DynamicLayout.Builder builder = DynamicLayout.Builder.obtain(mText, mTextPaint,
                     wantWidth)
@@ -6705,7 +6720,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          * Don't cap the hint to a certain number of lines.
          * (Do cap it, though, if we have a maximum pixel height.)
          */
-        //TODO: (EW) Layout#getHeight(boolean) is hidden. the base implementation simply calls
+        //FUTURE: (EW) Layout#getHeight(boolean) is hidden. the base implementation simply calls
         // Layout#getHeight(). DynamicLayout and BoringLayout don't override it, but StaticLayout
         // does (and it's marked as UnsupportedAppUsage), which means this only might cause an issue
         // with the hint text in certain cases. trying to copy the logic from StaticLayout is
@@ -8422,19 +8437,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         onProvideStructure(structure, VIEW_STRUCTURE_FOR_CONTENT_CAPTURE);
     }
 
-    //TODO: (EW) probably move
-    // (EW) from View
-    private static final int VIEW_STRUCTURE_FOR_ASSIST = 0;
-    private  static final int VIEW_STRUCTURE_FOR_AUTOFILL = 1;
-    private  static final int VIEW_STRUCTURE_FOR_CONTENT_CAPTURE = 2;
-    @IntDef(flag = true, value = {
-            VIEW_STRUCTURE_FOR_ASSIST,
-            VIEW_STRUCTURE_FOR_AUTOFILL,
-            VIEW_STRUCTURE_FOR_CONTENT_CAPTURE
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface ViewStructureType {}
-
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void onProvideStructure(@NonNull ViewStructure structure,
                                     @ViewStructureType int viewFor) {
@@ -8754,7 +8756,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return;
         }
         if (extraDataKey.equals(AccessibilityNodeInfo.EXTRA_DATA_RENDERING_INFO_KEY)) {
-            //TODO: (EW) the AOSP version starting in R obtained a
+            //FUTURE: (EW) the AOSP version starting in R obtained a
             // AccessibilityNodeInfo.ExtraRenderingInfo to set the layout and text size in order to
             // call #setExtraRenderingInfo on info, but that method is hidden and there doesn't seem
             // to be a way for apps to even get the AccessibilityNodeInfo.ExtraRenderingInfo or
@@ -9516,10 +9518,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     zero = symbols.getDigitStrings()[0];
                 } else {
-                    //TODO: (EW) DecimalFormatSymbols#getDigitStrings was used in Oreo, but it
-                    // wasn't made accessible until Pie. see if there is some alternative to
-                    // reflection. this is at least relatively safe since it's only done on old
-                    // versions so it shouldn't just stop working at some point in the future.
+                    // (EW) DecimalFormatSymbols#getDigitStrings was used in Oreo, but it wasn't
+                    // made accessible until Pie. this isn't great, but this use of reflection is at
+                    // least relatively safe since it's only done on old versions so it shouldn't
+                    // just stop working at some point in the future.
                     try {
                         Method getDigitStringsMethod =
                                 DecimalFormatSymbols.class.getMethod("getDigitStrings");
@@ -9841,30 +9843,30 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
 
 
-    // from Layout
-    //TODO: (EW) copied from Layout - see if this can be removed
-    private enum Alignment {
-        ALIGN_NORMAL,
-        ALIGN_OPPOSITE,
-        ALIGN_CENTER,
-        /** @hide */
-        ALIGN_LEFT,
-        /** @hide */
-        ALIGN_RIGHT,
-    }
-    private Alignment convertAlignment(Layout.Alignment alignment) {
-        switch (alignment) {
-            case ALIGN_NORMAL:
-                return Alignment.ALIGN_NORMAL;
-            case ALIGN_OPPOSITE:
-                return Alignment.ALIGN_OPPOSITE;
-            case ALIGN_CENTER:
-                return Alignment.ALIGN_CENTER;
-        }
-        //TODO: (EW) could this ever happen?
-        Log.e(TAG, "convertAlignment: " + alignment);
-        return Alignment.ALIGN_LEFT;
-    }
+//    // from Layout
+//    //TODO: (EW) copied from Layout - see if this can be removed
+//    private enum Alignment {
+//        ALIGN_NORMAL,
+//        ALIGN_OPPOSITE,
+//        ALIGN_CENTER,
+//        /** @hide */
+//        ALIGN_LEFT,
+//        /** @hide */
+//        ALIGN_RIGHT,
+//    }
+//    private Alignment convertAlignment(Layout.Alignment alignment) {
+//        switch (alignment) {
+//            case ALIGN_NORMAL:
+//                return Alignment.ALIGN_NORMAL;
+//            case ALIGN_OPPOSITE:
+//                return Alignment.ALIGN_OPPOSITE;
+//            case ALIGN_CENTER:
+//                return Alignment.ALIGN_CENTER;
+//        }
+//        //TODO: (EW) could this ever happen?
+//        Log.e(TAG, "convertAlignment: " + alignment);
+//        return Alignment.ALIGN_LEFT;
+//    }
 
 
 

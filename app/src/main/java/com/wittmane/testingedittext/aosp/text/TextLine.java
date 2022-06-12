@@ -811,10 +811,10 @@ public class TextLine {
                         mStart + spanLimit, runIsRtl, mStart + offset, cursorOpt) - mStart;
             }
         } else {
-            //TODO: (EW) Paint#getTextRunCursor was called at least since Kitkat, but it only became
-            // available for apps to call in Q (some changed parameters). see if there is some
-            // alternative to reflection. this is at least relatively safe since it's only done on
-            // old versions so it shouldn't just stop working at some point in the future.
+            // (EW) Paint#getTextRunCursor was called at least since Kitkat, but it only became
+            // available for apps to call in Q (some changed parameters). this isn't great, but this
+            // use of reflection is at least relatively safe since it's only done on old versions so
+            // it shouldn't just stop working at some point in the future.
             int dir = runIsRtl ? /*Paint.DIRECTION_RTL*/1 : /*Paint.DIRECTION_LTR*/0;
             int cursorOpt = after ? /*Paint.CURSOR_AFTER*/0 : /*Paint.CURSOR_BEFORE*/2;
             try {
@@ -888,11 +888,11 @@ public class TextLine {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 return wp.getRunAdvance(mChars, start, end, contextStart, contextEnd, runIsRtl, offset);
             } else {
-                //TODO: (EW) Paint#getTextRunAdvances was called at least since Kitkat (although
-                // with some varying parameters), but it only became available for apps to call in
-                // Marshmallow. see if there is some alternative to reflection. this is at least
-                // relatively safe since it's only done on old versions so it shouldn't just stop
-                // working at some point in the future.
+                // (EW) Paint#getTextRunAdvances was called at least since Kitkat (although with
+                // some varying parameters), but it only became available for apps to call in
+                // Marshmallow. this isn't great, but this use of reflection is at least  relatively
+                // safe since it's only done on old versions so it shouldn't just stop working at
+                // some point in the future.
                 try {
                     int runLen = end - start;
                     int contextLen = contextEnd - contextStart;
@@ -924,11 +924,11 @@ public class TextLine {
                     return wp.getRunAdvance(mText, delta + start, delta + end,
                             delta + contextStart, delta + contextEnd, runIsRtl, delta + offset);
                 } else {
-                    //TODO: (EW) Paint#getTextRunAdvances was called at least since Kitkat (although
-                    // with some varying parameters), but it only became available for apps to call in
-                    // Marshmallow. see if there is some alternative to reflection. this is at least
-                    // relatively safe since it's only done on old versions so it shouldn't just stop
-                    // working at some point in the future.
+                    // (EW) Paint#getTextRunAdvances was called at least since Kitkat (although with
+                    // some varying parameters), but it only became available for apps to call in
+                    // Marshmallow. this isn't great, but this use of reflection is at least
+                    // relatively safe since it's only done on old versions so it shouldn't just
+                    // stop working at some point in the future.
                     try {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                             Method getTextRunAdvancesMethod = TextPaint.class.getMethod(
@@ -1289,13 +1289,12 @@ public class TextLine {
             wp.setStartHyphenEdit(adjustStartHyphenEdit(start, sourcePaint.getStartHyphenEdit()));
             wp.setEndHyphenEdit(adjustEndHyphenEdit(limit, sourcePaint.getEndHyphenEdit()));
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            //TODO: (EW) Paint#setHyphenEdit(int) and Paint#getHyphenEdit() existed since
-            // Marshmallow, although they were only called in Oreo through Pie. prior to Oreo the
-            // documentation stated that setHyphenEdit only takes a 1 or 0, so the handling in
-            // adjustHyphenEdit wouldn't work, so we'll also only call it starting in Oreo.
-            // see if there is some alternative to reflection. this is at least relatively safe
-            // since it's only done on old versions so it shouldn't just stop working at some point
-            // in the future.
+            // (EW) Paint#setHyphenEdit(int) and Paint#getHyphenEdit() existed since Marshmallow,
+            // although they were only called in Oreo through Pie. prior to Oreo the documentation
+            // stated that setHyphenEdit only takes a 1 or 0, so the handling in adjustHyphenEdit
+            // wouldn't work, so we'll also only call it starting in Oreo. this isn't great, but
+            // this use of reflection is at least  relatively safe since it's only done on old
+            // versions so it shouldn't just stop working at some point in the future.
             try {
                 Method setHyphenEditMethod = TextPaint.class.getMethod(
                         "setHyphenEdit",  int.class);
