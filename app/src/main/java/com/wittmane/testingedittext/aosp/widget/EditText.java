@@ -8917,16 +8917,38 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     static final int ID_SELECT_ALL = android.R.id.selectAll;
-    static final int ID_UNDO = android.R.id.undo;//TODO: (EW) requires api level 23
-    static final int ID_REDO = android.R.id.redo;//TODO: (EW) requires api level 23
+    // (EW) this feature didn't exist in older versions of AOSP, but this doesn't actually rely on
+    // something from the system, so even though the ID doesn't exist on the older version, we just
+    // need something to pass around internally to make this work.
+    static final int ID_UNDO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            ? android.R.id.undo : 16908338;
+    // (EW) this feature didn't exist in older versions of AOSP, but this doesn't actually rely on
+    // something from the system, so even though the ID doesn't exist on the older version, we just
+    // need something to pass around internally to make this work.
+    static final int ID_REDO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            ? android.R.id.redo : 16908339;
     static final int ID_CUT = android.R.id.cut;
     static final int ID_COPY = android.R.id.copy;
     static final int ID_PASTE = android.R.id.paste;
-    static final int ID_SHARE = android.R.id.shareText;//TODO: (EW) requires api level 23
-    static final int ID_PASTE_AS_PLAIN_TEXT = android.R.id.pasteAsPlainText;//TODO: (EW) requires api level 23
-    static final int ID_REPLACE = android.R.id.replaceText;//TODO: (EW) requires api level 23
-    static final int ID_ASSIST = android.R.id.textAssist;//TODO: (EW) requires api level 26
-    static final int ID_AUTOFILL = android.R.id.autofill;//TODO: (EW) requires api level 26
+    // (EW) this feature didn't exist in older versions of AOSP, but this doesn't actually rely on
+    // something from the system, so even though the ID doesn't exist on the older version, we just
+    // need something to pass around internally to make this work.
+    static final int ID_SHARE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            ? android.R.id.shareText : 16908341;
+    // (EW) this feature didn't exist in older versions of AOSP, but this doesn't actually rely on
+    // something from the system, so even though the ID doesn't exist on the older version, we just
+    // need something to pass around internally to make this work.
+    static final int ID_PASTE_AS_PLAIN_TEXT = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            ? android.R.id.pasteAsPlainText : 16908337;
+    // (EW) this feature didn't exist in older versions of AOSP, but this doesn't actually rely on
+    // something from the system, so even though the ID doesn't exist on the older version, we just
+    // need something to pass around internally to make this work.
+    static final int ID_REPLACE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            ? android.R.id.replaceText : 16908340;
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static final int ID_ASSIST = android.R.id.textAssist;
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static final int ID_AUTOFILL = android.R.id.autofill;
 
     /**
      * Called when a context menu option for the text view is selected.  Currently
@@ -8946,83 +8968,78 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             min = Math.max(0, Math.min(selStart, selEnd));
             max = Math.max(0, Math.max(selStart, selEnd));
         }
-
-        switch (id) {
-            case ID_SELECT_ALL:
-                final boolean hadSelection = hasSelection();
-                selectAllText();
-                if (hadSelection) {
-                    mEditor.invalidateActionModeAsync();
-                }
-                return true;
-
-            case ID_UNDO:
-                mEditor.undo();
-                return true;  // Returns true even if nothing was undone.
-
-            case ID_REDO:
-                mEditor.redo();
-                return true;  // Returns true even if nothing was undone.
-
-            case ID_PASTE:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    paste(true /* withFormatting */);
-                } else {
-                    paste(min, max, true /* withFormatting */);
-                }
-                return true;
-
-            case ID_PASTE_AS_PLAIN_TEXT:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    paste(false /* withFormatting */);
-                } else {
-                    paste(min, max, false /* withFormatting */);
-                }
-                return true;
-
-            case ID_CUT:
-                final ClipData cutData = ClipData.newPlainText(null, getTransformedText(min, max));
-                if (setPrimaryClip(cutData)) {
-                    deleteText_internal(min, max);
-                } else {
-                    Toast.makeText(getContext(),
-                            R.string.failed_to_copy_to_clipboard,
-                            Toast.LENGTH_SHORT).show();
-                }
-                return true;
-
-            case ID_COPY:
-                // For link action mode in a non-selectable/non-focusable TextView,
-                // make sure that we set the appropriate min/max.
-                final int selStart = getSelectionStart();
-                final int selEnd = getSelectionEnd();
-                min = Math.max(0, Math.min(selStart, selEnd));
-                max = Math.max(0, Math.max(selStart, selEnd));
-                final ClipData copyData = ClipData.newPlainText(null, getTransformedText(min, max));
-                if (setPrimaryClip(copyData)) {
-                    stopTextActionMode();
-                } else {
-                    Toast.makeText(getContext(),
-                            R.string.failed_to_copy_to_clipboard,
-                            Toast.LENGTH_SHORT).show();
-                }
-                return true;
-
-            case ID_REPLACE:
-                mEditor.replace();
-                return true;
-
-            case ID_SHARE:
-                shareSelectedText();
-                return true;
-
-            case ID_AUTOFILL:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    requestAutofill();
-                    stopTextActionMode();
-                    return true;
-                }
-                break;
+        if (id == ID_SELECT_ALL) {
+            final boolean hadSelection = hasSelection();
+            selectAllText();
+            if (hadSelection) {
+                mEditor.invalidateActionModeAsync();
+            }
+            return true;
+        }
+        if (id == ID_UNDO) {
+            mEditor.undo();
+            return true;  // Returns true even if nothing was undone.
+        }
+        if (id == ID_REDO) {
+            mEditor.redo();
+            return true;  // Returns true even if nothing was undone.
+        }
+        if (id == ID_PASTE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                paste(true /* withFormatting */);
+            } else {
+                paste(min, max, true /* withFormatting */);
+            }
+            return true;
+        }
+        if (id == ID_PASTE_AS_PLAIN_TEXT) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                paste(false /* withFormatting */);
+            } else {
+                paste(min, max, false /* withFormatting */);
+            }
+            return true;
+        }
+        if (id == ID_CUT) {
+            final ClipData cutData = ClipData.newPlainText(null, getTransformedText(min, max));
+            if (setPrimaryClip(cutData)) {
+                deleteText_internal(min, max);
+            } else {
+                Toast.makeText(getContext(),
+                        R.string.failed_to_copy_to_clipboard,
+                        Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        }
+        if (id == ID_COPY) {
+            // For link action mode in a non-selectable/non-focusable TextView,
+            // make sure that we set the appropriate min/max.
+            final int selStart = getSelectionStart();
+            final int selEnd = getSelectionEnd();
+            min = Math.max(0, Math.min(selStart, selEnd));
+            max = Math.max(0, Math.max(selStart, selEnd));
+            final ClipData copyData = ClipData.newPlainText(null, getTransformedText(min, max));
+            if (setPrimaryClip(copyData)) {
+                stopTextActionMode();
+            } else {
+                Toast.makeText(getContext(),
+                        R.string.failed_to_copy_to_clipboard,
+                        Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        }
+        if (id == ID_REPLACE) {
+            mEditor.replace();
+            return true;
+        }
+        if (id == ID_SHARE) {
+            shareSelectedText();
+            return true;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && id == ID_AUTOFILL) {
+            requestAutofill();
+            stopTextActionMode();
+            return true;
         }
         return false;
     }

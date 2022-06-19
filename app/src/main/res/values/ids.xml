@@ -3,4 +3,9 @@
     <item type="id" name="selection_start_handle" />
     <item type="id" name="selection_end_handle" />
     <item type="id" name="insertion_handle" />
+
+    <item type="id" name="action_popup_window_paste" />
+    <item type="id" name="action_popup_window_replace" />
+    <item type="id" name="action_popup_window_paste_as_plain_text" />
+    <item type="id" name="action_popup_window_share" />
 </resources>

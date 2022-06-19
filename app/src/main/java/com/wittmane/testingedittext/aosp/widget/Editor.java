@@ -66,6 +66,7 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.WindowMetrics;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CorrectionInfo;
@@ -81,6 +82,7 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -2220,15 +2222,6 @@ public class Editor {
         mUndoInputFilter.freezeLastEdit();
     }
 
-    // (EW) needed prior to Marshmallow for ActionPopupWindow
-    void showSuggestions() {
-        if (mSuggestionsPopupWindow == null) {
-            mSuggestionsPopupWindow = new SuggestionsPopupWindow();
-        }
-        hideCursorAndSpanControllers();
-        mSuggestionsPopupWindow.show();
-    }
-
     void onScrollChanged() {
         if (mPositionListener != null) {
             mPositionListener.onScrollChanged();
@@ -2932,7 +2925,11 @@ public class Editor {
             setWindowLayoutType(mPopupWindow,
                     WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
 
-            mPopupWindow.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+            // (EW) the AOSP version uses WRAP_CONTENT, but for some reason that limits the max
+            // width of the popup, so instead we'll initially have this match the parent to allow
+            // the max content and once the width of the actual content is determined, we'll update
+            // the width of the popup to match.
+            mPopupWindow.setWidth(ViewGroup.LayoutParams.MATCH_PARENT);
             mPopupWindow.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
 
             initContentView();
@@ -2969,6 +2966,11 @@ public class Editor {
         private void computeLocalPosition() {
             measureContent();
             final int width = mContentView.getMeasuredWidth();
+
+            // (EW) now that we've determined the actual width of the content, we can set the width
+            // of the popup to match (see #PinnedPopupWindow)
+            mPopupWindow.setWidth(width);
+
             final int offset = getTextOffset();
             mPositionX = (int) (mTextView.getLayout().getPrimaryHorizontal(offset) - width / 2.0f);
             mPositionX += mTextView.viewportToContentHorizontalOffset();
@@ -4071,6 +4073,8 @@ public class Editor {
         private static final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
         private android.widget.TextView mPasteTextView;
         private android.widget.TextView mReplaceTextView;
+        private android.widget.TextView mPasteAsPlainTextTextView;
+        private android.widget.TextView mShareTextView;
 
         @Override
         protected void createPopupWindow() {
@@ -4081,9 +4085,13 @@ public class Editor {
 
         @Override
         protected void initContentView() {
-            LinearLayout linearLayout = new LinearLayout(mTextView.getContext());
-            linearLayout.setOrientation(LinearLayout.HORIZONTAL);
-            mContentView = linearLayout;
+            // (EW) the AOSP version simply used a LinearLayout, but this intentionally deviates
+            // from that because this has additional items to be more consistent with newer versions
+            // of this app. if all of the items are shown at once, they won't fit, so this now has
+            // to support dynamically shifting to multiple rows.
+            mContentView = new RelativeLayout(mTextView.getContext());
+            mContentView.setLayoutParams(new LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             mContentView.setBackgroundResource(R.drawable.text_edit_paste_window);
 
             LayoutInflater inflater = (LayoutInflater) mTextView.getContext().
@@ -4097,22 +4105,112 @@ public class Editor {
             mContentView.addView(mPasteTextView);
             mPasteTextView.setText(android.R.string.paste);
             mPasteTextView.setOnClickListener(this);
+            mPasteTextView.setId(R.id.action_popup_window_paste);
 
             mReplaceTextView = (android.widget.TextView) inflater.inflate(POPUP_TEXT_LAYOUT, null);
             mReplaceTextView.setLayoutParams(wrapContent);
             mContentView.addView(mReplaceTextView);
             mReplaceTextView.setText(R.string.replace);
             mReplaceTextView.setOnClickListener(this);
+            mReplaceTextView.setId(R.id.action_popup_window_replace);
+
+            // (EW) this didn't exist in the AOSP version but adding to make this app more
+            // consistent between versions since later versions support this in
+            // TextActionModeCallback
+            mPasteAsPlainTextTextView =
+                    (android.widget.TextView) inflater.inflate(POPUP_TEXT_LAYOUT, null);
+            mPasteAsPlainTextTextView.setLayoutParams(wrapContent);
+            mContentView.addView(mPasteAsPlainTextTextView);
+            mPasteAsPlainTextTextView.setText(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                    ? android.R.string.paste_as_plain_text
+                    : R.string.paste_as_plain_text);
+            mPasteAsPlainTextTextView.setOnClickListener(this);
+            mPasteAsPlainTextTextView.setId(R.id.action_popup_window_paste_as_plain_text);
+
+            // (EW) this didn't exist in the AOSP version but adding to make this app more
+            // consistent between versions since later versions support this in
+            // TextActionModeCallback
+            mShareTextView =
+                    (android.widget.TextView) inflater.inflate(POPUP_TEXT_LAYOUT, null);
+            mShareTextView.setLayoutParams(wrapContent);
+            mContentView.addView(mShareTextView);
+            mShareTextView.setText(R.string.share);
+            mShareTextView.setOnClickListener(this);
+            mShareTextView.setId(R.id.action_popup_window_share);
         }
 
         @Override
         public void show() {
             boolean canPaste = mTextView.canPaste();
             boolean canSuggest = mTextView.isSuggestionsEnabled() && isCursorInsideSuggestionSpan();
+            boolean canPasteAsPlainText = mTextView.canPasteAsPlainText();
+            boolean canShare = mTextView.canShare();
             mPasteTextView.setVisibility(canPaste ? View.VISIBLE : View.GONE);
             mReplaceTextView.setVisibility(canSuggest ? View.VISIBLE : View.GONE);
+            mPasteAsPlainTextTextView.setVisibility(canPasteAsPlainText ? View.VISIBLE : View.GONE);
+            mShareTextView.setVisibility(canShare ? View.VISIBLE : View.GONE);
 
-            if (!canPaste && !canSuggest) return;
+            if (!canPaste && !canSuggest && !canPasteAsPlainText && !canShare) return;
+
+            mContentView.getLayoutParams().width = ViewGroup.LayoutParams.WRAP_CONTENT;
+
+            // (EW) this isn't in the AOSP version, but due to the additional items, not everything
+            // will fit in one line, so anything that doesn't fit will be pushed onto the next line
+            final DisplayMetrics displayMetrics = mTextView.getResources().getDisplayMetrics();
+            int curWidth = 0;
+            android.widget.TextView previousTextViewOnLine = null;
+            android.widget.TextView firstTextViewOnPreviousLine = null;
+            android.widget.TextView firstTextViewOnLine = null;
+            final android.widget.TextView[] textViews = new android.widget.TextView[] {
+                    mPasteTextView, mReplaceTextView, mPasteAsPlainTextTextView, mShareTextView
+            };
+            for (android.widget.TextView textView : textViews) {
+                if (textView.getVisibility() != View.VISIBLE) {
+                    continue;
+                }
+
+                RelativeLayout.LayoutParams params =
+                        (RelativeLayout.LayoutParams) textView.getLayoutParams();
+
+                params.removeRule(RelativeLayout.BELOW);
+                params.removeRule(RelativeLayout.END_OF);
+                params.removeRule(RelativeLayout.ALIGN_PARENT_TOP);
+                params.removeRule(RelativeLayout.ALIGN_PARENT_START);
+
+                int widthMeasureSpec = MeasureSpec.makeMeasureSpec(
+                        mContentView.getLayoutParams().width, MeasureSpec.AT_MOST);
+                int heightMeasureSpec = MeasureSpec.makeMeasureSpec(
+                        mContentView.getLayoutParams().height, MeasureSpec.AT_MOST);
+                textView.measure(widthMeasureSpec, heightMeasureSpec);
+                int measuredWidth = textView.getMeasuredWidth();
+
+                if (curWidth + measuredWidth > displayMetrics.widthPixels) {
+                    firstTextViewOnPreviousLine = firstTextViewOnLine;
+                    firstTextViewOnLine = textView;
+                    curWidth = measuredWidth;
+
+                    params.addRule(RelativeLayout.ALIGN_PARENT_START, 1);
+                } else {
+                    curWidth += measuredWidth;
+
+                    if (previousTextViewOnLine != null) {
+                        params.addRule(RelativeLayout.END_OF, previousTextViewOnLine.getId());
+                    } else {
+                        params.addRule(RelativeLayout.ALIGN_PARENT_START, 1);
+                    }
+                }
+
+                if (firstTextViewOnPreviousLine != null) {
+                    params.addRule(RelativeLayout.BELOW, firstTextViewOnPreviousLine.getId());
+                } else {
+                    params.addRule(RelativeLayout.ALIGN_PARENT_TOP, 1);
+                }
+
+                if (firstTextViewOnLine == null) {
+                    firstTextViewOnLine = textView;
+                }
+                previousTextViewOnLine = textView;
+            }
 
             super.show();
         }
@@ -4123,12 +4221,14 @@ public class Editor {
                 mTextView.onTextContextMenuItem(EditText.ID_PASTE);
                 hide();
             } else if (view == mReplaceTextView) {
-                int middle = (mTextView.getSelectionStart() + mTextView.getSelectionEnd()) / 2;
                 stopTextActionMode();
-                Selection.setSelection((Spannable) mTextView.getText(), middle);
-                //TODO: (EW) this is very similar to replace(). should we just call that instead
-                // since showSuggestions doesn't exist in newer versions?
-                showSuggestions();
+                mTextView.onTextContextMenuItem(EditText.ID_REPLACE);
+            } else if (view == mPasteAsPlainTextTextView && mTextView.canPasteAsPlainText()) {
+                mTextView.onTextContextMenuItem(EditText.ID_PASTE_AS_PLAIN_TEXT);
+                hide();
+            } else if (view == mShareTextView && mTextView.canShare()) {
+                mTextView.onTextContextMenuItem(EditText.ID_SHARE);
+                hide();
             }
         }
 
@@ -4152,7 +4252,7 @@ public class Editor {
                 positionY += mContentView.getMeasuredHeight();
 
                 // Assumes insertion and selection handles share the same height
-                final Drawable handle = /*getDrawable(mTextView.mTextSelectHandleRes)*/mTextView.getTextSelectHandle();
+                final Drawable handle = mTextView.getTextSelectHandle();
                 positionY += handle.getIntrinsicHeight();
             }
 

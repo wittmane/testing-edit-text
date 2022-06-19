@@ -45,18 +45,24 @@ public class EditableInputConnection extends BaseInputConnection {
 
     // (EW) from InputMethodManager
     private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
-    //TODO: (EW) InputMethodManager.Handler#handleMessage resets this in the AOSP version. I'm not
-    // sure how that method is called. there may not need to be an equivalent for that since we're
-    // managing this here, but it might be worth looking into to verify.
+
+    // (EW) from InputMethodManager. InputMethodManager.Handler#handleMessage (I think ultimately
+    // triggered from IInputMethodClient.Stub#onBindMethod) also resets this in the AOSP version,
+    // but I think that is due to it managing input methods and being reused. since a new input
+    // connection gets created when switching input methods, that same reset shouldn't apply.
     /**
      * The monitor mode for
      * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
      */
     private int mRequestUpdateCursorAnchorInfoMonitorMode = REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE;
 
+    // (EW) from InputMethodManager. I'm not certain if this synchronization is necessary outside of
+    // InputMethodManager, but it probably doesn't hurt to keep.
+    final Object mH = new Object();
+
     public EditableInputConnection(EditText targetView) {
         super(targetView, true);
-        mTextView = (EditText)targetView;
+        mTextView = targetView;
         // (EW) copied from BaseInputConnection because this protected variable is marked @hide
         mIMM = (InputMethodManager)targetView.getContext().getSystemService(
                 Context.INPUT_METHOD_SERVICE);
@@ -441,14 +447,13 @@ public class EditableInputConnection extends BaseInputConnection {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             return false;
         }
-        //TODO: (EW) do we need the synchronized?
-//        synchronized (mH) {
+        synchronized (mH) {
             final boolean isImmediate = (mRequestUpdateCursorAnchorInfoMonitorMode &
                     InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0;
             final boolean isMonitoring = (mRequestUpdateCursorAnchorInfoMonitorMode &
                     InputConnection.CURSOR_UPDATE_MONITOR) != 0;
             return isImmediate || isMonitoring;
-//        }
+        }
     }
 
     // (EW) based on InputMethodManager#updateCursorAnchorInfo
@@ -456,11 +461,10 @@ public class EditableInputConnection extends BaseInputConnection {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             return false;
         }
-        //TODO: (EW) do we need the synchronized?
-//        synchronized (mH) {
+        synchronized (mH) {
             return (mRequestUpdateCursorAnchorInfoMonitorMode &
                     InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0;
-//        }
+        }
     }
 
     // (EW) based on InputMethodManager#updateCursorAnchorInfo
@@ -468,11 +472,10 @@ public class EditableInputConnection extends BaseInputConnection {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             return;
         }
-        //TODO: (EW) do we need the synchronized?
-//        synchronized (mH) {
+        synchronized (mH) {
             // Clear immediate bit (if any).
             mRequestUpdateCursorAnchorInfoMonitorMode &= ~InputConnection.CURSOR_UPDATE_IMMEDIATE;
-//        }
+        }
     }
 
     // (EW) from InputMethodManager
@@ -482,10 +485,9 @@ public class EditableInputConnection extends BaseInputConnection {
      * @hide
      */
     public void setUpdateCursorAnchorInfoMode(int flags) {
-        //TODO: (EW) do we need the synchronized?
-//        synchronized (mH) {
+        synchronized (mH) {
             mRequestUpdateCursorAnchorInfoMonitorMode = flags;
-//        }
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
