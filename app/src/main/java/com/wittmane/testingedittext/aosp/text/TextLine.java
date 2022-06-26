@@ -28,6 +28,7 @@ import android.util.Log;
 
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -758,6 +759,9 @@ public class TextLine {
         TextPaint wp = mWorkPaint;
         wp.set(mPaint);
         if (mIsJustifying && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) despite not actually getting called, on Pie, simply having code here causes this
+            // warning to be logged:
+            //Accessing hidden method Landroid/graphics/Paint;->setWordSpacing(F)V (dark greylist, linking)
             wp.setWordSpacing(mAddedWidthForJustify);
         }
 
@@ -831,7 +835,7 @@ public class TextLine {
                             mStart + spanLimit, dir, mStart + offset, cursorOpt) - mStart;
                 }
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                Log.e("TextLine", "getOffsetBeforeAfter: Failed to call getTextRunCursor: "
+                Log.e("TextLine", "getOffsetBeforeAfter: Reflection failed on getTextRunCursor: "
                         + e.getMessage());
                 return -1;
             }
@@ -911,9 +915,8 @@ public class TextLine {
                                 contextStart, contextLen, flags, null, 0);
                     }
                 } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                    Log.e(TAG, "getRunAdvance: Failed to call getTextRunAdvances: "
+                    Log.e(TAG, "getRunAdvance: Reflection failed on getTextRunAdvances: "
                             + e.getMessage());
-                    //TODO: (EW) what should the fallback value be?
                     return 0;
                 }
             }
@@ -947,9 +950,8 @@ public class TextLine {
                                     flags, null, 0);
                         }
                     } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                        Log.e(TAG, "getRunAdvance: Failed to call getTextRunAdvances: "
+                        Log.e(TAG, "getRunAdvance: Reflection failed on getTextRunAdvances: "
                                 + e.getMessage());
-                        //TODO: (EW) what should the fallback value be?
                         return 0;
                     }
                 }
@@ -1112,11 +1114,38 @@ public class TextLine {
             paint.setUnderlineText(false);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) despite not actually getting called, on Pie, simply having this code here (or
+            // the other 2 direct uses of underlineColor below and in #equalAttributes) causes this
+            // warning to be logged:
+            // Accessing hidden field Landroid/text/TextPaint;->underlineColor:I (light greylist, linking)
             info.underlineColor = paint.underlineColor;
+            // (EW) despite not actually getting called, on Pie, simply having this code here (or
+            // the other 2 direct uses of underlineThickness below and in #equalAttributes) causes
+            // this warning to be logged:
+            // Accessing hidden field Landroid/text/TextPaint;->underlineThickness:F (light greylist, linking)
             info.underlineThickness = paint.underlineThickness;
+            paint.underlineColor = 0;
+            paint.underlineThickness = 0.0f;
+        } else {
+            // (EW) TextPaint#underlineColor and TextPaint#underlineThickness have existed since at
+            // least kitkat, but were hidden. this isn't great, but this use of reflection is at
+            // least relatively safe since it's only done on old versions so it shouldn't just stop
+            // working at some point in the future.
+            try {
+                Field underlineColorField = TextPaint.class.getDeclaredField("underlineColor");
+                info.underlineColor = (int) underlineColorField.get(paint);
+                underlineColorField.set(paint, 0);
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                Log.e(TAG, "extractDecorationInfo: failed to use underlineColor: " + e);
+            }
+            try {
+                Field underlineThicknessField = TextPaint.class.getDeclaredField("underlineThickness");
+                info.underlineThickness = (float) underlineThicknessField.get(paint);
+                underlineThicknessField.set(paint, 0);
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                Log.e(TAG, "extractDecorationInfo: failed to use underlineThickness: " + e);
+            }
         }
-        //TODO: (EW) is there some other way to set the underline color and thickness? is this even necessary?
-//        paint.setUnderlineText(0, 0.0f);
     }
 
     /**
@@ -1288,6 +1317,30 @@ public class TextLine {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             wp.setStartHyphenEdit(adjustStartHyphenEdit(start, sourcePaint.getStartHyphenEdit()));
             wp.setEndHyphenEdit(adjustEndHyphenEdit(limit, sourcePaint.getEndHyphenEdit()));
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+//            try {
+//                Method getDeclaredMethod = Class.class.getDeclaredMethod(
+//                        "getDeclaredMethod",  String.class, Class[].class);
+//
+//                Method setHyphenEditMethod = (Method)getDeclaredMethod.invoke(TextPaint.class,
+//                        "setHyphenEdit", new Class[] {int.class});
+//                Method getHyphenEditMethod = (Method)getDeclaredMethod.invoke(TextPaint.class,
+//                        "getHyphenEdit", new Class[] {});
+//                setHyphenEditMethod.invoke(wp,
+//                        adjustHyphenEdit(start, limit, (int) getHyphenEditMethod.invoke(wp)));
+//            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+//                Log.e(TAG, "handleRun: Reflection failed on setHyphenEdit or getHyphenEdit with double-reflection: "
+//                        + e.getClass() + ": "
+//                        + e.getCause() + ": "
+//                        + e.getMessage());
+//            }
+            //TODO: (EW) if using reflection like how previous versions are handled,
+            // Paint#getHyphenEdit throws a NoSuchMethodException and logs
+            //   Accessing hidden method Landroid/graphics/Paint;->getHyphenEdit()I (dark greylist, reflection)
+            // but Paint#setHyphenEdit doesn't throw an exception but still logs
+            //   Accessing hidden method Landroid/graphics/Paint;->setHyphenEdit(I)V (light greylist, reflection)
+            // figure out something to do here. I tried double-reflection, but that didn't seem to
+            // work (based on the exception, I think I did it right, but it's possible I didn't)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // (EW) Paint#setHyphenEdit(int) and Paint#getHyphenEdit() existed since Marshmallow,
             // although they were only called in Oreo through Pie. prior to Oreo the documentation
@@ -1303,8 +1356,8 @@ public class TextLine {
                 setHyphenEditMethod.invoke(wp,
                         adjustHyphenEdit(start, limit, (int) getHyphenEditMethod.invoke(wp)));
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                Log.e(TAG, "handleRun: Failed to call setHyphenEdit or getHyphenEdit: "
-                        + e.getMessage());
+                Log.e(TAG, "handleRun: Reflection failed on setHyphenEdit or getHyphenEdit: "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         }
     }
@@ -1455,6 +1508,9 @@ public class TextLine {
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
                         || lp.getLetterSpacing() == rp.getLetterSpacing())
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                        // (EW) despite not actually getting called, on Pie, simply having this code
+                        // here causes this warning to be logged:
+                        // Accessing hidden method Landroid/graphics/Paint;->getWordSpacing()F (dark greylist, linking)
                         || lp.getWordSpacing() == rp.getWordSpacing())
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
                         || lp.getStartHyphenEdit() == rp.getStartHyphenEdit())

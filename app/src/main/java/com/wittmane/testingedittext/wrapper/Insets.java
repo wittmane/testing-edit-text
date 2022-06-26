@@ -25,12 +25,26 @@ public class Insets {
     public static final Insets NONE;
     static {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) despite not actually getting called, on Pie, simply having this code here
+            // causes this warning to be logged:
+            // Accessing hidden field Landroid/graphics/Insets;->NONE:Landroid/graphics/Insets; (light greylist, linking)
             NONE = new Insets(android.graphics.Insets.NONE);
         } else {
             Object none;
             try {
                 Class<?> insetsClass = Class.forName("android.graphics.Insets");
+
+                // (EW) this line on Pie works, but logs the warning (if it wasn't already logged
+                // from above):
+                // Accessing hidden field Landroid/graphics/Insets;->NONE:Landroid/graphics/Insets; (light greylist, reflection)
                 Field noneField = insetsClass.getDeclaredField("NONE");
+
+                // (EW) this line on Pie works, but logs the warnings (if it wasn't already logged
+                // from Q constructor):
+                // Accessing hidden field Landroid/graphics/Insets;->left:I (light greylist, reflection)
+                // Accessing hidden field Landroid/graphics/Insets;->top:I (light greylist, reflection)
+                // Accessing hidden field Landroid/graphics/Insets;->right:I (light greylist, reflection)
+                // Accessing hidden field Landroid/graphics/Insets;->bottom:I (light greylist, reflection)
                 none = noneField.get(null);
             } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
                 Log.e(TAG, "NONE: Failed to get field: " + e.getClass().getSimpleName() + ": "
@@ -41,6 +55,12 @@ public class Insets {
         }
     }
 
+    // (EW) despite not actually getting called, on Pie, simply having this block of code here
+    // causes these warnings to be logged:
+    // Accessing hidden field Landroid/graphics/Insets;->left:I (light greylist, linking)
+    // Accessing hidden field Landroid/graphics/Insets;->top:I (light greylist, linking)
+    // Accessing hidden field Landroid/graphics/Insets;->right:I (light greylist, linking)
+    // Accessing hidden field Landroid/graphics/Insets;->bottom:I (light greylist, linking)
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public Insets(android.graphics.Insets insets) {
         mInsets = insets;

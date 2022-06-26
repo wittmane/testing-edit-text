@@ -10,6 +10,7 @@ import android.text.TextUtils;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.ReplacementSpan;
 import android.text.style.TabStopSpan;
+import android.util.Log;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
@@ -25,6 +26,8 @@ import java.util.Arrays;
  * (EW) content from Layout that is blocked for app developers to access
  */
 public class HiddenLayout {
+    private static final String TAG = HiddenLayout.class.getSimpleName();
+
     @RequiresApi(api = Build.VERSION_CODES.M)
     @IntDef(value = {
             Layout.BREAK_STRATEGY_SIMPLE,
@@ -700,11 +703,18 @@ public class HiddenLayout {
      * @hide
      */
     public static int getLineBottomWithoutSpacing(Layout layout, int line) {
-//        return layout.getLineTop(line + 1) - layout.getLineExtra(line);
-        //TODO: (EW) this is wrong. figure out how to call Layout#getLineExtra (public hidden, and
-        // is overridden in some child classes, so we can't just copy from Layout) or verify if this
-        // is good enough for now. in older versions (eg Lollipop) Editor#updateCursorsPositions
-        // checked layout.getLineTop(line + 1) instead, so maybe that would be a better placeholder.
+        //FUTURE: (EW) getLineBottomWithoutSpacing wasn't added until Pie. comparing where Pie used
+        // this in Editor to the alternative in Oreo MR1, 4/5 called Layout#getLineBottom(line). the
+        // other called Layout#getLineTop(line + 1), but used the result slightly different, so it
+        // may not have meant to be equivalent. simply using Layout#getLineTop for older versions
+        // seems appropriate. we can't even use reflection to access
+        // Layout#getLineBottomWithoutSpacing because it is a restricted API (warning logged
+        // specifies "dark greylist"). at least as of S Layout#getLineBottomWithoutSpacing simply
+        // returned getLineTop(line + 1) - getLineExtra(line), but Layout#getLineExtra is also a
+        // restricted API (warning logged specifies "dark greylist"), just replicating that logic
+        // with reflection isn't an option either. the logic from older versions won't always be
+        // correct, but there doesn't seem to be much alternative. This probably should change, but
+        // without knowing a specific issue this cause, I'm leaving it like this for now.
         return layout.getLineBottom(line);
     }
 
@@ -748,16 +758,11 @@ public class HiddenLayout {
     public static boolean shouldClampCursor(Layout layout, int line) {
         // Only clamp cursor position in left-aligned displays.
         Layout.Alignment paragraphAlignment = layout.getParagraphAlignment(line);
+        if (HiddenLayout.Alignment.isAlignLeft(paragraphAlignment)) {
+            return true;
+        }
         if (paragraphAlignment == Layout.Alignment.ALIGN_NORMAL) {
             return layout.getParagraphDirection(line) > 0;
-        }
-        if (paragraphAlignment == Layout.Alignment.ALIGN_OPPOSITE) {
-            // (EW) duplicate case to check the fallback for the hidden values first to avoid extra
-            // broken behavior if the hidden values couldn't be found
-            return false;
-        }
-        if (paragraphAlignment == ALIGNMENT_ALIGN_LEFT) {
-            return true;
         }
         return false;
     }
@@ -901,13 +906,17 @@ public class HiddenLayout {
             return ArrayUtils.emptyArray(type);
         }
 
-        if(text instanceof SpannableStringBuilder) {
-            //TODO: (EW) the overload with sortByInsertionOrder is hidden, and the alternative
-            // passes true to it. I'm not sure if sorting will cause problems. verify
-            return ((SpannableStringBuilder) text).getSpans(start, end, type/*, false*/);
-        } else {
-            return text.getSpans(start, end, type);
-        }
+        // (EW) starting in Nougat, the AOSP version called an overload on SpannableStringBuilder
+        // with a sortByInsertionOrder (also added in Nougat) and passed false, but that overload is
+        // hidden and regular one calls into the hidden one and passes true to it. prior to that,
+        // the regular Spanned#getSpans(int, int, Class<T>) was called here the same for all types.
+        // SpannableStringBuilder#getSpans(int, int, Class<T>) at that time didn't do the sorting,
+        // so the change in Nougat didn't have a functional change here for the AOSP version, but
+        // without access to that hidden overload there will be a functional change, but based on
+        // how this function is used, I don't see a downstream impact from sorting. it might have
+        // just skipped sorting for performance. we can try to fix this later if this turns out to
+        // actually cause an issue from the sort.
+        return text.getSpans(start, end, type);
     }
 
     /**
@@ -997,27 +1006,112 @@ public class HiddenLayout {
     /* package */ static final int RUN_LEVEL_MASK = 0x3f;
     /* package */ static final int RUN_RTL_FLAG = 1 << RUN_LEVEL_SHIFT;
 
-    public enum Alignment {
-        ALIGN_NORMAL,
-        ALIGN_OPPOSITE,
-        ALIGN_CENTER,
-        /** @hide */
-        ALIGN_LEFT,
-        /** @hide */
-        ALIGN_RIGHT,
-    }
-    //TODO: (EW) this is rather hacky and fragile. is there something that could be done instead?
-    // if we do keep this, this might be fine for assignment but comparisons might be a problem if
-    // these hidden values ever get removed (make sure to check the fallback enum first). maybe try
-    // something more safe in case new values are added before these hidden ones.
-    // also, maybe put these in an Alignment wrapper class so the calls look more similar
-    public static final Layout.Alignment ALIGNMENT_ALIGN_LEFT =
-            getAlignment(3, Layout.Alignment.ALIGN_NORMAL);
-    public static final Layout.Alignment ALIGNMENT_ALIGN_RIGHT =
-            getAlignment(4, Layout.Alignment.ALIGN_OPPOSITE);
-    private static Layout.Alignment getAlignment(final int index, final Layout.Alignment fallback) {
-        final Layout.Alignment[] enums = Layout.Alignment.class.getEnumConstants();
-        return enums != null && enums.length > index ? enums[index] : fallback;
+    // (EW) custom wrapper to try to get the hidden Layout.Alignment enum values, but it's possible
+    // that those values could change or be removed in future versions, so there is a fallback, but
+    // it still probably isn't right, but it should at least not completely break. if that change
+    // does happen, this will need to be updated.
+    public static class Alignment {
+        private static final int ALIGN_LEFT_INDEX = 3;
+        private static final String ALIGN_LEFT_NAME = "ALIGN_LEFT";
+        private static final int ALIGN_RIGHT_INDEX = 4;
+        private static final String ALIGN_RIGHT_NAME = "ALIGN_RIGHT";
+
+        /**
+         * this should only be used for assignment since it's accessing a hidden enum value that
+         * might not exist and falls back to returning ALIGN_NORMAL. to compare, check
+         * {@link #isAlignLeft}.
+         */
+        public static final Layout.Alignment ALIGN_LEFT;
+        /**
+         * this should only be used for assignment since it's accessing a hidden enum value that
+         * might not exist and falls back to returning ALIGN_OPPOSITE. to compare, check
+         * {@link #isAlignRight}.
+         */
+        public static final Layout.Alignment ALIGN_RIGHT;
+        private static final boolean CAN_USE_HIDDEN_ALIGNMENTS;
+        static {
+            final Layout.Alignment[] allEnums = Layout.Alignment.values();
+            // I'm not sure if there's a way to dynamically get this at runtime since being hidden
+            // seems to only be a compile time thing.
+            Layout.Alignment[] expectedAccessibleEnums = new Layout.Alignment[] {
+                    Layout.Alignment.ALIGN_NORMAL,
+                    Layout.Alignment.ALIGN_CENTER,
+                    Layout.Alignment.ALIGN_OPPOSITE
+            };
+            int[] expectedHiddenEnumIndices = new int[] { ALIGN_LEFT_INDEX, ALIGN_RIGHT_INDEX };
+            String[] expectedHiddenEnumNames = new String[] { ALIGN_LEFT_NAME, ALIGN_RIGHT_NAME };
+            Layout.Alignment[] expectedHiddenEnums = new Layout.Alignment[expectedHiddenEnumIndices.length];
+            if (allEnums != null) {
+                final boolean[] allEnumsAccessibleFlag = new boolean[allEnums.length];
+                for (Layout.Alignment accessibleEnum : expectedAccessibleEnums) {
+                    if (accessibleEnum.ordinal() >= allEnums.length) {
+                        // this probably shouldn't happen
+                        continue;
+                    }
+                    allEnumsAccessibleFlag[accessibleEnum.ordinal()] = true;
+                }
+                for (int allEnumsIndex = 0; allEnumsIndex < allEnums.length; allEnumsIndex++) {
+                    if (allEnumsAccessibleFlag[allEnumsIndex]) {
+                        // skip accessible enums
+                        continue;
+                    }
+                    for (int expectedHiddenEnumsIndex = 0; expectedHiddenEnumsIndex < expectedHiddenEnumIndices.length; expectedHiddenEnumsIndex++) {
+                        boolean currentAllEnumNameSame =
+                                expectedHiddenEnumNames[expectedHiddenEnumsIndex].equals(
+                                        allEnums[allEnumsIndex].name());
+                        boolean alreadyFoundEnum;
+                        boolean alreadyFoundEnumNameSame;
+                        if (expectedHiddenEnums[expectedHiddenEnumsIndex] != null) {
+                            alreadyFoundEnum = true;
+                            alreadyFoundEnumNameSame =
+                                    expectedHiddenEnumNames[expectedHiddenEnumsIndex].equals(
+                                            expectedHiddenEnums[expectedHiddenEnumsIndex].name());
+                        } else {
+                            alreadyFoundEnum = false;
+                            alreadyFoundEnumNameSame = false;
+                        }
+                        // look for the matching enum based on the ordinal and name and prioritizing
+                        // matching on the name. the name could easily change, so don't require that
+                        // for matching, but it's unlikely for a new enum to take that same name.
+                        if ((allEnumsIndex == expectedHiddenEnumIndices[expectedHiddenEnumsIndex]
+                                        && (!alreadyFoundEnum || currentAllEnumNameSame))
+                                || (currentAllEnumNameSame
+                                        && (!alreadyFoundEnum || !alreadyFoundEnumNameSame))) {
+                            expectedHiddenEnums[expectedHiddenEnumsIndex] = allEnums[allEnumsIndex];
+                        }
+                    }
+                }
+            }
+
+            // only use the hidden enums if both were found. if only one was found something weird
+            // happened, so we can't be sure what we found was actually right or how to handle one
+            // if the pair doesn't exist.
+            if (expectedHiddenEnums[0] != null && expectedHiddenEnums[1] != null
+                    && expectedHiddenEnums[0] != expectedHiddenEnums[1]) {
+                CAN_USE_HIDDEN_ALIGNMENTS = true;
+                ALIGN_LEFT = expectedHiddenEnums[0];
+                ALIGN_RIGHT = expectedHiddenEnums[1];
+            } else {
+                Log.w(TAG, "Alignment: ALIGN_LEFT and ALIGN_RIGHT couldn't be found");
+                CAN_USE_HIDDEN_ALIGNMENTS = false;
+                ALIGN_LEFT = Layout.Alignment.ALIGN_NORMAL;
+                ALIGN_RIGHT = Layout.Alignment.ALIGN_OPPOSITE;
+            }
+        }
+
+        public static boolean isAlignLeft(Layout.Alignment alignment) {
+            if (!CAN_USE_HIDDEN_ALIGNMENTS) {
+                return false;
+            }
+            return alignment == ALIGN_LEFT;
+        }
+
+        public static boolean isAlignRight(Layout.Alignment alignment) {
+            if (!CAN_USE_HIDDEN_ALIGNMENTS) {
+                return false;
+            }
+            return alignment == ALIGN_RIGHT;
+        }
     }
 
     private static final float TAB_INCREMENT = 20;

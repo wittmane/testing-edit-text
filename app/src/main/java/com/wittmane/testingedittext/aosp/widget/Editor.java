@@ -7026,6 +7026,9 @@ public class Editor {
 
     private static int getUnderlineColor(SuggestionSpan span) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) despite not actually getting called, on Pie, simply having this code here causes
+            // this warning to be logged:
+            // Accessing hidden method Landroid/text/style/SuggestionSpan;->getUnderlineColor()I (light greylist, linking)
             return span.getUnderlineColor();
         }
 
@@ -7064,7 +7067,7 @@ public class Editor {
                 setWindowLayoutTypeMethod.invoke(popupWindow, layoutType);
             } catch (NoSuchMethodException | IllegalAccessException
                     | InvocationTargetException e) {
-                Log.e(TAG, "setWindowLayoutType: Failed to call PopupWindow#setWindowLayoutType: "
+                Log.e(TAG, "setWindowLayoutType: Reflection failed on PopupWindow#setWindowLayoutType: "
                         + e.getMessage());
             }
         }

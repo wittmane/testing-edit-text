@@ -34,6 +34,9 @@ public class AndroidBidi {
             throw new IndexOutOfBoundsException();
         }
 
+        // (EW) despite not actually getting called, on Pie, simply having this block of code here
+        // causes this warning to be logged:
+        // Accessing hidden method Landroid/icu/text/Bidi;-><init>(II)V (dark greylist, linking)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             final byte paraLevel;
             switch (dir) {
@@ -67,14 +70,18 @@ public class AndroidBidi {
         // reflection on the AOSP version of this copied method.
         try {
             Class<?> androidBidiClass = Class.forName("android.text.AndroidBidi");
+
+            // (EW) this line on Pie works, but logs the warning:
+            // Accessing hidden method Landroid/text/AndroidBidi;->bidi(I[C[B)I (light greylist, reflection)
             Method bidiMethod = androidBidiClass.getMethod("bidi", int.class, char[].class,
                     byte[].class);
+
             return (int) bidiMethod.invoke(null, dir, chs, chInfo);
 
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
                 | InvocationTargetException e) {
-            Log.e(TAG, "bidi: Failed to use AndroidBidi: " + e.getClass().getSimpleName() + ": "
-                    + e.getMessage());
+            Log.e(TAG, "bidi: Reflection failed on AndroidBidi: " + e.getClass().getSimpleName()
+                    + ": " + e.getMessage());
             return Layout.DIR_LEFT_TO_RIGHT;
         }
     }
@@ -240,8 +247,10 @@ public class AndroidBidi {
                         "runBidi", int.class, char[].class, byte[].class, int.class, boolean.class);
             runBidiMethod.setAccessible(true);
                 return (int) runBidiMethod.invoke(null, dir, chs, chInfo, n, haveInfo);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassNotFoundException e) {
-            Log.e(TAG, "getRunAdvance: Failed to call runBidi: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException
+                | ClassNotFoundException e) {
+            Log.e(TAG, "getRunAdvance: Reflection failed on runBidi: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
             return Layout.DIR_LEFT_TO_RIGHT;
         }
     }

@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 
+import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
 /**
@@ -54,8 +55,8 @@ public class Touch {
             if (a == Alignment.ALIGN_CENTER) {
                 x = left - ((availableWidth - actualWidth) / 2);
             } else if ((ltr && (a == Alignment.ALIGN_OPPOSITE)) ||
-                    (!ltr && (a == Alignment.ALIGN_NORMAL))/* ||
-                    (a == Alignment.ALIGN_RIGHT)*/) {//TODO: (EW) does this need to be handled?
+                    (!ltr && (a == Alignment.ALIGN_NORMAL)) ||
+                    (HiddenLayout.Alignment.isAlignRight(a))) {
                 // align_opposite does NOT mean align_right, we need the paragraph
                 // direction to resolve it to left or right
                 x = left - (availableWidth - actualWidth);

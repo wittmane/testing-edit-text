@@ -6244,11 +6244,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         // this case in a normal acceptable way. realistically, Gravity.LEFT just
                         // shouldn't be used for this view (that seems to be what Android is pushing
                         // for).
-                        alignment = HiddenLayout.ALIGNMENT_ALIGN_LEFT;
+                        alignment = HiddenLayout.Alignment.ALIGN_LEFT;
                         break;
                     case Gravity.RIGHT:
                         //FUTURE: (EW) see Gravity.LEFT case comment
-                        alignment = HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
+                        alignment = HiddenLayout.Alignment.ALIGN_RIGHT;
                         break;
                     case Gravity.CENTER_HORIZONTAL:
                         alignment = Layout.Alignment.ALIGN_CENTER;
@@ -6270,12 +6270,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             case TEXT_ALIGNMENT_VIEW_START:
                 //FUTURE: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
-                        ? HiddenLayout.ALIGNMENT_ALIGN_RIGHT : HiddenLayout.ALIGNMENT_ALIGN_LEFT;
+                        ? HiddenLayout.Alignment.ALIGN_RIGHT : HiddenLayout.Alignment.ALIGN_LEFT;
                 break;
             case TEXT_ALIGNMENT_VIEW_END:
                 //FUTURE: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
-                        ? HiddenLayout.ALIGNMENT_ALIGN_LEFT : HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
+                        ? HiddenLayout.Alignment.ALIGN_LEFT : HiddenLayout.Alignment.ALIGN_RIGHT;
                 break;
             case TEXT_ALIGNMENT_INHERIT:
                 // This should never happen as we have already resolved the text alignment
@@ -6462,7 +6462,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException
                     | InstantiationException e) {
-                Log.e(TAG, "makeSingleLayout: Failed to call hidden DynamicLayout constructor: "
+                Log.e(TAG, "makeSingleLayout: Reflection failed on hidden DynamicLayout constructor: "
                         + e.getMessage());
                 result = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth, alignment,
                         mSpacingMult, mSpacingAdd, mIncludePad,
@@ -6890,10 +6890,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // Convert to left, center, or right alignment.
         if (a == Layout.Alignment.ALIGN_NORMAL) {
             a = dir == Layout.DIR_LEFT_TO_RIGHT
-                    ? HiddenLayout.ALIGNMENT_ALIGN_LEFT : HiddenLayout.ALIGNMENT_ALIGN_RIGHT;
+                    ? HiddenLayout.Alignment.ALIGN_LEFT : HiddenLayout.Alignment.ALIGN_RIGHT;
         } else if (a == Layout.Alignment.ALIGN_OPPOSITE) {
             a = dir == Layout.DIR_LEFT_TO_RIGHT
-                    ? HiddenLayout.ALIGNMENT_ALIGN_RIGHT : HiddenLayout.ALIGNMENT_ALIGN_LEFT;
+                    ? HiddenLayout.Alignment.ALIGN_RIGHT : HiddenLayout.Alignment.ALIGN_LEFT;
         }
 
         if (a == Layout.Alignment.ALIGN_CENTER) {
@@ -6914,11 +6914,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     scrollx = left;
                 }
             }
-        } else if (a == Layout.Alignment.ALIGN_NORMAL || a == Layout.Alignment.ALIGN_OPPOSITE) {
-            // (EW) duplicate case to check the fallback for the hidden values first to avoid extra
-            // broken behavior if the hidden values couldn't be found
-            scrollx = (int) Math.floor(layout.getLineLeft(line));
-        } else if (a == HiddenLayout.ALIGNMENT_ALIGN_RIGHT) {
+        } else if (HiddenLayout.Alignment.isAlignRight(a)) {
             int right = (int) Math.ceil(layout.getLineRight(line));
             scrollx = right - hspace;
         } else { // a == HiddenLayout.ALIGNMENT_ALIGN_LEFT (will also be the default)
@@ -6963,14 +6959,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int grav;
 
         Layout.Alignment alignment = layout.getParagraphAlignment(line);
-        if (alignment == Layout.Alignment.ALIGN_NORMAL) {
+        if (HiddenLayout.Alignment.isAlignLeft(alignment)) {
+            grav = 1;
+        } else if (HiddenLayout.Alignment.isAlignRight(alignment)) {
+            grav = -1;
+        } else if (alignment == Layout.Alignment.ALIGN_NORMAL) {
             grav = layout.getParagraphDirection(line);
         } else if (alignment == Layout.Alignment.ALIGN_OPPOSITE) {
             grav = -layout.getParagraphDirection(line);
-        } else if (alignment == HiddenLayout.ALIGNMENT_ALIGN_LEFT) {
-            grav = 1;
-        } else if (alignment == HiddenLayout.ALIGNMENT_ALIGN_RIGHT) {
-            grav = -1;
         } else {
             grav = 0;
         }
@@ -8346,8 +8342,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // isn't the same as AOSP.
         Locale locale = null;
         try {
+            // (EW) this line works, but logs the warning:
+            // on Pie:
+            // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellCheckerSubtype(Z)Landroid/view/textservice/SpellCheckerSubtype; (light greylist, reflection)
+            // on Q and R:
+            // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellCheckerSubtype(Z)Landroid/view/textservice/SpellCheckerSubtype; (greylist, reflection, allowed)
+            // on S (last version checked):
+            // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellCheckerSubtype(Z)Landroid/view/textservice/SpellCheckerSubtype; (unsupported, reflection, allowed)
             Method getCurrentSpellCheckerSubtypeMethod = TextServicesManager.class.getMethod(
                     "getCurrentSpellCheckerSubtype", boolean.class);
+
             final SpellCheckerSubtype subtype =
                     (SpellCheckerSubtype) getCurrentSpellCheckerSubtypeMethod.invoke(
                             textServicesManager, true);
@@ -8368,7 +8372,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            Log.e(TAG, "updateTextServicesLocaleLocked: " + e);
+            Log.e(TAG, "updateTextServicesLocaleLocked: Reflection failed on getCurrentSpellCheckerSubtype"
+                    + e);
             // (EW) this isn't the same as what the AOSP version does. this is just getting the
             // current locale, rather than the enabled locale for spell check in the system. it's
             // probably not very common for the enabled spell check locale to differ from the
@@ -9542,7 +9547,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         zero = ((String[]) getDigitStringsMethod.invoke(symbols))[0];
                     } catch (NoSuchMethodException | IllegalAccessException
                             | InvocationTargetException e) {
-                        Log.e(TAG, "getTextDirectionHeuristic: Failed to call getDigitStrings: "
+                        Log.e(TAG, "getTextDirectionHeuristic: Reflection failed on getDigitStrings: "
                                 + e.getClass().getSimpleName() + ": " + e.getMessage());
                         zero = null;
                     }
@@ -10075,6 +10080,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return Insets.NONE;
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) despite not actually getting called, on Pie, simply having this code here causes
+            // this warning to be logged:
+            // Accessing hidden method Landroid/graphics/drawable/Drawable;->getOpticalInsets()Landroid/graphics/Insets; (light greylist, linking)
             return new Insets(background.getOpticalInsets());
         }
 
@@ -10084,7 +10092,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return new Insets(opticalInsets);
         } catch (NoSuchMethodException | IllegalAccessException
                 | InvocationTargetException e) {
-            Log.e(TAG, "computeOpticalInsets: Failed to call Drawable#getOpticalInsets: "
+            Log.e(TAG, "computeOpticalInsets: Reflection failed on Drawable#getOpticalInsets: "
                     + e.getMessage());
             return Insets.NONE;
         }

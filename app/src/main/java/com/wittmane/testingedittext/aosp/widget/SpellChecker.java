@@ -944,6 +944,12 @@ public class SpellChecker implements SpellCheckerSessionListener {
             return false;
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // (EW) despite not actually getting called, on older versions, simply having this code
+            // here causes this warning to be logged:
+            // on Pie:
+            // Accessing hidden method Landroid/view/textservice/TextServicesManager;->isSpellCheckerEnabled()Z (light greylist, linking)
+            // on Q and R:
+            // Accessing hidden method Landroid/view/textservice/TextServicesManager;->isSpellCheckerEnabled()Z (greylist, linking, allowed)
             return textServicesManager.isSpellCheckerEnabled();
         }
         // (EW) TextServicesManager#isSpellCheckerEnabled has existed since at least kitkat but for
@@ -959,7 +965,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
                 return (boolean) result;
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            Log.e(TAG, "isSpellCheckerEnabled: " + e);
+            Log.e(TAG, "isSpellCheckerEnabled: Reflection failed on isSpellCheckerEnabled" + e);
         }
         // (EW) since we're not able to call an API to check if the spell checker is enabled, we'll
         // have to just assume it is
@@ -982,12 +988,18 @@ public class SpellChecker implements SpellCheckerSessionListener {
             // (EW) the functionality of getCurrentSpellCheckerInfo existed at least since kitkat in
             // a hidden method named getCurrentSpellChecker
             try {
+                // (EW) this line works, but logs the warning:
+                // on Pie:
+                //Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellChecker()Landroid/view/textservice/SpellCheckerInfo; (light greylist, reflection)
+                // on Q and R:
+                // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellChecker()Landroid/view/textservice/SpellCheckerInfo; (greylist, reflection, allowed)
                 Method getCurrentSpellCheckerMethod = TextServicesManager.class.getMethod(
                         "getCurrentSpellChecker");
+
                 spellCheckerInfo = (SpellCheckerInfo) getCurrentSpellCheckerMethod.invoke(
                         textServicesManager);
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                Log.e(TAG, "hasCurrentSpellCheckerSubtype: failed to call getCurrentSpellChecker: "
+                Log.e(TAG, "hasCurrentSpellCheckerSubtype: Reflection failed on getCurrentSpellChecker: "
                         + e);
                 // (EW) since that didn't works, there probably isn't really anything else to check,
                 // so we'll assume there is a spell checker subtype to avoid losing functionality.

@@ -116,8 +116,8 @@ public class MeasuredParagraph {
     // See getFontMetrics comments.
     private @Nullable IntArray mFontMetrics = new IntArray(4 * 4);
 
-    // The native MeasuredParagraph.
-    private @Nullable MeasuredText mMeasuredText;
+//    // The native MeasuredParagraph.
+//    private @Nullable MeasuredText mMeasuredText;
 
     // Following two objects are for avoiding object allocation.
     private @NonNull TextPaint mCachedPaint = new TextPaint();
@@ -145,7 +145,7 @@ public class MeasuredParagraph {
         mWidths.clear();
         mFontMetrics.clear();
         mSpanEndCache.clear();
-        mMeasuredText = null;
+//        mMeasuredText = null;
     }
 
     /**
@@ -235,15 +235,15 @@ public class MeasuredParagraph {
         return mFontMetrics;
     }
 
-    /**
-     * Returns the native ptr of the MeasuredParagraph.
-     *
-     * This is available only if the MeasuredParagraph is computed with buildForStaticLayout.
-     * Returns null in other cases.
-     */
-    public MeasuredText getMeasuredText() {
-        return mMeasuredText;
-    }
+//    /**
+//     * Returns the native ptr of the MeasuredParagraph.
+//     *
+//     * This is available only if the MeasuredParagraph is computed with buildForStaticLayout.
+//     * Returns null in other cases.
+//     */
+//    public MeasuredText getMeasuredText() {
+//        return mMeasuredText;
+//    }
 
 //    /**
 //     * Returns the width of the given range.
