@@ -536,6 +536,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.density = res.getDisplayMetrics().density;
+        // (EW) the AOSP version calls Paint#setCompatibilityScaling using
+        // Resources#getCompatibilityInfo, both of which are not accessible from apps. I don't
+        // think there is really anything to do, and I'm not certain if it's really necessary.
 
         mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 

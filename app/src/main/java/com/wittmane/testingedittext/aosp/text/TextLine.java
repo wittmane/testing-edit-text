@@ -1314,51 +1314,20 @@ public class TextLine {
     }
 
     private void setHyphenEdit(final TextPaint wp, final TextPaint sourcePaint, int start, int limit) {
+        // (EW) Paint#setHyphenEdit(int) and Paint#getHyphenEdit() existed since Marshmallow,
+        // although they were only called in Oreo through Pie. prior to Oreo the documentation
+        // stated that setHyphenEdit only takes a 1 or 0, so the handling in adjustHyphenEdit
+        // wouldn't work. I was going to just use reflection to also call them (only starting in
+        // Oreo) since reflection is relatively safe if it's only used until a certain version, but
+        // on Pie, due to being a restricted API, Paint#getHyphenEdit throws a NoSuchMethodException
+        // and logs a warning indicating it is on the dark greylist, although Paint#setHyphenEdit
+        // still works (it does still log a warning indicating it is on the light greylist). I
+        // couldn't find a good alternative, and rather than just skipping it on Pie, until there is
+        // a real need for it on older version, it will just be skipped to be consistent between
+        // older versions.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             wp.setStartHyphenEdit(adjustStartHyphenEdit(start, sourcePaint.getStartHyphenEdit()));
             wp.setEndHyphenEdit(adjustEndHyphenEdit(limit, sourcePaint.getEndHyphenEdit()));
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-//            try {
-//                Method getDeclaredMethod = Class.class.getDeclaredMethod(
-//                        "getDeclaredMethod",  String.class, Class[].class);
-//
-//                Method setHyphenEditMethod = (Method)getDeclaredMethod.invoke(TextPaint.class,
-//                        "setHyphenEdit", new Class[] {int.class});
-//                Method getHyphenEditMethod = (Method)getDeclaredMethod.invoke(TextPaint.class,
-//                        "getHyphenEdit", new Class[] {});
-//                setHyphenEditMethod.invoke(wp,
-//                        adjustHyphenEdit(start, limit, (int) getHyphenEditMethod.invoke(wp)));
-//            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-//                Log.e(TAG, "handleRun: Reflection failed on setHyphenEdit or getHyphenEdit with double-reflection: "
-//                        + e.getClass() + ": "
-//                        + e.getCause() + ": "
-//                        + e.getMessage());
-//            }
-            //TODO: (EW) if using reflection like how previous versions are handled,
-            // Paint#getHyphenEdit throws a NoSuchMethodException and logs
-            //   Accessing hidden method Landroid/graphics/Paint;->getHyphenEdit()I (dark greylist, reflection)
-            // but Paint#setHyphenEdit doesn't throw an exception but still logs
-            //   Accessing hidden method Landroid/graphics/Paint;->setHyphenEdit(I)V (light greylist, reflection)
-            // figure out something to do here. I tried double-reflection, but that didn't seem to
-            // work (based on the exception, I think I did it right, but it's possible I didn't)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // (EW) Paint#setHyphenEdit(int) and Paint#getHyphenEdit() existed since Marshmallow,
-            // although they were only called in Oreo through Pie. prior to Oreo the documentation
-            // stated that setHyphenEdit only takes a 1 or 0, so the handling in adjustHyphenEdit
-            // wouldn't work, so we'll also only call it starting in Oreo. this isn't great, but
-            // this use of reflection is at least  relatively safe since it's only done on old
-            // versions so it shouldn't just stop working at some point in the future.
-            try {
-                Method setHyphenEditMethod = TextPaint.class.getMethod(
-                        "setHyphenEdit",  int.class);
-                Method getHyphenEditMethod = TextPaint.class.getMethod(
-                        "getHyphenEdit");
-                setHyphenEditMethod.invoke(wp,
-                        adjustHyphenEdit(start, limit, (int) getHyphenEditMethod.invoke(wp)));
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                Log.e(TAG, "handleRun: Reflection failed on setHyphenEdit or getHyphenEdit: "
-                        + e.getClass().getSimpleName() + ": " + e.getMessage());
-            }
         }
     }
 

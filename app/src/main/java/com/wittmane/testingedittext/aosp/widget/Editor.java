@@ -164,6 +164,7 @@ public class Editor {
             SuggestionSpan.FLAG_MISSPELLED | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                     ? SuggestionSpan.FLAG_GRAMMAR_ERROR : 8);
 
+    //TODO: (EW) TEXT_LINK isn't used. is it related to the link text functionality that I removed?
     @IntDef({TextActionMode.SELECTION, TextActionMode.INSERTION, TextActionMode.TEXT_LINK})
     @interface TextActionMode {
         int SELECTION = 0;
@@ -1150,10 +1151,6 @@ public class Editor {
                 stopTextActionModeWithPreservingSelection();
             } else {
                 hideCursorAndSpanControllers();
-                //TODO: (EW) Marshmallow set mPreserveDetachedSelection around doing some actions.
-                // it looks like the code was just restructured and the variable and function for
-                // checking temporarily detached are essentially checking the same thing. verify
-                // there isn't some need to do this the old way when running on an older version
                 boolean isTemporarilyDetached;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     isTemporarilyDetached = mTextView.isTemporarilyDetached();
@@ -1165,7 +1162,7 @@ public class Editor {
                 } else {
                     stopTextActionMode();
                 }
-                //TODO: (EW) this makes a single click not pop up suggestions after having focused
+                //FUTURE: (EW) this makes a single click not pop up suggestions after having focused
                 // away from the text field, but the underline is still there, which seems weird.
                 // this is what AOSP does, but maybe consider ditching this.
                 downgradeEasyCorrectionSpans();
@@ -4007,11 +4004,17 @@ public class Editor {
     }
 
     // (EW) replaced with TextActionModeCallback in M when it move to a floating popup, rather than
-    // a fixed location
+    // a fixed location. TextActionModeCallback is used for both selection and insertion, but as the
+    // name implies, this class was only used for selection in old version, and both in addition to
+    // this, ActionPopupWindow was used both for selection and insertion to show a popup, similar to
+    // TextActionModeCallback.
     //TODO: (EW) deduplicate with TextActionModeCallback
-    //TODO: (EW) consider renaming. pre-M only uses this for selections, but since more recent
-    // version show it when tapping the insertion controller, I pushed this to do the same in
-    // lollipop to have consistent behavior in this app, so now the name isn't really correct.
+    //FUTURE: (EW) since more buttons from TextActionModeCallback from more recent versions were
+    // added to the ActionPopupWindow, the functionality there more closely matches the
+    // functionality from TextActionModeCallback from more recent versions. consider removing this
+    // and migrate any missing functionality to ActionPopupWindow to have a more consistent between
+    // versions of this app (especially since I didn't bother to get the icons for the action bar
+    // and just show text instead, so this doesn't even completely match the framework version).
     /**
      * An ActionMode Callback class that is used to provide actions while in text selection mode.
      *
@@ -4084,7 +4087,7 @@ public class Editor {
              * we still have selection state to preserve. Don't clear it, we'll
              * bring back the selection mode when (if) we get reattached.
              */
-            if (!/*mPreserveDetachedSelection*/mPreserveSelection) {//TODO: (EW) verify this is the right replacement
+            if (!mPreserveSelection) {
                 Selection.setSelection((Spannable) mTextView.getText(),
                         mTextView.getSelectionEnd());
                 mTextView.setHasTransientState(false);
@@ -4949,8 +4952,11 @@ public class Editor {
                                 // Tapping on the handle toggles the insertion action mode.
                                 toggleInsertionActionMode();
                             } else {
-                                //TODO: (EW) should this be moved into toggleInsertionActionMode or
-                                // is this functionality separate and just happens to overlap here?
+                                // (EW) on previous versions, the insertion/text action mode adds
+                                // buttons on the action bar instead of the floating menu that was
+                                // made available starting in Marshmallow. instead, we'll show the
+                                // old version of the custom floating view, which is what the
+                                // framework version does for these older versions.
                                 if (mActionPopupWindow != null && mActionPopupWindow.isShowing()) {
                                     // Tapping on the handle dismisses the displayed action popup
                                     mActionPopupWindow.hide();
@@ -6289,10 +6295,9 @@ public class Editor {
         private static final int FADE_OUT_DURATION = 400;
 
         public CorrectionHighlighter() {
-            //TODO: (EW) the AOSP version calls Paint#setCompatibilityScaling using
-            // Resources#getCompatibilityInfo, both of which are not accessible from apps. is there
-            // anything that we can and should do to match that functionality?
-
+            // (EW) the AOSP version calls Paint#setCompatibilityScaling using
+            // Resources#getCompatibilityInfo, both of which are not accessible from apps. I don't
+            // think there is really anything to do, and I'm not certain if it's really necessary.
             mPaint.setStyle(Paint.Style.FILL);
         }
 
