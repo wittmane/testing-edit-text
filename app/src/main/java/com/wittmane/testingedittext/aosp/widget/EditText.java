@@ -21,6 +21,8 @@ import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.BlendMode;
 import android.graphics.Canvas;
+
+import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 import com.wittmane.testingedittext.wrapper.Insets;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.fonts.FontStyle;
@@ -6024,7 +6026,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * lingering spans applied during the replace.
      */
     static void removeParcelableSpans(Spannable spannable, int start, int end) {
-        Object[] spans = spannable.getSpans(start, end, ParcelableSpan.class);
+        Object[] spans = Editor.getParcelableSpans(spannable, start, end);
         int i = spans.length;
         while (i > 0) {
             i--;
@@ -7832,11 +7834,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
         }
 
-        if (what instanceof ParcelableSpan) {
+        if (isParcelableSpan(what)) {
             // If this is a span that can be sent to a remote process,
             // the current extract editor would be interested in it.
             if (ims != null && ims.mExtractedTextRequest != null) {
                 if (ims.mBatchEditNesting != 0) {
+                    //FUTURE: (EW) this expands the extracted text to include all of the
+                    // ParcelableSpans, and in the case of spellcheck being enabled, this seems to
+                    // result in a full extract, so this will need to be handled when adding options
+                    // to limit extracting text
                     if (oldStart >= 0) {
                         if (ims.mChangedStart > oldStart) {
                             ims.mChangedStart = oldStart;
@@ -7868,6 +7874,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 && what instanceof SpellCheckSpan) {
             mEditor.mSpellChecker.onSpellCheckSpanRemoved((SpellCheckSpan) what);
         }
+    }
+
+    // (EW) to match AOSP functionality, we need to create instances of SpellCheckSpan and
+    // SuggestionRangeSpan, but those are hidden, so those had to be copied to be used. those
+    // implement ParcelableSpan, which isn't intended for apps to implement, so our version just
+    // implements Parcelable, but there is some handling from AOSP for ParcelableSpan, so this is a
+    // wrapper to include those to match that same functionality.
+    private static boolean isParcelableSpan(Object o) {
+        return o instanceof ParcelableSpan || o instanceof SpellCheckSpan
+                || o instanceof SuggestionRangeSpan;
     }
 
     // (EW) only relevant in versions prior to Nougat

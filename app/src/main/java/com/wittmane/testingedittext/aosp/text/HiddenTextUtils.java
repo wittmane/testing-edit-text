@@ -14,8 +14,6 @@ import androidx.annotation.Nullable;
 import java.lang.reflect.Array;
 
 public class HiddenTextUtils {
-    /** @hide */
-    public static final int SUGGESTION_RANGE_SPAN = 21;
 
     // Returns true if the character's presence could affect RTL layout.
     //

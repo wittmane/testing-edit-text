@@ -1,17 +1,22 @@
 package com.wittmane.testingedittext.aosp.text.style;
 
 import android.os.Parcel;
-import android.text.ParcelableSpan;
-//import android.text.TextUtils;
+import android.os.Parcelable;
 
+// (EW) This had to be copied since the AOSP framework version is marked with @hide. the AOSP
+// version implemented ParcelableSpan (which extends Parcelable), but the documentation for
+// ParcelableSpan says it "can only be used by code in the framework" and "it is not intended for
+// applications to implement their own Parcelable spans." it only adds getSpanTypeId,
+// getSpanTypeIdInternal (hidden), and writeToParcelInternal(hidden). it's not very clear what those
+// span type IDs are supposed to be, and the only place I found that used them in AOSP code was
+// TextUtils#writeToParcel. the AOSP version didn't have CREATOR, and I think the type ID might be
+// some alternative to that somehow. it seems more appropriate to just implement Parcelable.
 /**
  * A SpellCheckSpan is an internal data structure created by the TextView's SpellChecker to
  * annotate portions of the text that are about to or currently being spell checked. They are
  * automatically removed once the spell check is completed.
- *
- * @hide
  */
-public class SpellCheckSpan implements ParcelableSpan {
+public class SpellCheckSpan implements Parcelable {
 
     private boolean mSpellCheckInProgress;
 
@@ -38,22 +43,18 @@ public class SpellCheckSpan implements ParcelableSpan {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        writeToParcelInternal(dest, flags);
-    }
-
-    /** @hide */
-    public void writeToParcelInternal(Parcel dest, int flags) {
         dest.writeInt(mSpellCheckInProgress ? 1 : 0);
     }
 
-    @Override
-    public int getSpanTypeId() {
-        return getSpanTypeIdInternal();
-    }
+    public static final Creator<SpellCheckSpan> CREATOR = new Creator<SpellCheckSpan>() {
+        @Override
+        public SpellCheckSpan createFromParcel(Parcel in) {
+            return new SpellCheckSpan(in);
+        }
 
-    /** @hide */
-    public int getSpanTypeIdInternal() {
-        //TODO: (EW) probably don't do this
-        return /*TextUtils.SPELL_CHECK_SPAN*/20;
-    }
+        @Override
+        public SpellCheckSpan[] newArray(int size) {
+            return new SpellCheckSpan[size];
+        }
+    };
 }

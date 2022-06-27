@@ -89,6 +89,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;
 import com.wittmane.testingedittext.aosp.content.UndoOperation;
@@ -1483,7 +1484,7 @@ public class Editor {
             return false;
         }
 
-        final CharSequence content = mTextView.getText();
+        final Editable content = mTextView.getText();
         if (content == null) {
             return false;
         }
@@ -1498,20 +1499,22 @@ public class Editor {
                 // Now use the delta to determine the actual amount of text
                 // we need.
                 partialEndOffset += delta;
+
                 // Adjust offsets to ensure we contain full spans.
-                if (content instanceof Spanned) {
-                    Spanned spanned = (Spanned) content;
-                    Object[] spans = spanned.getSpans(partialStartOffset,
-                            partialEndOffset, ParcelableSpan.class);
-                    int i = spans.length;
-                    while (i > 0) {
-                        i--;
-                        int j = spanned.getSpanStart(spans[i]);
-                        if (j < partialStartOffset) partialStartOffset = j;
-                        j = spanned.getSpanEnd(spans[i]);
-                        if (j > partialEndOffset) partialEndOffset = j;
-                    }
+                //FUTURE: (EW) this expands the extracted text to include all of the
+                // ParcelableSpans, and in the case of spellcheck being enabled, this seems to
+                // result in a full extract, so this will need to be handled when adding options
+                // to limit extracting text
+                Object[] spans = getParcelableSpans(content, partialStartOffset, partialEndOffset);
+                int i = spans.length;
+                while (i > 0) {
+                    i--;
+                    int j = content.getSpanStart(spans[i]);
+                    if (j < partialStartOffset) partialStartOffset = j;
+                    j = content.getSpanEnd(spans[i]);
+                    if (j > partialEndOffset) partialEndOffset = j;
                 }
+
                 outText.partialStartOffset = partialStartOffset;
                 outText.partialEndOffset = partialEndOffset - delta;
 
@@ -1562,6 +1565,31 @@ public class Editor {
             outText.hint = mTextView.getHint();
         }
         return true;
+    }
+
+    // (EW) wrapper for Spanned#getSpans for ParcelableSpan and related spans. see
+    // EditText#isParcelableSpan.
+    static Object[] getParcelableSpans(Spanned spanned, int start, int end) {
+        Object[] actualParcelableSpans = spanned.getSpans(start, end, ParcelableSpan.class);
+        Class<?>[] pseudoParcelableSpanTypes = new Class<?>[] {
+                SpellCheckSpan.class, SuggestionRangeSpan.class
+        };
+        int totalSpans = actualParcelableSpans.length;
+        Object[][] pseudoParcelableSpansArrays = new Object[pseudoParcelableSpanTypes.length][];
+        for (int i = 0; i < pseudoParcelableSpanTypes.length; i++) {
+            Class<?> type = pseudoParcelableSpanTypes[i];
+            pseudoParcelableSpansArrays[i] = spanned.getSpans(start, end, type);
+            totalSpans += pseudoParcelableSpansArrays[i].length;
+        }
+        Object[] allSpans = new Object[totalSpans];
+        System.arraycopy(actualParcelableSpans, 0, allSpans, 0, actualParcelableSpans.length);
+        int allSpansIndex = actualParcelableSpans.length;
+        for (Object[] pseudoParcelableSpansArray : pseudoParcelableSpansArrays) {
+            System.arraycopy(pseudoParcelableSpansArray, 0, allSpans, allSpansIndex,
+                    pseudoParcelableSpansArray.length);
+            allSpansIndex += pseudoParcelableSpansArray.length;
+        }
+        return allSpans;
     }
 
     boolean reportExtractedText() {
