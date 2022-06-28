@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.wittmane.testingedittext">
 
-    <!--<uses-permission android:name="android.permission.WRITE_USER_DICTIONARY"/>-->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />

@@ -3335,13 +3335,25 @@ public class Editor {
                     }
                     final String originalText = TextUtils.substring(editable, spanStart, spanEnd);
 
-                    //TODO: (EW) Settings.ACTION_USER_DICTIONARY_INSERT is marked with hide and
-                    // UnsupportedAppUsage, and since it's just a string, we can just hard-code the
-                    // value, but that has the chance to suddenly break on a new version. also, the
-                    // comment for that constant says that the matching activity might not exist in
-                    // some cases. this isn't a good solution. find something better.
+                    //FUTURE: (EW) Settings.ACTION_USER_DICTIONARY_INSERT is hidden and starting in
+                    // S, it is restricted so reflection doesn't even work, but since it's just a
+                    // string, we can just hard-code the value, but that has the chance to suddenly
+                    // break on a new version, and given that reflection is blocked this seems even
+                    // more likely that it could break. also, the comment for that constant says
+                    // that the matching activity might not exist in some cases.
+                    // I haven't been able to find an alternative. I tried just adding the word to
+                    // the dictionary with UserDictionary.Words#addWord rather than relying on the
+                    // questionably accessible system activity, but that doesn't seem to work
+                    // on anything later than lollipop, and that's mentioned in the comment in
+                    // UserDictionary saying "Starting on API 23, the user dictionary is only
+                    // accessible through IME and spellchecker." also see
+                    // https://stackoverflow.com/a/38417970. it seems that there currently isn't a
+                    // legitimate option to do this in a custom text editor. it might be a better
+                    // idea to just drop the feature of trying to add words to the dictionary since
+                    // this easily could break in the future and there already might be some cases
+                    // that it doesn't work.
                     try {
-                        final Intent intent = new Intent(/*Settings.ACTION_USER_DICTIONARY_INSERT*/
+                        final Intent intent = new Intent(
                                 "com.android.settings.USER_DICTIONARY_INSERT");
                         intent.putExtra(USER_DICTIONARY_EXTRA_WORD, originalText);
                         intent.putExtra(USER_DICTIONARY_EXTRA_LOCALE,
@@ -3350,21 +3362,9 @@ public class Editor {
                         mTextView.getContext().startActivity(intent);
                     } catch (ActivityNotFoundException e) {
                         Log.e(TAG, "Failed to add word to dictionary: " + e);
+                        hideWithCleanUp();
                         return;
                     }
-                    //TODO: (EW) this works on kitkat (as long as we have WRITE_USER_DICTIONARY
-                    // permission), but not on pie. it's probably related to the comment on
-                    // UserDictionary saying "Starting on API 23, the user dictionary is only
-                    // accessible through IME and spellchecker." I didn't fully test to verify that
-                    // yet. also, this just adds the word, rather than show the popup for the user
-                    // to verify, which is different from AOSP, but I think that change would be
-                    // fine if this actually worked on all versions.
-                    // see https://issuetracker.google.com/issues/37078433
-                    // https://stackoverflow.com/questions/34242790/access-userdictionary-content-provider-on-android-api-level-23
-                    // https://stackoverflow.com/questions/38417746/adding-to-user-dictionary-in-android-m
-                    // https://stackoverflow.com/questions/34009849/user-dictionary-contentresolver-query-returns-0-rows-cursor
-                    //UserDictionary.Words.addWord(mTextView.getContext(), originalText, 1, "",
-                    //        mTextView.getTextServicesLocale());
 
                     // There is no way to know if the word was indeed added. Re-check.
                     // TODO The ExtractEditText should remove the span in the original text instead

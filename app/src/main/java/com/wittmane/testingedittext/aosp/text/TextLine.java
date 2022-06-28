@@ -835,7 +835,7 @@ public class TextLine {
                             mStart + spanLimit, dir, mStart + offset, cursorOpt) - mStart;
                 }
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                Log.e("TextLine", "getOffsetBeforeAfter: Reflection failed on getTextRunCursor: "
+                Log.e(TAG, "getOffsetBeforeAfter: Reflection failed on getTextRunCursor: "
                         + e.getMessage());
                 return -1;
             }
