@@ -164,12 +164,10 @@ public class Editor {
             SuggestionSpan.FLAG_MISSPELLED | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                     ? SuggestionSpan.FLAG_GRAMMAR_ERROR : 8);
 
-    //TODO: (EW) TEXT_LINK isn't used. is it related to the link text functionality that I removed?
-    @IntDef({TextActionMode.SELECTION, TextActionMode.INSERTION, TextActionMode.TEXT_LINK})
+    @IntDef({TextActionMode.SELECTION, TextActionMode.INSERTION})
     @interface TextActionMode {
         int SELECTION = 0;
         int INSERTION = 1;
-        int TEXT_LINK = 2;
     }
 
     // Default content insertion handler.
@@ -1927,8 +1925,7 @@ public class Editor {
             return false;
         }
 
-        if (actionMode != TextActionMode.TEXT_LINK
-                && (!checkField() || !mTextView.hasSelection())) {
+        if (!checkField() || !mTextView.hasSelection()) {
             return false;
         }
 
@@ -1939,15 +1936,6 @@ public class Editor {
             ActionMode.Callback actionModeCallback = new SelectionActionModeCallback();
             mTextActionMode = mTextView.startActionMode(actionModeCallback);
         }
-
-        final boolean selectableText = mTextView.isTextEditable() || mTextView.isTextSelectable();
-//        if (actionMode == TextActionMode.TEXT_LINK && !selectableText
-//                && mTextActionMode instanceof FloatingActionMode) {
-//            // Make the toolbar outside-touchable so that it can be dismissed when the user clicks
-//            // outside of it.
-//            ((FloatingActionMode) mTextActionMode).setOutsideTouchable(true,
-//                    () -> stopTextActionMode());
-//        }
 
         final boolean selectionStarted = mTextActionMode != null;
         if (selectionStarted
@@ -3649,8 +3637,7 @@ public class Editor {
         private final int mHandleHeight;
 
         public TextActionModeCallback(@TextActionMode int mode) {
-            mHasSelection = mode == TextActionMode.SELECTION
-                    || (mTextIsSelectable && mode == TextActionMode.TEXT_LINK);
+            mHasSelection = mode == TextActionMode.SELECTION;
             if (mHasSelection) {
                 SelectionModifierCursorController selectionController = getSelectionController();
                 if (selectionController.mStartHandle == null) {

@@ -128,11 +128,6 @@ public final class SelectionActionModeHelper {
         mSelectionTracker.onSelectionDestroyed();
     }
 
-    //(EW) unused
-//    private void startLinkActionMode() {
-//        startActionMode(Editor.TextActionMode.TEXT_LINK);
-//    }
-
     private void startSelectionActionMode() {
         startActionMode(Editor.TextActionMode.SELECTION);
     }
