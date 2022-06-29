@@ -1,6 +1,7 @@
 //https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android11-release/core/java/com/android/internal/widget/EditableInputConnection.java
 
 /*
+ * Copyright (C) 2022 Eli Wittman
  * Copyright (C) 2007-2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
