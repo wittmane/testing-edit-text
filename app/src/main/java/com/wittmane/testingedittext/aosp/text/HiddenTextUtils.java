@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2006 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.wittmane.testingedittext.aosp.text;
 
 import android.os.Parcelable;
@@ -10,6 +26,8 @@ import android.text.style.UpdateAppearance;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 
 import java.lang.reflect.Array;
 
@@ -132,7 +150,7 @@ public class HiddenTextUtils {
      * @hide
      */
     public static boolean hasStyleSpan(@NonNull Spanned spanned) {
-//        Preconditions.checkArgument(spanned != null);
+        Preconditions.checkArgument(spanned != null);
         final Class<?>[] styleClasses = {
                 CharacterStyle.class, ParagraphStyle.class, UpdateAppearance.class};
         for (Class<?> clazz : styleClasses) {
@@ -173,7 +191,7 @@ public class HiddenTextUtils {
     @Nullable
     public static <T extends CharSequence> T trimToSize(@Nullable T text,
                                                         @IntRange(from = 1) int size) {
-//        Preconditions.checkArgument(size > 0);
+        Preconditions.checkArgument(size > 0);
         if (TextUtils.isEmpty(text) || text.length() <= size) return text;
         if (Character.isHighSurrogate(text.charAt(size - 1))
                 && Character.isLowSurrogate(text.charAt(size))) {
