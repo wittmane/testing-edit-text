@@ -356,9 +356,8 @@ public class Editor {
         } else {
             mProcessTextIntentActionsHandler = null;
         }
-        //TODO: (EW) where should this be defined?
-        mHapticTextHandleEnabled = /*mTextView.getContext().getResources().getBoolean(
-                R.bool.config_enableHapticTextHandle)*/false;
+        mHapticTextHandleEnabled = mTextView.getContext().getResources().getBoolean(
+                R.bool.config_enableHapticTextHandle);
 
         // (EW) the AOSP version checks AppGlobals.getIntCoreSetting starting in R, which is on the
         // hidden API blacklist, so it can't even be used with reflection. it might be nice to pull

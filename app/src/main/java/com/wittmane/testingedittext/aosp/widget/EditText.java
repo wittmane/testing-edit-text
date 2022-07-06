@@ -345,7 +345,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private ArrayList<TextWatcher> mListeners;
 
     // display attributes
-    private final TextPaint mTextPaint;
+    private final TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private boolean mUserSetTextScaleX;
     // (EW) the AOSP version was typed as Layout but this version currently always uses a
     // DynamicLayout, so specifying that for visibility, but this could be changed back if necessary
@@ -361,7 +361,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // True if setKeyListener() has been explicitly called
     private boolean mListenerChanged = false;
     // True if internationalized input should be used for numbers and date and time.
-    private final boolean mUseInternationalizedInput;
+    // (EW) this should be final but can't since it's set in #init to avoid duplicate code
+    private boolean mUseInternationalizedInput;
     // True if fallback fonts that end up getting used should be allowed to affect line spacing.
     /* package */ boolean mUseFallbackLineSpacing;
 
@@ -414,7 +415,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // a link is pressed). These highlight-related fields do not go in mEditor.
     int mHighlightColor = 0x6633B5E5;
     private Path mHighlightPath;
-    private final Paint mHighlightPaint;
+    private final Paint mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private boolean mHighlightPathBogus = true;
 
     // Although these fields are specific to editable text, they are not added to Editor because
@@ -528,12 +529,19 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     public EditText(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-        this(context, attrs, defStyleAttr, 0);
+        super(context, attrs, defStyleAttr);
+        init(context, attrs, defStyleAttr, 0);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public EditText(
             Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr/*, defStyleRes*/);//TODO: (EW) figure out how to call the version with defStyleRes on lollipop+
+        super(context, attrs, defStyleAttr, defStyleRes);
+        init(context, attrs, defStyleAttr, defStyleRes);
+    }
+
+    private void init(
+            Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         // TextView is important by default, unless app developer overrode attribute.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // (EW) autofill support started in Oreo
@@ -551,13 +559,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         final Resources res = getResources();
 
-        mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.density = res.getDisplayMetrics().density;
         // (EW) the AOSP version calls Paint#setCompatibilityScaling using
         // Resources#getCompatibilityInfo, both of which are not accessible from apps. I don't
         // think there is really anything to do, and I'm not certain if it's really necessary.
-
-        mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
 
         mMovement = ArrowKeyMovementMethod.getInstance();
@@ -843,7 +848,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final boolean numberPasswordInputType = variation
                 == (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD);
 
-        //TODO: (EW) should we do this too? does this only apply for a framework view?
+        //TODO: (EW) I think this is only necessary if this is moved to a library
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
         mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
