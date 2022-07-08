@@ -65,5 +65,11 @@ public class MainActivity extends Activity {
         nativeEditText1.setFilters(new InputFilter[] {filter});
         com.wittmane.testingedittext.aosp.widget.EditText customEditText1 = findViewById(R.id.customEditText1);
         customEditText1.setFilters(new InputFilter[] {filter});
+
+
+        android.widget.EditText doNotScrollNativeEditText = findViewById(R.id.ellipsizeNativeEditText);
+        doNotScrollNativeEditText.setKeyListener(null);
+        com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText = findViewById(R.id.ellipsizeCustomEditText);
+        doNotScrollEditText.setKeyListener(null);
     }
 }

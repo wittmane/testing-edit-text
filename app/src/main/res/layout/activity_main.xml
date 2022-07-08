@@ -840,6 +840,8 @@
                         android:includeFontPadding="true"
                         android:textIsSelectable="false"
                         android:enabled="false"
+                        android:id="@+id/ellipsizeNativeEditText"
+                        android:ellipsize="end"
                         android:lineHeight="100sp"
                         android:firstBaselineToTopHeight="40sp"
                         android:text="example text with extra content to see how this scrolls"/>
@@ -858,6 +860,8 @@
                         android:includeFontPadding="true"
                         android:textIsSelectable="false"
                         android:enabled="false"
+                        android:id="@+id/ellipsizeCustomEditText"
+                        android:ellipsize="end"
                         android:lineHeight="100sp"
                         android:firstBaselineToTopHeight="40sp"
                         android:text="example text with extra content to see how this scrolls"/>

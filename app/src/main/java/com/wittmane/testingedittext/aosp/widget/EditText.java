@@ -713,16 +713,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 text = typedArray.getText(attr);
 
             } else if (attr == R.styleable.EditText_android_scrollHorizontally) {
-                //TODO: (EW) this doesn't seem to have any effect in an EditText. if this can be
-                // confirmed as actually not having any effect, remove this.
+                //FUTURE: (EW) setting this via xml doesn't seem to work (even in the AOSP version
+                // at least as of S), but if #setHorizontallyScrolling is used, it works fine. this
+                // should be fixed so the xml setup also works.
                 if (typedArray.getBoolean(attr, false)) {
                     setHorizontallyScrolling(true);
                 }
 
             } else if (attr == R.styleable.EditText_android_ellipsize) {
-                //TODO: (EW) this doesn't seem to work in EditText (although only marquee is called
-                // out as not supported). if this can be confirmed as actually not having any
-                // effect, remove this.
+                // (EW) the AOSP version of EditText#setEllipsize specifically calls out that
+                // marquee isn't supported, which seems to imply that the rest of the options should
+                // work, but from testing it seems limited. it seems to only work when the view
+                // isn't editable. it works when inputType is unspecified and singleLine = true and
+                // editable = false in the AOSP version (see  https://stackoverflow.com/q/19276320),
+                // but those properties aren't supported here because they are deprecated in the
+                // AOSP version. it also works when the key listener is null (see
+                // https://stackoverflow.com/a/33872646), and since that blocks entering or
+                // scrolling text, it probably makes the most sense to be done when disabling the
+                // view.
+                //FUTURE: (EW) it might be nice to allow this to work when disabled without having
+                // to manually clear the key listener.
                 ellipsize = typedArray.getInt(attr, ellipsize);
 
             } else if (attr == R.styleable.EditText_android_includeFontPadding) {
@@ -1974,7 +1984,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         @XMLTypefaceAttr int mTypefaceIndex = DEFAULT_TYPEFACE;
         int mTextStyle = 0;
         int mFontWeight = -1;
-        boolean mAllCaps = false;
         int mShadowColor = 0;
         float mShadowDx = 0, mShadowDy = 0, mShadowRadius = 0;
         boolean mHasElegant = false;
@@ -2001,7 +2010,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     + "    mTypefaceIndex:" + mTypefaceIndex + "\n"
                     + "    mTextStyle:" + mTextStyle + "\n"
                     + "    mFontWeight:" + mFontWeight + "\n"
-                    + "    mAllCaps:" + mAllCaps + "\n"
                     + "    mShadowColor:" + mShadowColor + "\n"
                     + "    mShadowDx:" + mShadowDx + "\n"
                     + "    mShadowDy:" + mShadowDy + "\n"
@@ -2088,6 +2096,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
             }
 
+            // (EW) the following attributes are used in the AOSP version but I'm skipping them:
+            // textAllCaps - documentation for TextView#setAllCaps claims the setting will be
+            //               ignored if this field is editable, but that appears to be incorrect
+            //               since setting textAllCaps to true in the xml does capitalize all of the
+            //               initial text, but it crashes with an IndexOutOfBoundsException when
+            //               typing anything into the field.
+            //               https://androidacademic.blogspot.com/2018/05/android-edittext-Index-Out-Of-Bounds-exception.html
+            //               points this out and states that this property isn't for EditText.
             if (index == R.styleable.TextAppearance_android_textColorHighlight) {
                 attributes.mTextColorHighlight =
                         appearance.getColor(attr, attributes.mTextColorHighlight);
@@ -2148,13 +2164,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (index == R.styleable.TextAppearance_android_textFontWeight) {
                 // (EW) attribute android:textFontWeight is only used in API level 28 and higher
                 attributes.mFontWeight = appearance.getInt(attr, attributes.mFontWeight);
-
-            } else if (index == R.styleable.TextAppearance_android_textAllCaps) {
-                //TODO: (EW) this doesn't seem to have the effect I was expecting and
-                // https://androidacademic.blogspot.com/2018/05/android-edittext-Index-Out-Of-Bounds-exception.html
-                // points out an error and states that this property isn't for EditText. maybe
-                // remove this
-                attributes.mAllCaps = appearance.getBoolean(attr, attributes.mAllCaps);
 
             } else if (index == R.styleable.TextAppearance_android_shadowColor) {
                 attributes.mShadowColor = appearance.getInt(attr, attributes.mShadowColor);
@@ -2233,14 +2242,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (attributes.mShadowColor != 0) {
             setShadowLayer(attributes.mShadowRadius, attributes.mShadowDx, attributes.mShadowDy,
                     attributes.mShadowColor);
-        }
-
-        if (attributes.mAllCaps) {
-            //TODO: (EW) figure out if we can just use the restricted androidx version or need to
-            // copy the aosp version
-            // this doesn't even seem to work as I'd expect in the built-in EditText, so maybe
-            // don't bother
-//            setTransformationMethod(new AllCapsTransformationMethod(getContext()));
         }
 
         if (attributes.mHasElegant && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
