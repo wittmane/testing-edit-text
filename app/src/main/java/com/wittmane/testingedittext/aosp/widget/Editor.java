@@ -248,7 +248,6 @@ public class Editor {
 
     boolean mCursorVisible = true;
     boolean mSelectAllOnFocus;
-    boolean mTextIsSelectable;
 
     boolean mInBatchEditControllers;
     boolean mShowSoftInputOnFocus = true;
@@ -1954,9 +1953,7 @@ public class Editor {
         }
 
         final boolean selectionStarted = mTextActionMode != null;
-        if (selectionStarted
-                && mTextView.isTextEditable() && !mTextView.isTextSelectable()
-                && mShowSoftInputOnFocus) {
+        if (selectionStarted && mTextView.isTextEditable() && mShowSoftInputOnFocus) {
             // Show the IME to be able to replace text, except when selecting non editable text.
             final InputMethodManager imm = getInputMethodManager();
             if (imm != null) {

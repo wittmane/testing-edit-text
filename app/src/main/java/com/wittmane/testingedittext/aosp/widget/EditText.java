@@ -649,6 +649,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             //     freezesText - always enabled
             //     autoSizeTextType, autoSizeStepGranularity, autoSizeMinTextSize,
             //     autoSizeMaxTextSize, autoSizePresetSizes - auto size not supported in EditText
+            //     textIsSelectable - EditText content is always selectable
             // feature not currently being implemented:
             //     autoLink - doesn't update links as you type, so this doesn't seem very beneficial
             //     linksClickable - related to autoLink
@@ -803,11 +804,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             } else if (attr == R.styleable.EditText_textEditSuggestionHighlightStyle) {
                 mTextEditSuggestionHighlightStyle = typedArray.getResourceId(attr, 0);
-
-            } else if (attr == R.styleable.EditText_android_textIsSelectable) {
-                //TODO: (EW) this doesn't seem to have any effect in an EditText. if this can be
-                // confirmed as actually not having any effect, remove this.
-                setTextIsSelectable(typedArray.getBoolean(attr, false));
 
             } else if (attr == R.styleable.EditText_android_breakStrategy) {
                 //TODO: (EW) EditText defaults to Layout#BREAK_STRATEGY_SIMPLE to avoid the text
@@ -5213,74 +5209,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 || mShadowColor != 0);
     }
 
-    //TODO: (EW) documentation says EditText can always be selected, and that seems to be what I've
-    // found from testing, so this should be removed. leaving for now in case copying code that
-    // calls this
-    /**
-     *
-     * Returns the state of the {@code textIsSelectable} flag (See
-     * {@link #setTextIsSelectable setTextIsSelectable()}). Although you have to set this flag
-     * to allow users to select and copy text in a non-editable TextView, the content of an
-     * {@link android.widget.EditText} can always be selected, independently of the value of this flag.
-     * <p>
-     *
-     * @return True if the text displayed in this TextView can be selected by the user.
-     *
-     * @attr ref android.R.styleable#TextView_textIsSelectable
-     */
-    public boolean isTextSelectable() {
-        return mEditor.mTextIsSelectable;
-    }
-
-    //TODO: (EW) documentation says EditText can always be selected, and that seems to be what I've
-    // found from testing, so this should be removed. leaving for now in case copying code that
-    // calls this
-    /**
-     * Sets whether the content of this view is selectable by the user. The default is
-     * {@code false}, meaning that the content is not selectable.
-     * <p>
-     * When you use a TextView to display a useful piece of information to the user (such as a
-     * contact's address), make it selectable, so that the user can select and copy its
-     * content. You can also use set the XML attribute
-     * {@link R.styleable#EditText_android_textIsSelectable} to "true".
-     * <p>
-     * When you call this method to set the value of {@code textIsSelectable}, it sets
-     * the flags {@code focusable}, {@code focusableInTouchMode}, {@code clickable},
-     * and {@code longClickable} to the same value. These flags correspond to the attributes
-     * {@link R.styleable#View_android_focusable android:focusable},
-     * {@link R.styleable#View_android_focusableInTouchMode android:focusableInTouchMode},
-     * {@link R.styleable#View_android_clickable android:clickable}, and
-     * {@link R.styleable#View_android_longClickable android:longClickable}. To restore any of these
-     * flags to a state you had set previously, call one or more of the following methods:
-     * {@link #setFocusable(boolean) setFocusable()},
-     * {@link #setFocusableInTouchMode(boolean) setFocusableInTouchMode()},
-     * {@link #setClickable(boolean) setClickable()} or
-     * {@link #setLongClickable(boolean) setLongClickable()}.
-     *
-     * @param selectable Whether the content of this TextView should be selectable.
-     */
-    public void setTextIsSelectable(boolean selectable) {
-        if (mEditor.mTextIsSelectable == selectable) return;
-
-        mEditor.mTextIsSelectable = selectable;
-        setFocusableInTouchMode(selectable);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            setFocusable(FOCUSABLE_AUTO);
-        } else {
-            setFocusable(selectable);
-        }
-        setClickable(selectable);
-        setLongClickable(selectable);
-
-        // mInputType should already be EditorInfo.TYPE_NULL and mInput should be null
-
-        setMovementMethod(selectable ? ArrowKeyMovementMethod.getInstance() : null);
-        setText(mText);
-
-        // Called by setText above, but safer in case of future code changes
-        mEditor.prepareCursorControllers();
-    }
-
     private Path getUpdatedHighlightPath() {
         Path highlight = null;
         Paint highlightPaint = mHighlightPaint;
@@ -5521,7 +5449,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public PointerIcon onResolvePointerIcon(MotionEvent event, int pointerIndex) {
-        if (isTextSelectable() || isTextEditable()) {
+        if (isTextEditable()) {
             return PointerIcon.getSystemIcon(getContext(), PointerIcon.TYPE_TEXT);
         }
         return super.onResolvePointerIcon(event, pointerIndex);
@@ -8085,13 +8013,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 handled |= mMovement.onTouchEvent(this, mSpannable, event);
             }
 
-            final boolean textIsSelectable = isTextSelectable();
-
-            if (touchIsFinished && (isTextEditable() || textIsSelectable)) {
+            if (touchIsFinished && isTextEditable()) {
                 // Show the IME, except when selecting in read-only text.
                 final InputMethodManager imm = getInputMethodManager();
                 viewClicked(imm);
-                if (isTextEditable() && mEditor.mShowSoftInputOnFocus && imm != null) {
+                if (mEditor.mShowSoftInputOnFocus && imm != null) {
                     imm.showSoftInput(this, 0);
                 }
 
@@ -8265,8 +8191,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // If you change this condition, make sure prepareCursorController is called anywhere
         // the value of this condition might be changed.
         if (mMovement == null || !mMovement.canSelectArbitrarily()) return false;
-        return isTextEditable()
-                || (isTextSelectable() && mText instanceof Spannable && isEnabled());
+        return isTextEditable();
     }
 
     private Locale getTextServicesLocale(boolean allowNullLocale) {

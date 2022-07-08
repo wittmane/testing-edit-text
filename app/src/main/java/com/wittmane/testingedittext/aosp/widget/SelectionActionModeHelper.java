@@ -151,8 +151,7 @@ public final class SelectionActionModeHelper {
 
     private void startActionMode(@Editor.TextActionMode int actionMode) {
         final SelectionModifierCursorController controller = mEditor.getSelectionController();
-        if (controller != null
-                && (mTextView.isTextSelectable() || mTextView.isTextEditable())) {
+        if (controller != null && mTextView.isTextEditable()) {
             controller.show();
         }
         mEditor.startActionModeInternal(actionMode);
