@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
-     Copyright 2015, The Android Open Source Project
+<!-- Copyright 2015, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -17,12 +16,6 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/background_floating_material_light" />
-    <!-- (EW) from versions 23 (Marshmallow) through 27 (Oreo MR1). this drawable is only used in
-         floatingToolbarPopupBackgroundDrawable in floatingToolbarPopupBackgroundDrawable in
-         v21/themes, which is only used in text_edit_suggestion_container_material, which is only
-         used in textEditSuggestionContainerLayout in v24/themes. this means that versions prior to
-         24 (Nougat) don't matter here. prior versions set textEditSuggestionContainerLayout to use
-         text_edit_suggestion_container.-->
-    <corners android:radius="2dp" />
+    <corners android:radius="?android:attr/dialogCornerRadius" />
 </shape>
 
