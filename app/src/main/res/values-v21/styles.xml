@@ -15,12 +15,12 @@
      limitations under the License.
 -->
 <resources>
-    <!--(EW) from styles_material (versions 24 (N) through at least 31 (S))-->
+    <!-- (EW) from styles_material (versions 24 (Nougat) through at least 31 (S / Android 12)) -->
     <style name="TextAppearance.Material.TextSuggestionHighlight" parent="@android:style/TextAppearance.Material">
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
-    <!--(EW) from styles_material (versions 24 (N) through at least 31 (S))-->
+    <!-- (EW) from styles_material (versions 24 (Nougat) through at least 31 (S / Android 12)) -->
     <style name="Widget.Material.SuggestionButton" parent="android:Widget.Material">
         <item name="android:textAppearance">@android:style/TextAppearance.Material.Button</item>
         <item name="android:textColor">?android:attr/colorAccent</item>

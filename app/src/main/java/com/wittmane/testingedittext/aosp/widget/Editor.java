@@ -3284,11 +3284,11 @@ public class Editor {
             a.recycle();
 
             // (EW) prior to Nougat, the AOSP version didn't bother with the theme wrapper and just
-            // used the text view's context directly. despite normally using the material theme,
+            // used the text view's context directly. despite normally using the Material theme,
             // Lollipop through Marshmallow and essentially used the Holo theme for this popup.
-            // we're matching the more recent versions use of the material theme here for those
+            // we're matching the more recent versions use of the Material theme here for those
             // versions. see comment in SuggestionsPopupWindow.SuggestionAdapter#getView. since
-            // Nougat through at least S always use the material overlay themes, it might be
+            // Nougat through at least S always use the Material overlay themes, it might be
             // reasonable to also always do that in Lollipop through Marshmallow (I didn't notice
             // any issues), but to be safe we'll still match the AOSP code when using the Holo
             // theme.
@@ -3466,7 +3466,7 @@ public class Editor {
                 // Widget.Holo.SuggestionItem so setting it here isn't necessary anymore. rather
                 // than matching the framework functionality, when not using the Holo theme on
                 // Lollipop through Marshmallow we'll deviate from the framework functionality to be
-                // more consistent with the rest of the material theme that is used and be more
+                // more consistent with the rest of the Material theme that is used and be more
                 // consistent between versions of this app, so those versions shouldn't set the
                 // background, except for when the Holo theme is used. see comment in Theme.Material
                 // in v21/themes.

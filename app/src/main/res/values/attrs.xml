@@ -30,8 +30,9 @@
              here-->
         <attr name="floatingToolbarPopupBackgroundDrawable" format="reference" />
 
-        <!-- (EW) android:isLightTheme was added in version 23 (M), but it wasn't made public until
-             version 29 (Q), so we have to copy it to use on versions prior to Q.-->
+        <!-- (EW) android:isLightTheme was added in version 23 (Marshmallow), but it wasn't made
+             public until version 29 (Q / Android 10), so we have to copy it to use on versions
+             prior to Android 10. -->
         <!-- Specifies that a theme has a light background with dark text on top. -->
         <attr name="isLightTheme" format="boolean" />
 
@@ -389,7 +390,7 @@
         <!-- A drawable to use as the background.  This can be either a reference
              to a full drawable resource (such as a PNG image, 9-patch,
              XML state list description, etc), or a solid color such as "#ff000000"
-            (black). -->
+             (black). -->
         <attr name="android:background" />
 
         <!-- Sets the padding, in pixels, of all four edges. Padding is defined as

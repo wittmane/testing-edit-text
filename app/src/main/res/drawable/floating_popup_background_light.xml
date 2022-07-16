@@ -14,10 +14,10 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<!-- (EW) from versions 23 (Marshmallow) through 27 (Oreo MR1) -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/background_floating_material_light" />
-    <!-- (EW) from versions 23 (Marshmallow) through 27 (Oreo MR1) -->
     <!-- (EW) see comment in floating_popup_background_dark -->
     <corners android:radius="2dp" />
 </shape>

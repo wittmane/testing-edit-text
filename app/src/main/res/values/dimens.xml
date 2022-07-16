@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2006, The Android Open Source Project
+<!-- Copyright (C) 2014 The Android Open Source Project
+     Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -15,8 +16,10 @@
 -->
 <resources>
 
+    <!-- (EW) from versions 21 (Lollipop) through at least 31 (S / Android 12) -->
     <dimen name="text_handle_min_size">40dp</dimen>
 
+    <!-- (EW) from dimens_material (versions 24 (Nougat) through at least 31 (S / Android 12) -->
     <dimen name="text_edit_floating_toolbar_elevation">2dp</dimen>
     <dimen name="text_edit_floating_toolbar_margin">20dp</dimen>
 </resources>

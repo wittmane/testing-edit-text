@@ -10,8 +10,8 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<!--(EW) (versions 24 (N) through at least 31 (S)). prior to version 24 (N), this didn't exist, and
-    Editor just created the content from code.-->
+<!-- (EW) from versions 24 (Nougat) through at least 31 (S / Android 12)). prior to Nougat, this
+     didn't exist, and Editor just created the content from code. -->
 <!-- Background of the popup window is the same as the one of the floating toolbar.
      Use floating toolbar background style. -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"

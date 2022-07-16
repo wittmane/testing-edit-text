@@ -14,10 +14,10 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<!-- (EW) from versions 23 (Marshmallow) through 27 (Oreo MR1) -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/background_floating_material_dark" />
-    <!-- (EW) from versions 23 (Marshmallow) through 27 (Oreo MR1) -->
     <!-- (EW) the AOSP version didn't actually use this until version 24 (Nougat) and essentially
          used the Holo theme prior to that, but we're intentionally deviating from the framework
          functionality in versions 21 (Lollipop) through 23 (Marshmallow), so this will actually be

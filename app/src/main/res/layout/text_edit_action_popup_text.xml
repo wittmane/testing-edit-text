@@ -10,7 +10,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<!--(EW) (versions 19 (K) through at least 31 (S))-->
+<!-- (EW) from versions 19 (Kitkat) through at least 31 (S / Android 12) -->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"

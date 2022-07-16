@@ -16,49 +16,57 @@
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
-        <!--(EW) android Theme.DeviceDefault inherits from Theme.Holo (prior to version 21 (L)), so
-            matching our Theme.Holo since this can't inherit from both-->
+        <!-- (EW) Android Theme.DeviceDefault inherits from Theme.Holo (prior to version 21
+             (Lollipop)), so matching our Theme.Holo since this can't inherit from both -->
         <item name="isHoloTheme">true</item>
         <item name="isLightTheme">false</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
     </style>
 
-    <!--TODO: (EW) add Theme.DeviceDefault.Light-->
+    <style name="Theme.DeviceDefault.Light" parent="@android:style/Theme.DeviceDefault.Light">
+        <!-- (EW) Android Theme.DeviceDefault.Light inherits from Theme.Holo.Light (prior to version
+             21 (Lollipop)), so matching our Theme.Holo.Light since this can't inherit from both -->
+        <item name="isHoloTheme">true</item>
+        <item name="isLightTheme">true</item>
+        <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
+        <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+    </style>
 
     <style name="Theme.Holo" parent="@android:style/Theme.Holo">
         <item name="isHoloTheme">true</item>
 
-        <!--(EW) from Theme in themes (23 (M) through at least 31 (S)) that the android Holo theme
-            inherits from-->
+        <!-- (EW) from Theme in themes (23 (Marshmallow) through at least 31 (S / Android 12)) that
+             the Android Holo theme inherits from -->
         <item name="isLightTheme">false</item>
 
-        <!--(EW) from themes_holo (versions 24 (N) through at least  31 (S))-->
-        <!--(EW) prior to N, Editor just created a new ListView from code, rather than using a
-            layout file, but this was added in N as a compatibility version for the holo theme-->
+        <!-- (EW) from themes_holo (versions 24 (Nougat) through at least  31 (S / Android 12)) -->
+        <!-- (EW) prior to Nougat, Editor just created a new ListView from code, rather than using a
+             layout file, but this was added in N as a compatibility version for the Holo theme -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
-        <!--(EW) prior to N, android.R.style.TextAppearance_SuggestionHighlight was just directly
-            used in Editor-->
+        <!-- (EW) prior to Nougat, android.R.style.TextAppearance_SuggestionHighlight was just
+             directly used in Editor-->
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
     </style>
 
     <style name="Theme.Holo.Light" parent="@android:style/Theme.Holo.Light">
         <item name="isHoloTheme">true</item>
 
-        <!--(EW) from Theme.Light in themes (versions 23 (M) through at least 31 (S)) that the
-            android Holo light theme inherits from-->
+        <!-- (EW) from Theme.Light in themes (versions 23 (Marshmallow) through at least 31
+             (S / Android 12)) that the Android Holo light theme inherits from -->
         <item name="isLightTheme">true</item>
 
-        <!--(EW) from themes_holo (versions 24 (N) through at least  31 (S))-->
-        <!--(EW) see comment in Theme.Holo-->
+        <!-- (EW) from themes_holo (versions 24 (Nougat) through at least  31 (S / Android 12)) -->
+        <!-- (EW) see comment in Theme.Holo -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
-        <!--(EW) see comment in Theme.Holo-->
+        <!-- (EW) see comment in Theme.Holo -->
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
     </style>
 
 
     <!-- Base application theme. -->
     <style name="Theme.TestingEditText" parent="Theme.DeviceDefault">
+<!--    <style name="Theme.TestingEditText" parent="Theme.DeviceDefault.Light">-->
 <!--    <style name="Theme.TestingEditText" parent="Theme.Material">-->
 <!--    <style name="Theme.TestingEditText" parent="Theme.Material.Light">-->
 <!--    <style name="Theme.TestingEditText" parent="Theme.Holo">-->

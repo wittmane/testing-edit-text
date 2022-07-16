@@ -15,22 +15,27 @@
      limitations under the License.
 -->
 <resources>
-    <!--(EW) from styles_holo (versions 24 (N) through at least 31 (S)). see comment on
-        Widget.Holo.SuggestionButton for prior versions-->
+    <!-- (EW) from styles_holo (versions 24 (Nougat) through at least 31 (S / Android 12)). see
+         comment on Widget.Holo.SuggestionButton for prior versions. in addition to being the parent
+         of that, this is the style used in text_edit_suggestion_item (versions 24 (Nougat) through
+         at least 31 (S / Android 12) or directly set in it in prior versions), although we're
+         currently using the default (framework) textEditSuggestionItemLayout, so this is just a
+         copy of that style and not actually used for the suggestion items. -->
     <style name="Widget.Holo.SuggestionItem" parent="android:Widget.Holo">
-        <!--(EW) text_edit_suggestion_item (versions 19 (K) through 23 (M)) used
-            ?android:attr/textAppearanceMedium, but that resolved to the same in the dark theme in
-            themes_holo (21 (L) through at least 31 (S)) or themes (before version 21 (L))
-            (@style/TextAppearance.Holo.Light.Medium in the light theme). I'm leaving it with to
-            match more recent versions-->
+        <!-- (EW) text_edit_suggestion_item (versions 19 (Kitkat) through 23 (Marshmallow)) used
+             ?android:attr/textAppearanceMedium, but that resolved to the same in the dark theme in
+             themes_holo (versions 21 (Lollipop) through at least 31 (S / Android 12)) or themes
+             (before version 21 (Lollipop)) (@style/TextAppearance.Holo.Light.Medium in the light
+             theme). I'm leaving it to match more recent versions. -->
         <item name="android:textAppearance">@android:style/TextAppearance.Holo.Medium</item>
-        <!--(EW) skipping the background from the AOSP version so Widget.Holo.SuggestionButton (the
-            only thing that uses this) doesn't inherit a background since it's getting skipped
-            there
-            text_edit_suggestion_item (19 (K) through 23 (M)) didn't specify background-->
-        <!--<item name="android:background">@color/white</item>-->
+        <!-- (EW) text_edit_suggestion_item (versions 19 (Kitkat) through 23 (Marshmallow)) didn't
+             specify background, but it was set in code in
+             Editor.SuggestionsPopupWindow.SuggestionAdapter#getView (and still is for those
+             versions) for the suggestion items but not the buttons. -->
+        <item name="android:background">@color/white</item>
         <item name="android:drawablePadding">8dip</item>
-        <!--(EW) text_edit_suggestion_item (19 (K) through 23 (M)) didn't specify gravity-->
+        <!-- (EW) text_edit_suggestion_item (versions 19 (Kitkat) through 23 (Marshmallow)) didn't
+             specify gravity-->
         <item name="android:gravity">start|center_vertical</item>
         <item name="android:layout_gravity">start|center_vertical</item>
         <item name="android:layout_height">wrap_content</item>
@@ -40,33 +45,40 @@
         <item name="android:paddingStart">16dip</item>
         <item name="android:paddingTop">8dip</item>
         <item name="android:singleLine">true</item>
-        <!--(EW) text_edit_suggestion_item (19 (K) through 23 (M)) didn't specify textSize-->
+        <!-- (EW) text_edit_suggestion_item (versions 19 (Kitkat) through 23 (Marshmallow)) didn't
+             specify textSize-->
         <item name="android:textSize">18sp</item>
-        <!--(EW) text_edit_suggestion_item (19 (K) through 23 (M)) used
-            @android:color/dim_foreground_light, which was defined as #323232 in colors (19 (K)
-            through at least 31 (S), but Widget.Holo.SuggestionItem in styles_holo (24 (N) through
-            at least 31 (S)) change it to just black for some reason. They're close enough that it
-            doesn't make much difference, but I'm leaving it with black to match more recent
-            versions and because dim_foreground_light is private-->
+        <!-- (EW) text_edit_suggestion_item (versions 19 (Kitkat) through 23 (Marshmallow)) used
+             @android:color/dim_foreground_light, which was defined as #323232 in colors (versions
+             19 (Kitkat) through at least 31 (S / Android 12), but Widget.Holo.SuggestionItem in
+             styles_holo (versions 24 (Nougat) through at least 31 (S / Android 12)) change it to
+             just black for some reason. They're close enough that it doesn't make much difference,
+             but I'm leaving it with black to match more recent
+             versions and because dim_foreground_light is private. -->
         <item name="android:textColor">@color/black</item>
     </style>
 
-    <!--(EW) from styles_holo (versions 24 (N) through at least 31 (S)). see comment on
-        Widget.Holo.SuggestionButton for prior versions-->
+    <!-- (EW) from styles_holo (versions 24 (Nougat) through at least 31 (S / Android 12)). see
+         comment on Widget.Holo.SuggestionButton for prior versions. -->
     <style name="TextAppearance.Holo.SuggestionHighlight" parent="@android:style/TextAppearance.SuggestionHighlight" />
 
-    <!--(EW) from styles_holo (versions 24 (N) through at least 31 (S)). prior to version 24 (N),
-        text_edit_suggestion_container didn't exist to use this, and instead Editor just created a
-        new ListView from code and styled the certain items different-->
+    <!-- (EW) from styles_holo (versions 24 (Nougat) through at least 31 (S / Android 12)). prior to
+         Nougat, text_edit_suggestion_container didn't exist to use this, and instead Editor just
+         created a new ListView from code and styled the certain items different. -->
     <style name="Widget.Holo.SuggestionButton" parent="Widget.Holo.SuggestionItem">
-        <!--(EW) skipping the background to allow keeping the rounded corners from the 9-patch that
-            match kitkat, although this does deviate from the sharp corners in the holo theme on
-            more recent versions, which seems like a bug since it doesn't match either the original
-            holo theme or the material theme-->
-        <!--TODO: (EW) if we decide to get rid of the 9-patch, this will need to be added back-->
-        <!--<item name="android:background">#E9E9E9</item>-->
-        <!--TODO: (EW) where did textColor come from prior to N? when removing specifying the color,
-             the delete button's text becomes light gray-->
+        <!-- (EW) the AOSP version (for Nougat and later for compatibility) specified a background
+             color, but that creates sharp corners. the original functionality for versions prior to
+             Nougat used a 9-patch to get round corners (even since Nougat, the 9-patch has used in
+             text_edit_suggestion_container, but the color here basically draws a rectangle over
+             it). specifying the background color should be skipped to match the original Holo
+             theme, although this does deviate from the sharp corners in the Holo theme on more
+             recent versions, which seems like a bug since it doesn't match either the original Holo
+             theme or the Material theme. if there actually was a good reason to basically replace
+             the 9-patch, it might be worth skipping the 9-patch even on Kitkat and remove it from
+             text_edit_suggestion_container. since the style this inherits from has a background
+             specified, we'll just replace it with a completely transparent one. -->
+        <item name="android:background">@color/none</item>
+
         <item name="android:textColor">@color/black</item>
     </style>
 

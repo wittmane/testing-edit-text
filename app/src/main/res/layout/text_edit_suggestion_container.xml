@@ -10,27 +10,21 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<!--(EW) (versions 24 (N) through at least 31 (S)). prior to version 24 (N), this didn't exist, and
-    Editor just created the content from code. this was added for compatibility with the Holo theme,
-    but wasn't ever used on older versions of EditText. we always use it on versions prior to
-    version 24 (N) to match the style on those versions even when the theme is technically
-    Material.-->
+<!-- (EW) from versions 24 (Nougat) through at least 31 (S / Android 12). prior to Nougat,
+     Editor.SuggestionsPopupWindow#initContentView just created a new ListView from code, rather
+     than using a layout file, but this was added presumably as a compatibility version for the Holo
+     theme, so this wasn't actually the code used in the older versions. the code alternative from
+     versions 21 (Lollipop) through 23 (Marshmallow) still matched this despite using the Material
+     theme otherwise, but for better consistency with the theme generally and across versions of
+     this app, this will only actually be in the Holo theme on those versions. see comment in
+     Theme.Material in v21/themes. -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
-    <!--TODO: (EW) this was pulled from N, presumably as some backwards compatibility layout, but
-         this wasn't actually the code used in the older versions. it might be worth double checking
-         if some of these attributes are necessary. prior to N,
-         SuggestionsPopupWindow#initContentView just creates a new ListView from code, and that gets
-         added as the content view for the PopupWindow, and it seems that only the layout params
-         were specified, so basically everything else might be unnecessary.
-         SuggestionsPopupWindow#createPopupWindow creates a CustomPopupWindow with
-         com.android.internal.R.attr.textSuggestionsWindowStyle, so anything not in that may not be
-         necessary for the outer layout-->
-    <!--TODO: (EW) despite the AOSP holo theme version using the nine-patch in this layout for
-         compatibility, it sets the background color in the suggestion button style, which loses the
-         round corners. based off of that, maybe we shouldn't bother with the nine-patch even when
-         running on kitkat-->
+    <!-- (EW) the ListView created from code on older versions (see above) got added as the content
+         view for the PopupWindow, and it seems that only the layout params were specified, but more
+         attributes are set here, which may be unnecessary, but since the AOSP version uses this for
+         compatibility, it seems fine to leave unless there is a known issue with it. -->
     <LinearLayout
         android:id="@+id/suggestionWindowContainer"
         android:layout_width="match_parent"
