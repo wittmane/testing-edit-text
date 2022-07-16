@@ -18,6 +18,7 @@
     <style name="Theme.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
         <!--(EW) android Theme.DeviceDefault inherits from Theme.Holo (prior to version 21 (L)), so
             matching our Theme.Holo since this can't inherit from both-->
+        <item name="isHoloTheme">true</item>
         <item name="isLightTheme">false</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
@@ -26,6 +27,8 @@
     <!--TODO: (EW) add Theme.DeviceDefault.Light-->
 
     <style name="Theme.Holo" parent="@android:style/Theme.Holo">
+        <item name="isHoloTheme">true</item>
+
         <!--(EW) from Theme in themes (23 (M) through at least 31 (S)) that the android Holo theme
             inherits from-->
         <item name="isLightTheme">false</item>
@@ -40,6 +43,8 @@
     </style>
 
     <style name="Theme.Holo.Light" parent="@android:style/Theme.Holo.Light">
+        <item name="isHoloTheme">true</item>
+
         <!--(EW) from Theme.Light in themes (versions 23 (M) through at least 31 (S)) that the
             android Holo light theme inherits from-->
         <item name="isLightTheme">true</item>

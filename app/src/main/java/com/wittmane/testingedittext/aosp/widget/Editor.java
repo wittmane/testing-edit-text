@@ -3270,26 +3270,35 @@ public class Editor {
         }
 
         private Context applyDefaultTheme(Context originalContext) {
-            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
-                // (EW) prior to N, the AOSP version didn't bother with the theme wrapper and just
-                // used the text view's context directly, and layout/text_edit_suggestion_item set
-                // textColor to dim_foreground_light (#323232). in order to match styling with the
-                // normal EditText on older versions and not try to fight the suggestion item
-                // layout, we'll just use the text view's context.
-                return originalContext;
-            }
             // (EW) starting in N, the AOSP version checked
             // com.android.internal.R.attr.isLightTheme even though android.R.attr.isLightTheme
             // wasn't made public until Q, so for older versions, we'll need to use our own copy of
             // the attribute.
             TypedArray a = originalContext.obtainStyledAttributes(new int[]{
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                            ? android.R.attr.isLightTheme : R.attr.isLightTheme
+                            ? android.R.attr.isLightTheme : R.attr.isLightTheme,
+                    R.attr.isHoloTheme
             });
             boolean isLightTheme = a.getBoolean(0, true);
+            boolean isHoloTheme = a.getBoolean(1, false);
+            a.recycle();
+
+            // (EW) prior to Nougat, the AOSP version didn't bother with the theme wrapper and just
+            // used the text view's context directly. despite normally using the material theme,
+            // Lollipop through Marshmallow and essentially used the Holo theme for this popup.
+            // we're matching the more recent versions use of the material theme here for those
+            // versions. see comment in SuggestionsPopupWindow.SuggestionAdapter#getView. since
+            // Nougat through at least S always use the material overlay themes, it might be
+            // reasonable to also always do that in Lollipop through Marshmallow (I didn't notice
+            // any issues), but to be safe we'll still match the AOSP code when using the Holo
+            // theme.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
+                    || (Build.VERSION.SDK_INT < Build.VERSION_CODES.N && isHoloTheme)) {
+                return originalContext;
+            }
+
             int themeId = isLightTheme ? android.R.style.ThemeOverlay_Material_Light
                     : android.R.style.ThemeOverlay_Material_Dark;
-            a.recycle();
             return new ContextThemeWrapper(originalContext, themeId);
         }
 
@@ -3422,7 +3431,7 @@ public class Editor {
         }
 
         private class SuggestionAdapter extends BaseAdapter {
-            private LayoutInflater mInflater = (LayoutInflater) mContext.getSystemService(
+            private final LayoutInflater mInflater = (LayoutInflater) mContext.getSystemService(
                     Context.LAYOUT_INFLATER_SERVICE);
 
             @Override
@@ -3452,8 +3461,22 @@ public class Editor {
                 final SuggestionInfo suggestionInfo = mSuggestionInfos[position];
                 textView.setText(suggestionInfo.mText);
 
-                //TODO: (EW) make sure this matches how we're handling applyDefaultTheme
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES./*LOLLIPOP*/N) {
+                // (EW) prior to Nougat, the AOSP version set the background for the suggestions in
+                // code. starting in Nougat for the Holo theme, the background was set in
+                // Widget.Holo.SuggestionItem so setting it here isn't necessary anymore. rather
+                // than matching the framework functionality, when not using the Holo theme on
+                // Lollipop through Marshmallow we'll deviate from the framework functionality to be
+                // more consistent with the rest of the material theme that is used and be more
+                // consistent between versions of this app, so those versions shouldn't set the
+                // background, except for when the Holo theme is used. see comment in Theme.Material
+                // in v21/themes.
+                TypedArray a = mTextView.getContext().obtainStyledAttributes(new int[]{
+                        R.attr.isHoloTheme
+                });
+                boolean isHoloTheme = a.getBoolean(0, false);
+                a.recycle();
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
+                        || (Build.VERSION.SDK_INT < Build.VERSION_CODES.N && isHoloTheme)) {
                     textView.setBackgroundColor(Color.WHITE);
                 }
 

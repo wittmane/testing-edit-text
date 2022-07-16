@@ -16,6 +16,8 @@
 -->
 <resources>
     <declare-styleable name="Theme">
+        <attr name="isHoloTheme" format="boolean" />
+
         <!-- (EW) android:textEditSuggestionContainerLayout is private, so we have to copy it
              here-->
         <!-- Layout of the container of the suggestion popup window. -->
