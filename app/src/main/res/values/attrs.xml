@@ -347,8 +347,6 @@
         <attr name="android:breakStrategy" />
         <!-- Frequency of automatic hyphenation. -->
         <attr name="android:hyphenationFrequency" />
-        <!-- Mode for justification. -->
-        <attr name="android:justificationMode" />
     </declare-styleable>
     <declare-styleable name="TextViewAppearance">
         <!-- Base text color, typeface, size, and style. -->

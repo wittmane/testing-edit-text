@@ -375,7 +375,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private int mBreakStrategy;
     private int mHyphenationFrequency;
-    private int mJustificationMode;
 
     private int mMaximum = Integer.MAX_VALUE;
     private int mMaxMode = LINES;
@@ -576,10 +575,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // (EW) the layout only started supporting hyphenation frequency in Marshmallow
             mHyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // (EW) the layout only started supporting justification mode in Marshmallow
-            mJustificationMode = Layout.JUSTIFICATION_MODE_NONE;
-        }
 
         final Theme theme = context.getTheme();
 
@@ -650,6 +645,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             //     autoSizeTextType, autoSizeStepGranularity, autoSizeMinTextSize,
             //     autoSizeMaxTextSize, autoSizePresetSizes - auto size not supported in EditText
             //     textIsSelectable - EditText content is always selectable
+            //     justificationMode - this does work for the hint, but I couldn't get it to work
+            //         for the editable text. https://stackoverflow.com/a/67658170 states that it
+            //         only works if the text does not have to be a Spannable, which is never true
+            //         since mText is an Editable (extends Spannable) at least in this version. the
+            //         AOSP version does try to set the justification mode in a DynamicLayout, which
+            //         seems like it might never work assuming the Spannable comment is correct
+            //         based on when the DynamicLayout is used, although I didn't completely
+            //         validate that. that might indicate that there is some case that it could
+            //         work, but that's still probably some edge case.
             // feature not currently being implemented:
             //     autoLink - doesn't update links as you type, so this doesn't seem very beneficial
             //     linksClickable - related to autoLink
@@ -765,6 +769,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
 
             } else if (attr == R.styleable.EditText_android_allowUndo) {
+                // (EW) this Android attribute was added in API level 23 (Marshmallow), but I've
+                // seen it still work as early as 22 (Lollipop MR1)
                 mEditor.mAllowUndo = typedArray.getBoolean(attr, true);
 
             } else if (attr == R.styleable.EditText_android_imeOptions) {
@@ -806,9 +812,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 mTextEditSuggestionHighlightStyle = typedArray.getResourceId(attr, 0);
 
             } else if (attr == R.styleable.EditText_android_breakStrategy) {
-                //TODO: (EW) EditText defaults to Layout#BREAK_STRATEGY_SIMPLE to avoid the text
-                // "dancing" when being edited. consider if it makes sense to not support this
-                // feature
+                // (EW) this Android attribute was added in API level 23 (Marshmallow) and actually
+                // using it also requires Marshmallow, so it wouldn't even help to make a custom
+                // attribute for this for older versions.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     // (EW) the layout only started supporting break strategy in Marshmallow
                     mBreakStrategy = typedArray.getInt(attr, Layout.BREAK_STRATEGY_SIMPLE);
@@ -821,24 +827,25 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             Layout.HYPHENATION_FREQUENCY_NONE);
                 }
 
-            } else if (attr == R.styleable.EditText_android_justificationMode) {
-                //TODO: (EW) this doesn't apply the justification as you type (even in EditText), so
-                // it may be better to just remove support for this
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // (EW) the layout only started supporting justification mode in Marshmallow
-                    mJustificationMode = typedArray.getInt(attr, Layout.JUSTIFICATION_MODE_NONE);
-                }
-
             } else if (attr == R.styleable.EditText_android_firstBaselineToTopHeight) {
-                // (EW) only used in API level 28 and higher
+                // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
+                // still work as early as 22 (Lollipop MR1). I'm not sure what allows it to work on
+                // older version to be certain if it would always work back through Lollipop MR1 and
+                // no further.
+                //FUTURE: (EW) functionality for this, lastBaselineToBottomHeight,
+                // android_lineHeight, and allowUndo probably could work on older versions, so we
+                // could just create a custom attribute for it, but until there is a need for it,
+                // it's easier to just use the existing attribute.
                 firstBaselineToTopHeight = typedArray.getDimensionPixelSize(attr, -1);
 
             } else if (attr == R.styleable.EditText_android_lastBaselineToBottomHeight) {
-                // (EW) only used in API level 28 and higher
+                // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
+                // still work as early as 22 (Lollipop MR1)
                 lastBaselineToBottomHeight = typedArray.getDimensionPixelSize(attr, -1);
 
             } else if (attr == R.styleable.EditText_android_lineHeight) {
-                // (EW) only used in API level 28 and higher
+                // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
+                // still work as early as 22 (Lollipop MR1)
                 lineHeight = typedArray.getDimensionPixelSize(attr, -1);
             }
         }
@@ -854,7 +861,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final boolean numberPasswordInputType = variation
                 == (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD);
 
-        //TODO: (EW) I think this is only necessary if this is moved to a library
+        //FUTURE: (EW) I think this is only necessary if this is moved to a library
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
         mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
@@ -913,12 +920,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION))
                 == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD));
         if (isMonospaceEnforced) {
-            //TODO: (EW) for some reason when using appcompat the default EditText doesn't use
-            // monospace while this code, which is copied from it does. figure out if that's just a
-            // bug with appcompat or if we should be pulling in something that would override the
-            // change to monospace. if I set fontFamily="sans-serif" on this, it overrides the
-            // monospace and looks like the default EditText, so maybe something like that is being
-            // set somewhere and we just need to pull it in.
+            // (EW) for some reason when using appcompat the framework EditText doesn't use
+            // monospace while this code, which is copied from it, does. I'm not sure what's causing
+            // that. if I just remove this line, it seems to look the same. maybe it's a bug in
+            // appcompat, but either way, I don't think it's something worth trying to replicate.
             attributes.mTypefaceIndex = MONOSPACE;
         }
 
@@ -2801,37 +2806,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     })
     public int getHyphenationFrequency() {
         return mHyphenationFrequency;
-    }
-
-    /**
-     * Set justification mode. The default value is {@link Layout#JUSTIFICATION_MODE_NONE}. If the
-     * last line is too short for justification, the last line will be displayed with the
-     * alignment set by {@link View#setTextAlignment}.
-     *
-     * @see #getJustificationMode()
-     */
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public void setJustificationMode(@HiddenLayout.JustificationMode int justificationMode) {
-        mJustificationMode = justificationMode;
-        if (mLayout != null) {
-            nullLayouts();
-            requestLayout();
-            invalidate();
-        }
-    }
-
-    /**
-     * @return true if currently paragraph justification mode.
-     *
-     * @see #setJustificationMode(int)
-     */
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    @InspectableProperty(enumMapping = {
-            @EnumEntry(name = "none", value = Layout.JUSTIFICATION_MODE_NONE),
-            @EnumEntry(name = "inter_word", value = Layout.JUSTIFICATION_MODE_INTER_WORD)
-    })
-    public @HiddenLayout.JustificationMode int getJustificationMode() {
-        return mJustificationMode;
     }
 
     /**
@@ -6331,9 +6305,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             .setBreakStrategy(mBreakStrategy)
                             .setHyphenationFrequency(mHyphenationFrequency)
                             .setMaxLines(mMaxMode == LINES ? mMaximum : Integer.MAX_VALUE);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        builder.setJustificationMode(mJustificationMode);
-                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         builder.setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing);
                     }
@@ -6374,7 +6345,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     .setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing)
                     .setBreakStrategy(mBreakStrategy)
                     .setHyphenationFrequency(mHyphenationFrequency)
-                    .setJustificationMode(mJustificationMode)
                     .setEllipsize(getKeyListener() == null ? effectiveEllipsize : null)
                     .setEllipsizedWidth(ellipsisWidth);
             result = builder.build();
@@ -6395,7 +6365,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     result = (DynamicLayout)dynamicLayoutConstructor.newInstance(mText,
                             mTransformed, mTextPaint, wantWidth, alignment, mTextDir, mSpacingMult,
                             mSpacingAdd, mIncludePad, mBreakStrategy, mHyphenationFrequency,
-                            mJustificationMode, truncateAt, ellipsisWidth);
+                            Layout.BREAK_STRATEGY_SIMPLE, truncateAt, ellipsisWidth);
                 } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     Constructor<?> dynamicLayoutConstructor = DynamicLayout.class.getConstructor(
                             CharSequence.class, CharSequence.class, TextPaint.class, int.class,
