@@ -73,6 +73,7 @@
                         android:firstBaselineToTopHeight="40sp"
                         android:imeActionLabel="my action"
                         android:imeActionId="42"
+                        android:fontFamily="cursive"
                         android:text="example text with extra content to see how this scrolls"/>
                 </LinearLayout>
                 <LinearLayout
@@ -93,6 +94,7 @@
                         android:firstBaselineToTopHeight="40sp"
                         android:imeActionLabel="my action"
                         android:imeActionId="42"
+                        android:fontFamily="cursive"
                         android:text="example text with extra content to see how this scrolls"/>
                 </LinearLayout>
             </LinearLayout>

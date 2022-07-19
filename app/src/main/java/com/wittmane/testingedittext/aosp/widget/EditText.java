@@ -1150,9 +1150,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (imm != null) imm.restartInput(this);
         }
 
-        // Will change text color
-        //TODO: (EW) mEditor.invalidateTextDisplayList doesn't exist, but should some invalidation
-        // be done? I'm not sure if the text color change comment is accurate without this
         mEditor.prepareCursorControllers();
 
         // start or stop the cursor blinking as appropriate
@@ -2145,8 +2142,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (index == R.styleable.TextAppearance_android_fontFamily) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     // (EW) prior to Oreo nothing was done here for the typeface
-                    //TODO: (EW) can we just ignore the canLoadUnsafeResources check?
-                    if (!context.isRestricted()/* && context.canLoadUnsafeResources()*/) {
+                    if (!context.isRestricted() && canLoadUnsafeResources(context)) {
                         try {
                             attributes.mFontTypeface = appearance.getFont(attr);
                         } catch (UnsupportedOperationException | Resources.NotFoundException e) {
@@ -2265,6 +2261,37 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (attributes.mFontVariationSettings != null
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             setFontVariationSettings(attributes.mFontVariationSettings);
+        }
+    }
+
+    // (EW) from ContextImpl. Context#canLoadUnsafeResources is an abstract method and hidden, but I
+    // only found ContextImpl that really implements it.
+    // documentation says it "returns true if the context can load unsafe resources, e.g. fonts."
+    private boolean canLoadUnsafeResources(Context context) {
+        if (context.getPackageName().equals(getOpPackageName(context))) {
+            return true;
+        }
+        // (EW) the AOSP version also checked if the Context.CONTEXT_IGNORE_SECURITY flag was set,
+        // but we don't have access to that flag, so there isn't a good way to recreate this logic.
+        // returning false to be extra restrictive to be safe. the alternative would be just
+        // returning true, at which point this method would only return true, so it should be
+        // removed. realistically I'm not certain if this method is even necessary for non-framework
+        // views, so removing this is probably fine if this does turn out to cause issues.
+        return /*(mFlags & Context.CONTEXT_IGNORE_SECURITY) != 0*/false;
+    }
+
+    // (EW) Context#getOpPackageName existed since at least Kitkat, but it was hidden until Q, so it
+    // should be able to be called normally, but adding a try/catch to be safe. the documentation
+    // prior to making it visible stated that it is normally the same as getBasePackageName (also
+    // hidden, but ContextImpl just returns getPackageName if the base package name was null), so
+    // we'll use getPackageName as a fallback (getOpPackageName has been the same as getPackageName
+    // in my testing for a regular app), but theoretically that shouldn't ever be used.
+    @SuppressLint("NewApi")
+    private String getOpPackageName(Context context) {
+        try {
+            return context.getOpPackageName();
+        } catch (Exception e) {
+            return context.getPackageName();
         }
     }
 
