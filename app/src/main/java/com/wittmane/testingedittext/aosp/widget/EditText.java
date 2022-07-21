@@ -19,7 +19,8 @@ package com.wittmane.testingedittext.aosp.widget;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Instrumentation;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.assist.AssistStructure;
 import android.app.assist.AssistStructure.ViewNode;
 import android.content.ClipData;
@@ -190,6 +191,7 @@ import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.view.ContentInfo.FLAG_CONVERT_TO_PLAIN_TEXT;
 import static android.view.ContentInfo.SOURCE_AUTOFILL;
 import static android.view.ContentInfo.SOURCE_CLIPBOARD;
+import static android.view.ContentInfo.SOURCE_PROCESS_TEXT;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
@@ -1050,6 +1052,38 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private void setTextInternal(@Nullable Editable text) {//TODO: (EW) probably should make this not nullable
         mText = text;
         mSpannable = text;//TODO: (EW) remove mSpannable since it's redundant
+    }
+
+    // (EW) the AOSP version overrode View#onActivityResult, but that's hidden, so we have to manage
+    // this slighly differently. see #startActivityForResult.
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == PROCESS_TEXT_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                CharSequence result = data.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT);
+                if (result != null) {
+                    if (isTextEditable()) {
+                        if (android.os.Build.VERSION.SDK_INT >= 31) {
+                            ClipData clip = ClipData.newPlainText("", result);
+                            ContentInfo payload =
+                                    new ContentInfo.Builder(clip, SOURCE_PROCESS_TEXT).build();
+                            performReceiveContent(payload);
+                        } else {
+                            mText.replace(getSelectionStart(), getSelectionEnd(), result);
+                        }
+                        mEditor.refreshTextActionMode();
+                    } else {
+                        if (result.length() > 0) {
+                            Toast.makeText(getContext(), String.valueOf(result), Toast.LENGTH_LONG)
+                                    .show();
+                        }
+                    }
+                }
+            } else if (mSpannable != null) {
+                // Reset the selection.
+                Selection.setSelection(mSpannable, getSelectionEnd());
+            }
+        }
     }
 
     /**
@@ -9263,7 +9297,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     boolean canProcessText() {
-        //TODO: (EW) why does this need an id defined in the layout? it's in AOSP, but it seems odd
         if (getId() == View.NO_ID) {
             return false;
         }
@@ -9946,7 +9979,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return false;
     }
 
-    // based on View
+    // (EW) since View's version of this is hidden, we need a replacement. View called
+    // Context#startActivityForResult, which I believe would end up passing the result to
+    // View#onActivityResult (which was overridden in the AOSP version), but both of those are
+    // hidden. simply calling Activity#startActivityForResult isn't great because it sends the
+    // result to the Activity, so it would require extra wiring to pass it back here. we can create
+    // a temporary fragment to allow it to receive the result and pass it back (based on
+    // https://stackoverflow.com/a/44864164).
     /**
      * Call { @link Context#startActivityForResult(String, Intent, int, Bundle)} for the View's
      * Context, creating a unique View identifier to retrieve the result.
@@ -9955,8 +9994,62 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param requestCode The request code to use.
      * @hide
      */
-    public void startActivityForResult(Intent intent, int requestCode) {
-        getActivity().startActivityForResult(intent, requestCode, null);
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    void startActivityForResult(Intent intent, int requestCode) {
+        Fragment tempFragment = FragmentForResult.newInstance(this);
+        Activity activity = getActivity();
+        if (activity == null) {
+            return;
+        }
+        FragmentManager fragmentManager = activity.getFragmentManager();
+        fragmentManager.beginTransaction().add(tempFragment, "FRAGMENT_TAG").commit();
+        fragmentManager.executePendingTransactions();
+        tempFragment.startActivityForResult(intent, requestCode);
+    }
+
+    // (EW) unfortunately the Fragment needs to be public
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public static class FragmentForResult extends Fragment {
+        private EditText mEditText;
+
+        // (EW) the constructor shouldn't be overridden. see https://stackoverflow.com/a/10450535
+        public static FragmentForResult newInstance(EditText editText) {
+            FragmentForResult fragmentInstance = new FragmentForResult();
+
+            // (EW) we need the actual EditText object (not an equivalent replica), so we can't just
+            // pass it in a Bundle in setArguments. if this fragment was recreated, that probably
+            // means that the original view was recreated too, meaning that our original object
+            // probably wouldn't even exist.
+            // this does cause broken scenarios, such as when the device is rotated after in the
+            // activity for result and the result is sent, the activity isn't updated because the
+            // original activity was also recreated. this is also an issue in the framework version.
+            //FUTURE: maybe there's some way to track the ID and look up the matching recreated
+            // EditText. #canProcessText already only passes if it has an ID (AOSP logic), which I
+            // thought was weird. I thought it might have been necessary for exactly this, but that
+            // doesn't seem to be the case and doesn't look like it ever was. I thought about
+            // removing that since it seems arbitrary, but to avoid a loss of functionality if this
+            // does get implemented (and to match AOSP functionality), I'm leaving that.
+            fragmentInstance.mEditText = editText;
+
+            return fragmentInstance;
+        }
+
+        @Override
+        public void onActivityResult(int requestCode, int resultCode, Intent data) {
+            if (mEditText != null) {
+                mEditText.onActivityResult(requestCode, resultCode, data);
+            }
+            super.onActivityResult(requestCode, resultCode, data);
+            getActivity().getFragmentManager().beginTransaction().remove(this).commit();
+        }
+    }
+
+    // (EW) the AOSP version used Context#canStartActivityForResult, but since we have a custom
+    // #startActivityForResult, we need different logic to validate that it can be used. since our
+    // implementation uses a temporary fragment to handle receiving the result, we need to make sure
+    // that we can get the fragment manager (the Context needs to be an Activity).
+    boolean canStartActivityForResult() {
+        return getActivity() != null;
     }
 
     // from View
@@ -10099,7 +10192,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     // (EW) from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
     // DragAndDropPermissions isn't accessible for apps, so we need to find the activity to get it.
-    Activity getActivity() {
+    @Nullable Activity getActivity() {
         // Gross way of unwrapping the Activity so we can get the FragmentManager
         Context context = getContext();
         while (context instanceof ContextWrapper) {
@@ -10108,6 +10201,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             context = ((ContextWrapper)context).getBaseContext();
         }
-        throw new IllegalStateException("The EditText's Context is not an Activity.");
+        // (EW) MediaRouteButton threw an IllegalStateException because its Context was not an
+        // Activity, but an EditText could be added to a view with a Context that isn't an Activity,
+        // so we'll null to allow it to be handled.
+        return null;
     }
 }

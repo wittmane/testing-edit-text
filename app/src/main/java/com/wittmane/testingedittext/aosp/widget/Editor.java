@@ -17,6 +17,7 @@
 
 package com.wittmane.testingedittext.aosp.widget;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipData.Item;
@@ -2394,7 +2395,12 @@ public class Editor {
         // up the activity and get it from that.
         final DragAndDropPermissions permissions;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            permissions = mTextView.getActivity().requestDragAndDropPermissions(event);
+            Activity activity = mTextView.getActivity();
+            if (activity != null) {
+                permissions = activity.requestDragAndDropPermissions(event);
+            } else {
+                permissions = null;
+            }
         } else {
             permissions = null;
         }
@@ -7033,10 +7039,13 @@ public class Editor {
 
         private void loadSupportedActivities() {
             mSupportedActivities.clear();
-            // (EW) the AOSP version checked Context#canStartActivityForResult, but since
-            // View#startActivityForResult is hidden, we had to call Activity#startActivityForResult
-            // instead, which seems to always be available since we can get the activity, so I don't
-            // think the AOSP check is necessary.
+            // (EW) the AOSP version checked Context#canStartActivityForResult, but that's hidden
+            // along with View#startActivityForResult (and how that's implemented), so we need to
+            // start the activity for result slightly differently, which has different logic to
+            // determine if it can be done.
+            if (!mTextView.canStartActivityForResult()) {
+                return;
+            }
             PackageManager packageManager = mTextView.getContext().getPackageManager();
             List<ResolveInfo> unfiltered =
                     packageManager.queryIntentActivities(createProcessTextIntent(), 0);
