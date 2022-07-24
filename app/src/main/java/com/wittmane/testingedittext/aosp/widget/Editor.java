@@ -365,7 +365,7 @@ public class Editor {
         // I disabled the blacklist on an emulator with
         // adb shell settings put global hidden_api_policy 1
         // to at least check the value, although this could be different on different devices or
-        // maybe from some system settings. from my testing using  reflection, 1 (true) was returned
+        // maybe from some system settings. from my testing using reflection, 1 (true) was returned
         // (not actually coming from the default value
         // WidgetFlags.ENABLE_CURSOR_DRAG_FROM_ANYWHERE_DEFAULT (true)). based on this, it would
         // make sense to have this be true, but it prevents scrolling a single line, which seems
@@ -4676,8 +4676,10 @@ public class Editor {
                 }
 
                 if (shouldShow()) {
-                    // Transform to the window coordinates to follow the view tranformation.
+                    // Transform to the window coordinates to follow the view transformation.
                     final int[] pts = { mPositionX + mHotspotX + getHorizontalOffset(), mPositionY};
+                    // (EW) added in Nougat (both the call here and the original method in View
+                    // (broken out from getLocationInWindow))
                     mTextView.transformFromViewToWindowSpace(pts);
                     pts[0] -= mHotspotX + getHorizontalOffset();
 

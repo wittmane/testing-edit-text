@@ -40,8 +40,11 @@ import android.content.res.TypedArray;
 import android.graphics.BlendMode;
 import android.graphics.Canvas;
 
+import com.wittmane.testingedittext.aosp.graphics.HiddenMatrix;
 import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 import com.wittmane.testingedittext.wrapper.Insets;
+
+import android.graphics.Matrix;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.fonts.FontStyle;
 import android.graphics.fonts.FontVariationAxis;
@@ -486,6 +489,21 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             ? FontStyle.FONT_WEIGHT_MIN : 1;
     private static final int FONT_WEIGHT_MAX = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
             ? FontStyle.FONT_WEIGHT_MAX : 1000;
+
+    private static final Matrix IDENTITY_MATRIX = getIdentityMatrix();
+    // (EW) Matrix#IDENTITY_MATRIX was made available in S, but it was actually added at least by
+    // Kitkat, so it should be safe to call on these older versions, but to be extra safe we'll
+    // wrap it in a try/catch and have a fallback
+    @SuppressLint("NewApi")
+    private static Matrix getIdentityMatrix() {
+        try {
+            return Matrix.IDENTITY_MATRIX;
+        } catch (Exception e) {
+            Log.w(TAG, "Matrix.IDENTITY_MATRIX couldn't be called: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+        return HiddenMatrix.IDENTITY_MATRIX;
+    }
 
     private EditableInputConnection mInputConnection;
 
@@ -2325,6 +2343,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         try {
             return context.getOpPackageName();
         } catch (Exception e) {
+            Log.w(TAG, "Context#getOpPackageName couldn't be called: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
             return context.getPackageName();
         }
     }
@@ -9917,10 +9937,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         position[0] = inOutLocation[0];
         position[1] = inOutLocation[1];
 
-        //TODO: (EW) figure out what to do with this
-//        if (!hasIdentityMatrix()) {
-//            getMatrix().mapPoints(position);
-//        }
+        if (!hasIdentityMatrix(this)) {
+            getMatrix().mapPoints(position);
+        }
 
         position[0] += getLeft();
         position[1] += getTop();
@@ -9932,10 +9951,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             position[0] -= view.getScrollX();
             position[1] -= view.getScrollY();
 
-            //TODO: (EW) figure out what to do with this
-//            if (!view.hasIdentityMatrix()) {
-//                view.getMatrix().mapPoints(position);
-//            }
+            if (!hasIdentityMatrix(view)) {
+                view.getMatrix().mapPoints(position);
+            }
 
             position[0] += view.getLeft();
             position[1] += view.getTop();
@@ -9943,15 +9961,31 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             viewParent = view.getParent();
         }
 
-        //TODO: (EW) figure out what to do with this
-//        if (viewParent instanceof ViewRootImpl) {
-//            // *cough*
-//            final ViewRootImpl vr = (ViewRootImpl) viewParent;
-//            position[1] -= vr.mCurScrollY;
-//        }
+        // (EW) the AOSP version would subtract ViewRootImpl#mCurScrollY from position[1] if
+        // viewParent was a ViewRootImpl, but ViewRootImpl is hidden and starting in Pie,
+        // ViewRootImpl#mCurScrollY is a restricted API (warning logged specifies "dark greylist").
+        // I'm not sure when this is actually necessary, but it seems that there isn't anything we
+        // can do. until there is a known issue skipping this causes, there probably isn't a chance
+        // of finding some alternative.
 
         inOutLocation[0] = Math.round(position[0]);
         inOutLocation[1] = Math.round(position[1]);
+    }
+
+    // from View
+    /**
+     * Returns true if the transform matrix is the identity matrix.
+     * Recomputes the matrix if necessary.
+     *
+     * @return True if the transform matrix is the identity matrix, false otherwise.
+     */
+    private static final boolean hasIdentityMatrix(View view) {
+        // (EW) the AOSP version called RenderNode#hasIdentityMatrix, and documentation for that
+        // states that it's just a faster way to do the otherwise equivalent
+        // RenderNode#getMatrix(Matrix) Matrix#isIdentity(). View#getMatrix calls
+        // RenderNode#getMatrix(Matrix), so we can just use that for an equivalent (but slower)
+        // check.
+        return view.getMatrix().isIdentity();
     }
 
     // from View
@@ -9964,19 +9998,99 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     public boolean toLocalMotionEvent(MotionEvent ev) {
-////        final AttachInfo info = mAttachInfo;
-//        if (/*info == null*/!isAttachedToWindow()) {
-//            return false;
-//        }
-//
-//        final Matrix m = info.mTmpMatrix;
-//        m.set(Matrix.IDENTITY_MATRIX);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            transformMatrixToLocal(m);
-//        }
-//        ev.transform(m);
-//        return true;
-        return false;
+        // (EW) the AOSP version checked if View#mAttachInfo was null directly, but that's hidden,
+        // so we need to call the equivalent API
+        if (!isAttachedToWindow()) {
+            return false;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final Matrix m = new Matrix();
+            m.set(IDENTITY_MATRIX);
+            // (EW) transformMatrixToLocal should be available prior to Q, but in case it isn't,
+            // fallback to pre-Lollipop logic
+            if (tryTransformMatrixToLocal(m)) {
+                ev.transform(m);
+                return true;
+            }
+        }
+        // (EW) this is the logic from Kitkat
+        // (EW) the AOSP version used the negative values of View#mAttachInfo.mWindowLeft and
+        // View#mAttachInfo.mWindowTop directly to call MotionEvent#offsetLocation, but since
+        // View#mAttachInfo is hidden, we would need to call View#getLocationOnScreen instead. I'm
+        // not sure why it did that. At least in my testing, transformMotionEventToLocal does that
+        // same offsetting of the location, so with both, it just doubles the shift, which is
+        // incorrect. #transformMotionEventToLocal is more analogous to View#transformMatrixToLocal,
+        // which replaced it, so I'm keeping that and skipping the offset from
+        // View#getLocationOnScreen.
+        transformMotionEventToLocal(this, ev);
+        return true;
+    }
+
+    // (EW) View#transformMatrixToLocal was made available in Q, but it was actually added in
+    // Lollipop, so it should be safe to call on these older versions, but to be extra safe we'll
+    // wrap it in a try/catch
+    @SuppressLint("NewApi")
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private boolean tryTransformMatrixToLocal(@NonNull Matrix matrix) {
+        try {
+            transformMatrixToLocal(matrix);
+        } catch (Exception e) {
+            Log.w(TAG, "View#transformMatrixToLocal couldn't be called: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    // from View (Kitkat)
+    /**
+     * Recursive helper method that applies transformations in post-order.
+     *
+     * @param ev the on-screen motion event
+     */
+    private static void transformMotionEventToLocal(View view, MotionEvent ev) {
+        final ViewParent parent = view.getParent();
+        if (parent instanceof View) {
+            final View vp = (View) parent;
+            transformMotionEventToLocal(vp, ev);
+            ev.offsetLocation(vp.getScrollX(), vp.getScrollY());
+        }
+        // (EW) the AOSP version also used ViewRootImpl#mCurScrollY to call
+        // MotionEvent#offsetLocation, but we can't get that scroll. see comment in
+        // #transformFromViewToWindowSpace.
+
+        ev.offsetLocation(-view.getLeft(), -view.getTop());
+
+        if (!hasIdentityMatrix(view)) {
+            ev.transform(getInverseMatrix(view));
+        }
+    }
+
+    // from View based on Kitkat code (changed in Lollipop) since this should only be getting called
+    // prior to Lollipop
+    /**
+     * Utility method to retrieve the inverse of the current mMatrix property.
+     * We cache the matrix to avoid recalculating it when transform properties
+     * have not changed.
+     *
+     * @return The inverse of the current matrix of this view.
+     */
+    static Matrix getInverseMatrix(View view) {
+        // (EW) the AOSP version used mTransformationInfo, which we don't have access to, and
+        // verified that it wasn't null. View#getMatrix calls View#updateMatrix, which was done next
+        // here in the AOSP version, and it gets the gets the matrix we need to work with. it also
+        // verifies mTransformationInfo isn't null and returns the identity matrix otherwise, and
+        // since the inverse of the identity matrix is itself, no work would need to be done.
+        Matrix matrix = view.getMatrix();
+        if (!matrix.isIdentity()) {
+            // (EW) the AOSP version used mTransformationInfo.mInverseMatrix as a cached version as
+            // long as it wasn't marked dirty, but we don't have access to that, so we'll just
+            // always calculate the inverse
+            Matrix inverseMatrix = new Matrix();
+            matrix.invert(inverseMatrix);
+        }
+        return IDENTITY_MATRIX;
     }
 
     // (EW) since View's version of this is hidden, we need a replacement. View called
@@ -10061,10 +10175,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     public void mapRectFromViewToScreenCoords(RectF rect, boolean clipToParent) {
-        //TODO: (EW) figure out what to do with this
-//        if (!hasIdentityMatrix()) {
-//            getMatrix().mapRect(rect);
-//        }
+        if (!hasIdentityMatrix(this)) {
+            getMatrix().mapRect(rect);
+        }
 
         rect.offset(getLeft(), getTop());
 
@@ -10081,24 +10194,23 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 rect.bottom = Math.min(rect.bottom, parentView.getHeight());
             }
 
-            //TODO: (EW) figure out what to do with this
-//            if (!parentView.hasIdentityMatrix()) {
-//                parentView.getMatrix().mapRect(rect);
-//            }
+            if (!hasIdentityMatrix(parentView)) {
+                parentView.getMatrix().mapRect(rect);
+            }
 
             rect.offset(parentView.getLeft(), parentView.getTop());
 
             parent = parentView.getParent();
         }
 
-        //TODO: (EW) figure out what to do with this
-//        if (parent instanceof ViewRootImpl) {
-//            ViewRootImpl viewRootImpl = (ViewRootImpl) parent;
-//            rect.offset(0, -viewRootImpl.mCurScrollY);
-//        }
+        // (EW) the AOSP version used ViewRootImpl#mCurScrollY to update rect's offset, but we can't
+        // get that scroll. see comment in #transformFromViewToWindowSpace.
 
-        //TODO: (EW) figure out what to do with this
-//        rect.offset(mAttachInfo.mWindowLeft, mAttachInfo.mWindowTop);
+        // (EW) the AOSP version used View#mAttachInfo.mWindowLeft and View#mAttachInfo.mWindowTop
+        // directly, but those are hidden. those values are returned in View#getLocationOnScreen, so
+        // we can use that instead.
+        int[] windowLocation = getLocationOnScreen();
+        rect.offset(windowLocation[0], windowLocation[1]);
     }
 
     // from View
