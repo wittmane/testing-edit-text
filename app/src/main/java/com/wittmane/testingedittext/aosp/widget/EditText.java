@@ -428,15 +428,18 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Drawable mCursorDrawable;
     // Note: this might be stale if setTextSelectHandleLeft is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    private int mTextSelectHandleLeftRes;//TODO: (EW) does this^ mean we should remove this?
+    //FUTURE: (EW) we don't have this same concern, so this could be removed
+    private int mTextSelectHandleLeftRes;
     private Drawable mTextSelectHandleLeft;
     // Note: this might be stale if setTextSelectHandleRight is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    private int mTextSelectHandleRightRes;//TODO: (EW) does this^ mean we should remove this?
+    //FUTURE: (EW) we don't have this same concern, so this could be removed
+    private int mTextSelectHandleRightRes;
     private Drawable mTextSelectHandleRight;
     // Note: this might be stale if setTextSelectHandle is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    private int mTextSelectHandleRes;//TODO: (EW) does this^ mean we should remove this?
+    //FUTURE: (EW) we don't have this same concern, so this could be removed
+    private int mTextSelectHandleRes;
     private Drawable mTextSelectHandle;
     int mTextEditSuggestionItemLayout;
     int mTextEditSuggestionContainerLayout;
@@ -991,7 +994,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          * clickable by default. By setting clickable here, we implicitly set focusable as well
          * if not overridden by the developer.
          */
-        //TODO: (EW) can this get merged with the other typedArray styleable
         typedArray = context.obtainStyledAttributes(
                 attrs, R.styleable.View, defStyleAttr, defStyleRes);
         boolean canInputOrMove = (mMovement != null || getKeyListener() != null);
@@ -8349,8 +8351,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return;
         }
         //TODO: (EW) the AOSP version gets the locale from the hidden and UnsupportedAppUsage marked
-        // TextServicesManager#getCurrentSpellCheckerSubtype since at least kitkat through at least
-        // S. This seems to be the locale configured in android settings for the spell checker. I
+        // TextServicesManager#getCurrentSpellCheckerSubtype since at least Kitkat through at least
+        // S. This seems to be the locale configured in Android settings for the spell checker. I
         // haven't figured out a way to get that an alternate way. I tried calling
         // TextServicesManager#newSpellCheckerSession with a null locale and
         // referToSpellCheckerLanguageSettings set to true to get the subtype from the
@@ -9857,15 +9859,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
 
     //TODO: (EW) see if this should live in EditText instead
+    @SuppressLint("UseCompatLoadingForDrawables")
     Drawable getDrawable(int res) {
-        //TODO: (EW) should we use ContextCompat to avoid the version check or should we avoid using
-        // the compatibility libraries and mark with @SuppressLint("UseCompatLoadingForDrawables")?
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             return getContext().getDrawable(res);
         } else {
             return getContext().getResources().getDrawable(res);
         }
-//        return ContextCompat.getDrawable(mTextView.getContext(), res);
     }
 
 

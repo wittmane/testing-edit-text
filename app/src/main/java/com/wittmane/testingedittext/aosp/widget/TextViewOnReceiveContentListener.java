@@ -182,10 +182,10 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         if (view.getReceiveContentMimeTypes() != null) {
             return false;
         }
-        //TODO: (EW) how should this be handled?
-//        if (Compatibility.isChangeEnabled(AUTOFILL_NON_TEXT_REQUIRES_ON_RECEIVE_CONTENT_LISTENER)) {
-//            return false;
-//        }
+        // (EW) the AOSP version calls Compatibility#isChangeEnabled in order to allow a fallback
+        // for android.view.OnReceiveContentListener not being implemented on S for a smoother
+        // adoption of providing non-text suggestions (e.g. images). Compatibility isn't available
+        // for apps to call, and I'm not sure this would even be useful to do here.
         return true;
     }
 
