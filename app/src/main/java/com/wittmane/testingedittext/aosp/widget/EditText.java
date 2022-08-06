@@ -41,6 +41,7 @@ import android.graphics.BlendMode;
 import android.graphics.Canvas;
 
 import com.wittmane.testingedittext.aosp.graphics.HiddenMatrix;
+import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 import com.wittmane.testingedittext.wrapper.Insets;
 
@@ -145,7 +146,9 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.SpellCheckerInfo;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
+import android.view.translation.TranslationSpec;
 import android.view.translation.ViewTranslationCallback;
+import android.view.translation.ViewTranslationRequest;
 import android.widget.PopupWindow;
 import android.widget.Scroller;
 import android.widget.TextView;
@@ -189,6 +192,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.view.ContentInfo.FLAG_CONVERT_TO_PLAIN_TEXT;
@@ -335,7 +339,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // Do not update following mText/mSpannable/mPrecomputed except for setTextInternal()
     @ViewDebug.ExportedProperty(category = "text")
     private @NonNull Editable mText = createEditable("");
-    private @Nullable Spannable mSpannable;
 
     private CharSequence mTransformed;
 
@@ -1069,7 +1072,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // Update mText
     private void setTextInternal(@NonNull Editable text) {
         mText = text;
-        mSpannable = text;//TODO: (EW) remove mSpannable since it's redundant
     }
 
     private static @NonNull Editable createEditable(@NonNull CharSequence text) {
@@ -1105,9 +1107,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         }
                     }
                 }
-            } else if (mSpannable != null) {
+            } else {
                 // Reset the selection.
-                Selection.setSelection(mSpannable, getSelectionEnd());
+                Selection.setSelection(mText, getSelectionEnd());
             }
         }
     }
@@ -1257,6 +1259,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     @InspectableProperty
     public @NonNull Editable getText() {
+        // (EW) starting in S, the AOSP version added padding to the original text so that the
+        // transformed text length matches to avoid some issues, but since
+        // #onCreateViewTranslationRequest doesn't support selectable and editable text yet, we
+        // shouldn't need to do anything (also most of the AOSP handling for this is calling hidden
+        // things that probably would be difficult or impossible to exactly replicate).
         return mText;
     }
 
@@ -1268,14 +1275,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mText.length();
     }
 
-    //TODO: (EW) remove - this is redundant with #getText. keeping for now to avoid breaking
-    // copy/pasted code
     /**
      * Return the text that TextView is displaying as an Editable object.
      *
      * @see #getText
      */
     public @NonNull Editable getEditableText() {
+        // (EW) currently this is functionally equivalent with #getText, but the AOSP version has a
+        // to-do comment to eventually add support for supporting selectable text translation, which
+        // would make it relevant to add if we copy that functionality, so we'll keep this separate
+        // in preparation for that potential and simpler comparison with the AOSP code. also, in
+        // that case, #getText might not always return an Editable, which would make more separate.
         return mText;
     }
 
@@ -1366,7 +1376,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (mEditor.mKeyListener != input) {
             mEditor.mKeyListener = input;
 
-            setFilters((Editable) mText, mFilters);
+            setFilters(mText, mFilters);
         }
     }
 
@@ -1395,10 +1405,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public final void setMovementMethod(MovementMethod movement) {
         if (mMovement != movement) {
             mMovement = movement;
-
-            if (movement != null && mSpannable == null) {
-                setText(mText);
-            }
 
             fixFocusableAndClickableSettings();
 
@@ -1448,9 +1454,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return;
         }
         if (mTransformation != null) {
-            if (mSpannable != null) {
-                mSpannable.removeSpan(mTransformation);
-            }
+            mText.removeSpan(mTransformation);
         }
 
         mTransformation = method;
@@ -3953,24 +3957,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (ss.selStart >= 0 && ss.selEnd >= 0) {
-            if (mSpannable != null) {
-                int len = mText.length();
+            int len = mText.length();
 
-                if (ss.selStart > len || ss.selEnd > len) {
-                    String restored = "";
+            if (ss.selStart > len || ss.selEnd > len) {
+                String restored = "";
 
-                    if (ss.text != null) {
-                        restored = "(restored) ";
-                    }
+                if (ss.text != null) {
+                    restored = "(restored) ";
+                }
 
-                    Log.e(LOG_TAG, "Saved cursor position " + ss.selStart + "/" + ss.selEnd
-                            + " out of range for " + restored + "text " + mText);
-                } else {
-                    Selection.setSelection(mSpannable, ss.selStart, ss.selEnd);
+                Log.e(LOG_TAG, "Saved cursor position " + ss.selStart + "/" + ss.selEnd
+                        + " out of range for " + restored + "text " + mText);
+            } else {
+                Selection.setSelection(mText, ss.selStart, ss.selEnd);
 
-                    if (ss.frozenWithFocus) {
-                        mEditor.mFrozenWithFocus = true;
-                    }
+                if (ss.frozenWithFocus) {
+                    mEditor.mFrozenWithFocus = true;
                 }
             }
         }
@@ -4064,37 +4066,35 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         final int textLength = text.length();
 
-        if (text instanceof Spannable) {
-            Spannable sp = (Spannable) text;
+        Spannable sp = (Spannable) text;
 
-            // Remove any ChangeWatchers that might have come from other TextViews.
-            final ChangeWatcher[] watchers = sp.getSpans(0, sp.length(), ChangeWatcher.class);
-            final int count = watchers.length;
-            for (int i = 0; i < count; i++) {
-                sp.removeSpan(watchers[i]);
-            }
+        // Remove any ChangeWatchers that might have come from other TextViews.
+        final ChangeWatcher[] watchers = sp.getSpans(0, sp.length(), ChangeWatcher.class);
+        final int count = watchers.length;
+        for (int i = 0; i < count; i++) {
+            sp.removeSpan(watchers[i]);
+        }
 
-            if (mChangeWatcher == null) mChangeWatcher = new ChangeWatcher();
+        if (mChangeWatcher == null) mChangeWatcher = new ChangeWatcher();
 
-            sp.setSpan(mChangeWatcher, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE
-                    | (CHANGE_WATCHER_PRIORITY << Spanned.SPAN_PRIORITY_SHIFT));
+        sp.setSpan(mChangeWatcher, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                | (CHANGE_WATCHER_PRIORITY << Spanned.SPAN_PRIORITY_SHIFT));
 
-            mEditor.addSpanWatchers(sp);
+        mEditor.addSpanWatchers(sp);
 
-            if (mTransformation != null) {
-                sp.setSpan(mTransformation, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            }
+        if (mTransformation != null) {
+            sp.setSpan(mTransformation, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        }
 
-            if (mMovement != null) {
-                mMovement.initialize(this, (Spannable) text);
+        if (mMovement != null) {
+            mMovement.initialize(this, (Spannable) text);
 
-                /*
-                 * Initializing the movement method will have set the
-                 * selection, so reset mSelectionMoved to keep that from
-                 * interfering with the normal on-focus selection-setting.
-                 */
-                mEditor.mSelectionMoved = false;
-            }
+            /*
+             * Initializing the movement method will have set the
+             * selection, so reset mSelectionMoved to keep that from
+             * interfering with the normal on-focus selection-setting.
+             */
+            mEditor.mSelectionMoved = false;
         }
 
         if (mLayout != null) {
@@ -4173,11 +4173,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         setText(text);
 
         if (start >= 0 || end >= 0) {
-            if (mSpannable != null) {
-                Selection.setSelection(mSpannable,
-                                       Math.max(0, Math.min(start, len)),
-                                       Math.max(0, Math.min(end, len)));
-            }
+            Selection.setSelection(mText,
+                                   Math.max(0, Math.min(start, len)),
+                                   Math.max(0, Math.min(end, len)));
         }
     }
 
@@ -4907,7 +4905,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         mFilters = filters;
 
-        setFilters((Editable) mText, filters);
+        setFilters(mText, filters);
     }
 
     /**
@@ -5248,9 +5246,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public boolean hasOverlappingRendering() {
         // horizontal fading edge causes SaveLayerAlpha, which doesn't support alpha modulation
-        return ((getBackground() != null && getBackground().getCurrent() != null)
-                || mSpannable != null || hasSelection() || isHorizontalFadingEdgeEnabled()
-                || mShadowColor != 0);
+        return true;
     }
 
     private Path getUpdatedHighlightPath() {
@@ -5570,18 +5566,18 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         KeyEvent up = KeyEvent.changeAction(event, KeyEvent.ACTION_UP);
         if (which == KEY_DOWN_HANDLED_BY_KEY_LISTENER) {
             // mEditor and mEditor.mInput are not null from doKeyDown
-            mEditor.mKeyListener.onKeyUp(this, (Editable) mText, keyCode, up);
+            mEditor.mKeyListener.onKeyUp(this, mText, keyCode, up);
             while (--repeatCount > 0) {
-                mEditor.mKeyListener.onKeyDown(this, (Editable) mText, keyCode, down);
-                mEditor.mKeyListener.onKeyUp(this, (Editable) mText, keyCode, up);
+                mEditor.mKeyListener.onKeyDown(this, mText, keyCode, down);
+                mEditor.mKeyListener.onKeyUp(this, mText, keyCode, up);
             }
 
         } else if (which == KEY_DOWN_HANDLED_BY_MOVEMENT_METHOD) {
             // mMovement is not null from doKeyDown
-            mMovement.onKeyUp(this, mSpannable, keyCode, up);
+            mMovement.onKeyUp(this, mText, keyCode, up);
             while (--repeatCount > 0) {
-                mMovement.onKeyDown(this, mSpannable, keyCode, down);
-                mMovement.onKeyUp(this, mSpannable, keyCode, up);
+                mMovement.onKeyDown(this, mText, keyCode, down);
+                mMovement.onKeyUp(this, mText, keyCode, up);
             }
         }
 
@@ -5745,7 +5741,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (otherEvent != null) {
                 try {
                     beginBatchEdit();
-                    final boolean handled = mEditor.mKeyListener.onKeyOther(this, (Editable) mText,
+                    final boolean handled = mEditor.mKeyListener.onKeyOther(this, mText,
                             otherEvent);
                     doDown = false;
                     if (handled) {
@@ -5761,7 +5757,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             if (doDown) {
                 beginBatchEdit();
-                final boolean handled = mEditor.mKeyListener.onKeyDown(this, (Editable) mText,
+                final boolean handled = mEditor.mKeyListener.onKeyDown(this, mText,
                         keyCode, event);
                 endBatchEdit();
                 if (handled) return KEY_DOWN_HANDLED_BY_KEY_LISTENER;
@@ -5775,7 +5771,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             boolean doDown = true;
             if (otherEvent != null) {
                 try {
-                    boolean handled = mMovement.onKeyOther(this, mSpannable, otherEvent);
+                    boolean handled = mMovement.onKeyOther(this, mText, otherEvent);
                     doDown = false;
                     if (handled) {
                         return KEY_EVENT_HANDLED;
@@ -5786,7 +5782,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
             }
             if (doDown) {
-                if (mMovement.onKeyDown(this, mSpannable, keyCode, event)) {
+                if (mMovement.onKeyDown(this, mText, keyCode, event)) {
                     if (event.getRepeatCount() == 0 && !KeyEvent.isModifierKey(keyCode)) {
                         mPreventDefaultMovement = true;
                     }
@@ -5898,13 +5894,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (mEditor.mKeyListener != null) {
-            if (mEditor.mKeyListener.onKeyUp(this, (Editable) mText, keyCode, event)) {
+            if (mEditor.mKeyListener.onKeyUp(this, mText, keyCode, event)) {
                 return true;
             }
         }
 
         if (mMovement != null && mLayout != null) {
-            if (mMovement.onKeyUp(this, mSpannable, keyCode, event)) {
+            if (mMovement.onKeyUp(this, mText, keyCode, event)) {
                 return true;
             }
         }
@@ -7177,7 +7173,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (newStart != start) {
-            Selection.setSelection(mSpannable, newStart);
+            Selection.setSelection(mText, newStart);
             return true;
         }
 
@@ -7565,7 +7561,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     // Removes all spans that are inside or actually overlap the start..end range
     private <T> void removeIntersectingNonAdjacentSpans(int start, int end, Class<T> type) {
-        Editable text = (Editable) mText;
+        Editable text = mText;
 
         T[] spans = text.getSpans(start, end, type);
         ArrayList<T> spansToRemove = new ArrayList<>();
@@ -7581,7 +7577,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     void removeAdjacentSuggestionSpans(final int pos) {
-        final Editable text = (Editable) mText;
+        final Editable text = mText;
 
         final SuggestionSpan[] spans = text.getSpans(pos, pos, SuggestionSpan.class);
         final int length = spans.length;
@@ -7911,9 +7907,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         mEditor.onFocusChanged(focused, direction);
 
         if (focused) {
-            if (mSpannable != null) {
-                MetaKeyKeyListener.resetMetaState(mSpannable);
-            }
+            MetaKeyKeyListener.resetMetaState(mText);
         }
 
         if (mTransformation != null) {
@@ -7945,7 +7939,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * state from this text view.
      */
     public void clearComposingText() {
-        BaseInputConnection.removeComposingSpans(mSpannable);
+        BaseInputConnection.removeComposingSpans(mText);
     }
 
     /**
@@ -8031,7 +8025,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             boolean handled = false;
 
             if (mMovement != null) {
-                handled |= mMovement.onTouchEvent(this, mSpannable, event);
+                handled |= mMovement.onTouchEvent(this, mText, event);
             }
 
             if (touchIsFinished && isTextEditable()) {
@@ -8060,7 +8054,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public boolean onGenericMotionEvent(MotionEvent event) {
         if (mMovement != null && mLayout != null) {
             try {
-                if (mMovement.onGenericMotionEvent(this, mSpannable, event)) {
+                if (mMovement.onGenericMotionEvent(this, mText, event)) {
                     return true;
                 }
             } catch (AbstractMethodError ex) {
@@ -8098,8 +8092,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onTrackballEvent(MotionEvent event) {
-        if (mMovement != null && mSpannable != null && mLayout != null) {
-            if (mMovement.onTrackballEvent(this, mSpannable, event)) {
+        if (mMovement != null && mLayout != null) {
+            if (mMovement.onTrackballEvent(this, mText, event)) {
                 return true;
             }
         }
@@ -9335,7 +9329,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             hideFloatingToolbar(FLOATING_TOOLBAR_SELECT_ALL_REFRESH_DELAY);
         }
         final int length = mText.length();
-        Selection.setSelection(mSpannable, 0, length);
+        Selection.setSelection(mText, 0, length);
         return length > 0;
     }
 
@@ -9375,12 +9369,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             if (paste != null) {
                 if (!didFirst) {
-                    Selection.setSelection(mSpannable, max);
-                    ((Editable) mText).replace(min, max, paste);
+                    Selection.setSelection(mText, max);
+                    mText.replace(min, max, paste);
                     didFirst = true;
                 } else {
-                    ((Editable) mText).insert(getSelectionEnd(), "\n");
-                    ((Editable) mText).insert(getSelectionEnd(), paste);
+                    mText.insert(getSelectionEnd(), "\n");
+                    mText.insert(getSelectionEnd(), paste);
                 }
             }
         }
@@ -9396,7 +9390,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             selectedText = HiddenTextUtils.trimToParcelableSize(selectedText);
             sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, selectedText);
             getContext().startActivity(Intent.createChooser(sharingIntent, null));
-            Selection.setSelection(mSpannable, getSelectionEnd());
+            Selection.setSelection(mText, getSelectionEnd());
         }
     }
 
@@ -9493,7 +9487,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             case DragEvent.ACTION_DRAG_LOCATION:
                 final int offset = getOffsetForPosition(event.getX(), event.getY());
-                Selection.setSelection(mSpannable, offset);
+                Selection.setSelection(mText, offset);
                 return true;
 
             case DragEvent.ACTION_DROP:
@@ -9618,7 +9612,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     protected void deleteText_internal(int start, int end) {
-        ((Editable) mText).delete(start, end);
+        mText.delete(start, end);
     }
 
     /**
@@ -9626,7 +9620,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     protected void replaceText_internal(int start, int end, CharSequence text) {
-        ((Editable) mText).replace(start, end, text);
+        mText.replace(start, end, text);
     }
 
     /**
@@ -9634,7 +9628,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     protected void setSpan_internal(Object span, int start, int end, int flags) {
-        ((Editable) mText).setSpan(span, start, end, flags);
+        mText.setSpan(span, start, end, flags);
     }
 
     /**
@@ -9642,7 +9636,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @hide
      */
     protected void setCursorPosition_internal(int start, int end) {
-        Selection.setSelection(((Editable) mText), start, end);
+        Selection.setSelection(mText, start, end);
     }
 
     /**
@@ -9852,6 +9846,47 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public ContentInfo onReceiveContent(@NonNull ContentInfo payload) {
         return mEditor.getDefaultOnReceiveContentListener().onReceiveContent(this, payload);
+    }
+
+    /**
+     * Collects a {@link ViewTranslationRequest} which represents the content to be translated in
+     * the view.
+     *
+     * <p>NOTE: When overriding the method, it should not translate the password. If the subclass
+     * uses {@link TransformationMethod} to display the translated result, it's also not recommend
+     * to translate text is selectable or editable.
+     *
+     * @param supportedFormats the supported translation format. The value could be {@link
+     *                         android.view.translation.TranslationSpec#DATA_FORMAT_TEXT}.
+     * @return the {@link ViewTranslationRequest} which contains the information to be translated.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    @Override
+    public void onCreateViewTranslationRequest(@NonNull int[] supportedFormats,
+                                               @NonNull Consumer<ViewTranslationRequest> requestsCollector) {
+        if (supportedFormats == null || supportedFormats.length == 0) {
+            // Do not provide the support translation formats
+            return;
+        }
+        ViewTranslationRequest.Builder requestBuilder =
+                new ViewTranslationRequest.Builder(getAutofillId());
+        // Support Text translation
+        if (ArrayUtils.contains(supportedFormats, TranslationSpec.DATA_FORMAT_TEXT)) {
+            if (mText.length() == 0) {
+                // Cannot create translation request for the empty text
+                return;
+            }
+            // TODO(b/177214256): support selectable text translation.
+            //  We use the TransformationMethod to implement showing the translated text. The
+            //  TextView does not support the text length change for TransformationMethod. If the
+            //  text is selectable or editable, it will crash while selecting the text. To support
+            //  it, it needs broader changes to text APIs, we only allow to translate non selectable
+            //  and editable text in S.
+            // Cannot create translation request
+            // (EW) because EditText content is always considered selectable
+            return;
+        }
+        requestsCollector.accept(requestBuilder.build());
     }
 
 

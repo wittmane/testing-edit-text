@@ -18,8 +18,10 @@
 package com.wittmane.testingedittext.aosp.internal.util;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.lang.reflect.Array;
+import java.util.Objects;
 
 /**
  * ArrayUtils contains some methods that you can call to find out
@@ -90,6 +92,84 @@ public class ArrayUtils {
         }
 
         return (T[]) cache;
+    }
+
+    /**
+     * Checks that value is present as at least one of the elements of the array.
+     * @param array the array to check in
+     * @param value the value to check for
+     * @return true if the value is present in the array
+     */
+    public static <T> boolean contains(@Nullable T[] array, T value) {
+        return indexOf(array, value) != -1;
+    }
+
+    /**
+     * Return first index of {@code value} in {@code array}, or {@code -1} if
+     * not found.
+     */
+    public static <T> int indexOf(@Nullable T[] array, T value) {
+        if (array == null) return -1;
+        for (int i = 0; i < array.length; i++) {
+            if (Objects.equals(array[i], value)) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Test if any {@code check} items are contained in {@code array}.
+     */
+    public static <T> boolean containsAny(@Nullable T[] array, T[] check) {
+        if (check == null) return false;
+        for (T checkItem : check) {
+            if (contains(array, checkItem)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean contains(@Nullable int[] array, int value) {
+        if (array == null) return false;
+        for (int element : array) {
+            if (element == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean contains(@Nullable long[] array, long value) {
+        if (array == null) return false;
+        for (long element : array) {
+            if (element == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean contains(@Nullable char[] array, char value) {
+        if (array == null) return false;
+        for (char element : array) {
+            if (element == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Test if all {@code check} items are contained in {@code array}.
+     */
+    public static <T> boolean containsAll(@Nullable char[] array, char[] check) {
+        if (check == null) return true;
+        for (char checkItem : check) {
+            if (!contains(array, checkItem)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // from libcore.util
