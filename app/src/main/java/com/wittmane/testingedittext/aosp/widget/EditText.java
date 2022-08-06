@@ -334,7 +334,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     // Do not update following mText/mSpannable/mPrecomputed except for setTextInternal()
     @ViewDebug.ExportedProperty(category = "text")
-    private @Nullable Editable mText;
+    private @NonNull Editable mText = createEditable("");
     private @Nullable Spannable mSpannable;
 
     private CharSequence mTransformed;
@@ -975,9 +975,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         setText(text);
-        if (mText == null) {//TODO: (EW) is this even possible - probably should make sure it's not and remove this
-            mText = Editable.Factory.getInstance().newEditable("");
-        }
         if (mTransformed == null) {
             mTransformed = "";
         }
@@ -1065,13 +1062,22 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    // Update mText
-    private void setTextInternal(@Nullable CharSequence text) {
-        setTextInternal(text == null ? null : Editable.Factory.getInstance().newEditable(text));
+    private void setTextInternal(@NonNull CharSequence text) {
+        setTextInternal(createEditable(text));
     }
-    private void setTextInternal(@Nullable Editable text) {//TODO: (EW) probably should make this not nullable
+
+    // Update mText
+    private void setTextInternal(@NonNull Editable text) {
         mText = text;
         mSpannable = text;//TODO: (EW) remove mSpannable since it's redundant
+    }
+
+    private static @NonNull Editable createEditable(@NonNull CharSequence text) {
+        // (EW) note that Editable.Factory#newEditable isn't marked with @NonNull, but it has always
+        // simply returned a new SpannableStringBuilder, and if it did refuse to create an editable,
+        // the main functionality of this view would probably break regardless, so if something
+        // crashes for not handling null, that's probably fine.
+        return Editable.Factory.getInstance().newEditable(text);
     }
 
     // (EW) the AOSP version overrode View#onActivityResult, but that's hidden, so we have to manage
@@ -1250,7 +1256,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_text
      */
     @InspectableProperty
-    public Editable getText() {
+    public @NonNull Editable getText() {
         return mText;
     }
 
@@ -1262,15 +1268,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mText.length();
     }
 
-    //TODO: (EW) remove - this is redundant. keeping for now to avoid breaking copy/pasted code
+    //TODO: (EW) remove - this is redundant with #getText. keeping for now to avoid breaking
+    // copy/pasted code
     /**
-     * Return the text that TextView is displaying as an Editable object. If the text is not
-     * editable, null is returned.
+     * Return the text that TextView is displaying as an Editable object.
      *
      * @see #getText
      */
-    public Editable getEditableText() {
-        return getText();
+    public @NonNull Editable getEditableText() {
+        return mText;
     }
 
     /**
@@ -1359,9 +1365,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private void setKeyListenerOnly(KeyListener input) {
         if (mEditor.mKeyListener != input) {
             mEditor.mKeyListener = input;
-            if (input != null && !(mText instanceof Editable)) {
-                setText(mText);
-            }
 
             setFilters((Editable) mText, mFilters);
         }
@@ -3892,27 +3895,21 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int start = -1;
         int end = -1;
 
-        if (mText != null) {
-            start = getSelectionStart();
-            end = getSelectionEnd();
-            if (start >= 0 || end >= 0) {
-                // Or save state if there is a selection
-                hasSelection = true;
-            }
+        start = getSelectionStart();
+        end = getSelectionEnd();
+        if (start >= 0 || end >= 0) {
+            // Or save state if there is a selection
+            hasSelection = true;
         }
 
         SavedState ss = new SavedState(superState);
 
-        if (mText instanceof Spanned) {
-            final Spannable sp = new SpannableStringBuilder(mText);
+        final Spannable sp = new SpannableStringBuilder(mText);
 
-            removeMisspelledSpans(sp);
-            sp.removeSpan(mEditor.mSuggestionRangeSpan);
+        removeMisspelledSpans(sp);
+        sp.removeSpan(mEditor.mSuggestionRangeSpan);
 
-            ss.text = sp;
-        } else {
-            ss.text = mText.toString();
-        }
+        ss.text = sp;
 
         if (hasSelection) {
             // XXX Should also save the current scroll position!
@@ -4036,12 +4033,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (notifyBefore) {
-            if (mText != null) {
-                oldlen = mText.length();
-                sendBeforeTextChanged(mText, 0, oldlen, text.length());
-            } else {
-                sendBeforeTextChanged("", 0, 0, text.length());
-            }
+            oldlen = mText.length();
+            sendBeforeTextChanged(mText, 0, oldlen, text.length());
         }
 
         boolean needEditableForNotification = false;
@@ -4052,7 +4045,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         mEditor.forgetUndoRedo();
         mEditor.scheduleRestartInputForSetText();
-        Editable t = Editable.Factory.getInstance().newEditable(text);
+        Editable t = createEditable(text);
         text = t;
 
         setFilters(t, mFilters);
@@ -4134,7 +4127,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param start start index in the char array
      * @param len length of char count after {@code start}
      */
-    public final void setText(char[] text, int start, int len) {
+    public final void setText(@NonNull char[] text, int start, int len) {
         int oldlen = 0;
 
         if (start < 0 || len < 0 || start + len > text.length) {
@@ -4146,12 +4139,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          * the old text is a CharWrapper we destroy it before calling
          * into the normal path.
          */
-        if (mText != null) {
-            oldlen = mText.length();
-            sendBeforeTextChanged(mText, 0, oldlen, len);
-        } else {
-            sendBeforeTextChanged("", 0, 0, len);
-        }
+        oldlen = mText.length();
+        sendBeforeTextChanged(mText, 0, oldlen, len);
 
         if (mCharWrapper == null) {
             mCharWrapper = new CharWrapper(text, start, len);
@@ -4273,7 +4262,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Removes the suggestion spans.
      */
-    CharSequence removeSuggestionSpans(CharSequence text) {
+    @NonNull CharSequence removeSuggestionSpans(@NonNull CharSequence text) {
         if (text instanceof Spanned) {
             Spannable spannable;
             if (text instanceof Spannable) {
@@ -4918,9 +4907,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         mFilters = filters;
 
-        if (mText instanceof Editable) {
-            setFilters((Editable) mText, filters);
-        }
+        setFilters((Editable) mText, filters);
     }
 
     /**
@@ -5842,8 +5829,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                      * this case.)
                      */
                     if (!hasOnClickListeners()) {
-                        if (mMovement != null && mText instanceof Editable
-                                && mLayout != null && onCheckIsTextEditor()) {
+                        if (mMovement != null && mLayout != null && onCheckIsTextEditor()) {
                             InputMethodManager imm = getInputMethodManager();
                             viewClicked(imm);
                             if (imm != null && getShowSoftInputOnFocus()) {
@@ -5999,20 +5985,18 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // difficulties in managing mTextOperationUser like the AOSP version does, so I don't
             // think there is anything we can do here.
 
-            if (mText instanceof Editable) {
-                EditableInputConnection ic = new EditableInputConnection(this);
-                outAttrs.initialSelStart = getSelectionStart();
-                outAttrs.initialSelEnd = getSelectionEnd();
-                outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    outAttrs.setInitialSurroundingText(mText);
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
-                }
-                mInputConnection = ic;
-                return ic;
+            EditableInputConnection ic = new EditableInputConnection(this);
+            outAttrs.initialSelStart = getSelectionStart();
+            outAttrs.initialSelEnd = getSelectionEnd();
+            outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                outAttrs.setInitialSurroundingText(mText);
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
+            }
+            mInputConnection = ic;
+            return ic;
         }
         mInputConnection = null;
         return null;
@@ -6052,30 +6036,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public void setExtractedText(ExtractedText text) {
         Editable content = getEditableText();
         if (text.text != null) {
-            if (content == null) {
-                setText(text.text);
+            int start = 0;
+            int end = content.length();
+
+            if (text.partialStartOffset >= 0) {
+                final int N = content.length();
+                start = text.partialStartOffset;
+                if (start > N) start = N;
+                end = text.partialEndOffset;
+                if (end > N) end = N;
+            }
+
+            removeParcelableSpans(content, start, end);
+            if (TextUtils.equals(content.subSequence(start, end), text.text)) {
+                if (text.text instanceof Spanned) {
+                    // OK to copy spans only.
+                    TextUtils.copySpansFrom((Spanned) text.text, 0, end - start,
+                            Object.class, content, start);
+                }
             } else {
-                int start = 0;
-                int end = content.length();
-
-                if (text.partialStartOffset >= 0) {
-                    final int N = content.length();
-                    start = text.partialStartOffset;
-                    if (start > N) start = N;
-                    end = text.partialEndOffset;
-                    if (end > N) end = N;
-                }
-
-                removeParcelableSpans(content, start, end);
-                if (TextUtils.equals(content.subSequence(start, end), text.text)) {
-                    if (text.text instanceof Spanned) {
-                        // OK to copy spans only.
-                        TextUtils.copySpansFrom((Spanned) text.text, 0, end - start,
-                                Object.class, content, start);
-                    }
-                } else {
-                    content.replace(start, end, text.text);
-                }
+                content.replace(start, end, text.text);
             }
         }
 
@@ -6083,7 +6063,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // avoid crashes.  If this is a partial update, it is possible that
         // the underlying text may have changed, causing us problems here.
         // Also we just don't want to trust clients to do the right thing.
-        Spannable sp = (Spannable) getText();
+        Spannable sp = getText();
         final int N = sp.length();
         int start = text.selectionStart;
         if (start < 0) {
@@ -7153,9 +7133,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @return True if the cursor was actually moved, false otherwise.
      */
     public boolean moveCursorToVisibleOffset() {
-        if (!(mText instanceof Spannable)) {
-            return false;
-        }
         int start = getSelectionStart();
         int end = getSelectionEnd();
         if (start != end) {
@@ -7435,10 +7412,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public void setSelectAllOnFocus(boolean selectAllOnFocus) {
         mEditor.mSelectAllOnFocus = selectAllOnFocus;
-
-        if (selectAllOnFocus && !(mText instanceof Spannable)) {
-            setText(mText);
-        }
     }
 
     /**
@@ -7592,7 +7565,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     // Removes all spans that are inside or actually overlap the start..end range
     private <T> void removeIntersectingNonAdjacentSpans(int start, int end, Class<T> type) {
-        if (!(mText instanceof Editable)) return;
         Editable text = (Editable) mText;
 
         T[] spans = text.getSpans(start, end, type);
@@ -7609,7 +7581,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     void removeAdjacentSuggestionSpans(final int pos) {
-        if (!(mText instanceof Editable)) return;
         final Editable text = (Editable) mText;
 
         final SuggestionSpan[] spans = text.getSpans(pos, pos, SuggestionSpan.class);
@@ -7974,9 +7945,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * state from this text view.
      */
     public void clearComposingText() {
-        if (mText instanceof Spannable) {
-            BaseInputConnection.removeComposingSpans(mSpannable);
-        }
+        BaseInputConnection.removeComposingSpans(mSpannable);
     }
 
     /**
@@ -8058,8 +8027,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final boolean touchIsFinished = (action == MotionEvent.ACTION_UP)
                 && (!mEditor.mIgnoreActionUpEvent) && isFocused();
 
-        if ((mMovement != null || onCheckIsTextEditor()) && isEnabled()
-                && mText instanceof Spannable && mLayout != null) {
+        if ((mMovement != null || onCheckIsTextEditor()) && isEnabled() && mLayout != null) {
             boolean handled = false;
 
             if (mMovement != null) {
@@ -8090,7 +8058,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onGenericMotionEvent(MotionEvent event) {
-        if (mMovement != null && mText instanceof Spannable && mLayout != null) {
+        if (mMovement != null && mLayout != null) {
             try {
                 if (mMovement.onGenericMotionEvent(this, mSpannable, event)) {
                     return true;
@@ -8109,7 +8077,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * a selectable TextView.
      */
     boolean isTextEditable() {
-        return mText instanceof Editable && onCheckIsTextEditor() && isEnabled();
+        return onCheckIsTextEditor() && isEnabled();
     }
 
     /**
@@ -8609,36 +8577,34 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // Get the text and trim it to the range we are reporting.
                 CharSequence text = getText();
 
-                if (text != null) {
-                    if (expandedTopChar > 0 || expandedBottomChar < text.length()) {
-                        // Cap the offsets to avoid an OOB exception. That can happen if the
-                        // displayed/layout text, on which these offsets are calculated, is longer
-                        // than the original text (such as when the view is translated by the
-                        // platform intelligence).
-                        // TODO(b/196433694): Figure out how to better handle the offset
-                        // calculations for this case (so we don't unnecessarily cutoff the original
-                        // text, for example).
-                        expandedTopChar = Math.min(expandedTopChar, text.length());
-                        expandedBottomChar = Math.min(expandedBottomChar, text.length());
-                        text = text.subSequence(expandedTopChar, expandedBottomChar);
-                    }
+                if (expandedTopChar > 0 || expandedBottomChar < text.length()) {
+                    // Cap the offsets to avoid an OOB exception. That can happen if the
+                    // displayed/layout text, on which these offsets are calculated, is longer
+                    // than the original text (such as when the view is translated by the
+                    // platform intelligence).
+                    // TODO(b/196433694): Figure out how to better handle the offset
+                    // calculations for this case (so we don't unnecessarily cutoff the original
+                    // text, for example).
+                    expandedTopChar = Math.min(expandedTopChar, text.length());
+                    expandedBottomChar = Math.min(expandedBottomChar, text.length());
+                    text = text.subSequence(expandedTopChar, expandedBottomChar);
+                }
 
-                    if (viewFor == VIEW_STRUCTURE_FOR_AUTOFILL) {
-                        structure.setText(text);
-                    } else {
-                        structure.setText(text,
-                                selStart - expandedTopChar,
-                                selEnd - expandedTopChar);
+                if (viewFor == VIEW_STRUCTURE_FOR_AUTOFILL) {
+                    structure.setText(text);
+                } else {
+                    structure.setText(text,
+                            selStart - expandedTopChar,
+                            selEnd - expandedTopChar);
 
-                        final int[] lineOffsets = new int[bottomLine - topLine + 1];
-                        final int[] lineBaselines = new int[bottomLine - topLine + 1];
-                        final int baselineOffset = getBaselineOffset();
-                        for (int i = topLine; i <= bottomLine; i++) {
-                            lineOffsets[i - topLine] = layout.getLineStart(i);
-                            lineBaselines[i - topLine] = layout.getLineBaseline(i) + baselineOffset;
-                        }
-                        structure.setTextLines(lineOffsets, lineBaselines);
+                    final int[] lineOffsets = new int[bottomLine - topLine + 1];
+                    final int[] lineBaselines = new int[bottomLine - topLine + 1];
+                    final int baselineOffset = getBaselineOffset();
+                    for (int i = topLine; i <= bottomLine; i++) {
+                        lineOffsets[i - topLine] = layout.getLineStart(i);
+                        lineBaselines[i - topLine] = layout.getLineBaseline(i) + baselineOffset;
                     }
+                    structure.setTextLines(lineOffsets, lineBaselines);
                 }
             }
 
@@ -8748,10 +8714,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             setText(autofilledValue, true, 0);
 
             // ...then move cursor to the end.
-            final CharSequence text = getText();
-            if ((text instanceof Spannable)) {
-                Selection.setSelection((Spannable) text, text.length());
-            }
+            final Spannable text = getText();
+            Selection.setSelection(text, text.length());
         }
     }
 
@@ -9280,8 +9244,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return false;
         }
 
-        if (mText.length() > 0 && hasSelection() && mText instanceof Editable
-                && mEditor.mKeyListener != null) {
+        if (mText.length() > 0 && hasSelection() && mEditor.mKeyListener != null) {
             return true;
         }
 
@@ -9321,8 +9284,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     boolean canPaste() {
-        return (mText instanceof Editable
-                && mEditor.mKeyListener != null
+        return (mEditor.mKeyListener != null
                 && getSelectionStart() >= 0
                 && getSelectionEnd() >= 0
                 && getClipboardManager().hasPrimaryClip());
@@ -9530,10 +9492,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 return true;
 
             case DragEvent.ACTION_DRAG_LOCATION:
-                if (mText instanceof Spannable) {
-                    final int offset = getOffsetForPosition(event.getX(), event.getY());
-                    Selection.setSelection(mSpannable, offset);
-                }
+                final int offset = getOffsetForPosition(event.getX(), event.getY());
+                Selection.setSelection(mSpannable, offset);
                 return true;
 
             case DragEvent.ACTION_DROP:

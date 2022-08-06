@@ -812,12 +812,11 @@ public class Editor {
         int selectionStart, selectionEnd;
 
         // If a URLSpan (web address, email, phone...) is found at that position, select it.
-        URLSpan[] urlSpans =
-                ((Spanned) mTextView.getText()).getSpans(minOffset, maxOffset, URLSpan.class);
+        URLSpan[] urlSpans = mTextView.getText().getSpans(minOffset, maxOffset, URLSpan.class);
         if (urlSpans.length >= 1) {
             URLSpan urlSpan = urlSpans[0];
-            selectionStart = ((Spanned) mTextView.getText()).getSpanStart(urlSpan);
-            selectionEnd = ((Spanned) mTextView.getText()).getSpanEnd(urlSpan);
+            selectionStart = mTextView.getText().getSpanStart(urlSpan);
+            selectionEnd = mTextView.getText().getSpanEnd(urlSpan);
         } else {
             // FIXME - We should check if there's a LocaleSpan in the text, this may be
             // something we should try handling or checking for.
@@ -836,7 +835,7 @@ public class Editor {
             }
         }
 
-        Selection.setSelection((Spannable) mTextView.getText(), selectionStart, selectionEnd);
+        Selection.setSelection(mTextView.getText(), selectionStart, selectionEnd);
         return selectionEnd > selectionStart;
     }
 
@@ -861,7 +860,7 @@ public class Editor {
         final int start = HiddenTextUtils.unpackRangeStartFromLong(paragraphsRange);
         final int end = HiddenTextUtils.unpackRangeEndFromLong(paragraphsRange);
         if (start < end) {
-            Selection.setSelection((Spannable) mTextView.getText(), start, end);
+            Selection.setSelection(mTextView.getText(), start, end);
             return true;
         }
         return false;
@@ -962,7 +961,7 @@ public class Editor {
             int tmp = selectionStart;
             selectionStart = selectionEnd;
             selectionEnd = tmp;
-            Selection.setSelection((Spannable) mTextView.getText(), selectionStart, selectionEnd);
+            Selection.setSelection(mTextView.getText(), selectionStart, selectionEnd);
         }
 
         SelectionModifierCursorController selectionController = getSelectionController();
@@ -1050,7 +1049,7 @@ public class Editor {
                 && !mTouchState.isOnHandle() && mInsertionControllerEnabled) {
             final int offset = mTextView.getOffsetForPosition(mTouchState.getLastDownX(),
                     mTouchState.getLastDownY());
-            Selection.setSelection((Spannable) mTextView.getText(), offset);
+            Selection.setSelection(mTextView.getText(), offset);
             getInsertionController().show();
             mIsInsertionActionModeStartPending = true;
             handled = true;
@@ -1123,7 +1122,7 @@ public class Editor {
                 // Note this may have to be moved out of the Editor class
                 MovementMethod mMovement = mTextView.getMovementMethod();
                 if (mMovement != null) {
-                    mMovement.onTakeFocus(mTextView, (Spannable) mTextView.getText(), direction);
+                    mMovement.onTakeFocus(mTextView, mTextView.getText(), direction);
                 }
 
                 // The DecorView does not have focus when the 'Done' ExtractEditText button is
@@ -1203,18 +1202,15 @@ public class Editor {
      * span.
      */
     private void downgradeEasyCorrectionSpans() {
-        CharSequence text = mTextView.getText();
-        if (text instanceof Spannable) {
-            Spannable spannable = (Spannable) text;
-            SuggestionSpan[] suggestionSpans = spannable.getSpans(0,
-                    spannable.length(), SuggestionSpan.class);
-            for (int i = 0; i < suggestionSpans.length; i++) {
-                int flags = suggestionSpans[i].getFlags();
-                if ((flags & SuggestionSpan.FLAG_EASY_CORRECT) != 0
-                        && (flags & FLAG_MISSPELLED_OR_GRAMMAR_ERROR) == 0) {
-                    flags &= ~SuggestionSpan.FLAG_EASY_CORRECT;
-                    suggestionSpans[i].setFlags(flags);
-                }
+        Spannable spannable = mTextView.getText();
+        SuggestionSpan[] suggestionSpans = spannable.getSpans(0,
+                spannable.length(), SuggestionSpan.class);
+        for (int i = 0; i < suggestionSpans.length; i++) {
+            int flags = suggestionSpans[i].getFlags();
+            if ((flags & SuggestionSpan.FLAG_EASY_CORRECT) != 0
+                    && (flags & FLAG_MISSPELLED_OR_GRAMMAR_ERROR) == 0) {
+                flags &= ~SuggestionSpan.FLAG_EASY_CORRECT;
+                suggestionSpans[i].setFlags(flags);
             }
         }
     }
@@ -1496,9 +1492,6 @@ public class Editor {
         }
 
         final Editable content = mTextView.getText();
-        if (content == null) {
-            return false;
-        }
 
         if (partialStartOffset != EXTRACT_NOTHING) {
             final int N = content.length();
@@ -1658,13 +1651,9 @@ public class Editor {
             if (null != imm) {
                 final int selectionStart = mTextView.getSelectionStart();
                 final int selectionEnd = mTextView.getSelectionEnd();
-                int candStart = -1;
-                int candEnd = -1;
-                if (mTextView.getText() instanceof Spannable) {
-                    final Spannable sp = (Spannable) mTextView.getText();
-                    candStart = EditableInputConnection.getComposingSpanStart(sp);
-                    candEnd = EditableInputConnection.getComposingSpanEnd(sp);
-                }
+                final Spannable sp = (Spannable) mTextView.getText();
+                int candStart = EditableInputConnection.getComposingSpanStart(sp);
+                int candEnd = EditableInputConnection.getComposingSpanEnd(sp);
                 // InputMethodManager#updateSelection skips sending the message if
                 // none of the parameters have changed since the last time we called it.
                 imm.updateSelection(mTextView,
@@ -1977,10 +1966,9 @@ public class Editor {
      * @return <code>true</code> if the cursor/current selection overlaps a {@link SuggestionSpan}.
      */
     private boolean isCursorInsideSuggestionSpan() {
-        CharSequence text = mTextView.getText();
-        if (!(text instanceof Spannable)) return false;
+        Spannable text = mTextView.getText();
 
-        SuggestionSpan[] suggestionSpans = ((Spannable) text).getSpans(
+        SuggestionSpan[] suggestionSpans = text.getSpans(
                 mTextView.getSelectionStart(), mTextView.getSelectionEnd(), SuggestionSpan.class);
         return (suggestionSpans.length > 0);
     }
@@ -1991,10 +1979,7 @@ public class Editor {
      * method to show suggestions {@link SuggestionsPopupWindow#updateSuggestions}.
      */
     private boolean shouldOfferToShowSuggestions() {
-        CharSequence text = mTextView.getText();
-        if (!(text instanceof Spannable)) return false;
-
-        final Spannable spannable = (Spannable) text;
+        final Spannable spannable = mTextView.getText();
         final int selectionStart = mTextView.getSelectionStart();
         final int selectionEnd = mTextView.getSelectionEnd();
         final SuggestionSpan[] suggestionSpans = spannable.getSpans(selectionStart, selectionEnd,
@@ -2011,9 +1996,9 @@ public class Editor {
             }
             return false;
         }
-        int minSpanStart = mTextView.getText().length();
+        int minSpanStart = spannable.length();
         int maxSpanEnd = 0;
-        int unionOfSpansCoveringSelectionStartStart = mTextView.getText().length();
+        int unionOfSpansCoveringSelectionStartStart = spannable.length();
         int unionOfSpansCoveringSelectionStartEnd = 0;
         boolean hasValidSuggestions = false;
         for (int i = 0; i < suggestionSpans.length; i++) {
@@ -2053,7 +2038,7 @@ public class Editor {
      * {@link SuggestionSpan#FLAG_EASY_CORRECT} set.
      */
     private boolean isCursorInsideEasyCorrectionSpan() {
-        Spannable spannable = (Spannable) mTextView.getText();
+        Spannable spannable = mTextView.getText();
         SuggestionSpan[] suggestionSpans = spannable.getSpans(mTextView.getSelectionStart(),
                 mTextView.getSelectionEnd(), SuggestionSpan.class);
         for (int i = 0; i < suggestionSpans.length; i++) {
@@ -2076,14 +2061,14 @@ public class Editor {
         boolean selectAllGotFocus = mSelectAllOnFocus && mTextView.didTouchFocusSelect();
         hideCursorAndSpanControllers();
         stopTextActionMode();
-        CharSequence text = mTextView.getText();
+        Spannable text = mTextView.getText();
         if (!selectAllGotFocus && text.length() > 0) {
             // Move cursor
             final int offset = mTextView.getOffsetForPosition(event.getX(), event.getY());
 
             final boolean shouldInsertCursor = !mRequestingLinkActionMode;
             if (shouldInsertCursor) {
-                Selection.setSelection((Spannable) text, offset);
+                Selection.setSelection(text, offset);
                 if (mSpellChecker != null) {
                     // When the cursor moves, the word that was typed may need spell check
                     mSpellChecker.onSelectionChanged();
@@ -2409,7 +2394,7 @@ public class Editor {
         mUndoInputFilter.freezeLastEdit();
         try {
             final int originalLength = mTextView.getText().length();
-            Selection.setSelection((Spannable) mTextView.getText(), offset);
+            Selection.setSelection(mTextView.getText(), offset);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 final ClipData clip = event.getClipData();
                 // (EW) the AOSP version called setDragAndDropPermissions on the builder. it seems
@@ -2484,7 +2469,7 @@ public class Editor {
     @Nullable
     private SuggestionSpan findEquivalentSuggestionSpan(
             @NonNull SuggestionSpanInfo suggestionSpanInfo) {
-        final Editable editable = (Editable) mTextView.getText();
+        final Editable editable = mTextView.getText();
         if (editable.getSpanStart(suggestionSpanInfo.mSuggestionSpan) >= 0) {
             // Exactly same span is found.
             return suggestionSpanInfo.mSuggestionSpan;
@@ -2516,7 +2501,7 @@ public class Editor {
             // Span has been removed
             return;
         }
-        final Editable editable = (Editable) mTextView.getText();
+        final Editable editable = mTextView.getText();
         final int spanStart = editable.getSpanStart(targetSuggestionSpan);
         final int spanEnd = editable.getSpanEnd(targetSuggestionSpan);
         if (spanStart < 0 || spanEnd <= spanStart) {
@@ -2638,7 +2623,7 @@ public class Editor {
                 mPopupWindow.setOnDeleteListener(new EasyEditDeleteListener() {
                     @Override
                     public void onDeleteClick(EasyEditSpan span) {
-                        Editable editable = (Editable) mTextView.getText();
+                        Editable editable = mTextView.getText();
                         int start = editable.getSpanStart(span);
                         int end = editable.getSpanEnd(span);
                         if (start >= 0 && end >= 0) {
@@ -2787,10 +2772,8 @@ public class Editor {
                 // didn't exist, but it probably makes sense to match how SpanController#onSpanAdded
                 // handles the alternative to EasyEditSpan#setDeleteEnabled by just removing the
                 // span. see comment in SpanController#onSpanAdded.
-                Editable editable = (Editable) mTextView.getText();
-                if (editable != null) {
-                    editable.removeSpan(mEasyEditSpan);
-                }
+                Editable editable = mTextView.getText();
+                editable.removeSpan(mEasyEditSpan);
                 mEasyEditSpan = null;
             }
             mOnDeleteListener = null;
@@ -2800,7 +2783,7 @@ public class Editor {
         @Override
         protected int getTextOffset() {
             // Place the pop-up at the end of the span
-            Editable editable = (Editable) mTextView.getText();
+            Editable editable = mTextView.getText();
             return editable.getSpanEnd(mEasyEditSpan);
         }
 
@@ -3141,7 +3124,7 @@ public class Editor {
          */
         private SuggestionSpan[] getSortedSuggestionSpans() {
             int pos = mTextView.getSelectionStart();
-            Spannable spannable = (Spannable) mTextView.getText();
+            Spannable spannable = mTextView.getText();
             SuggestionSpan[] suggestionSpans = spannable.getSpans(pos, pos, SuggestionSpan.class);
 
             mSpansLengths.clear();
@@ -3170,7 +3153,7 @@ public class Editor {
          */
         public int getSuggestionInfo(SuggestionInfo[] suggestionInfos,
                                      @Nullable SuggestionSpanInfo misspelledSpanInfo) {
-            final Spannable spannable = (Spannable) mTextView.getText();
+            final Spannable spannable = mTextView.getText();
             final SuggestionSpan[] suggestionSpans = getSortedSuggestionSpans();
             final int nbSpans = suggestionSpans.length;
             if (nbSpans == 0) return 0;
@@ -3254,8 +3237,7 @@ public class Editor {
                 super.dismiss();
                 getPositionListener().removeSubscriber(SuggestionsPopupWindow.this);
 
-                // Safe cast since show() checks that mTextView.getText() is an Editable
-                ((Spannable) mTextView.getText()).removeSpan(mSuggestionRangeSpan);
+                mTextView.getText().removeSpan(mSuggestionRangeSpan);
 
                 mTextView.setCursorVisible(mCursorWasVisibleBeforeSuggestions);
                 if (hasInsertionController() && !extractedTextModeWillBeStarted()) {
@@ -3355,7 +3337,7 @@ public class Editor {
                         // Span has been removed.
                         return;
                     }
-                    final Editable editable = (Editable) mTextView.getText();
+                    final Editable editable = mTextView.getText();
                     final int spanStart = editable.getSpanStart(misspelledSpan);
                     final int spanEnd = editable.getSpanEnd(misspelledSpan);
                     if (spanStart < 0 || spanEnd <= spanStart) {
@@ -3406,7 +3388,7 @@ public class Editor {
             mDeleteButton = (android.widget.TextView) mContentView.findViewById(R.id.deleteButton);
             mDeleteButton.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-                    final Editable editable = (Editable) mTextView.getText();
+                    final Editable editable = mTextView.getText();
 
                     final int spanUnionStart = editable.getSpanStart(mSuggestionRangeSpan);
                     int spanUnionEnd = editable.getSpanEnd(mSuggestionRangeSpan);
@@ -3492,7 +3474,6 @@ public class Editor {
 
         @Override
         public void show() {
-            if (!(mTextView.getText() instanceof Editable)) return;
             if (extractedTextModeWillBeStarted()) {
                 return;
             }
@@ -3576,14 +3557,14 @@ public class Editor {
         }
 
         private boolean updateSuggestions() {
-            Spannable spannable = (Spannable) mTextView.getText();
+            Spannable spannable = mTextView.getText();
             mNumberOfSuggestions =
                     mSuggestionHelper.getSuggestionInfo(mSuggestionInfos, mMisspelledSpanInfo);
             if (mNumberOfSuggestions == 0 && mMisspelledSpanInfo.mSuggestionSpan == null) {
                 return false;
             }
 
-            int spanUnionStart = mTextView.getText().length();
+            int spanUnionStart = spannable.length();
             int spanUnionEnd = 0;
 
             for (int i = 0; i < mNumberOfSuggestions; i++) {
@@ -3637,7 +3618,7 @@ public class Editor {
 
         private void highlightTextDifferences(SuggestionInfo suggestionInfo, int unionStart,
                                               int unionEnd) {
-            final Spannable text = (Spannable) mTextView.getText();
+            final Spannable text = mTextView.getText();
             final int spanStart = suggestionInfo.mSuggestionSpanInfo.mSpanStart;
             final int spanEnd = suggestionInfo.mSuggestionSpanInfo.mSpanEnd;
 
@@ -3713,8 +3694,7 @@ public class Editor {
             if (customCallback != null) {
                 if (!customCallback.onCreateActionMode(mode, menu)) {
                     // The custom mode can choose to cancel the action mode, dismiss selection.
-                    Selection.setSelection((Spannable) mTextView.getText(),
-                            mTextView.getSelectionEnd());
+                    Selection.setSelection(mTextView.getText(), mTextView.getSelectionEnd());
                     return false;
                 }
             }
@@ -3852,8 +3832,7 @@ public class Editor {
                  * selection. If we're detaching from a window, we'll bring back the selection
                  * mode when (if) we get reattached.
                  */
-                Selection.setSelection((Spannable) mTextView.getText(),
-                        mTextView.getSelectionEnd());
+                Selection.setSelection(mTextView.getText(), mTextView.getSelectionEnd());
             }
 
             if (mSelectionModifierCursorController != null) {
@@ -3955,26 +3934,23 @@ public class Editor {
             final float viewportToContentVerticalOffset =
                     mTextView.viewportToContentVerticalOffset();
 
-            final CharSequence text = mTextView.getText();
-            if (text instanceof Spannable) {
-                final Spannable sp = (Spannable) text;
-                int composingTextStart = EditableInputConnection.getComposingSpanStart(sp);
-                int composingTextEnd = EditableInputConnection.getComposingSpanEnd(sp);
-                if (composingTextEnd < composingTextStart) {
-                    final int temp = composingTextEnd;
-                    composingTextEnd = composingTextStart;
-                    composingTextStart = temp;
-                }
-                final boolean hasComposingText =
-                        (0 <= composingTextStart) && (composingTextStart < composingTextEnd);
-                if (hasComposingText) {
-                    final CharSequence composingText = text.subSequence(composingTextStart,
-                            composingTextEnd);
-                    builder.setComposingText(composingTextStart, composingText);
-                    mTextView.populateCharacterBounds(builder, composingTextStart,
-                            composingTextEnd, viewportToContentHorizontalOffset,
-                            viewportToContentVerticalOffset);
-                }
+            final Spannable text = mTextView.getText();
+            int composingTextStart = EditableInputConnection.getComposingSpanStart(text);
+            int composingTextEnd = EditableInputConnection.getComposingSpanEnd(text);
+            if (composingTextEnd < composingTextStart) {
+                final int temp = composingTextEnd;
+                composingTextEnd = composingTextStart;
+                composingTextStart = temp;
+            }
+            final boolean hasComposingText =
+                    (0 <= composingTextStart) && (composingTextStart < composingTextEnd);
+            if (hasComposingText) {
+                final CharSequence composingText = text.subSequence(composingTextStart,
+                        composingTextEnd);
+                builder.setComposingText(composingTextStart, composingText);
+                mTextView.populateCharacterBounds(builder, composingTextStart,
+                        composingTextEnd, viewportToContentHorizontalOffset,
+                        viewportToContentVerticalOffset);
             }
 
             // Treat selectionStart as the insertion point.
@@ -4117,8 +4093,7 @@ public class Editor {
              * bring back the selection mode when (if) we get reattached.
              */
             if (!mPreserveSelection) {
-                Selection.setSelection((Spannable) mTextView.getText(),
-                        mTextView.getSelectionEnd());
+                Selection.setSelection(mTextView.getText(), mTextView.getSelectionEnd());
                 mTextView.setHasTransientState(false);
             }
             if (mSelectionModifierCursorController != null) {
@@ -5136,7 +5111,7 @@ public class Editor {
 
         @Override
         public void updateSelection(int offset) {
-            Selection.setSelection((Spannable) mTextView.getText(), offset);
+            Selection.setSelection(mTextView.getText(), offset);
         }
 
         @Override
@@ -5239,11 +5214,9 @@ public class Editor {
         @Override
         protected void updateSelection(int offset) {
             if (isStartHandle()) {
-                Selection.setSelection((Spannable) mTextView.getText(), offset,
-                        mTextView.getSelectionEnd());
+                Selection.setSelection(mTextView.getText(), offset, mTextView.getSelectionEnd());
             } else {
-                Selection.setSelection((Spannable) mTextView.getText(),
-                        mTextView.getSelectionStart(), offset);
+                Selection.setSelection(mTextView.getText(), mTextView.getSelectionStart(), offset);
             }
             updateDrawable(false /* updateDrawableWhenDragging */);
             if (mTextActionMode != null) {
@@ -5668,7 +5641,7 @@ public class Editor {
             if (offset == oldSelectionStart && offset == oldSelectionEnd) {
                 return;
             }
-            Selection.setSelection((Spannable) mTextView.getText(), offset);
+            Selection.setSelection(mTextView.getText(), offset);
             updateCursorPosition();
             if (mHapticTextHandleEnabled) {
                 mTextView.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
@@ -6196,7 +6169,7 @@ public class Editor {
             final boolean performHapticFeedback = fromTouchScreen && mHapticTextHandleEnabled
                     && ((mTextView.getSelectionStart() != selectionStart)
                             || (mTextView.getSelectionEnd() != selectionEnd));
-            Selection.setSelection((Spannable) mTextView.getText(), selectionStart, selectionEnd);
+            Selection.setSelection(mTextView.getText(), selectionStart, selectionEnd);
             if (performHapticFeedback) {
                 mTextView.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
             }
@@ -6234,9 +6207,9 @@ public class Editor {
             final int selectionStart = mTextView.getSelectionStart();
             final int selectionEnd = mTextView.getSelectionEnd();
             if (selectionStart < 0 || selectionEnd < 0) {
-                Selection.removeSelection((Spannable) mTextView.getText());
+                Selection.removeSelection(mTextView.getText());
             } else if (selectionStart > selectionEnd) {
-                Selection.setSelection((Spannable) mTextView.getText(),
+                Selection.setSelection(mTextView.getText(),
                         selectionEnd, selectionStart);
             }
         }

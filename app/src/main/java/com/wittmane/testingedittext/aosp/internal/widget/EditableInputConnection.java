@@ -39,6 +39,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.SurroundingText;
 
 import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.widget.EditText;
@@ -51,7 +52,7 @@ public class EditableInputConnection extends BaseInputConnection {
     private static final boolean DEBUG = false;
     private static final boolean LOG_CALLS = true;
     private static final String TAG = EditableInputConnection.class.getSimpleName();
-    private final EditText mTextView;
+    private final @NonNull EditText mTextView;
 
     protected final InputMethodManager mIMM;
 
@@ -77,7 +78,7 @@ public class EditableInputConnection extends BaseInputConnection {
     // InputMethodManager, but it probably doesn't hurt to keep.
     final Object mH = new Object();
 
-    public EditableInputConnection(EditText targetView) {
+    public EditableInputConnection(@NonNull EditText targetView) {
         super(targetView, true);
         mTextView = targetView;
         // (EW) copied from BaseInputConnection because this protected variable is marked @hide
@@ -87,11 +88,8 @@ public class EditableInputConnection extends BaseInputConnection {
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
-    public Editable getEditable() {
-        if (mTextView != null) {
-            return mTextView.getEditableText();
-        }
-        return null;
+    public @NonNull Editable getEditable() {
+        return mTextView.getEditableText();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
