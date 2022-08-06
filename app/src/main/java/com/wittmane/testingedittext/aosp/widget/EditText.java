@@ -1074,7 +1074,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         mText = text;
     }
 
-    private static @NonNull Editable createEditable(@NonNull CharSequence text) {
+    @NonNull
+    private static Editable createEditable(@NonNull CharSequence text) {
         // (EW) note that Editable.Factory#newEditable isn't marked with @NonNull, but it has always
         // simply returned a new SpannableStringBuilder, and if it did refuse to create an editable,
         // the main functionality of this view would probably break regardless, so if something
@@ -1258,7 +1259,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_text
      */
     @InspectableProperty
-    public @NonNull Editable getText() {
+    @NonNull
+    public Editable getText() {
         // (EW) starting in S, the AOSP version added padding to the original text so that the
         // transformed text length matches to avoid some issues, but since
         // #onCreateViewTranslationRequest doesn't support selectable and editable text yet, we
@@ -1280,7 +1282,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @see #getText
      */
-    public @NonNull Editable getEditableText() {
+    @NonNull
+    public Editable getEditableText() {
         // (EW) currently this is functionally equivalent with #getText, but the AOSP version has a
         // to-do comment to eventually add support for supporting selectable text translation, which
         // would make it relevant to add if we copy that functionality, so we'll keep this separate
@@ -4260,7 +4263,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Removes the suggestion spans.
      */
-    @NonNull CharSequence removeSuggestionSpans(@NonNull CharSequence text) {
+    @NonNull
+    CharSequence removeSuggestionSpans(@NonNull CharSequence text) {
         if (text instanceof Spanned) {
             Spannable spannable;
             if (text instanceof Spannable) {
@@ -5908,10 +5912,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return super.onKeyUp(keyCode, event);
     }
 
-    //TODO: (EW) this probably should always be true. make sure the type is never null and get rid
-    // of this unnecessary call
     @Override
     public boolean onCheckIsTextEditor() {
+        //FUTURE: (EW) this probably should be made to always be true since TYPE_NULL indicates text
+        // is not editable, which doesn't make sense for an edit text. I'm leaving this for now to
+        // allow #setKeyListener to pass null to allow an ellipsis to show (see comment in #init for
+        // EditText_android_ellipsize), but it doesn't really make sense for an edit test to have no
+        // key listener unless the view was disabled, so it probably makes more sense to do some of
+        // that handling automatically when disabling the view and remove the option to specify the
+        // input type as TYPE_NULL (probably use TYPE_CLASS_TEXT as the new default, which is
+        // already done normally).
         return mEditor.mInputType != EditorInfo.TYPE_NULL;
     }
 
@@ -9890,7 +9900,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
 
-    //TODO: (EW) see if this should live in EditText instead
     @SuppressLint("UseCompatLoadingForDrawables")
     Drawable getDrawable(int res) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

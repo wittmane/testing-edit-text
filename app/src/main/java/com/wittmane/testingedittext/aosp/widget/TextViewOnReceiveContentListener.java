@@ -42,19 +42,18 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputContentInfo;
-import android.widget.TextView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-//TODO: (EW) probably should change all references of TextView to EditText
 /**
- * Default implementation for {@link View#onReceiveContent} for editable {@link TextView}
- * components. This class handles insertion of text (plain text, styled text, HTML, etc) but not
- * images or other content.
+ * Default implementation for {@link View#onReceiveContent} for {@link EditText} components. This
+ * class handles insertion of text (plain text, styled text, HTML, etc) but not images or other
+ * content.
  *
- * @hide
+ * (EW) copied from AOSP because that is hidden and we need to create an instance of it and use our
+ * custom EditText instead of the AOSP TextView.
  */
 @RequiresApi(api = Build.VERSION_CODES.S)
 public final class TextViewOnReceiveContentListener implements OnReceiveContentListener {
@@ -75,7 +74,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
             return payload;
         }
         if (source == SOURCE_AUTOFILL) {
-            onReceiveForAutofill((TextView) view, payload);
+            onReceiveForAutofill((EditText) view, payload);
             return null;
         }
 
@@ -120,7 +119,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         editable.replace(start, end, replacement);
     }
 
-    private void onReceiveForAutofill(@NonNull TextView view, @NonNull ContentInfo payload) {
+    private void onReceiveForAutofill(@NonNull EditText view, @NonNull ContentInfo payload) {
         ClipData clip = payload.getClip();
         if (isUsageOfImeCommitContentEnabled(view)) {
             clip = handleNonTextViaImeCommitContent(clip);
@@ -212,7 +211,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
      * Invoked by the platform when an {@link InputConnection} is successfully created for the view
      * that owns this callback instance.
      */
-    void setInputConnectionInfo(@NonNull TextView view, @NonNull InputConnection ic,
+    void setInputConnectionInfo(@NonNull EditText view, @NonNull InputConnection ic,
                                 @NonNull EditorInfo editorInfo) {
         if (!isUsageOfImeCommitContentEnabled(view)) {
             mInputConnectionInfo = null;

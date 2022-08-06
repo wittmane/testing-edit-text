@@ -837,6 +837,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="text"
                         android:autofillHints="username"
+                        android:importantForAutofill="yes"
                         android:hint="username autofill"/>
                 </LinearLayout>
                 <LinearLayout
@@ -848,6 +849,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
                         android:autofillHints="password"
+                        android:importantForAutofill="yes"
                         android:hint="password autofill"/>
                 </LinearLayout>
             </LinearLayout>
