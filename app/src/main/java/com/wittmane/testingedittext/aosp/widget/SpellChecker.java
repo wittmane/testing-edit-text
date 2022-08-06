@@ -19,6 +19,7 @@ package com.wittmane.testingedittext.aosp.widget;
 
 import androidx.annotation.Nullable;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.text.Editable;
 import android.text.Selection;
@@ -129,22 +130,27 @@ public class SpellChecker implements SpellCheckerSessionListener {
                 || !hasCurrentSpellCheckerSubtype(mTextServicesManager)) {
             mSpellCheckerSession = null;
         } else {
-            int supportedAttributes = SuggestionsInfo.RESULT_ATTR_IN_THE_DICTIONARY
-                    | SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO
-                    | SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR
-                    | SuggestionsInfo.RESULT_ATTR_DONT_SHOW_UI_FOR_SUGGESTIONS;
+            // (EW) the AOSP version used mCurrentLocale to explicitly set the SpellCheckerSession's
+            // locale, but that ultimately comes from EditText#updateTextServicesLocaleLocked, which
+            // gets the locale from the current spell checker subtype, which should be functionally
+            // the same as having the SpellCheckerSession refer to the spell checker language
+            // setting, but our logic to get the locale in EditText#updateTextServicesLocaleLocked
+            // is fragile (see comment there), so we should avoid using that value when possible.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                int supportedAttributes = SuggestionsInfo.RESULT_ATTR_IN_THE_DICTIONARY
+                        | SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO
+                        | SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR
+                        | SuggestionsInfo.RESULT_ATTR_DONT_SHOW_UI_FOR_SUGGESTIONS;
                 SpellCheckerSessionParams params = new SpellCheckerSessionParams.Builder()
-                        .setLocale(mCurrentLocale)
                         .setSupportedAttributes(supportedAttributes)
+                        .setShouldReferToSpellCheckerLanguageSettings(true)
                         .build();
                 mSpellCheckerSession = mTextServicesManager.newSpellCheckerSession(
                         params, mTextView.getContext().getMainExecutor(), this);
             } else {
                 mSpellCheckerSession = mTextServicesManager.newSpellCheckerSession(
-                        null /* Bundle not currently used by the textServicesManager */,
-                        mCurrentLocale, this,
-                        false /* means any available languages from current spell checker */);
+                        null /* Bundle not currently used by the textServicesManager */, null,
+                        this, true /* means any available languages from current spell checker */);
             }
         }
 
@@ -956,33 +962,27 @@ public class SpellChecker implements SpellCheckerSessionListener {
         }
     }
 
+    // (EW) TextServicesManager#isSpellCheckerEnabled was made available in S, but it has existed
+    // since at least kitkat. it's able to be called with reflection, but since it has the same
+    // method signature we can just ignore the API version warning. this should be at least
+    // relatively safe since it's only done on old versions so it shouldn't just stop working at
+    // some point in the future, but to be extra safe we'll wrap it in a try/catch and have a
+    // fallback.
+    @SuppressLint("NewApi")
     private static boolean isSpellCheckerEnabled(TextServicesManager textServicesManager) {
         if (textServicesManager == null) {
             return false;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // (EW) despite not actually getting called, on older versions, simply having this code
-            // here causes this warning to be logged:
+        try {
+            // (EW) this line works but logs warnings
             // on Pie:
             // Accessing hidden method Landroid/view/textservice/TextServicesManager;->isSpellCheckerEnabled()Z (light greylist, linking)
             // on Q and R:
             // Accessing hidden method Landroid/view/textservice/TextServicesManager;->isSpellCheckerEnabled()Z (greylist, linking, allowed)
             return textServicesManager.isSpellCheckerEnabled();
-        }
-        // (EW) TextServicesManager#isSpellCheckerEnabled has existed since at least kitkat but for
-        // some reason was hidden until S, and starting in Q, it was marked with
-        // UnsupportedAppUsage, but that seems to still be able to be called with reflection. this
-        // should be at least relatively safe since it's only done on old versions so it shouldn't
-        // just stop working at some point in the future.
-        try {
-            Method isSpellCheckerEnabledMethod = TextServicesManager.class.getMethod(
-                    "isSpellCheckerEnabled");
-            Object result = isSpellCheckerEnabledMethod.invoke(textServicesManager);
-            if (result != null) {
-                return (boolean) result;
-            }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            Log.e(TAG, "isSpellCheckerEnabled: Reflection failed on isSpellCheckerEnabled" + e);
+        } catch (Exception e) {
+            Log.w(TAG, "TextServicesManager#isSpellCheckerEnabled couldn't be called: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
         // (EW) since we're not able to call an API to check if the spell checker is enabled, we'll
         // have to just assume it is

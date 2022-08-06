@@ -8350,16 +8350,53 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (textServicesManager == null) {
             return;
         }
-        //TODO: (EW) the AOSP version gets the locale from the hidden and UnsupportedAppUsage marked
-        // TextServicesManager#getCurrentSpellCheckerSubtype since at least Kitkat through at least
-        // S. This seems to be the locale configured in Android settings for the spell checker. I
-        // haven't figured out a way to get that an alternate way. I tried calling
-        // TextServicesManager#newSpellCheckerSession with a null locale and
-        // referToSpellCheckerLanguageSettings set to true to get the subtype from the
-        // SpellCheckerInfo, but that seems to return all of the possible subtypes for the enabled
-        // spell checker, rather than the enabled one. the fallback isn't terrible, so maybe it
-        // would be better to skip the reflection to have a more consistent behavior even if it
-        // isn't the same as AOSP.
+        // (EW) the AOSP version gets the locale from the hidden
+        // TextServicesManager#getCurrentSpellCheckerSubtype since Ice Cream Sandwich MR1 through at
+        // least S. that method did exist in Ice Cream Sandwich (the same version that
+        // TextServicesManager was released), but it didn't specify the locale for the WordIterator
+        // (it would just use Locale#getDefault) or the intent to add a word to the dictionary
+        // (where this locale was used for in Ice Cream Sandwich MR1), and SpellChecker called
+        // TextServicesManager#newSpellCheckerSession with no locale and a boolean to have it use
+        // the languages defined in settings. TextServicesManager#newSpellCheckerSession calls
+        // TextServicesManager#getCurrentSpellCheckerSubtype to get the locale when it is told to
+        // refer to settings. in Ice Cream Sandwich MR1, SpellChecker started explicitly passing the
+        // locale to TextServicesManager#newSpellCheckerSession. this was done originally in order
+        // to match the locale from the IME's subtype and use that same locale in some WordIterators
+        // (9d8d3f1539ce5bdf512bd47ec1648609d6cde5b1), but eventually TextView changed to use the
+        // spell checker's subtype by the end of the release and moved the IME's subtype handling
+        // into TextServicesManager#getCurrentSpellCheckerSubtype
+        // (05f24700613fb4dce95fb6d5f8fe460d7a30c128). (the IME's subtype handling was removed in Q
+        // (bb0a2247147139e7f01b66366e4552858b5747a4)). there have been a few minor changes in the
+        // implementation of TextServicesManager#getCurrentSpellCheckerSubtype over the years, but
+        // the method signature has stayed the same and hasn't been on the hidden API blacklist for
+        // at least the first 4 versions that it could have been blacklisted, which hopefully means
+        // it's less likely to be changed or blocked in the future, but there's still no guarantee.
+        // there doesn't seem to be a direct alternative to determine what locale was specified for
+        // the spell checker. we can go back to having the spell checker refer to settings when
+        // creating a new session, which should be functionally equivalent to requesting the same
+        // locale from TextServicesManager#getCurrentSpellCheckerSubtype (it was originally changed
+        // away from that simply due to an intermediate change in functionality, and after that it
+        // probably gave a better guarantee that the locale used there matched other places, so
+        // there probably was no reason to revert that part of the change at that point), but there
+        // are still other pieces that need the locale explicitly set. it would be weird and
+        // probably have some unexpected (buggy) results to use one language to determine spelling
+        // of words and another to determine what constitutes a word to check the spelling of, and
+        // it would be bad to disregard the spell checker settings (at least in this case where we
+        // don't have a specific language we want spell check). this means that our best option to
+        // have reasonable functionality is to reflection to access this hidden method and hope it
+        // doesn't break, but this locale should be used as minimally as possible (ie: things like
+        // creating a spell checker session that can accomplish the same goal without directly using
+        // this should do so to minimize bugs if reflection stops working) even if that gives the
+        // slight potential for the locales used to be out of sync (I think using the right spell
+        // checker locale is more important because it will have a larger and more obvious impact on
+        // users).
+        // for reference, the locale that is actually sent to the SpellCheckerService.Session is the
+        // locale from the subtype selected in the settings activity if one was set, or if it was
+        // set to use system languages, it would be the locale from the IME subtype (only prior to
+        // Q) if it had one or the first language enabled in the system (except in the case that the
+        // IME or system language doesn't match a spell checker subtype, where no session is
+        // created, and it doesn't even try to fall back to something like secondary enabled
+        // languages)
         Locale locale = null;
         try {
             // (EW) this line works, but logs the warning:
