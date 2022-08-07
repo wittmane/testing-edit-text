@@ -17,9 +17,13 @@
 package com.wittmane.testingedittext;
 
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.Spanned;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 
 public class MainActivity extends Activity {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
@@ -71,5 +75,33 @@ public class MainActivity extends Activity {
         doNotScrollNativeEditText.setKeyListener(null);
         com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText = findViewById(R.id.ellipsizeCustomEditText);
         doNotScrollEditText.setKeyListener(null);
+
+        Button testButton1 = findViewById(R.id.testButton1);
+        testButton1.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    int[] outLocation = new int[2];
+                    nativeEditText1.getLocationInWindow(outLocation);
+                    nativeEditText1.showContextMenu(outLocation[0], outLocation[1]);
+                } else {
+                    nativeEditText1.showContextMenu();
+                }
+            }
+        });
+
+        Button testButton2 = findViewById(R.id.testButton2);
+        testButton2.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    int[] outLocation = new int[2];
+                    customEditText1.getLocationInWindow(outLocation);
+                    customEditText1.showContextMenu(outLocation[0],outLocation[1]);
+                } else {
+                    customEditText1.showContextMenu();
+                }
+            }
+        });
     }
 }

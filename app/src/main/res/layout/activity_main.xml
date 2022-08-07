@@ -922,10 +922,30 @@
 <!--                app:layout_constraintLeft_toLeftOf="parent"-->
 <!--                app:layout_constraintRight_toRightOf="parent"-->
 <!--                app:layout_constraintTop_toTopOf="parent" />-->
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="test" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/testButton1"
+                        android:text="test context menu" />
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/testButton2"
+                        android:text="test context menu" />
+                </LinearLayout>
+            </LinearLayout>
 
 <!--            <EditText-->
 <!--                android:layout_width="match_parent"-->

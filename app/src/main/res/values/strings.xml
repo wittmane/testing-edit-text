@@ -28,6 +28,12 @@
     <!-- Item on EditText pop-up window. This action is used to delete the text that the user recently added. [CHAR LIMIT=15] -->
     <string name="delete">Delete</string>
 
+    <!-- Item on EditText context menu. This action is used to undo a text edit operation. -->
+    <string name="undo">Undo</string>
+
+    <!-- Item on EditText context menu. This action is used to redo a text edit operation. -->
+    <string name="redo">Redo</string>
+
     <!-- Item on EditText context menu. This action is used to request autofill. -->
     <string name="autofill">Autofill</string>
 

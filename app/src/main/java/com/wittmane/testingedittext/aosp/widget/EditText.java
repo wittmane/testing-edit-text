@@ -111,6 +111,7 @@ import android.util.SparseIntArray;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.ContentInfo;
+import android.view.ContextMenu;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -411,8 +412,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private BoringLayout.Metrics mHintBoring;
     private BoringLayout mSavedHintLayout;
 
-    //TODO: (EW) probably keep this private but somehow allow Editor to pass it to HiddenLayout
-    /*private */TextDirectionHeuristic mTextDir;
+    private TextDirectionHeuristic mTextDir;
 
     private InputFilter[] mFilters = NO_FILTERS;
 
@@ -1092,7 +1092,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 CharSequence result = data.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT);
                 if (result != null) {
                     if (isTextEditable()) {
-                        if (android.os.Build.VERSION.SDK_INT >= 31) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             ClipData clip = ClipData.newPlainText("", result);
                             ContentInfo payload =
                                     new ContentInfo.Builder(clip, SOURCE_PROCESS_TEXT).build();
@@ -1319,6 +1319,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     final Layout getHintLayout() {
         return mHintLayout;
+    }
+
+    // (EW) added so the TextDirectionHeuristic used for mLayout so it can be passed to
+    // HiddenLayout#getPrimaryHorizontal since that can't look it up from the Layout since it's
+    // hidden.
+    TextDirectionHeuristic getTextDir() {
+        return mTextDir;
     }
 
     /**
@@ -4013,10 +4020,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    //TODO: (EW) changed scope from private to avoid issues in the javadoc in Editor, but it isn't
-    // actually called outside of this class, so private still makes the most sense. see if there is
-    // a better way to handle this
-    /*private*/ void setText(CharSequence text, boolean notifyBefore, int oldlen) {
+    private void setText(CharSequence text, boolean notifyBefore, int oldLength) {
         mTextSetFromXmlOrResourceId = false;
         if (text == null) {
             text = "";
@@ -4038,8 +4042,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (notifyBefore) {
-            oldlen = mText.length();
-            sendBeforeTextChanged(mText, 0, oldlen, text.length());
+            oldLength = mText.length();
+            sendBeforeTextChanged(mText, 0, oldLength, text.length());
         }
 
         boolean needEditableForNotification = false;
@@ -4104,8 +4108,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             checkForRelayout();
         }
 
-        sendOnTextChanged(text, 0, oldlen, textLength);
-        onTextChanged(text, 0, oldlen, textLength);
+        sendOnTextChanged(text, 0, oldLength, textLength);
+        onTextChanged(text, 0, oldLength, textLength);
 
         if (needEditableForNotification) {
             sendAfterTextChanged((Editable) text);
@@ -4131,7 +4135,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param len length of char count after {@code start}
      */
     public final void setText(@NonNull char[] text, int start, int len) {
-        int oldlen = 0;
+        int oldLength = 0;
 
         if (start < 0 || len < 0 || start + len > text.length) {
             throw new IndexOutOfBoundsException(start + ", " + len);
@@ -4142,8 +4146,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          * the old text is a CharWrapper we destroy it before calling
          * into the normal path.
          */
-        oldlen = mText.length();
-        sendBeforeTextChanged(mText, 0, oldlen, len);
+        oldLength = mText.length();
+        sendBeforeTextChanged(mText, 0, oldLength, len);
 
         if (mCharWrapper == null) {
             mCharWrapper = new CharWrapper(text, start, len);
@@ -4151,7 +4155,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mCharWrapper.set(text, start, len);
         }
 
-        setText(mCharWrapper, false, oldlen);
+        setText(mCharWrapper, false, oldLength);
     }
 
     /**
@@ -8074,6 +8078,24 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
         }
         return super.onGenericMotionEvent(event);
+    }
+
+    @Override
+    protected void onCreateContextMenu(ContextMenu menu) {
+        mEditor.onCreateContextMenu(menu);
+    }
+
+    @Override
+    public boolean showContextMenu() {
+        mEditor.setContextMenuAnchor(Float.NaN, Float.NaN);
+        return super.showContextMenu();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    @Override
+    public boolean showContextMenu(float x, float y) {
+        mEditor.setContextMenuAnchor(x, y);
+        return super.showContextMenu(x, y);
     }
 
     /**
