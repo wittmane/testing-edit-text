@@ -26,11 +26,11 @@ import android.view.ViewConfiguration;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used
 /**
  * Helper class used by {@link Editor} to track state for touch events. Ideally the logic here
  * should be replaced with {@link android.view.GestureDetector}.
- *
- * @hide
  */
 public class EditorTouchState {
     private float mLastDownX, mLastDownY;

@@ -22,7 +22,6 @@ import android.text.Layout;
 import android.text.Selection;
 import android.text.Spannable;
 import android.text.method.MetaKeyKeyListener;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -30,15 +29,13 @@ import android.view.View;
 import com.wittmane.testingedittext.aosp.text.HiddenSelection;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
+// (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
+// TextView and a couple methods were hidden.
 /**
  * A movement method that provides cursor movement and selection.
  * Supports displaying the context menu on DPad Center.
- *
- * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView and
- * a couple methods were hidden.
  */
 public class ArrowKeyMovementMethod extends BaseMovementMethod implements MovementMethod {
-    static final String TAG = ArrowKeyMovementMethod.class.getSimpleName();
 
     private static boolean isSelecting(Spannable buffer) {
         // (EW) the AOSP version also checked  MetaKeyKeyListener#getMetaState with
@@ -223,7 +220,6 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
         }
     }
 
-    /** {@hide} */
     @Override
     protected boolean leftWord(EditText widget, Spannable buffer) {
         final int selectionEnd = widget.getSelectionEnd();
@@ -232,7 +228,6 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
         return HiddenSelection.moveToPreceding(buffer, wordIterator, isSelecting(buffer));
     }
 
-    /** {@hide} */
     @Override
     protected boolean rightWord(EditText widget, Spannable buffer) {
         final int selectionEnd = widget.getSelectionEnd();

@@ -21,6 +21,8 @@ import android.text.Spanned;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used in other hidden classes
 /**
  * A cached set of spans. Caches the result of {@link Spanned#getSpans(int, int, Class)} and then
  * provides faster access to {@link Spanned#nextSpanTransition(int, int, Class)}.
@@ -28,7 +30,6 @@ import java.util.Arrays;
  * Fields are left public for a convenient direct access.
  *
  * Note that empty spans are ignored by this class.
- * @hide
  */
 public class SpanSet<E> {
     private final Class<? extends E> classType;
@@ -78,7 +79,7 @@ public class SpanSet<E> {
 
         // cleanup extra spans left over from previous init() call
         if (numberOfSpans < prevNumberOfSpans) {
-            // prevNumberofSpans was > 0, therefore spans != null
+            // prevNumberOfSpans was > 0, therefore spans != null
             Arrays.fill(spans, numberOfSpans, prevNumberOfSpans, null);
         }
     }

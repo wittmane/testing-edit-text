@@ -17,43 +17,23 @@
 
 package com.wittmane.testingedittext.aosp.widget;
 
-import android.content.Context;
-import android.graphics.Canvas;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
-import android.os.LocaleList;
-import android.text.Selection;
-import android.text.Spannable;
-import android.text.TextUtils;
-import android.util.Log;
 import android.view.ActionMode;
-import android.view.textclassifier.SelectionEvent;
-import android.view.textclassifier.TextClassification;
-import android.view.textclassifier.TextClassifier;
-import android.view.textclassifier.TextSelection;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
-import androidx.annotation.WorkerThread;
 
 import com.wittmane.testingedittext.aosp.widget.Editor.SelectionModifierCursorController;
 
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used, but text classification (including smart selection and link handling) and logging was
+// stripped out, but the public methods were generally kept as-is for easier comparison and in case
+// at least some of text classification functionality gets copied over later
 /**
  * Helper class for starting selection action mode
  * (synchronously without the TextClassifier, asynchronously with the TextClassifier).
- * @hide
  */
 public final class SelectionActionModeHelper {
-
-    private static final String LOG_TAG = "SelectActionModeHelper";
 
     private final Editor mEditor;
     private final EditText mTextView;
@@ -91,87 +71,96 @@ public final class SelectionActionModeHelper {
         return sortSelectionIndices(selectionStart, selectionEnd);
     }
 
+    // (EW) skipped the adjustSelection parameter since it was just used for text classification.
+    // the AOSP version would start an async task for text classification, which was skipped, so
+    // this name doesn't make a lot of sense anymore.
     /**
      * Starts Selection ActionMode.
      */
     public void startSelectionActionModeAsync() {
         int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mTextView);
-        mSelectionTracker.onOriginalSelection(
-                getText(mTextView),
-                sortedSelectionIndices[0],
-                sortedSelectionIndices[1],
-                false /*isLink*/);
+        mSelectionTracker.onOriginalSelection(sortedSelectionIndices[0], sortedSelectionIndices[1]);
         startSelectionActionMode();
     }
 
-    //(EW) unused
-//    /**
-//     * Starts Link ActionMode.
-//     */
-//    public void startLinkActionModeAsync(int start, int end) {
-//        int[] indexResult = sortSelectionIndices(start, end);
-//        mSelectionTracker.onOriginalSelection(getText(mTextView), indexResult[0], indexResult[1],
-//                true /*isLink*/);
-//        startLinkActionMode();
-//    }
+    // (EW) skipping #startLinkActionModeAsync since it's related to text classification
 
+    // (EW) the AOSP version would start an async task for text classification, which was skipped,
+    // so this name doesn't make a lot of sense anymore.
     public void invalidateActionModeAsync() {
         invalidateActionMode();
     }
 
+    // (EW) skipped the actionLabel parameter since it was just used for logging
     /** Reports a selection action event. */
     public void onSelectionAction(int menuItemId) {
-        mSelectionTracker.onSelectionAction();
+        // (EW) this just called SelectionTracker#onSelectionAction, which was skipped (see comment
+        // in SelectionTracker)
     }
 
     public void onSelectionDrag() {
-        mSelectionTracker.onSelectionAction();
+        // (EW) this just called SelectionTracker#onSelectionAction, which was skipped (see comment
+        // in SelectionTracker)
     }
 
     public void onTextChanged(int start, int end) {
-        int[] sortedSelectionIndices = sortSelectionIndices(start, end);
-        mSelectionTracker.onTextChanged(sortedSelectionIndices[0], sortedSelectionIndices[1]);
+        // (EW) this just called SelectionTracker#onTextChanged, which was skipped (see comment
+        // in SelectionTracker)
     }
 
     public boolean resetSelection(int textIndex) {
-        if (mSelectionTracker.resetSelection(textIndex, mEditor)) {
-            invalidateActionModeAsync();
-            return true;
-        }
+        // (EW) since SelectionTracker#mAllowReset was always false due to
+        // SelectionTracker#onClassifiedSelection (the only place that could set it to true) being
+        // skipped, this is always false
         return false;
     }
+
+    // (EW) skipped #getTextClassification
 
     public void onDestroyActionMode() {
         mSelectionTracker.onSelectionDestroyed();
     }
 
+    // (EW) skipped #onDraw and #isDrawingHighlight since they were used for the smart selection
+    // sprite, which is related to text classification
+
+    // (EW) skipped #getTextClassificationSettings, #cancelAsyncTask, #skipTextClassification,
+    // #startLinkActionMode, and #startSelectionActionMode since they are for text classification
+
     private void startSelectionActionMode() {
         startActionMode(Editor.TextActionMode.SELECTION);
     }
 
+    // (EW) skipped SelectionResult parameter since it was just used for text classification or
+    // handling smart or link selections
     private void startActionMode(@Editor.TextActionMode int actionMode) {
         final SelectionModifierCursorController controller = mEditor.getSelectionController();
         if (controller != null && mTextView.isTextEditable()) {
             controller.show();
         }
         mEditor.startActionModeInternal(actionMode);
+
         mEditor.setRestartActionModeOnNextRefresh(false);
     }
 
+    // (EW) skipped #startSelectionActionModeWithSmartSelectAnimation,
+    // #convertSelectionToRectangles, #mergeRectangleIntoList, and #movePointInsideNearestRectangle
+    // because they are for the smart selection, which is related to text classification
+
+    // (EW) skipped the SelectionResult parameter since it was just used for text classification
     private void invalidateActionMode() {
         final ActionMode actionMode = mEditor.getTextActionMode();
         if (actionMode != null) {
             actionMode.invalidate();
         }
         final int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mTextView);
-        mSelectionTracker.onSelectionUpdated(
-                sortedSelectionIndices[0], sortedSelectionIndices[1]);
+        mSelectionTracker.onSelectionUpdated(sortedSelectionIndices[0], sortedSelectionIndices[1]);
     }
 
+    // (EW) skipped #resetTextClassificationHelper
+
     /**
-     * Tracks and logs smart selection changes.
-     * It is important to trigger this object's methods at the appropriate event so that it tracks
-     * smart selection events appropriately.
+     * Tracks selection changes.
      */
     private static final class SelectionTracker {
 
@@ -179,27 +168,24 @@ public final class SelectionActionModeHelper {
 
         private int mSelectionStart;
         private int mSelectionEnd;
-        private boolean mAllowReset;
-        private final SelectionTracker.LogAbandonRunnable mDelayedLogAbandon = new SelectionTracker.LogAbandonRunnable();
 
         SelectionTracker(EditText textView) {
             mTextView = Objects.requireNonNull(textView);
         }
 
+        // (EW) skipped the text and isLink parameters since they were just used for logging
         /**
-         * Called when the original selection happens, before smart selection is triggered.
+         * Called when the original selection happens.
          */
-        public void onOriginalSelection(
-                CharSequence text, int selectionStart, int selectionEnd, boolean isLink) {
-            // If we abandoned a selection and created a new one very shortly after, we may still
-            // have a pending request to log ABANDON, which we flush here.
-            mDelayedLogAbandon.flush();
-
+        public void onOriginalSelection(int selectionStart, int selectionEnd) {
             mSelectionStart = selectionStart;
             mSelectionEnd = selectionEnd;
-            mAllowReset = false;
         }
 
+        // (EW) skipped #onSmartSelection, #onLinkSelected, and #onClassifiedSelection since they
+        // are for text classification
+
+        // (EW) skipped the TextClassification parameter
         /**
          * Called when selection bounds change.
          */
@@ -207,7 +193,6 @@ public final class SelectionActionModeHelper {
             if (isSelectionStarted()) {
                 mSelectionStart = selectionStart;
                 mSelectionEnd = selectionEnd;
-                mAllowReset = false;
                 mTextView.notifyContentCaptureTextChanged();
             }
         }
@@ -216,92 +201,32 @@ public final class SelectionActionModeHelper {
          * Called when the selection action mode is destroyed.
          */
         public void onSelectionDestroyed() {
-            mAllowReset = false;
             mTextView.notifyContentCaptureTextChanged();
-            // Wait a few ms to see if the selection was destroyed because of a text change event.
-            mDelayedLogAbandon.schedule(100 /* ms */);
         }
 
-        /**
-         * Called when an action is taken on a smart selection.
-         */
-        public void onSelectionAction() {
-            if (isSelectionStarted()) {
-                mAllowReset = false;
-            }
-        }
+        // (EW) skipped #onSelectionAction because it just did logging and set #mAllowReset to
+        // false, which it always was due to SelectionTracker#onClassifiedSelection (the only place
+        // that could set it to true) being skipped
 
-        /**
-         * Returns true if the current smart selection should be reset to normal selection based on
-         * information that has been recorded about the original selection and the smart selection.
-         * The expected UX here is to allow the user to select a word inside of the smart selection
-         * on a single tap.
-         */
-        public boolean resetSelection(int textIndex, Editor editor) {
-            final EditText textView = editor.getTextView();
-            if (isSelectionStarted()
-                    && mAllowReset
-                    && textIndex >= mSelectionStart && textIndex <= mSelectionEnd
-                    && getText(textView) instanceof Spannable) {
-                mAllowReset = false;
-                boolean selected = editor.selectCurrentWord();
-                if (selected) {
-                    final int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(textView);
-                    mSelectionStart = sortedSelectionIndices[0];
-                    mSelectionEnd = sortedSelectionIndices[1];
-                }
-                return selected;
-            }
-            return false;
-        }
+        // (EW) skipped #resetSelection because it would always just return false due to
+        // SelectionTracker#onClassifiedSelection (the only place that could set it to true) being
+        // skipped
 
-        public void onTextChanged(int start, int end) {
-            if (isSelectionStarted() && start == mSelectionStart && end == mSelectionEnd) {
-                onSelectionAction();
-            }
-        }
+        // (EW) skipped #onTextChanged because it just called into #onSelectionAction, which is
+        // skipped (see above)
+
+        // (EW) skipped #maybeInvalidateLogger because it was just for logging
 
         private boolean isSelectionStarted() {
             return mSelectionStart >= 0 && mSelectionEnd >= 0 && mSelectionStart != mSelectionEnd;
         }
 
-        /** A helper for keeping track of pending abandon logging requests. */
-        private final class LogAbandonRunnable implements Runnable {
-            private boolean mIsPending;
-
-            /** Schedules an abandon to be logged with the given delay. Flush if necessary. */
-            void schedule(int delayMillis) {
-                if (mIsPending) {
-                    Log.e(LOG_TAG, "Force flushing abandon due to new scheduling request");
-                    flush();
-                }
-                mIsPending = true;
-                mTextView.postDelayed(this, delayMillis);
-            }
-
-            /** If there is a pending log request, execute it now. */
-            void flush() {
-                mTextView.removeCallbacks(this);
-                run();
-            }
-
-            @Override
-            public void run() {
-                if (mIsPending) {
-                    mSelectionStart = mSelectionEnd = -1;
-                    mIsPending = false;
-                }
-            }
-        }
+        // (EW) skipped LogAbandonRunnable since it was just for logging
     }
 
-    private static CharSequence getText(EditText textView) {
-        // Extracts the textView's text.
-        // TODO: Investigate why/when TextView.getText() is null.
-        final CharSequence text = textView.getText();
-        if (text != null) {
-            return text;
-        }
-        return "";
-    }
+    // (EW) skipped SelectionMetricsLogger, TextClassificationAsyncTask, TextClassificationHelper,
+    // SelectionResult, and #getActionType because they are just for text classification or logging
+
+    // (EW) skipped #getText because our version of EditText#getText won't ever be null, so this
+    // wrapper became useless
 }

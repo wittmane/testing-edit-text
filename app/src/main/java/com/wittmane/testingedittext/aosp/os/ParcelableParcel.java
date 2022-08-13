@@ -19,9 +19,9 @@ package com.wittmane.testingedittext.aosp.os;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
 /**
  * Parcelable containing a raw Parcel of data.
- * @hide
  */
 public class ParcelableParcel implements Parcelable {
     final Parcel mParcel;

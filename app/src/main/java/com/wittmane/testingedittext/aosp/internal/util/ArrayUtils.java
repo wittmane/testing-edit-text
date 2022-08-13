@@ -23,6 +23,7 @@ import androidx.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.util.Objects;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
 /**
  * ArrayUtils contains some methods that you can call to find out
  * the most efficient increments by which to grow arrays.
@@ -172,7 +173,7 @@ public class ArrayUtils {
         return true;
     }
 
-    // from libcore.util
+    // (EW) from libcore.util
     public static final class EmptyArray {
         private EmptyArray() {}
         public static final @NonNull boolean[] BOOLEAN = new boolean[0];

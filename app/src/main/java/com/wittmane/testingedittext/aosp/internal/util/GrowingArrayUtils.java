@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.aosp.internal.util;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used in other hidden classes
 /**
  * A helper class that aims to provide comparable growth performance to ArrayList, but on primitive
  * arrays. Common array operations are implemented for efficient use in dynamic containers.
@@ -23,8 +25,6 @@ package com.wittmane.testingedittext.aosp.internal.util;
  * All methods in this class assume that the length of an array is equivalent to its capacity and
  * NOT the number of elements in the array. The current size of the array is always passed in as a
  * parameter.
- *
- * @hide
  */
 public final class GrowingArrayUtils {
 

@@ -143,7 +143,8 @@ public class EditableInputConnection extends BaseInputConnection {
     @Override
     public boolean deleteSurroundingText(int beforeLength, int afterLength) {
         if (LOG_CALLS) {
-            Log.d(TAG, "getExtractedText: deleteSurroundingText=" + beforeLength + ", afterLength=" + afterLength);
+            Log.d(TAG, "getExtractedText: deleteSurroundingText=" + beforeLength
+                    + ", afterLength=" + afterLength);
         }
         return super.deleteSurroundingText(beforeLength, afterLength);
     }
@@ -152,7 +153,8 @@ public class EditableInputConnection extends BaseInputConnection {
     @Override
     public boolean deleteSurroundingTextInCodePoints(int beforeLength, int afterLength) {
         if (LOG_CALLS) {
-            Log.d(TAG, "getExtractedText: deleteSurroundingTextInCodePoints=" + beforeLength + ", afterLength=" + afterLength);
+            Log.d(TAG, "getExtractedText: deleteSurroundingTextInCodePoints="
+                    + beforeLength + ", afterLength=" + afterLength);
         }
         return super.deleteSurroundingTextInCodePoints(beforeLength, afterLength);
     }
@@ -161,7 +163,8 @@ public class EditableInputConnection extends BaseInputConnection {
     @Override
     public boolean setComposingText(CharSequence text, int newCursorPosition) {
         if (LOG_CALLS) {
-            Log.d(TAG, "setComposingText: text=" + text + ", newCursorPosition=" + newCursorPosition);
+            Log.d(TAG, "setComposingText: text=" + text
+                    + ", newCursorPosition=" + newCursorPosition);
         }
         return super.setComposingText(text, newCursorPosition);
     }
@@ -173,12 +176,9 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "setComposingRegion: start=" + start + ", end=" + end);
         }
         final boolean result = super.setComposingRegion(start, end);
-        final Editable content = getEditable();
-        if (content != null) {
-            // (EW) BaseInputConnection calls this, which is expected to be implemented by the
-            // inherited type, but it is hidden from app developers, so we have to manually call it
-            endComposingRegionEditInternal();
-        }
+        // (EW) BaseInputConnection calls this, which is expected to be implemented by the
+        // inherited type, but it is hidden from app developers, so we have to manually call it
+        endComposingRegionEditInternal();
         return result;
     }
 
@@ -189,12 +189,9 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "finishComposingText");
         }
         final boolean result = super.finishComposingText();
-        final Editable content = getEditable();
-        if (content != null) {
-            // (EW) BaseInputConnection calls this, which is expected to be implemented by the
-            // inherited type, but it is hidden from app developers, so we have to manually call it
-            endComposingRegionEditInternal();
-        }
+        // (EW) BaseInputConnection calls this, which is expected to be implemented by the
+        // inherited type, but it is hidden from app developers, so we have to manually call it
+        endComposingRegionEditInternal();
         return result;
     }
 
@@ -245,7 +242,7 @@ public class EditableInputConnection extends BaseInputConnection {
 
     private void endComposingRegionEditInternal() {
         // The ContentCapture service is interested in Composing-state changes.
-//        mTextView.notifyContentCaptureTextChanged();
+        mTextView.notifyContentCaptureTextChanged();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -280,7 +277,6 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "clearMetaKeyStates: states=" + states);
         }
         final Editable content = getEditable();
-        if (content == null) return false;
         KeyListener kl = mTextView.getKeyListener();
         if (kl != null) {
             try {
@@ -350,18 +346,17 @@ public class EditableInputConnection extends BaseInputConnection {
     @Override
     public ExtractedText getExtractedText(ExtractedTextRequest extractedTextRequest, int flags) {
         if (LOG_CALLS) {
-            Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest + ", flags=" + flags);
+            Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest
+                    + ", flags=" + flags);
         }
         //FUTURE: (EW) if this returns null, no text is shown in the full screen text field
         // (landscape) so be sure to consider this when figuring out the weird behavior options
-        if (mTextView != null) {
-            ExtractedText et = new ExtractedText();
-            if (mTextView.extractText(extractedTextRequest, et)) {
-                if ((flags&GET_EXTRACTED_TEXT_MONITOR) != 0) {
-                    mTextView.setExtracting(extractedTextRequest);
-                }
-                return et;
+        ExtractedText et = new ExtractedText();
+        if (mTextView.extractText(extractedTextRequest, et)) {
+            if ((flags&GET_EXTRACTED_TEXT_MONITOR) != 0) {
+                mTextView.setExtracting(extractedTextRequest);
             }
+            return et;
         }
         return null;
     }
@@ -436,11 +431,7 @@ public class EditableInputConnection extends BaseInputConnection {
         // since we're not allowed to use those for some reason.
         setUpdateCursorAnchorInfoMode(cursorUpdateMode);
         if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0) {
-            if (mTextView == null) {
-                // In this case, FLAG_CURSOR_ANCHOR_INFO_IMMEDIATE is silently ignored.
-                // TODO: Return some notification code for the input method that indicates
-                // FLAG_CURSOR_ANCHOR_INFO_IMMEDIATE is ignored.
-            } else if (mTextView.isInLayout()) {
+            if (mTextView.isInLayout()) {
                 // In this case, the view hierarchy is currently undergoing a layout pass.
                 // IMM#updateCursorAnchorInfo is supposed to be called soon after the layout
                 // pass is finished.
@@ -495,11 +486,10 @@ public class EditableInputConnection extends BaseInputConnection {
 
     // (EW) from InputMethodManager
     /**
-     * Set the requested mode for {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
-     *
-     * @hide
+     * Set the requested mode for
+     * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
      */
-    public void setUpdateCursorAnchorInfoMode(int flags) {
+    private void setUpdateCursorAnchorInfoMode(int flags) {
         synchronized (mH) {
             mRequestUpdateCursorAnchorInfoMonitorMode = flags;
         }
@@ -508,9 +498,6 @@ public class EditableInputConnection extends BaseInputConnection {
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     public boolean setImeConsumesInput(boolean imeConsumesInput) {
-        if (mTextView == null) {
-            return super.setImeConsumesInput(imeConsumesInput);
-        }
         mTextView.setImeConsumesInput(imeConsumesInput);
         return true;
     }
@@ -528,7 +515,8 @@ public class EditableInputConnection extends BaseInputConnection {
     @Override
     public boolean commitContent(InputContentInfo inputContentInfo, int flags, Bundle opts) {
         if (LOG_CALLS) {
-            Log.d(TAG, "commitContent: inputContentInfo=" + inputContentInfo + ", flags=" + flags + ", opts=" + opts);
+            Log.d(TAG, "commitContent: inputContentInfo=" + inputContentInfo
+                    + ", flags=" + flags + ", opts=" + opts);
         }
         return super.commitContent(inputContentInfo, flags, opts);
     }

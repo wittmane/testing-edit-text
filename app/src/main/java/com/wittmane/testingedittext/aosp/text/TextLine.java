@@ -22,13 +22,15 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import android.annotation.SuppressLint;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.text.PositionedGlyphs;
 import android.graphics.text.TextRunShaper;
 import android.os.Build;
-//import android.text.Layout.Directions;
+
+import com.wittmane.testingedittext.aosp.graphics.HiddenPaint;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout.Directions;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout.TabStops;
 
@@ -48,8 +50,10 @@ import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used in other hidden classes/methods, but only some if it was copied since not all of it is
+// currently necessary, and it's not trivial to just copy over
 /**
  * Represents a line of styled text, for measuring in visual order and
  * for rendering.
@@ -59,8 +63,6 @@ import java.util.ArrayList;
  *
  * <p>Call set to prepare the instance for use, then either draw, measure,
  * metrics, or caretToLeftRightOf.
- *
- * @hide
  */
 public class TextLine {
     private static final String TAG = TextLine.class.getSimpleName();
@@ -99,9 +101,6 @@ public class TextLine {
             new SpanSet<CharacterStyle>(CharacterStyle.class);
     private final SpanSet<ReplacementSpan> mReplacementSpanSpanSet =
             new SpanSet<ReplacementSpan>(ReplacementSpan.class);
-
-    private final DecorationInfo mDecorationInfo = new DecorationInfo();
-    private final ArrayList<DecorationInfo> mDecorations = new ArrayList<>();
 
     /** Not allowed to access. If it's for memory leak workaround, it was already fixed M. */
     private static final TextLine[] sCached = new TextLine[3];
@@ -265,38 +264,7 @@ public class TextLine {
         mIsJustifying = true;
     }
 
-//    /**
-//     * Renders the TextLine.
-//     *
-//     * @param c the canvas to render on
-//     * @param x the leading margin position
-//     * @param top the top of the line
-//     * @param y the baseline
-//     * @param bottom the bottom of the line
-//     */
-//    void draw(Canvas c, float x, int top, int y, int bottom) {
-//        float h = 0;
-//        final int runCount = mDirections.getRunCount();
-//        for (int runIndex = 0; runIndex < runCount; runIndex++) {
-//            final int runStart = mDirections.getRunStart(runIndex);
-//            if (runStart > mLen) break;
-//            final int runLimit = Math.min(runStart + mDirections.getRunLength(runIndex), mLen);
-//            final boolean runIsRtl = mDirections.isRunRtl(runIndex);
-//
-//            int segStart = runStart;
-//            for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; j++) {
-//                if (j == runLimit || charAt(j) == TAB_CHAR) {
-//                    h += drawRun(c, segStart, j, runIsRtl, x + h, top, y, bottom,
-//                            runIndex != (runCount - 1) || j != mLen);
-//
-//                    if (j != runLimit) {  // charAt(j) == TAB_CHAR
-//                        h = mDir * nextTab(h * mDir);
-//                    }
-//                    segStart = j + 1;
-//                }
-//            }
-//        }
-//    }
+    // (EW) skipping #draw
 
     /**
      * Returns metrics information for the entire line.
@@ -308,33 +276,7 @@ public class TextLine {
         return measure(mLen, false, fmi);
     }
 
-//    /**
-//     * Shape the TextLine.
-//     */
-//    void shape(TextShaper.GlyphsConsumer consumer) {
-//        float horizontal = 0;
-//        float x = 0;
-//        final int runCount = mDirections.getRunCount();
-//        for (int runIndex = 0; runIndex < runCount; runIndex++) {
-//            final int runStart = mDirections.getRunStart(runIndex);
-//            if (runStart > mLen) break;
-//            final int runLimit = Math.min(runStart + mDirections.getRunLength(runIndex), mLen);
-//            final boolean runIsRtl = mDirections.isRunRtl(runIndex);
-//
-//            int segStart = runStart;
-//            for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; j++) {
-//                if (j == runLimit || charAt(j) == TAB_CHAR) {
-//                    horizontal += shapeRun(consumer, segStart, j, runIsRtl, x + horizontal,
-//                            runIndex != (runCount - 1) || j != mLen);
-//
-//                    if (j != runLimit) {  // charAt(j) == TAB_CHAR
-//                        horizontal = mDir * nextTab(horizontal * mDir);
-//                    }
-//                    segStart = j + 1;
-//                }
-//            }
-//        }
-//    }
+    // (EW) skipping #shape
 
     /**
      * Returns the signed graphical offset from the leading margin.
@@ -455,17 +397,17 @@ public class TextLine {
             int segStart = runStart;
             for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; ++j) {
                 if (j == runLimit || charAt(j) == TAB_CHAR) {
-                    final  float oldh = h;
+                    final  float oldH = h;
                     final boolean advance = (mDir == Layout.DIR_RIGHT_TO_LEFT) == runIsRtl;
                     final float w = measureRun(segStart, j, j, runIsRtl, fmi);
                     h += advance ? w : -w;
 
-                    final float baseh = advance ? oldh : h;
-                    FontMetricsInt crtfmi = advance ? fmi : null;
+                    final float baseH = advance ? oldH : h;
+                    FontMetricsInt crtFmi = advance ? fmi : null;
                     for (int offset = segStart; offset <= j && offset <= mLen; ++offset) {
                         if (target[offset] >= segStart && target[offset] < j) {
                             measurement[offset] =
-                                    baseh + measureRun(segStart, offset, j, runIsRtl, crtfmi);
+                                    baseH + measureRun(segStart, offset, j, runIsRtl, crtFmi);
                         }
                     }
 
@@ -490,36 +432,7 @@ public class TextLine {
         return measurement;
     }
 
-//    /**
-//     * Draws a unidirectional (but possibly multi-styled) run of text.
-//     *
-//     *
-//     * @param c the canvas to draw on
-//     * @param start the line-relative start
-//     * @param limit the line-relative limit
-//     * @param runIsRtl true if the run is right-to-left
-//     * @param x the position of the run that is closest to the leading margin
-//     * @param top the top of the line
-//     * @param y the baseline
-//     * @param bottom the bottom of the line
-//     * @param needWidth true if the width value is required.
-//     * @return the signed width of the run, based on the paragraph direction.
-//     * Only valid if needWidth is true.
-//     */
-//    private float drawRun(Canvas c, int start,
-//                          int limit, boolean runIsRtl, float x, int top, int y, int bottom,
-//                          boolean needWidth) {
-//
-//        if ((mDir == Layout.DIR_LEFT_TO_RIGHT) == runIsRtl) {
-//            float w = -measureRun(start, limit, limit, runIsRtl, null);
-//            handleRun(start, limit, limit, runIsRtl, c, null, x + w, top,
-//                    y, bottom, null, false);
-//            return w;
-//        }
-//
-//        return handleRun(start, limit, limit, runIsRtl, c, null, x, top,
-//                y, bottom, null, needWidth);
-//    }
+    // (EW) skipping #drawRun
 
     /**
      * Measures a unidirectional (but possibly multi-styled) run of text.
@@ -536,34 +449,10 @@ public class TextLine {
      */
     private float measureRun(int start, int offset, int limit, boolean runIsRtl,
                              FontMetricsInt fmi) {
-        return handleRun(start, offset, limit, runIsRtl, /*null, null, 0, 0, 0, 0,*/ fmi/*, true*/);
+        return handleRun(start, offset, limit, runIsRtl, fmi);
     }
 
-//    /**
-//     * Shape a unidirectional (but possibly multi-styled) run of text.
-//     *
-//     * @param consumer the consumer of the shape result
-//     * @param start the line-relative start
-//     * @param limit the line-relative limit
-//     * @param runIsRtl true if the run is right-to-left
-//     * @param x the position of the run that is closest to the leading margin
-//     * @param needWidth true if the width value is required.
-//     * @return the signed width of the run, based on the paragraph direction.
-//     * Only valid if needWidth is true.
-//     */
-//    private float shapeRun(TextShaper.GlyphsConsumer consumer, int start,
-//                           int limit, boolean runIsRtl, float x, boolean needWidth) {
-//
-//        if ((mDir == Layout.DIR_LEFT_TO_RIGHT) == runIsRtl) {
-//            float w = -measureRun(start, limit, limit, runIsRtl, null);
-//            handleRun(start, limit, limit, runIsRtl, null, consumer, x + w, 0, 0, 0, null, false);
-//            return w;
-//        }
-//
-//        return handleRun(start, limit, limit, runIsRtl, null, consumer, x, 0, 0, 0, null,
-//                needWidth);
-//    }
-
+    // (EW) skipping #shapeRun
 
     /**
      * Walk the cursor through this line, skipping conjuncts and
@@ -779,6 +668,11 @@ public class TextLine {
             // (EW) despite not actually getting called, on Pie, simply having code here causes this
             // warning to be logged:
             //Accessing hidden method Landroid/graphics/Paint;->setWordSpacing(F)V (dark greylist, linking)
+            // (EW) the AOSP version started calling this in Oreo, but on Pie, this was marked as a
+            // restricted API (warning logged specifies "dark greylist"), so it can't even be called
+            // with reflection. I couldn't find a good alternative, and rather than calling it
+            // starting in Oreo and just skipping it on Pie, until there is a real need for it on
+            // older version, it will just be skipped to be consistent between older versions.
             wp.setWordSpacing(mAddedWidthForJustify);
         }
 
@@ -836,14 +730,14 @@ public class TextLine {
             // available for apps to call in Q (some changed parameters). this isn't great, but this
             // use of reflection is at least relatively safe since it's only done on old versions so
             // it shouldn't just stop working at some point in the future.
-            int dir = runIsRtl ? /*Paint.DIRECTION_RTL*/1 : /*Paint.DIRECTION_LTR*/0;
-            int cursorOpt = after ? /*Paint.CURSOR_AFTER*/0 : /*Paint.CURSOR_BEFORE*/2;
+            int dir = runIsRtl ? HiddenPaint.DIRECTION_RTL : HiddenPaint.DIRECTION_LTR;
+            int cursorOpt = after ? HiddenPaint.CURSOR_AFTER : HiddenPaint.CURSOR_BEFORE;
             try {
                 if (mCharsValid) {
                     Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
                             char[].class, int.class, int.class, int.class, int.class, int.class);
-                    return (int) getTextRunCursorMethod.invoke(wp, mChars, spanStart, spanLimit - spanStart,
-                            dir, offset, cursorOpt);
+                    return (int) getTextRunCursorMethod.invoke(wp, mChars, spanStart,
+                            spanLimit - spanStart, dir, offset, cursorOpt);
                 } else {
                     Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
                             CharSequence.class, int.class, int.class, int.class, int.class,
@@ -885,7 +779,7 @@ public class TextLine {
     }
 
     private static void drawStroke(TextPaint wp, Canvas c, int color, float position,
-                                   float thickness, float xleft, float xright, float baseline) {
+                                   float thickness, float xLeft, float xRight, float baseline) {
         final float strokeTop = baseline + wp.baselineShift + position;
 
         final int previousColor = wp.getColor();
@@ -896,7 +790,7 @@ public class TextLine {
         wp.setAntiAlias(true);
 
         wp.setColor(color);
-        c.drawRect(xleft, strokeTop, xright, strokeTop + thickness, wp);
+        c.drawRect(xLeft, strokeTop, xRight, strokeTop + thickness, wp);
 
         wp.setStyle(previousStyle);
         wp.setColor(previousColor);
@@ -907,7 +801,8 @@ public class TextLine {
                                 boolean runIsRtl, int offset) {
         if (mCharsValid) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return wp.getRunAdvance(mChars, start, end, contextStart, contextEnd, runIsRtl, offset);
+                return wp.getRunAdvance(mChars, start, end, contextStart, contextEnd, runIsRtl,
+                        offset);
             } else {
                 // (EW) Paint#getTextRunAdvances was called at least since Kitkat (although with
                 // some varying parameters), but it only became available for apps to call in
@@ -924,14 +819,16 @@ public class TextLine {
                         return (float) getTextRunAdvancesMethod.invoke(wp, mChars, start, runLen,
                                 contextStart, contextLen, runIsRtl, null, 0);
                     } else {
-                        int flags = runIsRtl ? /*Paint.DIRECTION_RTL*/1 : /*Paint.DIRECTION_LTR*/0;
+                        int flags = runIsRtl
+                                ? HiddenPaint.DIRECTION_RTL : HiddenPaint.DIRECTION_LTR;
                         Method getTextRunAdvancesMethod = TextPaint.class.getMethod(
                                 "getTextRunAdvances", char[].class, int.class, int.class,
                                 int.class, int.class, int.class, float[].class, int.class);
                         return (float) getTextRunAdvancesMethod.invoke(wp, mChars, start, runLen,
                                 contextStart, contextLen, flags, null, 0);
                     }
-                } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                } catch (NoSuchMethodException | IllegalAccessException
+                        | InvocationTargetException e) {
                     Log.e(TAG, "getRunAdvance: Reflection failed on getTextRunAdvances: "
                             + e.getMessage());
                     return 0;
@@ -958,7 +855,8 @@ public class TextLine {
                                     delta + end, delta + contextStart, delta + contextEnd,
                                     runIsRtl, null, 0);
                         } else {
-                            int flags = runIsRtl ? /*Paint.DIRECTION_RTL*/1 : /*Paint.DIRECTION_LTR*/0;
+                            int flags = runIsRtl
+                                    ? HiddenPaint.DIRECTION_RTL : HiddenPaint.DIRECTION_LTR;
                             Method getTextRunAdvancesMethod = TextPaint.class.getMethod(
                                     "getTextRunAdvances", CharSequence.class, int.class, int.class,
                                     int.class, int.class, int.class, float[].class, int.class);
@@ -966,7 +864,8 @@ public class TextLine {
                                     delta + end, delta + contextStart, delta + contextEnd,
                                     flags, null, 0);
                         }
-                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                    } catch (NoSuchMethodException | IllegalAccessException
+                            | InvocationTargetException e) {
                         Log.e(TAG, "getRunAdvance: Reflection failed on getTextRunAdvances: "
                                 + e.getMessage());
                         return 0;
@@ -978,6 +877,10 @@ public class TextLine {
         }
     }
 
+    // (EW) due to the simplified parameters in #handleRun (the only caller of this), it would
+    // always pass null for the Canvas and TextShaper.GlyphsConsumer, 0 for top, y, and bottom, and
+    // true for needWidth, so these parameters were removed to simplify, which also made decorations
+    // no longer used, so it was removed too.
     /**
      * Utility function for measuring and rendering text.  The text must
      * not include a tab.
@@ -986,21 +889,24 @@ public class TextLine {
      * @param start the start of the text
      * @param end the end of the text
      * @param runIsRtl true if the run is right-to-left
-//     * @param x the edge of the run closest to the leading margin
-//     * @param top the top of the line
-//     * @param y the baseline
-//     * @param bottom the bottom of the line
+     * @param x the edge of the run closest to the leading margin
      * @param fmi receives metrics information, can be null
      * @param offset the offset for the purpose of measuring
-//     * @param decorations the list of locations and parameters for drawing decorations
      * @return the signed width of the run based on the run direction; only
      * valid if needWidth is true
      */
     private float handleText(TextPaint wp, int start, int end,
-                             int contextStart, int contextEnd, boolean runIsRtl,/*
-                             float x, int top, int y, int bottom,*/
-                             FontMetricsInt fmi, int offset/*,
-                             @Nullable ArrayList<DecorationInfo> decorations*/) {
+                             int contextStart, int contextEnd, boolean runIsRtl,
+                             float x,
+                             FontMetricsInt fmi, int offset) {
+        if (mIsJustifying && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) the AOSP version started calling this in Oreo, but on Pie, this was marked as a
+            // restricted API (warning logged specifies "dark greylist"), so it can't even be called
+            // with reflection. I couldn't find a good alternative, and rather than calling it
+            // starting in Oreo and just skipping it on Pie, until there is a real need for it on
+            // older version, it will just be skipped to be consistent between older versions.
+            wp.setWordSpacing(mAddedWidthForJustify);
+        }
 
         // Get metrics first (even for empty strings or "0" width runs)
         if (fmi != null) {
@@ -1012,39 +918,29 @@ public class TextLine {
             return 0f;
         }
 
-        float totalWidth = 0;
-
-        totalWidth = getRunAdvance(wp, start, end, contextStart, contextEnd, runIsRtl, offset);
+        float totalWidth =
+                getRunAdvance(wp, start, end, contextStart, contextEnd, runIsRtl, offset);
 
         return runIsRtl ? -totalWidth : totalWidth;
     }
 
+    // (EW) due to the simplified parameters in #handleRun (the only caller of this), it would
+    // always pass null for the Canvas, 0 for top, y, and bottom, and true for needWidth, so these
+    // parameters were removed to simplify, which also made x no longer used, so it was removed too.
     /**
      * Utility function for measuring and rendering a replacement.
-     *
      *
      * @param replacement the replacement
      * @param wp the work paint
      * @param start the start of the run
      * @param limit the limit of the run
      * @param runIsRtl true if the run is right-to-left
-//     * @param c the canvas, can be null if not rendering
-//     * @param x the edge of the replacement closest to the leading margin
-//     * @param top the top of the line
-//     * @param y the baseline
-//     * @param bottom the bottom of the line
      * @param fmi receives metrics information, can be null
-//     * @param needWidth true if the width of the replacement is needed
      * @return the signed width of the run based on the run direction; only
      * valid if needWidth is true
      */
-    private float handleReplacement(ReplacementSpan replacement, TextPaint wp,
-                                    int start, int limit, boolean runIsRtl/*, Canvas c*//*,
-                                    float x, int top, int y, int bottom*/, FontMetricsInt fmi/*,
-                                    boolean needWidth*/) {
-
-        float ret = 0;
-
+    private float handleReplacement(ReplacementSpan replacement, TextPaint wp, int start, int limit,
+                                    boolean runIsRtl, FontMetricsInt fmi) {
         int textStart = mStart + start;
         int textLimit = mStart + limit;
 
@@ -1064,7 +960,7 @@ public class TextLine {
             previousLeading = fmi.leading;
         }
 
-        ret = replacement.getSize(wp, mText, textStart, textLimit, fmi);
+        float ret = replacement.getSize(wp, mText, textStart, textLimit, fmi);
 
         if (needUpdateMetrics) {
             updateMetrics(fmi, previousTop, previousAscent, previousDescent, previousBottom,
@@ -1075,31 +971,32 @@ public class TextLine {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    private int adjustStartHyphenEdit(int start, /*@Paint.StartHyphenEdit*/ int startHyphenEdit) {
+    private int adjustStartHyphenEdit(int start, @HiddenPaint.StartHyphenEdit int startHyphenEdit) {
         // Only draw hyphens on first in line. Disable them otherwise.
         return start > 0 ? Paint.START_HYPHEN_EDIT_NO_EDIT : startHyphenEdit;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    private int adjustEndHyphenEdit(int limit, /*@Paint.EndHyphenEdit*/ int endHyphenEdit) {
+    private int adjustEndHyphenEdit(int limit, @HiddenPaint.EndHyphenEdit int endHyphenEdit) {
         // Only draw hyphens on last run in line. Disable them otherwise.
         return limit < mLen ? Paint.END_HYPHEN_EDIT_NO_EDIT : endHyphenEdit;
     }
 
+    // (EW) from Pie
     private int adjustHyphenEdit(int start, int limit, int hyphenEdit) {
         int result = hyphenEdit;
         // Only draw hyphens on first or last run in line. Disable them otherwise.
         if (start > 0) { // not the first run
-            result &= ~/*Paint.HYPHENEDIT_MASK_START_OF_LINE*/(0x03 << 3);
+            result &= ~HiddenPaint.HYPHENEDIT_MASK_START_OF_LINE;
         }
         if (limit < mLen) { // not the last run
-            result &= ~/*Paint.HYPHENEDIT_MASK_END_OF_LINE*/0x07;
+            result &= ~HiddenPaint.HYPHENEDIT_MASK_END_OF_LINE;
         }
         return result;
     }
 
     private static final class DecorationInfo {
-        public boolean isStrikeThruText;
+        public boolean isStrikeThroughText;
         public boolean isUnderlineText;
         public int underlineColor;
         public float underlineThickness;
@@ -1107,13 +1004,13 @@ public class TextLine {
         public int end = -1;
 
         public boolean hasDecoration() {
-            return isStrikeThruText || isUnderlineText || underlineColor != 0;
+            return isStrikeThroughText || isUnderlineText || underlineColor != 0;
         }
 
         // Copies the info, but not the start and end range.
         public DecorationInfo copyInfo() {
             final DecorationInfo copy = new DecorationInfo();
-            copy.isStrikeThruText = isStrikeThruText;
+            copy.isStrikeThroughText = isStrikeThroughText;
             copy.isUnderlineText = isUnderlineText;
             copy.underlineColor = underlineColor;
             copy.underlineThickness = underlineThickness;
@@ -1121,13 +1018,11 @@ public class TextLine {
         }
     }
 
-    private void extractDecorationInfo(@NonNull TextPaint paint, @NonNull DecorationInfo info) {
-        info.isStrikeThruText = paint.isStrikeThruText();
-        if (info.isStrikeThruText) {
+    private void clearDecorationInfo(@NonNull TextPaint paint) {
+        if (paint.isStrikeThruText()) {
             paint.setStrikeThruText(false);
         }
-        info.isUnderlineText = paint.isUnderlineText();
-        if (info.isUnderlineText) {
+        if (paint.isUnderlineText()) {
             paint.setUnderlineText(false);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1135,13 +1030,11 @@ public class TextLine {
             // the other 2 direct uses of underlineColor below and in #equalAttributes) causes this
             // warning to be logged:
             // Accessing hidden field Landroid/text/TextPaint;->underlineColor:I (light greylist, linking)
-            info.underlineColor = paint.underlineColor;
+            paint.underlineColor = 0;
             // (EW) despite not actually getting called, on Pie, simply having this code here (or
             // the other 2 direct uses of underlineThickness below and in #equalAttributes) causes
             // this warning to be logged:
             // Accessing hidden field Landroid/text/TextPaint;->underlineThickness:F (light greylist, linking)
-            info.underlineThickness = paint.underlineThickness;
-            paint.underlineColor = 0;
             paint.underlineThickness = 0.0f;
         } else {
             // (EW) TextPaint#underlineColor and TextPaint#underlineThickness have existed since at
@@ -1150,14 +1043,13 @@ public class TextLine {
             // working at some point in the future.
             try {
                 Field underlineColorField = TextPaint.class.getDeclaredField("underlineColor");
-                info.underlineColor = (int) underlineColorField.get(paint);
                 underlineColorField.set(paint, 0);
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 Log.e(TAG, "extractDecorationInfo: failed to use underlineColor: " + e);
             }
             try {
-                Field underlineThicknessField = TextPaint.class.getDeclaredField("underlineThickness");
-                info.underlineThickness = (float) underlineThicknessField.get(paint);
+                Field underlineThicknessField =
+                        TextPaint.class.getDeclaredField("underlineThickness");
                 underlineThicknessField.set(paint, 0);
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 Log.e(TAG, "extractDecorationInfo: failed to use underlineThickness: " + e);
@@ -1165,30 +1057,23 @@ public class TextLine {
         }
     }
 
+    // (EW) #drawRun and #shapeRun were skipped because they weren't necessary, and since the only
+    // caller, #measureRun, always passed null for the Canvas and TextShaper.GlyphsConsumer, 0 for
+    // x, top, y, and bottom, and true for needWidth, those parameters were removed to simplify.
     /**
      * Utility function for handling a unidirectional run.  The run must not
      * contain tabs but can contain styles.
-     *
      *
      * @param start the line-relative start of the run
      * @param measureLimit the offset to measure to, between start and limit inclusive
      * @param limit the limit of the run
      * @param runIsRtl true if the run is right-to-left
-//     * @param c the canvas, can be null
-//     * @param consumer the output positioned glyphs, can be null
-//     * @param x the end of the run closest to the leading margin
-//     * @param top the top of the line
-//     * @param y the baseline
-//     * @param bottom the bottom of the line
      * @param fmi receives metrics information, can be null
-//     * @param needWidth true if the width is required
      * @return the signed width of the run based on the run direction; only
      * valid if needWidth is true
      */
-    private float handleRun(int start, int measureLimit,
-                            int limit, boolean runIsRtl/*, Canvas c,
-                            TextShaper.GlyphsConsumer consumer, float x, int top, int y,
-                            int bottom*/, FontMetricsInt fmi/*, boolean needWidth*/) {
+    private float handleRun(int start, int measureLimit, int limit, boolean runIsRtl,
+                            FontMetricsInt fmi) {
         float x = 0;
 
         if (measureLimit < start || measureLimit > limit) {
@@ -1220,8 +1105,7 @@ public class TextLine {
             final TextPaint wp = mWorkPaint;
             wp.set(mPaint);
             setHyphenEdit(wp, wp, start, limit);
-            return handleText(wp, start, limit, start, limit, runIsRtl/*, c, consumer*//*, x, top,
-                    y, bottom*/, fmi/*, needWidth*/, measureLimit/*, null*/);
+            return handleText(wp, start, limit, start, limit, runIsRtl, x, fmi, measureLimit);
         }
 
         // Shaping needs to take into account context up to metric boundaries,
@@ -1229,14 +1113,13 @@ public class TextLine {
         // So we iterate through metric runs to get metric bounds,
         // then within each metric run iterate through character style runs
         // for the run bounds.
-//        final float originalX = x;
-        for (int i = start, inext; i < measureLimit; i = inext) {
+        for (int i = start, iNext; i < measureLimit; i = iNext) {
             final TextPaint wp = mWorkPaint;
             wp.set(mPaint);
 
-            inext = mMetricAffectingSpanSpanSet.getNextTransition(mStart + i, mStart + limit) -
+            iNext = mMetricAffectingSpanSpanSet.getNextTransition(mStart + i, mStart + limit) -
                     mStart;
-            int mlimit = Math.min(inext, measureLimit);
+            int mlimit = Math.min(iNext, measureLimit);
 
             ReplacementSpan replacement = null;
 
@@ -1244,7 +1127,9 @@ public class TextLine {
                 // Both intervals [spanStarts..spanEnds] and [mStart + i..mStart + mlimit] are NOT
                 // empty by construction. This special case in getSpans() explains the >= & <= tests
                 if ((mMetricAffectingSpanSpanSet.spanStarts[j] >= mStart + mlimit)
-                        || (mMetricAffectingSpanSpanSet.spanEnds[j] <= mStart + i)) continue;
+                        || (mMetricAffectingSpanSpanSet.spanEnds[j] <= mStart + i)) {
+                    continue;
+                }
 
                 boolean insideEllipsis =
                         mStart + mEllipsisStart <= mMetricAffectingSpanSpanSet.spanStarts[j]
@@ -1260,8 +1145,7 @@ public class TextLine {
             }
 
             if (replacement != null) {
-                x += handleReplacement(replacement, wp, i, mlimit, runIsRtl/*, c*//*, x, top, y,
-                        bottom*/, fmi/*, needWidth || mlimit < measureLimit*/);
+                x += handleReplacement(replacement, wp, i, mlimit, runIsRtl, fmi);
                 continue;
             }
 
@@ -1269,24 +1153,27 @@ public class TextLine {
             activePaint.set(mPaint);
             int activeStart = i;
             int activeEnd = mlimit;
-            final DecorationInfo decorationInfo = mDecorationInfo;
-            mDecorations.clear();
-            for (int j = i, jnext; j < mlimit; j = jnext) {
-                jnext = mCharacterStyleSpanSet.getNextTransition(mStart + j, mStart + inext) -
+            for (int j = i, jNext; j < mlimit; j = jNext) {
+                jNext = mCharacterStyleSpanSet.getNextTransition(mStart + j, mStart + iNext) -
                         mStart;
 
-                final int offset = Math.min(jnext, mlimit);
+                final int offset = Math.min(jNext, mlimit);
                 wp.set(mPaint);
                 for (int k = 0; k < mCharacterStyleSpanSet.numberOfSpans; k++) {
                     // Intentionally using >= and <= as explained above
                     if ((mCharacterStyleSpanSet.spanStarts[k] >= mStart + offset) ||
-                            (mCharacterStyleSpanSet.spanEnds[k] <= mStart + j)) continue;
+                            (mCharacterStyleSpanSet.spanEnds[k] <= mStart + j)) {
+                        continue;
+                    }
 
                     final CharacterStyle span = mCharacterStyleSpanSet.spans[k];
                     span.updateDrawState(wp);
                 }
 
-                extractDecorationInfo(wp, decorationInfo);
+                // (EW) since #handleText doesn't need the list of DecorationInfo, that
+                // functionality was stripped, making it simply clear the decoration properties from
+                // the paint, rather than extracting them to the DecorationInfo
+                clearDecorationInfo(wp);
 
                 if (j == i) {
                     // First chunk of text. We can't handle it yet, since we may need to merge it
@@ -1298,13 +1185,11 @@ public class TextLine {
                     // style of the previous chunk. We need to handle the active piece of text
                     // and restart with the present chunk.
                     setHyphenEdit(activePaint, mPaint, activeStart, activeEnd);
-                    x += handleText(activePaint, activeStart, activeEnd, i, inext, runIsRtl/*, c,
-                            consumer*//*, x, top, y, bottom*/, fmi/*, needWidth || activeEnd < measureLimit*/,
-                            Math.min(activeEnd, mlimit)/*, mDecorations*/);
-
+                    x += handleText(activePaint, activeStart, activeEnd, i, iNext, runIsRtl,
+                            x, fmi,
+                            Math.min(activeEnd, mlimit));
                     activeStart = j;
                     activePaint.set(wp);
-                    mDecorations.clear();
                 } else {
                     // The present TextPaint is substantially equal to the last TextPaint except
                     // perhaps for decorations. We just need to expand the active piece of text to
@@ -1312,25 +1197,21 @@ public class TextLine {
                     // wp to activePaint, since they are already equal.
                 }
 
-                activeEnd = jnext;
-                if (decorationInfo.hasDecoration()) {
-                    final DecorationInfo copy = decorationInfo.copyInfo();
-                    copy.start = j;
-                    copy.end = jnext;
-                    mDecorations.add(copy);
-                }
+                activeEnd = jNext;
             }
             // Handle the final piece of text.
             setHyphenEdit(activePaint, mPaint, activeStart, activeEnd);
-            x += handleText(activePaint, activeStart, activeEnd, i, inext, runIsRtl/*, c, consumer*//*, x,
-                    top, y, bottom*/, fmi/*, needWidth || activeEnd < measureLimit*/,
-                    Math.min(activeEnd, mlimit)/*, mDecorations*/);
+            x += handleText(activePaint, activeStart, activeEnd, i, iNext, runIsRtl, x, fmi,
+                    Math.min(activeEnd, mlimit));
         }
 
-        return x/* - originalX*/;
+        return x;
     }
 
-    private void setHyphenEdit(final TextPaint wp, final TextPaint sourcePaint, int start, int limit) {
+    // (EW) wrapper for TextPaint#setStartHyphenEdit called with #adjustStartHyphenEdit and
+    // TextPaint#setEndHyphenEdit called with #adjustEndHyphenEdit to handle versions
+    private void setHyphenEdit(final TextPaint wp, final TextPaint sourcePaint, int start,
+                               int limit) {
         // (EW) Paint#setHyphenEdit(int) and Paint#getHyphenEdit() existed since Marshmallow,
         // although they were only called in Oreo through Pie. prior to Oreo the documentation
         // stated that setHyphenEdit only takes a 1 or 0, so the handling in adjustHyphenEdit
@@ -1348,34 +1229,103 @@ public class TextLine {
         }
     }
 
-//    /**
-//     * Render a text run with the set-up paint.
-//     *
-//     * @param c the canvas
-//     * @param wp the paint used to render the text
-//     * @param start the start of the run
-//     * @param end the end of the run
-//     * @param contextStart the start of context for the run
-//     * @param contextEnd the end of the context for the run
-//     * @param runIsRtl true if the run is right-to-left
-//     * @param x the x position of the left edge of the run
-//     * @param y the baseline of the run
-//     */
-//    private void drawTextRun(Canvas c, TextPaint wp, int start, int end,
-//                             int contextStart, int contextEnd, boolean runIsRtl, float x, int y) {
-//
-//        if (mCharsValid) {
-//            int count = end - start;
-//            int contextCount = contextEnd - contextStart;
-//            c.drawTextRun(mChars, start, count, contextStart, contextCount,
-//                    x, y, runIsRtl, wp);
-//        } else {
-//            int delta = mStart;
-//            c.drawTextRun(mText, delta + start, delta + end,
-//                    delta + contextStart, delta + contextEnd, x, y, runIsRtl, wp);
-//        }
-//    }
+    /**
+     * Render a text run with the set-up paint.
+     *
+     * @param c the canvas
+     * @param wp the paint used to render the text
+     * @param start the start of the run
+     * @param end the end of the run
+     * @param contextStart the start of context for the run
+     * @param contextEnd the end of the context for the run
+     * @param runIsRtl true if the run is right-to-left
+     * @param x the x position of the left edge of the run
+     * @param y the baseline of the run
+     */
+    private void drawTextRun(Canvas c, TextPaint wp, int start, int end,
+                             int contextStart, int contextEnd, boolean runIsRtl, float x, int y) {
 
+        if (mCharsValid) {
+            int count = end - start;
+            int contextCount = contextEnd - contextStart;
+            tryDrawTextRun(c, mChars, start, count, contextStart, contextCount,
+                    x, y, runIsRtl, wp);
+        } else {
+            int delta = mStart;
+            tryDrawTextRun(c, mText, delta + start, delta + end,
+                    delta + contextStart, delta + contextEnd, x, y, runIsRtl, wp);
+        }
+    }
+
+    // (EW) Canvas#drawTextRun was made available in Marshmallow, but it was actually added with the
+    // current signature in Lollipop, so it should be safe to call on these older versions, but to
+    // be extra safe we'll wrap it in a try/catch. even older versions still have it, but has an int
+    // dir parameter instead of boolean isRtl, so we'll need to use reflection for that.
+    @SuppressLint("NewApi")
+    private static boolean tryDrawTextRun(@NonNull Canvas c, @NonNull char[] text, int index,
+                                          int count, int contextIndex, int contextCount, float x,
+                                          float y, boolean isRtl, @NonNull Paint paint) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                c.drawTextRun(text, index, count, contextIndex, contextCount, x, y, isRtl, paint);
+            } catch (Exception e) {
+                Log.w(TAG, "Canvas#drawTextRun couldn't be called: "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage());
+                return false;
+            }
+        } else {
+            int dir = isRtl ? /*DIRECTION_RTL*/1 : /*DIRECTION_LTR*/0;
+            try {
+                Method drawTextRunMethod = Canvas.class.getMethod("drawTextRun",
+                        char[].class, int.class, int.class, int.class, int.class, float.class,
+                        float.class, int.class, Paint.class);
+                drawTextRunMethod.invoke(c,
+                        text, index, count, contextIndex, contextCount, x, y, dir, paint);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                Log.e(TAG, "tryDrawTextRun: Reflection failed on drawTextRun: "
+                        + e.getMessage());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // (EW) Canvas#drawTextRun was made available in Marshmallow, but it was actually added with the
+    // current signature in Lollipop, so it should be safe to call on these older versions, but to
+    // be extra safe we'll wrap it in a try/catch. even older versions still have it, but has an int
+    // dir parameter instead of boolean isRtl, so we'll need to use reflection for that.
+    @SuppressLint("NewApi")
+    private static boolean tryDrawTextRun(@NonNull Canvas c, @NonNull CharSequence text, int start,
+                                          int end, int contextStart, int contextEnd, float x,
+                                          float y, boolean isRtl, @NonNull Paint paint) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                c.drawTextRun(text, start, end, contextStart, contextEnd, x, y, isRtl, paint);
+            } catch (Exception e) {
+                Log.w(TAG, "Canvas#drawTextRun couldn't be called: "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage());
+                return false;
+            }
+        } else {
+            int dir = isRtl ? /*DIRECTION_RTL*/1 : /*DIRECTION_LTR*/0;
+            try {
+                Method drawTextRunMethod = Canvas.class.getMethod("drawTextRun",
+                        CharSequence.class, int.class, int.class, int.class, int.class, float.class,
+                        float.class, int.class, Paint.class);
+                drawTextRunMethod.invoke(c,
+                        text, start, end, contextStart, contextEnd, x, y, dir, paint);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                Log.e(TAG, "tryDrawTextRun: Reflection failed on drawTextRun: "
+                        + e.getMessage());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // (EW) this was added in S and TextRunShaper#shapeTextRun is only available starting in that
+    // version, so for now, I'm marking this as requiring that version, at least until there is a
+    // need for it on older versions.
     /**
      * Shape a text run with the set-up paint.
      *
@@ -1388,9 +1338,10 @@ public class TextLine {
      * @param runIsRtl true if the run is right-to-left
      * @param x the x position of the left edge of the run
      */
-    @RequiresApi(api = Build.VERSION_CODES.S) // (EW) for shapeTextRun
+    @RequiresApi(api = Build.VERSION_CODES.S)
     private void shapeTextRun(TextShaper.GlyphsConsumer consumer, TextPaint paint,
-                              int start, int end, int contextStart, int contextEnd, boolean runIsRtl, float x) {
+                              int start, int end, int contextStart, int contextEnd,
+                              boolean runIsRtl, float x) {
 
         int count = end - start;
         int contextCount = contextEnd - contextStart;
@@ -1416,7 +1367,6 @@ public class TextLine {
         }
         consumer.accept(start, count, glyphs, paint);
     }
-
 
     /**
      * Returns the next tab position.
@@ -1466,9 +1416,11 @@ public class TextLine {
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.N
                         || lp.getTextLocales().equals(rp.getTextLocales()))
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
-                        || TextUtils.equals(lp.getFontFeatureSettings(), rp.getFontFeatureSettings()))
+                        || TextUtils.equals(lp.getFontFeatureSettings(),
+                                rp.getFontFeatureSettings()))
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.O
-                        || TextUtils.equals(lp.getFontVariationSettings(), rp.getFontVariationSettings()))
+                        || TextUtils.equals(lp.getFontVariationSettings(),
+                                rp.getFontVariationSettings()))
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
                         || lp.getShadowLayerRadius() == rp.getShadowLayerRadius())
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q

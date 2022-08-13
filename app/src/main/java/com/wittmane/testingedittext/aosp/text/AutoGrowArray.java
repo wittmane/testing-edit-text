@@ -21,15 +21,14 @@ import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 
-//import libcore.util.EmptyArray;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils.EmptyArray;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used in other hidden classes
 /**
  * Implements a growing array of int primitives.
  *
  * These arrays are NOT thread safe.
- *
- * @hide
  */
 public final class AutoGrowArray {
     private static final int MIN_CAPACITY_INCREMENT = 12;

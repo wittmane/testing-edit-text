@@ -22,22 +22,17 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.assist.AssistStructure;
-import android.app.assist.AssistStructure.ViewNode;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ServiceInfo;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.content.res.Resources.NotFoundException;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
-import android.graphics.BlendMode;
 import android.graphics.Canvas;
 
 import com.wittmane.testingedittext.aosp.graphics.HiddenMatrix;
@@ -56,7 +51,6 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DecimalFormatSymbols;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -64,18 +58,14 @@ import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
-import android.os.UserHandle;
 import android.provider.Settings;
 import android.text.BoringLayout;
 import android.text.BoringLayout.Metrics;
 import android.text.DynamicLayout;
 import android.text.Editable;
-import android.text.GetChars;
 import android.text.InputFilter;
-import android.text.InputFilter.LengthFilter;
 import android.text.InputType;
 import android.text.Layout;
-import android.text.Layout.Alignment;
 import android.text.ParcelableSpan;
 import android.text.Selection;
 import android.text.SpanWatcher;
@@ -116,7 +106,6 @@ import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
-import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.PointerIcon;
@@ -144,13 +133,10 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
-import android.view.textservice.SpellCheckerInfo;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
 import android.view.translation.TranslationSpec;
-import android.view.translation.ViewTranslationCallback;
 import android.view.translation.ViewTranslationRequest;
-import android.widget.PopupWindow;
 import android.widget.Scroller;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -167,7 +153,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.Px;
 import androidx.annotation.RequiresApi;
-import androidx.annotation.RequiresPermission;
 import androidx.annotation.Size;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
@@ -195,7 +180,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.view.ContentInfo.FLAG_CONVERT_TO_PLAIN_TEXT;
 import static android.view.ContentInfo.SOURCE_AUTOFILL;
 import static android.view.ContentInfo.SOURCE_CLIPBOARD;
@@ -209,19 +193,18 @@ import static com.wittmane.testingedittext.aosp.widget.Editor.logCursor;
 public class EditText extends View implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
 
-    static final String LOG_TAG = "TextView";
+    static final String LOG_TAG = "EditText";
     static final boolean DEBUG_EXTRACT = false;
     static final boolean DEBUG_CURSOR = false;
-    static final boolean AUTOFILL_HELPER_VERBOSE = false;
+    private static final boolean AUTOFILL_HELPER_VERBOSE = false;
 
     private static final float[] TEMP_POSITION = new float[2];
 
     // Enum for the "typeface" XML parameter.
     // TODO: How can we get this from the XML instead of hardcoding it here?
-    /** @hide */
     @IntDef(value = {DEFAULT_TYPEFACE, SANS, SERIF, MONOSPACE})
     @Retention(RetentionPolicy.SOURCE)
-    public @interface XMLTypefaceAttr{}
+    private @interface XMLTypefaceAttr{}
     private static final int DEFAULT_TYPEFACE = -1;
     private static final int SANS = 1;
     private static final int SERIF = 2;
@@ -234,11 +217,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private static final int ELLIPSIZE_MIDDLE = 2;
     private static final int ELLIPSIZE_END = 3;
 
-    // Bitfield for the "numeric" XML parameter.
-    // TODO: How can we get this from the XML instead of hardcoding it here?
-    private static final int SIGNED = 2;
-    private static final int DECIMAL = 4;
-
     private static final int LINES = 1;
     private static final int EMS = LINES;
     private static final int PIXELS = 2;
@@ -249,7 +227,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private static final RectF TEMP_RECTF = new RectF();
 
-    /** @hide */
     static final int VERY_WIDE = 1024 * 1024; // XXX should be much larger
     private static final int ANIMATED_SCROLL_GAP = 250;
 
@@ -258,21 +235,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private static final int CHANGE_WATCHER_PRIORITY = 100;
 
-    // New state used to change background based on whether this TextView is multiline.
-    private static final int[] MULTILINE_STATE_SET = { android.R.attr.state_multiline };
-
-    // Accessibility action to share selected text.
-    private static final int ACCESSIBILITY_ACTION_SHARE = 0x10000000;
-
-    /**
-     * @hide
-     */
-    // Accessibility action start id for "process text" actions.
-    static final int ACCESSIBILITY_ACTION_PROCESS_TEXT_START_ID = 0x10000100;
-
-    /**
-     * @hide
-     */
     static final int PROCESS_TEXT_REQUEST_CODE = 100;
 
     /**
@@ -290,11 +252,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private ColorStateList mTextColor;
     private ColorStateList mHintTextColor;
-    @ViewDebug.ExportedProperty(category = "text")
 
     /**
      * {@link #setTextColor(int)} or {@link #getCurrentTextColor()} should be used instead.
      */
+    @ViewDebug.ExportedProperty(category = "text")
     private int mCurTextColor;
 
     private int mCurHintTextColor;
@@ -306,9 +268,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // View#isTemporarilyDetached doesn't exist yet.
     /** Whether this view is temporarily detached from the parent view. */
     boolean mTemporaryDetach;
-
-    private Editable.Factory mEditableFactory = Editable.Factory.getInstance();
-    private Spannable.Factory mSpannableFactory = Spannable.Factory.getInstance();
 
     private float mShadowRadius;
     private float mShadowDx;
@@ -379,7 +338,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private int mGravity = Gravity.TOP | Gravity.START;
     private boolean mHorizontallyScrolling;
 
-    private float mSpacingMult = 1.0f;
+    private float mSpacingMultiplier = 1.0f;
     private float mSpacingAdd = 0.0f;
 
     private int mBreakStrategy;
@@ -407,7 +366,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Rect mTempRect;
     private long mLastScroll;
     private Scroller mScroller;
-    private TextPaint mTempTextPaint;
 
     private BoringLayout.Metrics mHintBoring;
     private BoringLayout mSavedHintLayout;
@@ -543,7 +501,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             VIEW_STRUCTURE_FOR_CONTENT_CAPTURE
     })
     @Retention(RetentionPolicy.SOURCE)
-    public @interface ViewStructureType {}
+    private @interface ViewStructureType {}
 
     public EditText(Context context) {
         this(context, null);
@@ -637,10 +595,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         boolean selectAllOnFocus = false;
         int ellipsize = ELLIPSIZE_NOT_SET;
         boolean singleLine = false;
-        int maxlength = -1;
+        int maxLength = -1;
         CharSequence text = "";
         CharSequence hint = null;
-        boolean password = false;
         int inputType = EditorInfo.TYPE_NULL;
         typedArray = theme.obtainStyledAttributes(
                 attrs, R.styleable.EditText, defStyleAttr, defStyleRes);
@@ -777,7 +734,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
 
             } else if (attr == R.styleable.EditText_android_maxLength) {
-                maxlength = typedArray.getInt(attr, -1);
+                maxLength = typedArray.getInt(attr, -1);
 
             } else if (attr == R.styleable.EditText_android_textScaleX) {
                 setTextScaleX(typedArray.getFloat(attr, 1.0f));
@@ -789,7 +746,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 mSpacingAdd = typedArray.getDimensionPixelSize(attr, (int) mSpacingAdd);
 
             } else if (attr == R.styleable.EditText_android_lineSpacingMultiplier) {
-                mSpacingMult = typedArray.getFloat(attr, mSpacingMult);
+                mSpacingMultiplier = typedArray.getFloat(attr, mSpacingMultiplier);
 
             } else if (attr == R.styleable.EditText_android_inputType) {
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
@@ -908,8 +865,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mEditor.mInputType = EditorInfo.TYPE_CLASS_TEXT;
         }
 
-        mEditor.adjustInputType(password, passwordInputType, webPasswordInputType,
-                numberPasswordInputType);
+        mEditor.adjustInputType(passwordInputType, webPasswordInputType, numberPasswordInputType);
 
         if (selectAllOnFocus) {
             mEditor.mSelectAllOnFocus = true;
@@ -940,7 +896,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 break;
         }
 
-        final boolean isPassword = password || passwordInputType || webPasswordInputType
+        final boolean isPassword = passwordInputType || webPasswordInputType
                 || numberPasswordInputType;
         final boolean isMonospaceEnforced = isPassword || ((mEditor.mInputType
                 & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION))
@@ -954,7 +910,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            mFontWeightAdjustment = getContext().getResources().getConfiguration().fontWeightAdjustment;
+            mFontWeightAdjustment =
+                    getContext().getResources().getConfiguration().fontWeightAdjustment;
         }
         applyTextAppearance(attributes);
 
@@ -964,15 +921,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         // For addressing b/145128646
         // For the performance reason, we limit characters for single line text field.
-        if (singleLine && maxlength == -1) {
+        if (singleLine && maxLength == -1) {
             mSingleLineLengthFilter = new InputFilter.LengthFilter(
                 MAX_LENGTH_FOR_SINGLE_LINE_EDIT_TEXT);
         }
 
         if (mSingleLineLengthFilter != null) {
             setFilters(new InputFilter[] { mSingleLineLengthFilter });
-        } else if (maxlength >= 0) {
-            setFilters(new InputFilter[] { new InputFilter.LengthFilter(maxlength) });
+        } else if (maxLength >= 0) {
+            setFilters(new InputFilter[] { new InputFilter.LengthFilter(maxLength) });
         } else {
             setFilters(NO_FILTERS);
         }
@@ -1084,7 +1041,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     // (EW) the AOSP version overrode View#onActivityResult, but that's hidden, so we have to manage
-    // this slighly differently. see #startActivityForResult.
+    // this slightly differently. see #startActivityForResult.
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == PROCESS_TEXT_REQUEST_CODE) {
@@ -1301,7 +1258,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     @InspectableProperty
     public int getLineHeight() {
-        return Math.round(mTextPaint.getFontMetricsInt(null) * mSpacingMult + mSpacingAdd);
+        return Math.round(
+                mTextPaint.getFontMetricsInt(null) * mSpacingMultiplier + mSpacingAdd);
     }
 
     /**
@@ -1311,14 +1269,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public final Layout getLayout() {
         return mLayout;
-    }
-
-    /**
-     * @return the {@link android.text.Layout} that is currently being used to
-     * display the hint text. This can be null.
-     */
-    final Layout getHintLayout() {
-        return mHintLayout;
     }
 
     // (EW) added so the TextDirectionHeuristic used for mLayout so it can be passed to
@@ -1556,10 +1506,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         int top = getCompoundPaddingTop();
         int bottom = getCompoundPaddingBottom();
-        int viewht = getHeight() - top - bottom;
-        int layoutht = mLayout.getLineTop(mMaximum);
+        int viewHeight = getHeight() - top - bottom;
+        int layoutHeight = mLayout.getLineTop(mMaximum);
 
-        if (layoutht >= viewht) {
+        if (layoutHeight >= viewHeight) {
             return top;
         }
 
@@ -1567,9 +1517,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (gravity == Gravity.TOP) {
             return top;
         } else if (gravity == Gravity.BOTTOM) {
-            return top + viewht - layoutht;
+            return top + viewHeight - layoutHeight;
         } else { // (gravity == Gravity.CENTER_VERTICAL)
-            return top + (viewht - layoutht) / 2;
+            return top + (viewHeight - layoutHeight) / 2;
         }
     }
 
@@ -1593,20 +1543,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         int top = getCompoundPaddingTop();
         int bottom = getCompoundPaddingBottom();
-        int viewht = getHeight() - top - bottom;
-        int layoutht = mLayout.getLineTop(mMaximum);
+        int viewHeight = getHeight() - top - bottom;
+        int layoutHeight = mLayout.getLineTop(mMaximum);
 
-        if (layoutht >= viewht) {
+        if (layoutHeight >= viewHeight) {
             return bottom;
         }
 
         final int gravity = mGravity & Gravity.VERTICAL_GRAVITY_MASK;
         if (gravity == Gravity.TOP) {
-            return bottom + viewht - layoutht;
+            return bottom + viewHeight - layoutHeight;
         } else if (gravity == Gravity.BOTTOM) {
             return bottom;
         } else { // (gravity == Gravity.CENTER_VERTICAL)
-            return bottom + (viewht - layoutht) / 2;
+            return bottom + (viewHeight - layoutHeight) / 2;
         }
     }
 
@@ -1909,7 +1859,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setTextSelectHandleLeft(int)
      * @attr ref android.R.styleable#TextView_textSelectHandleLeft
      */
-    @Nullable public Drawable getTextSelectHandleLeft() {
+    @Nullable
+    public Drawable getTextSelectHandleLeft() {
         if (mTextSelectHandleLeft == null && mTextSelectHandleLeftRes != 0) {
             mTextSelectHandleLeft = getDrawable(mTextSelectHandleLeftRes);
         }
@@ -1962,7 +1913,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setTextSelectHandleRight(int)
      * @attr ref android.R.styleable#TextView_textSelectHandleRight
      */
-    @Nullable public Drawable getTextSelectHandleRight() {
+    @Nullable
+    public Drawable getTextSelectHandleRight() {
         if (mTextSelectHandleRight == null && mTextSelectHandleRightRes != 0) {
             mTextSelectHandleRight = getDrawable(mTextSelectHandleRightRes);
         }
@@ -2009,7 +1961,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #setTextCursorDrawable(int)
      * @attr ref android.R.styleable#TextView_textCursorDrawable
      */
-    @Nullable public Drawable getTextCursorDrawable() {
+    @Nullable
+    public Drawable getTextCursorDrawable() {
         if (mCursorDrawable == null && mCursorDrawableRes != 0) {
             mCursorDrawable = getDrawable(mCursorDrawableRes);
         }
@@ -2230,7 +2183,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 attributes.mTextStyle = appearance.getInt(attr, attributes.mTextStyle);
 
             } else if (index == R.styleable.TextAppearance_android_textFontWeight) {
-                // (EW) attribute android:textFontWeight is only used in API level 28 and higher
+                // (EW) attribute android:textFontWeight is only used in API level 28 (Pie) and
+                // higher
                 attributes.mFontWeight = appearance.getInt(attr, attributes.mFontWeight);
 
             } else if (index == R.styleable.TextAppearance_android_shadowColor) {
@@ -2246,7 +2200,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 attributes.mShadowRadius = appearance.getFloat(attr, attributes.mShadowRadius);
 
             } else if (index == R.styleable.TextAppearance_android_elegantTextHeight) {
-                // (EW) attribute android:elegantTextHeight is only used in API level 21 and higher
+                // (EW) attribute android:elegantTextHeight is only used in API level 21 (Lollipop)
+                // and higher
                 attributes.mHasElegant = true;
                 attributes.mElegant = appearance.getBoolean(attr, attributes.mElegant);
 
@@ -2256,19 +2211,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         attributes.mFallbackLineSpacing);
 
             } else if (index == R.styleable.TextAppearance_android_letterSpacing) {
-                // (EW) attribute android:letterSpacing is only used in API level 21 and higher
+                // (EW) attribute android:letterSpacing is only used in API level 21 (Lollipop) and
+                // higher
                 attributes.mHasLetterSpacing = true;
                 attributes.mLetterSpacing =
                         appearance.getFloat(attr, attributes.mLetterSpacing);
 
             } else if (index == R.styleable.TextAppearance_android_fontFeatureSettings) {
-                // (EW) attribute android:fontFeatureSettings is only used in API level 21 and
-                // higher
+                // (EW) attribute android:fontFeatureSettings is only used in API level 21
+                // (Lollipop) and higher
                 attributes.mFontFeatureSettings = appearance.getString(attr);
 
             } else if (index == R.styleable.TextAppearance_android_fontVariationSettings) {
-                // (EW) attribute android:fontVariationSettings is only used in API level 28 and
-                // higher
+                // (EW) attribute android:fontVariationSettings is only used in API level 28 (Pie)
+                // and higher
                 attributes.mFontVariationSettings = appearance.getString(attr);
             }
         }
@@ -2348,7 +2304,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // returning true, at which point this method would only return true, so it should be
         // removed. realistically I'm not certain if this method is even necessary for non-framework
         // views, so removing this is probably fine if this does turn out to cause issues.
-        return /*(mFlags & Context.CONTEXT_IGNORE_SECURITY) != 0*/false;
+        return false;
     }
 
     // (EW) Context#getOpPackageName existed since at least Kitkat, but it was hidden until Q, so it
@@ -2500,14 +2456,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mTextPaint.getTextSize();
     }
 
-    /** @hide */
     @ViewDebug.ExportedProperty(category = "text", mapping = {
             @ViewDebug.IntToString(from = Typeface.NORMAL, to = "NORMAL"),
             @ViewDebug.IntToString(from = Typeface.BOLD, to = "BOLD"),
             @ViewDebug.IntToString(from = Typeface.ITALIC, to = "ITALIC"),
             @ViewDebug.IntToString(from = Typeface.BOLD_ITALIC, to = "BOLD_ITALIC")
     })
-    public int getTypefaceStyle() {
+    private int getTypefaceStyle() {
         Typeface typeface = mTextPaint.getTypeface();
         return typeface != null ? typeface.getStyle() : Typeface.NORMAL;
     }
@@ -2881,7 +2836,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see #getHyphenationFrequency()
      * @see #getBreakStrategy()
      */
-    public void setHyphenationFrequency(@HiddenLayout.HyphenationFrequency int hyphenationFrequency) {
+    public void setHyphenationFrequency(
+            @HiddenLayout.HyphenationFrequency int hyphenationFrequency) {
         mHyphenationFrequency = hyphenationFrequency;
         if (mLayout != null) {
             nullLayouts();
@@ -3351,17 +3307,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns whether the text is allowed to be wider than the View.
-     * If false, the text will be wrapped to the width of the View.
-     *
-     * @attr ref android.R.styleable#TextView_scrollHorizontally
-     * @hide
-     */
-    public boolean getHorizontallyScrolling() {
-        return mHorizontallyScrolling;
-    }
-
-    /**
      * Sets the height of the TextView to be at least {@code minLines} tall.
      * <p>
      * This value is used for height calculation if LayoutParams does not force TextView to have an
@@ -3770,16 +3715,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @param add The value in pixels that should be added to each line other than the last line.
      *            This will be applied after the multiplier
-     * @param mult The value by which each line height other than the last line will be multiplied
+     * @param multiplier The value by which each line height other than the last line will be multiplied
      *             by
      *
      * @attr ref android.R.styleable#TextView_lineSpacingExtra
      * @attr ref android.R.styleable#TextView_lineSpacingMultiplier
      */
-    public void setLineSpacing(float add, float mult) {
-        if (mSpacingAdd != add || mSpacingMult != mult) {
+    public void setLineSpacing(float add, float multiplier) {
+        if (mSpacingAdd != add || mSpacingMultiplier != multiplier) {
             mSpacingAdd = add;
-            mSpacingMult = mult;
+            mSpacingMultiplier = multiplier;
 
             if (mLayout != null) {
                 nullLayouts();
@@ -3801,7 +3746,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     @InspectableProperty
     public float getLineSpacingMultiplier() {
-        return mSpacingMult;
+        return mSpacingMultiplier;
     }
 
     /**
@@ -4234,9 +4179,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @attr ref android.R.styleable#TextView_hint
      */
-    public final void setHint(@StringRes int resid) {
-        mHintId = resid;
-        setHint(getContext().getResources().getText(resid));
+    public final void setHint(@StringRes int resId) {
+        mHintId = resId;
+        setHint(getContext().getResources().getText(resId));
     }
 
     /**
@@ -4438,7 +4383,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final int cls = type & EditorInfo.TYPE_MASK_CLASS;
         KeyListener input;
         if (cls == EditorInfo.TYPE_CLASS_TEXT) {
-            boolean autotext = (type & EditorInfo.TYPE_TEXT_FLAG_AUTO_CORRECT) != 0;
+            boolean autoText = (type & EditorInfo.TYPE_TEXT_FLAG_AUTO_CORRECT) != 0;
             TextKeyListener.Capitalize cap;
             if ((type & EditorInfo.TYPE_TEXT_FLAG_CAP_CHARACTERS) != 0) {
                 cap = TextKeyListener.Capitalize.CHARACTERS;
@@ -4449,7 +4394,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else {
                 cap = TextKeyListener.Capitalize.NONE;
             }
-            input = TextKeyListener.getInstance(autotext, cap);
+            input = TextKeyListener.getInstance(autoText, cap);
         } else if (cls == EditorInfo.TYPE_CLASS_NUMBER) {
             final Locale locale = getCustomLocaleForKeyListenerOrNull();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -4974,14 +4919,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (gravity != Gravity.TOP) {
-            int boxht = getBoxHeight(l);
-            int textht = l.getHeight();
+            int boxHeight = getBoxHeight(l);
+            int textHeight = l.getHeight();
 
-            if (textht < boxht) {
+            if (textHeight < boxHeight) {
                 if (gravity == Gravity.BOTTOM) {
-                    voffset = boxht - textht;
+                    voffset = boxHeight - textHeight;
                 } else { // (gravity == Gravity.CENTER_VERTICAL)
-                    voffset = (boxht - textht) >> 1;
+                    voffset = (boxHeight - textHeight) >> 1;
                 }
             }
         }
@@ -4998,14 +4943,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (gravity != Gravity.BOTTOM) {
-            int boxht = getBoxHeight(l);
-            int textht = l.getHeight();
+            int boxHeight = getBoxHeight(l);
+            int textHeight = l.getHeight();
 
-            if (textht < boxht) {
+            if (textHeight < boxHeight) {
                 if (gravity == Gravity.TOP) {
-                    voffset = boxht - textht;
+                    voffset = boxHeight - textHeight;
                 } else { // (gravity == Gravity.CENTER_VERTICAL)
-                    voffset = (boxht - textht) >> 1;
+                    voffset = (boxHeight - textHeight) >> 1;
                 }
             }
         }
@@ -5097,7 +5042,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             int bottom = mLayout.getLineBottom(lineEnd);
 
-            // mEditor can be null in case selection is set programmatically.
             if (invalidateCursor && mEditor.mDrawableForCursor != null) {
                 final Rect bounds = mEditor.mDrawableForCursor.getBounds();
                 top = Math.min(top, bounds.top);
@@ -5338,8 +5282,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int extendedPaddingTop = getExtendedPaddingTop();
         int extendedPaddingBottom = getExtendedPaddingBottom();
 
-        final int vspace = bottom - top - compoundPaddingBottom - compoundPaddingTop;
-        final int maxScrollY = mLayout.getHeight() - vspace;
+        final int vSpace = bottom - top - compoundPaddingBottom - compoundPaddingTop;
+        final int maxScrollY = mLayout.getHeight() - vSpace;
 
         float clipLeft = compoundPaddingLeft + scrollX;
         float clipTop = (scrollY == 0) ? 0 : extendedPaddingTop + scrollY;
@@ -5357,21 +5301,18 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         canvas.clipRect(clipLeft, clipTop, clipRight, clipBottom);
 
-        int voffsetText = 0;
-        int voffsetCursor = 0;
+        int vOffsetText = 0;
+        int vOffsetCursor = 0;
 
         // translate in by our padding
-        /* shortcircuit calling getVerticaOffset() */
+        /* short-circuit calling getVerticaOffset() */
         if ((mGravity & Gravity.VERTICAL_GRAVITY_MASK) != Gravity.TOP) {
-            voffsetText = getVerticalOffset(false);
-            voffsetCursor = getVerticalOffset(true);
+            vOffsetText = getVerticalOffset(false);
+            vOffsetCursor = getVerticalOffset(true);
         }
-        canvas.translate(compoundPaddingLeft, extendedPaddingTop + voffsetText);
+        canvas.translate(compoundPaddingLeft, extendedPaddingTop + vOffsetText);
 
-        final int layoutDirection = getLayoutDirection();
-        final int absoluteGravity = Gravity.getAbsoluteGravity(mGravity, layoutDirection);
-
-        final int cursorOffsetVertical = voffsetCursor - voffsetText;
+        final int cursorOffsetVertical = vOffsetCursor - vOffsetText;
 
         Path highlight = getUpdatedHighlightPath();
         mEditor.onDraw(canvas, layout, highlight, mHighlightPaint, cursorOffsetVertical);
@@ -6293,7 +6234,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * The width passed in is now the desired layout width,
      * not the full view width with padding.
-     * {@hide}
      */
     private void makeNewLayout(int wantWidth, int hintWidth,
                                BoringLayout.Metrics hintBoring,
@@ -6344,11 +6284,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         && (!shouldEllipsize || hintBoring.width <= ellipsisWidth)) {
                     if (mSavedHintLayout != null) {
                         mHintLayout = mSavedHintLayout.replaceOrMake(mHint, mTextPaint,
-                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintWidth, alignment, mSpacingMultiplier, mSpacingAdd,
                                 hintBoring, mIncludePad);
                     } else {
                         mHintLayout = BoringLayout.make(mHint, mTextPaint,
-                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintWidth, alignment, mSpacingMultiplier, mSpacingAdd,
                                 hintBoring, mIncludePad);
                     }
 
@@ -6356,12 +6296,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 } else if (shouldEllipsize && hintBoring.width <= hintWidth) {
                     if (mSavedHintLayout != null) {
                         mHintLayout = mSavedHintLayout.replaceOrMake(mHint, mTextPaint,
-                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintWidth, alignment, mSpacingMultiplier, mSpacingAdd,
                                 hintBoring, mIncludePad, mEllipsize,
                                 ellipsisWidth);
                     } else {
                         mHintLayout = BoringLayout.make(mHint, mTextPaint,
-                                hintWidth, alignment, mSpacingMult, mSpacingAdd,
+                                hintWidth, alignment, mSpacingMultiplier, mSpacingAdd,
                                 hintBoring, mIncludePad, mEllipsize,
                                 ellipsisWidth);
                     }
@@ -6373,7 +6313,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             mHint.length(), mTextPaint, hintWidth)
                             .setAlignment(alignment)
                             .setTextDirection(mTextDir)
-                            .setLineSpacing(mSpacingAdd, mSpacingMult)
+                            .setLineSpacing(mSpacingAdd, mSpacingMultiplier)
                             .setIncludePad(mIncludePad)
                             .setBreakStrategy(mBreakStrategy)
                             .setHyphenationFrequency(mHyphenationFrequency)
@@ -6387,7 +6327,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     }
                     mHintLayout = builder.build();
                 } else {
-                    mHintLayout = new StaticLayout(mHint, mTextPaint, hintWidth, alignment, mSpacingMult, mSpacingAdd, mIncludePad);
+                    mHintLayout = new StaticLayout(mHint, mTextPaint, hintWidth, alignment,
+                            mSpacingMultiplier, mSpacingAdd, mIncludePad);
                 }
             }
         }
@@ -6401,10 +6342,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     // (EW) the AOSP version was typed as Layout but this version currently always uses a
     // DynamicLayout, so specifying that for visibility, but this could be changed back if necessary
-    /**
-     * @hide
-     */
-    protected DynamicLayout makeSingleLayout(int wantWidth, int ellipsisWidth,
+    private DynamicLayout makeSingleLayout(int wantWidth, int ellipsisWidth,
                                       Layout.Alignment alignment, TruncateAt effectiveEllipsize) {
         DynamicLayout result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -6413,7 +6351,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     .setDisplayText(mTransformed)
                     .setAlignment(alignment)
                     .setTextDirection(mTextDir)
-                    .setLineSpacing(mSpacingAdd, mSpacingMult)
+                    .setLineSpacing(mSpacingAdd, mSpacingMultiplier)
                     .setIncludePad(mIncludePad)
                     .setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing)
                     .setBreakStrategy(mBreakStrategy)
@@ -6436,35 +6374,38 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             float.class, boolean.class, int.class, int.class, int.class,
                             TruncateAt.class, int.class);
                     result = (DynamicLayout)dynamicLayoutConstructor.newInstance(mText,
-                            mTransformed, mTextPaint, wantWidth, alignment, mTextDir, mSpacingMult,
-                            mSpacingAdd, mIncludePad, mBreakStrategy, mHyphenationFrequency,
-                            Layout.BREAK_STRATEGY_SIMPLE, truncateAt, ellipsisWidth);
+                            mTransformed, mTextPaint, wantWidth, alignment, mTextDir,
+                            mSpacingMultiplier, mSpacingAdd, mIncludePad, mBreakStrategy,
+                            mHyphenationFrequency, Layout.BREAK_STRATEGY_SIMPLE, truncateAt,
+                            ellipsisWidth);
                 } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     Constructor<?> dynamicLayoutConstructor = DynamicLayout.class.getConstructor(
                             CharSequence.class, CharSequence.class, TextPaint.class, int.class,
                             Layout.Alignment.class, TextDirectionHeuristic.class, float.class,
                             float.class, boolean.class, int.class, int.class,
                             TruncateAt.class, int.class);
-                    result = (DynamicLayout)dynamicLayoutConstructor.newInstance(mText, mTransformed, mTextPaint, wantWidth,
-                            alignment, mTextDir, mSpacingMult, mSpacingAdd, mIncludePad,
-                            mBreakStrategy, mHyphenationFrequency,
-                            truncateAt, ellipsisWidth);
+                    result = (DynamicLayout)dynamicLayoutConstructor.newInstance(mText,
+                            mTransformed, mTextPaint, wantWidth, alignment, mTextDir,
+                            mSpacingMultiplier, mSpacingAdd, mIncludePad, mBreakStrategy,
+                            mHyphenationFrequency, truncateAt, ellipsisWidth);
                 } else {
                     Constructor<?> dynamicLayoutConstructor = DynamicLayout.class.getConstructor(
                             CharSequence.class, CharSequence.class, TextPaint.class, int.class,
                             Layout.Alignment.class, TextDirectionHeuristic.class, float.class,
                             float.class, boolean.class,
                             TruncateAt.class, int.class);
-                    result = (DynamicLayout)dynamicLayoutConstructor.newInstance(mText, mTransformed, mTextPaint, wantWidth,
-                            alignment, mTextDir, mSpacingMult, mSpacingAdd, mIncludePad,
-                            truncateAt, ellipsisWidth);
+                    result = (DynamicLayout)dynamicLayoutConstructor.newInstance(mText,
+                            mTransformed, mTextPaint, wantWidth, alignment, mTextDir,
+                            mSpacingMultiplier, mSpacingAdd, mIncludePad, truncateAt,
+                            ellipsisWidth);
                 }
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException
                     | InstantiationException e) {
-                Log.e(TAG, "makeSingleLayout: Reflection failed on hidden DynamicLayout constructor: "
+                Log.e(TAG, "makeSingleLayout: " +
+                        "Reflection failed on hidden DynamicLayout constructor: "
                         + e.getMessage());
                 result = new DynamicLayout(mText, mTransformed, mTextPaint, wantWidth, alignment,
-                        mSpacingMult, mSpacingAdd, mIncludePad,
+                        mSpacingMultiplier, mSpacingAdd, mIncludePad,
                         getKeyListener() == null ? effectiveEllipsize : null, ellipsisWidth);
             }
         }
@@ -6526,7 +6467,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mIncludePad;
     }
 
-    public static final BoringLayout.Metrics UNKNOWN_BORING = new BoringLayout.Metrics();
+    private static final BoringLayout.Metrics UNKNOWN_BORING = new BoringLayout.Metrics();
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -6813,7 +6754,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 && (right - left - getCompoundPaddingLeft() - getCompoundPaddingRight() > 0)) {
             // Static width, so try making a new text layout.
 
-            int oldht = mLayout.getHeight();
+            int oldHeight = mLayout.getHeight();
             int want = mLayout.getWidth();
             int hintWant = mHintLayout == null ? 0 : mHintLayout.getWidth();
 
@@ -6835,8 +6776,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             // Dynamic height, but height has stayed the same,
             // so use our new text layout.
-            if (mLayout.getHeight() == oldht
-                    && (mHintLayout == null || mHintLayout.getHeight() == oldht)) {
+            if (mLayout.getHeight() == oldHeight
+                    && (mHintLayout == null || mHintLayout.getHeight() == oldHeight)) {
                 invalidate();
                 return;
             }
@@ -6878,24 +6819,24 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             line = layout.getLineCount() - 1;
         }
 
-        Layout.Alignment a = layout.getParagraphAlignment(line);
-        int dir = layout.getParagraphDirection(line);
-        int hspace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
-        int vspace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
-        int ht = layout.getHeight();
+        Layout.Alignment alignment = layout.getParagraphAlignment(line);
+        int direction = layout.getParagraphDirection(line);
+        int hSpace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
+        int vSpace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
+        int height = layout.getHeight();
 
-        int scrollx, scrolly;
+        int scrollX, scrollY;
 
         // Convert to left, center, or right alignment.
-        if (a == Layout.Alignment.ALIGN_NORMAL) {
-            a = dir == Layout.DIR_LEFT_TO_RIGHT
+        if (alignment == Layout.Alignment.ALIGN_NORMAL) {
+            alignment = direction == Layout.DIR_LEFT_TO_RIGHT
                     ? HiddenLayout.Alignment.ALIGN_LEFT : HiddenLayout.Alignment.ALIGN_RIGHT;
-        } else if (a == Layout.Alignment.ALIGN_OPPOSITE) {
-            a = dir == Layout.DIR_LEFT_TO_RIGHT
+        } else if (alignment == Layout.Alignment.ALIGN_OPPOSITE) {
+            alignment = direction == Layout.DIR_LEFT_TO_RIGHT
                     ? HiddenLayout.Alignment.ALIGN_RIGHT : HiddenLayout.Alignment.ALIGN_LEFT;
         }
 
-        if (a == Layout.Alignment.ALIGN_CENTER) {
+        if (alignment == Layout.Alignment.ALIGN_CENTER) {
             /*
              * Keep centered if possible, or, if it is too wide to fit,
              * keep leading edge in view.
@@ -6904,34 +6845,34 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             int left = (int) Math.floor(layout.getLineLeft(line));
             int right = (int) Math.ceil(layout.getLineRight(line));
 
-            if (right - left < hspace) {
-                scrollx = (right + left) / 2 - hspace / 2;
+            if (right - left < hSpace) {
+                scrollX = (right + left) / 2 - hSpace / 2;
             } else {
-                if (dir < 0) {
-                    scrollx = right - hspace;
+                if (direction < 0) {
+                    scrollX = right - hSpace;
                 } else {
-                    scrollx = left;
+                    scrollX = left;
                 }
             }
-        } else if (HiddenLayout.Alignment.isAlignRight(a)) {
+        } else if (HiddenLayout.Alignment.isAlignRight(alignment)) {
             int right = (int) Math.ceil(layout.getLineRight(line));
-            scrollx = right - hspace;
-        } else { // a == HiddenLayout.ALIGNMENT_ALIGN_LEFT (will also be the default)
-            scrollx = (int) Math.floor(layout.getLineLeft(line));
+            scrollX = right - hSpace;
+        } else { // alignment == HiddenLayout.ALIGNMENT_ALIGN_LEFT (will also be the default)
+            scrollX = (int) Math.floor(layout.getLineLeft(line));
         }
 
-        if (ht < vspace) {
-            scrolly = 0;
+        if (height < vSpace) {
+            scrollY = 0;
         } else {
             if ((mGravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.BOTTOM) {
-                scrolly = ht - vspace;
+                scrollY = height - vSpace;
             } else {
-                scrolly = 0;
+                scrollY = 0;
             }
         }
 
-        if (scrollx != getScrollX() || scrolly != getScrollY()) {
-            scrollTo(scrollx, scrolly);
+        if (scrollX != getScrollX() || scrollY != getScrollY()) {
+            scrollTo(scrollX, scrollY);
             return true;
         } else {
             return false;
@@ -6988,112 +6929,112 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         int left = (int) Math.floor(layout.getLineLeft(line));
         int right = (int) Math.ceil(layout.getLineRight(line));
-        int ht = layout.getHeight();
+        int height = layout.getHeight();
 
-        int hspace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
-        int vspace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
-        if (!mHorizontallyScrolling && right - left > hspace && right > x) {
+        int hSpace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
+        int vSpace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
+        if (!mHorizontallyScrolling && right - left > hSpace && right > x) {
             // If cursor has been clamped, make sure we don't scroll.
-            right = Math.max(x, left + hspace);
+            right = Math.max(x, left + hSpace);
         }
 
-        int hslack = (bottom - top) / 2;
-        int vslack = hslack;
+        int hSlack = (bottom - top) / 2;
+        int vSlack = hSlack;
 
-        if (vslack > vspace / 4) {
-            vslack = vspace / 4;
+        if (vSlack > vSpace / 4) {
+            vSlack = vSpace / 4;
         }
-        if (hslack > hspace / 4) {
-            hslack = hspace / 4;
+        if (hSlack > hSpace / 4) {
+            hSlack = hSpace / 4;
         }
 
-        int hs = getScrollX();
-        int vs = getScrollY();
+        int hScroll = getScrollX();
+        int vScroll = getScrollY();
 
-        if (top - vs < vslack) {
-            vs = top - vslack;
+        if (top - vScroll < vSlack) {
+            vScroll = top - vSlack;
         }
-        if (bottom - vs > vspace - vslack) {
-            vs = bottom - (vspace - vslack);
+        if (bottom - vScroll > vSpace - vSlack) {
+            vScroll = bottom - (vSpace - vSlack);
         }
-        if (ht - vs < vspace) {
-            vs = ht - vspace;
+        if (height - vScroll < vSpace) {
+            vScroll = height - vSpace;
         }
-        if (0 - vs > 0) {
-            vs = 0;
+        if (0 - vScroll > 0) {
+            vScroll = 0;
         }
 
         if (grav != 0) {
-            if (x - hs < hslack) {
-                hs = x - hslack;
+            if (x - hScroll < hSlack) {
+                hScroll = x - hSlack;
             }
-            if (x - hs > hspace - hslack) {
-                hs = x - (hspace - hslack);
+            if (x - hScroll > hSpace - hSlack) {
+                hScroll = x - (hSpace - hSlack);
             }
         }
 
         if (grav < 0) {
-            if (left - hs > 0) {
-                hs = left;
+            if (left - hScroll > 0) {
+                hScroll = left;
             }
-            if (right - hs < hspace) {
-                hs = right - hspace;
+            if (right - hScroll < hSpace) {
+                hScroll = right - hSpace;
             }
         } else if (grav > 0) {
-            if (right - hs < hspace) {
-                hs = right - hspace;
+            if (right - hScroll < hSpace) {
+                hScroll = right - hSpace;
             }
-            if (left - hs > 0) {
-                hs = left;
+            if (left - hScroll > 0) {
+                hScroll = left;
             }
         } else /* grav == 0 */ {
-            if (right - left <= hspace) {
+            if (right - left <= hSpace) {
                 /*
                  * If the entire text fits, center it exactly.
                  */
-                hs = left - (hspace - (right - left)) / 2;
-            } else if (x > right - hslack) {
+                hScroll = left - (hSpace - (right - left)) / 2;
+            } else if (x > right - hSlack) {
                 /*
                  * If we are near the right edge, keep the right edge
                  * at the edge of the view.
                  */
-                hs = right - hspace;
-            } else if (x < left + hslack) {
+                hScroll = right - hSpace;
+            } else if (x < left + hSlack) {
                 /*
                  * If we are near the left edge, keep the left edge
                  * at the edge of the view.
                  */
-                hs = left;
-            } else if (left > hs) {
+                hScroll = left;
+            } else if (left > hScroll) {
                 /*
                  * Is there whitespace visible at the left?  Fix it if so.
                  */
-                hs = left;
-            } else if (right < hs + hspace) {
+                hScroll = left;
+            } else if (right < hScroll + hSpace) {
                 /*
                  * Is there whitespace visible at the right?  Fix it if so.
                  */
-                hs = right - hspace;
+                hScroll = right - hSpace;
             } else {
                 /*
                  * Otherwise, float as needed.
                  */
-                if (x - hs < hslack) {
-                    hs = x - hslack;
+                if (x - hScroll < hSlack) {
+                    hScroll = x - hSlack;
                 }
-                if (x - hs > hspace - hslack) {
-                    hs = x - (hspace - hslack);
+                if (x - hScroll > hSpace - hSlack) {
+                    hScroll = x - (hSpace - hSlack);
                 }
             }
         }
 
-        if (hs != getScrollX() || vs != getScrollY()) {
+        if (hScroll != getScrollX() || vScroll != getScrollY()) {
             if (mScroller == null) {
-                scrollTo(hs, vs);
+                scrollTo(hScroll, vScroll);
             } else {
                 long duration = AnimationUtils.currentAnimationTimeMillis() - mLastScroll;
-                int dx = hs - getScrollX();
-                int dy = vs - getScrollY();
+                int dx = hScroll - getScrollX();
+                int dy = vScroll - getScrollY();
 
                 if (duration > ANIMATED_SCROLL_GAP) {
                     mScroller.startScroll(getScrollX(), getScrollY(), dx, dy);
@@ -7155,25 +7096,25 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         final int top = mLayout.getLineTop(line);
         final int bottom = mLayout.getLineTop(line + 1);
-        final int vspace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
-        int vslack = (bottom - top) / 2;
-        if (vslack > vspace / 4) {
-            vslack = vspace / 4;
+        final int vSpace = getBottom() - getTop() - getExtendedPaddingTop() - getExtendedPaddingBottom();
+        int vSlack = (bottom - top) / 2;
+        if (vSlack > vSpace / 4) {
+            vSlack = vSpace / 4;
         }
-        final int vs = getScrollY();
+        final int vScroll = getScrollY();
 
-        if (top < (vs + vslack)) {
-            line = mLayout.getLineForVertical(vs + vslack + (bottom - top));
-        } else if (bottom > (vspace + vs - vslack)) {
-            line = mLayout.getLineForVertical(vspace + vs - vslack - (bottom - top));
+        if (top < (vScroll + vSlack)) {
+            line = mLayout.getLineForVertical(vScroll + vSlack + (bottom - top));
+        } else if (bottom > (vSpace + vScroll - vSlack)) {
+            line = mLayout.getLineForVertical(vSpace + vScroll - vSlack - (bottom - top));
         }
 
         // Next: make sure the character is visible on screen:
 
-        final int hspace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
-        final int hs = getScrollX();
-        final int leftChar = mLayout.getOffsetForHorizontal(line, hs);
-        final int rightChar = mLayout.getOffsetForHorizontal(line, hspace + hs);
+        final int hSpace = getRight() - getLeft() - getCompoundPaddingLeft() - getCompoundPaddingRight();
+        final int hScroll = getScrollX();
+        final int leftChar = mLayout.getOffsetForHorizontal(line, hScroll);
+        final int rightChar = mLayout.getOffsetForHorizontal(line, hSpace + hScroll);
 
         // line might contain bidirectional text
         final int lowChar = leftChar < rightChar ? leftChar : rightChar;
@@ -7486,9 +7427,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@code true} is the default value.
      *
      * @see #setCursorVisible(boolean)
-     * @hide
      */
-    public boolean isCursorVisibleFromAttr() {
+    boolean isCursorVisibleFromAttr() {
         return mCursorVisibleFromAttr;
     }
 
@@ -8133,6 +8073,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return super.onTrackballEvent(event);
     }
 
+    /**
+     * Sets the Scroller used for producing a scrolling animation
+     *
+     * @param s A Scroller instance
+     */
+    public void setScroller(Scroller s) {
+        mScroller = s;
+    }
+
     @Override
     protected int computeHorizontalScrollRange() {
         if (mLayout != null) {
@@ -8295,21 +8244,19 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * the current IME's locale, or the system default locale.
      * Please note that a word iterator in this TextView is different from another word iterator
      * used by SpellChecker.java of TextView. This method should be used for the former.
-     * @hide
      */
     // TODO: Support multi-locale
     // TODO: Update the text services locale immediately after the keyboard locale is switched
     // by catching intent of keyboard switch event
-    public Locale getTextServicesLocale() {
+    Locale getTextServicesLocale() {
         return getTextServicesLocale(false /* allowNullLocale */);
     }
 
     /**
      * @return {@code true} if this TextView is specialized for showing and interacting with the
      * extracted text in a full-screen input method.
-     * @hide
      */
-    public boolean isInExtractedMode() {
+    boolean isInExtractedMode() {
         return false;
     }
 
@@ -8321,9 +8268,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @return The locale that should be used for a spell checker in this TextView,
      * based on the current spell checker settings, the current IME's locale, or the system default
      * locale.
-     * @hide
      */
-    public Locale getSpellCheckerLocale() {
+    Locale getSpellCheckerLocale() {
         return getTextServicesLocale(true /* allowNullLocale */);
     }
 
@@ -8408,7 +8354,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             textServicesManager, true);
             if (subtype != null) {
                 String localeStr = subtype.getLocale();
-                // from SpellCheckerSubtype#constructLocaleFromString since that's hidden
+                // (EW) from SpellCheckerSubtype#constructLocaleFromString since that's hidden
                 if (!TextUtils.isEmpty(localeStr)) {
                     String[] localeParams = localeStr.split("_", 3);
                     // The length of localeStr is guaranteed to always return a 1 <= value <= 3
@@ -8502,7 +8448,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 structure.setDataIsSensitive(!mTextSetFromXmlOrResourceId);
             }
             if (mTextId != Resources.ID_NULL && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // (EW) nothing was done for this prior to P
+                // (EW) nothing was done for this prior to Pie
                 try {
                     structure.setTextIdEntry(getResources().getResourceEntryName(mTextId));
                 } catch (Resources.NotFoundException e) {
@@ -8692,7 +8638,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         structure.setHint(getHint());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // (EW) nothing was done for this prior to O
+            // (EW) nothing was done for this prior to Oreo
             structure.setInputType(getInputType());
         }
     }
@@ -8822,7 +8768,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param viewportToContentHorizontalOffset The horizontal offset from the viewport to the
      * content
      * @param viewportToContentVerticalOffset The vertical offset from the viewport to the content
-     * @hide
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     void populateCharacterBounds(CursorAnchorInfo.Builder builder,
@@ -9159,7 +9104,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @return true if the suggestions popup window is enabled, based on the inputType.
      */
     public boolean isSuggestionsEnabled() {
-        if (mEditor == null) return false;
         if ((mEditor.mInputType & InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT) {
             return false;
         }
@@ -9641,33 +9585,29 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Deletes the range of text [start, end[.
-     * @hide
      */
-    protected void deleteText_internal(int start, int end) {
+    void deleteText_internal(int start, int end) {
         mText.delete(start, end);
     }
 
     /**
      * Replaces the range of text [start, end[ by replacement text
-     * @hide
      */
-    protected void replaceText_internal(int start, int end, CharSequence text) {
+    void replaceText_internal(int start, int end, CharSequence text) {
         mText.replace(start, end, text);
     }
 
     /**
      * Sets a span on the specified range of text
-     * @hide
      */
-    protected void setSpan_internal(Object span, int start, int end, int flags) {
+    void setSpan_internal(Object span, int start, int end, int flags) {
         mText.setSpan(span, start, end, flags);
     }
 
     /**
      * Moves the cursor to the specified offset position in text
-     * @hide
      */
-    protected void setCursorPosition_internal(int start, int end) {
+    void setCursorPosition_internal(int start, int end) {
         Selection.setSelection(mText, start, end);
     }
 
@@ -9788,7 +9728,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
 
             AccessibilityManager accessibilityManager = getAccessibilityManager();
-            if (accessibilityManager != null && accessibilityManager.isEnabled() && (mTransformed != null)) {
+            if (accessibilityManager != null && accessibilityManager.isEnabled()
+                    && mTransformed != null) {
                 mBeforeText = mTransformed.toString();
             }
 
@@ -9895,7 +9836,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     public void onCreateViewTranslationRequest(@NonNull int[] supportedFormats,
-                                               @NonNull Consumer<ViewTranslationRequest> requestsCollector) {
+            @NonNull Consumer<ViewTranslationRequest> requestsCollector) {
         if (supportedFormats == null || supportedFormats.length == 0) {
             // Do not provide the support translation formats
             return;
@@ -9921,7 +9862,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         requestsCollector.accept(requestBuilder.build());
     }
 
-
+    // (EW) wrapper to get a drawable on any version
     @SuppressLint("UseCompatLoadingForDrawables")
     Drawable getDrawable(int res) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -9931,61 +9872,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-//    // from Layout
-//    //TODO: (EW) copied from Layout - see if this can be removed
-//    private enum Alignment {
-//        ALIGN_NORMAL,
-//        ALIGN_OPPOSITE,
-//        ALIGN_CENTER,
-//        /** @hide */
-//        ALIGN_LEFT,
-//        /** @hide */
-//        ALIGN_RIGHT,
-//    }
-//    private Alignment convertAlignment(Layout.Alignment alignment) {
-//        switch (alignment) {
-//            case ALIGN_NORMAL:
-//                return Alignment.ALIGN_NORMAL;
-//            case ALIGN_OPPOSITE:
-//                return Alignment.ALIGN_OPPOSITE;
-//            case ALIGN_CENTER:
-//                return Alignment.ALIGN_CENTER;
-//        }
-//        //TODO: (EW) could this ever happen?
-//        Log.e(TAG, "convertAlignment: " + alignment);
-//        return Alignment.ALIGN_LEFT;
-//    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // from View
-    /** @hide */
-    public void transformFromViewToWindowSpace(@Size(2) int[] inOutLocation) {
+    // (EW) from View
+    void transformFromViewToWindowSpace(@Size(2) int[] inOutLocation) {
         if (inOutLocation == null || inOutLocation.length < 2) {
             throw new IllegalArgumentException("inOutLocation must be an array of two integers");
         }
@@ -9996,7 +9884,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return;
         }
 
-        float position[] = /*mAttachInfo.mTmpTransformLocation*/new float[2];
+        float[] position = new float[2];
         position[0] = inOutLocation[0];
         position[1] = inOutLocation[1];
 
@@ -10035,14 +9923,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         inOutLocation[1] = Math.round(position[1]);
     }
 
-    // from View
+    // (EW) from View
     /**
      * Returns true if the transform matrix is the identity matrix.
      * Recomputes the matrix if necessary.
      *
      * @return True if the transform matrix is the identity matrix, false otherwise.
      */
-    private static final boolean hasIdentityMatrix(View view) {
+    private static boolean hasIdentityMatrix(View view) {
         // (EW) the AOSP version called RenderNode#hasIdentityMatrix, and documentation for that
         // states that it's just a faster way to do the otherwise equivalent
         // RenderNode#getMatrix(Matrix) Matrix#isIdentity(). View#getMatrix calls
@@ -10051,16 +9939,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return view.getMatrix().isIdentity();
     }
 
-    // from View
+    // (EW) from View
     /**
      * Transforms a motion event from on-screen coordinates to view-local
      * coordinates.
      *
      * @param ev the on-screen motion event
      * @return false if the transformation could not be applied
-     * @hide
      */
-    public boolean toLocalMotionEvent(MotionEvent ev) {
+    boolean toLocalMotionEvent(MotionEvent ev) {
         // (EW) the AOSP version checked if View#mAttachInfo was null directly, but that's hidden,
         // so we need to call the equivalent API
         if (!isAttachedToWindow()) {
@@ -10106,7 +9993,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return true;
     }
 
-    // from View (Kitkat)
+    // (EW) from View (Kitkat)
     /**
      * Recursive helper method that applies transformations in post-order.
      *
@@ -10130,8 +10017,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    // from View based on Kitkat code (changed in Lollipop) since this should only be getting called
-    // prior to Lollipop
+    // (EW) from View based on Kitkat code (changed in Lollipop) since this should only be getting
+    // called prior to Lollipop
     /**
      * Utility method to retrieve the inverse of the current mMatrix property.
      * We cache the matrix to avoid recalculating it when transform properties
@@ -10139,7 +10026,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @return The inverse of the current matrix of this view.
      */
-    static Matrix getInverseMatrix(View view) {
+    private static Matrix getInverseMatrix(View view) {
         // (EW) the AOSP version used mTransformationInfo, which we don't have access to, and
         // verified that it wasn't null. View#getMatrix calls View#updateMatrix, which was done next
         // here in the AOSP version, and it gets the gets the matrix we need to work with. it also
@@ -10169,7 +10056,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @param intent The Intent to be started.
      * @param requestCode The request code to use.
-     * @hide
      */
     @RequiresApi(api = Build.VERSION_CODES.M)
     void startActivityForResult(Intent intent, int requestCode) {
@@ -10229,15 +10115,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return getActivity() != null;
     }
 
-    // from View
+    // (EW) from View
     /**
      * Map a rectangle from view-relative coordinates to screen-relative coordinates
      *
      * @param rect The rectangle to be mapped
      * @param clipToParent Whether to clip child bounds to the parent ones.
-     * @hide
      */
-    public void mapRectFromViewToScreenCoords(RectF rect, boolean clipToParent) {
+    private void mapRectFromViewToScreenCoords(RectF rect, boolean clipToParent) {
         if (!hasIdentityMatrix(this)) {
             getMatrix().mapRect(rect);
         }
@@ -10276,28 +10161,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         rect.offset(windowLocation[0], windowLocation[1]);
     }
 
-    // from View
+    // (EW) from View
     /**
      * Indicates whether or not this view's layout is right-to-left. This is resolved from
      * layout attribute and/or the inherited value from the parent
      *
      * @return true if the layout is right-to-left.
-     *
-     * @hide
      */
-    public boolean isLayoutRtl() {
+    private boolean isLayoutRtl() {
         return (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
     }
 
-    // from View
-    public int[] getLocationOnScreen() {
+    // (EW) from View
+    int[] getLocationOnScreen() {
         int[] location = new int[2];
         getLocationOnScreen(location);
         return location;
     }
 
-    // from View
-    public Insets getOpticalInsets() {
+    // (EW) from View
+    private Insets getOpticalInsets() {
         // (EW) the AOSP version first checks for the value that was manually set from
         // View#setOpticalInsets, but there isn't a way to get that other than reflection, and I
         // only found one case where it was called, so it's probably unlikely that it would cause a
@@ -10305,8 +10188,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return computeOpticalInsets();
     }
 
-    // from View
-    Insets computeOpticalInsets() {
+    // (EW) from View
+    private Insets computeOpticalInsets() {
         Drawable background = getBackground();
         if (background == null) {
             return Insets.NONE;
@@ -10330,40 +10213,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    // from View
+    // (EW) from View
     private static boolean isLayoutModeOptical(Object o) {
         return o instanceof ViewGroup && isLayoutModeOptical((ViewGroup) o);
     }
 
-    // from ViewGroup
+    // (EW) from ViewGroup
     /** Return true if this ViewGroup is laying out using optical bounds. */
     private static boolean isLayoutModeOptical(ViewGroup viewGroup) {
         return viewGroup.getLayoutMode() == ViewGroup.LAYOUT_MODE_OPTICAL_BOUNDS;
     }
-
-
-
-    // from DigitsKeyListener
-    /**
-     * Returns a DigitsKeyListener based on an the settings of a existing DigitsKeyListener, with
-     * the locale modified.
-     *
-     * @hide
-     */
-    @NonNull
-    public static DigitsKeyListener getInstance(
-            @Nullable Locale locale,
-            @NonNull DigitsKeyListener listener) {
-//        if (listener.mStringMode) {
-//            return listener; // string-mode DigitsKeyListeners have no locale.
-//        } else {
-//            return getInstance(locale, listener.mSign, listener.mDecimal);
-//        }
-        return null;
-    }
-
-
-
 
     // (EW) from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
     // DragAndDropPermissions isn't accessible for apps, so we need to find the activity to get it.

@@ -59,7 +59,6 @@ import android.text.style.TextAppearanceSpan;
 import android.text.style.URLSpan;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.ActionMode.Callback;
@@ -118,7 +117,6 @@ import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
-//import com.wittmane.testingedittext.aosp.text.style.EasyEditSpan;
 import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
@@ -699,13 +697,13 @@ class Editor {
         }
     }
 
-    void adjustInputType(boolean password, boolean passwordInputType,
+    void adjustInputType(boolean passwordInputType,
                          boolean webPasswordInputType, boolean numberPasswordInputType) {
         // mInputType has been set from inputType, possibly modified by mInputMethod.
         // Specialize mInputType to [web]password if we have a text class and the original input
         // type was a password.
         if ((mInputType & EditorInfo.TYPE_MASK_CLASS) == EditorInfo.TYPE_CLASS_TEXT) {
-            if (password || passwordInputType) {
+            if (passwordInputType) {
                 mInputType = (mInputType & ~(EditorInfo.TYPE_MASK_VARIATION))
                         | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD;
             }
@@ -5396,7 +5394,7 @@ class Editor {
                 isExpanding |= xDiff < 0;
             }
 
-            if (mTextView.getHorizontallyScrolling()) {
+            if (mTextView.isHorizontallyScrollable()) {
                 if (positionNearEdgeOfScrollingView(x, atRtl)
                         && ((isStartHandle() && mTextView.getScrollX() != 0)
                                 || (!isStartHandle()

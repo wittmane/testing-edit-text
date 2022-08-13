@@ -23,6 +23,8 @@ import android.view.MotionEvent;
 
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
+// (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
+// TextView
 /**
  * Provides cursor positioning, scrolling and text selection functionality in a {@link EditText}.
  * <p>
@@ -33,8 +35,6 @@ import com.wittmane.testingedittext.aosp.widget.EditText;
  * This interface is intended for use by the framework; it should not be implemented
  * directly by applications.
  * </p>
- *
- * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView
  */
 public interface MovementMethod {
     void initialize(EditText widget, Spannable text);

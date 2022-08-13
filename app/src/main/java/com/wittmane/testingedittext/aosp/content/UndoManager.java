@@ -22,6 +22,8 @@ import android.util.ArrayMap;
 
 import java.util.ArrayList;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to create
+// an instance of it and directly use it
 /**
  * Top-level class for managing and interacting with the global undo state for
  * a document or application.  This class supports both undo and redo and has
@@ -48,8 +50,6 @@ import java.util.ArrayList;
  * undo/redo them without needing to impact edits in other objects; while
  * within the larger document, all edits can be seen and the user must
  * undo/redo them as a single stream.</p>
- *
- * @hide
  */
 public class UndoManager {
     // The common case is a single undo owner (e.g. for a TextView), so default to that capacity.
@@ -179,11 +179,11 @@ public class UndoManager {
 
         int stype;
         while ((stype=p.readInt()) != 0) {
-            UndoState ustate = new UndoState(this, p, loader);
+            UndoState undoState = new UndoState(this, p, loader);
             if (stype == 1) {
-                mUndos.add(0, ustate);
+                mUndos.add(0, undoState);
             } else {
-                mRedos.add(0, ustate);
+                mRedos.add(0, undoState);
             }
         }
     }
@@ -243,7 +243,7 @@ public class UndoManager {
             us.makeExecuted();
         }
 
-        while (count > 0 && (i=findPrevState(mUndos, owners, i)) >= 0) {
+        while (count > 0 && (i = findPrevState(mUndos, owners, i)) >= 0) {
             UndoState state = mUndos.remove(i);
             state.undo();
             mRedos.add(state);
@@ -275,7 +275,7 @@ public class UndoManager {
 
         mInUndo = true;
 
-        while (count > 0 && (i=findPrevState(mRedos, owners, i)) >= 0) {
+        while (count > 0 && (i = findPrevState(mRedos, owners, i)) >= 0) {
             UndoState state = mRedos.remove(i);
             state.redo();
             mUndos.add(state);
@@ -349,9 +349,9 @@ public class UndoManager {
             return mUndos.size();
         }
 
-        int count=0;
-        int i=0;
-        while ((i=findNextState(mUndos, owners, i)) >= 0) {
+        int count = 0;
+        int i = 0;
+        while ((i = findNextState(mUndos, owners, i)) >= 0) {
             count++;
             i++;
         }
@@ -368,9 +368,9 @@ public class UndoManager {
             return mRedos.size();
         }
 
-        int count=0;
-        int i=0;
-        while ((i=findNextState(mRedos, owners, i)) >= 0) {
+        int count = 0;
+        int i = 0;
+        while ((i = findNextState(mRedos, owners, i)) >= 0) {
             count++;
             i++;
         }
@@ -585,7 +585,7 @@ public class UndoManager {
                 // The state before this one can no longer be merged, ever.
                 // The only way to get back to it is for the user to perform
                 // an undo.
-                mUndos.get(N-2).makeExecuted();
+                mUndos.get(N - 2).makeExecuted();
             }
         } else {
             mWorking.destroy();
@@ -676,7 +676,7 @@ public class UndoManager {
         if (owners == null) {
             return true;
         }
-        for (int i=0; i<owners.length; i++) {
+        for (int i = 0; i < owners.length; i++) {
             if (state.matchOwner(owners[i])) {
                 return true;
             }
@@ -753,7 +753,7 @@ public class UndoManager {
             mExecuted = p.readInt() != 0;
             mLabel = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(p);
             final int N = p.readInt();
-            for (int i=0; i<N; i++) {
+            for (int i = 0; i < N; i++) {
                 UndoOwner owner = mManager.restoreOwner(p);
                 UndoOperation op = (UndoOperation)p.readParcelable(loader);
                 op.mOwner = owner;
@@ -771,7 +771,7 @@ public class UndoManager {
             TextUtils.writeToParcel(mLabel, p, 0);
             final int N = mOperations.size();
             p.writeInt(N);
-            for (int i=0; i<N; i++) {
+            for (int i = 0; i < N; i++) {
                 UndoOperation op = mOperations.get(i);
                 mManager.saveOwner(op.mOwner, p);
                 p.writeParcelable(op, 0);
@@ -822,7 +822,7 @@ public class UndoManager {
             if (owner == null) {
                 return N != 0;
             }
-            for (int i=0; i<N; i++) {
+            for (int i = 0; i < N; i++) {
                 if (mOperations.get(i).getOwner() == owner) {
                     return true;
                 }
@@ -836,7 +836,7 @@ public class UndoManager {
                 return false;
             }
             UndoOwner owner = mOperations.get(0).getOwner();
-            for (int i=1; i<N; i++) {
+            for (int i = 1; i < N; i++) {
                 if (mOperations.get(i).getOwner() != owner) {
                     return true;
                 }
@@ -862,7 +862,7 @@ public class UndoManager {
                 return N > 0 ? (T)mOperations.get(N-1) : null;
             }
             // First look for the top-most operation with the same owner.
-            for (int i=N-1; i>=0; i--) {
+            for (int i = N - 1; i >= 0; i--) {
                 UndoOperation<?> op = mOperations.get(i);
                 if (owner != null && op.getOwner() != owner) {
                     continue;
@@ -880,7 +880,7 @@ public class UndoManager {
         }
 
         boolean matchOwner(UndoOwner owner) {
-            for (int i=mOperations.size()-1; i>=0; i--) {
+            for (int i = mOperations.size() - 1; i >= 0; i--) {
                 if (mOperations.get(i).matchOwner(owner)) {
                     return true;
                 }
@@ -889,7 +889,7 @@ public class UndoManager {
         }
 
         boolean hasData() {
-            for (int i=mOperations.size()-1; i>=0; i--) {
+            for (int i = mOperations.size() - 1; i >= 0; i--) {
                 if (mOperations.get(i).hasData()) {
                     return true;
                 }
@@ -899,27 +899,27 @@ public class UndoManager {
 
         void commit() {
             final int N = mRecent != null ? mRecent.size() : 0;
-            for (int i=0; i<N; i++) {
+            for (int i = 0; i < N; i++) {
                 mRecent.get(i).commit();
             }
             mRecent = null;
         }
 
         void undo() {
-            for (int i=mOperations.size()-1; i>=0; i--) {
+            for (int i = mOperations.size() - 1; i >= 0; i--) {
                 mOperations.get(i).undo();
             }
         }
 
         void redo() {
             final int N = mOperations.size();
-            for (int i=0; i<N; i++) {
+            for (int i = 0; i < N; i++) {
                 mOperations.get(i).redo();
             }
         }
 
         void destroy() {
-            for (int i=mOperations.size()-1; i>=0; i--) {
+            for (int i = mOperations.size() - 1; i >= 0; i--) {
                 UndoOwner owner = mOperations.get(i).mOwner;
                 owner.mOpCount--;
                 if (owner.mOpCount <= 0) {

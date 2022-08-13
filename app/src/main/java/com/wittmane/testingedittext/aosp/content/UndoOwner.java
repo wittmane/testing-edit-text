@@ -16,10 +16,10 @@
 
 package com.wittmane.testingedittext.aosp.content;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used with the copied version of UndoManager
 /**
  * Representation of an owner of {@link UndoOperation} objects in an {@link UndoManager}.
- *
- * @hide
  */
 public class UndoOwner {
     final String mTag;

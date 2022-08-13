@@ -30,9 +30,10 @@ import com.wittmane.testingedittext.aosp.text.HiddenLayout.Directions;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to copy
+// the hidden MeasuredParagraph
 /**
  * Access the ICU bidi implementation.
- * @hide
  */
 public class AndroidBidi {
     private static final String TAG = AndroidBidi.class.getSimpleName();

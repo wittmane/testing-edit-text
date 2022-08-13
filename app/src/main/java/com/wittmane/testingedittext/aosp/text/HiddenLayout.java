@@ -19,7 +19,6 @@ package com.wittmane.testingedittext.aosp.text;
 
 import android.os.Build;
 import android.text.Layout;
-import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextDirectionHeuristic;
 import android.text.TextPaint;
@@ -40,7 +39,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
 
 /**
- * (EW) content from Layout that is blocked for app developers to access
+ * (EW) content from Layout that is blocked from apps accessing
  */
 public class HiddenLayout {
     private static final String TAG = HiddenLayout.class.getSimpleName();
@@ -76,7 +75,6 @@ public class HiddenLayout {
      * specified text slice with one line per paragraph.
      *
      * If the measured width exceeds given limit, returns limit value instead.
-     * @hide
      */
     public static float getDesiredWidthWithLimit(CharSequence source, int start, int end,
                                                  TextPaint paint, TextDirectionHeuristic textDir,
@@ -105,74 +103,6 @@ public class HiddenLayout {
         return need;
     }
 
-//    private static boolean isJustificationRequired(Layout layout, int lineNum) {
-//        //TODO: (EW) mJustificationMode is only set from the hidden setJustificationMode and only
-//        // used here. I'm not sure how to get this info
-////        if (mJustificationMode == Layout.JUSTIFICATION_MODE_NONE) return false;
-////        final int lineEnd = layout.getLineEnd(lineNum);
-////        CharSequence text = layout.getText();
-////        return lineEnd < text.length() && text.charAt(lineEnd - 1) != '\n';
-//        return false;
-//    }
-
-//    /**
-//     * Return the start position of the line, given the left and right bounds
-//     * of the margins.
-//     *
-//     * @param line the line index
-//     * @param left the left bounds (0, or leading margin if ltr para)
-//     * @param right the right bounds (width, minus leading margin if rtl para)
-//     * @return the start position of the line (to right of line if rtl para)
-//     */
-//    private static int getLineStartPos(Layout layout, TextDirectionHeuristic textDir, int line, int left, int right) {
-//        // Adjust the point at which to start rendering depending on the
-//        // alignment of the paragraph.
-//        Layout.Alignment align = layout.getParagraphAlignment(line);
-//        int dir = layout.getParagraphDirection(line);
-//
-//        if (align == ALIGNMENT_ALIGN_LEFT) {
-//            align = (dir == Layout.DIR_LEFT_TO_RIGHT) ? Layout.Alignment.ALIGN_NORMAL : Layout.Alignment.ALIGN_OPPOSITE;
-//        } else if (align == ALIGNMENT_ALIGN_RIGHT) {
-//            align = (dir == Layout.DIR_LEFT_TO_RIGHT) ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL;
-//        }
-//
-//        int x;
-//        if (align == Layout.Alignment.ALIGN_NORMAL) {
-//            if (dir == Layout.DIR_LEFT_TO_RIGHT) {
-//                x = left + layout.getIndentAdjust(line, Alignment.ALIGN_LEFT); //TODO: (EW) getIndentAdjust is overridden in StaticLayout since at least Pie
-//            } else {
-//                x = right + layout.getIndentAdjust(line, Alignment.ALIGN_RIGHT); //TODO: (EW) getIndentAdjust is overridden in StaticLayout since at least Pie
-//            }
-//        } else {
-//            TabStops tabStops = null;
-//            CharSequence text = layout.getText();
-//            if (text instanceof Spanned && layout.getLineContainsTab(line)) {
-//                Spanned spanned = (Spanned) text;
-//                int start = layout.getLineStart(line);
-//                int spanEnd = spanned.nextSpanTransition(start, spanned.length(),
-//                        TabStopSpan.class);
-//                TabStopSpan[] tabSpans = getParagraphSpans(spanned, start, spanEnd,
-//                        TabStopSpan.class);
-//                if (tabSpans.length > 0) {
-//                    tabStops = new TabStops(TAB_INCREMENT, tabSpans);
-//                }
-//            }
-//            int max = (int)getLineExtent(layout, textDir, line, tabStops, false);
-//            if (align == Layout.Alignment.ALIGN_OPPOSITE) {
-//                if (dir == Layout.DIR_LEFT_TO_RIGHT) {
-//                    x = right - max + layout.getIndentAdjust(line, Alignment.ALIGN_RIGHT); //TODO: (EW) getIndentAdjust is overridden in StaticLayout since at least Pie
-//                } else {
-//                    // max is negative here
-//                    x = left - max + layout.getIndentAdjust(line, Alignment.ALIGN_LEFT); //TODO: (EW) getIndentAdjust is overridden in StaticLayout since at least Pie
-//                }
-//            } else { // Alignment.ALIGN_CENTER
-//                max = max & ~1;
-//                x = (left + right - max) >> 1 + layout.getIndentAdjust(line, Alignment.ALIGN_CENTER); //TODO: (EW) getIndentAdjust is overridden in StaticLayout since at least Pie
-//            }
-//        }
-//        return x;
-//    }
-
     /**
      * Returns the directional run information for the specified line.
      * The array alternates counts of characters in left-to-right
@@ -180,14 +110,16 @@ public class HiddenLayout {
      *
      * <p>NOTE: this is inadequate to support bidirectional text, and will change.
      */
-    public static Directions getLineDirections(Layout layout, TextDirectionHeuristic textDir, int line) {
+    public static Directions getLineDirections(Layout layout, TextDirectionHeuristic textDir,
+                                               int line) {
         // (EW) custom logic to get a Directions object that we can actually do something with
         int lineStart = layout.getLineStart(line);
         int lineEnd = layout.getLineEnd(line);
 
         MeasuredParagraph mt = null;
         try {
-            mt = MeasuredParagraph.buildForBidi(layout.getText(), 0, layout.getText().length(), textDir, mt);
+            mt = MeasuredParagraph.buildForBidi(layout.getText(), 0, layout.getText().length(),
+                    textDir, mt);
             return mt.getDirections(lineStart, lineEnd);
         } finally {
             if (mt != null) {
@@ -201,9 +133,9 @@ public class HiddenLayout {
      * are at different run levels (and thus there's a split caret).
      * @param offset the offset
      * @return true if at a level boundary
-     * @hide
      */
-    public static boolean isLevelBoundary(Layout layout, TextDirectionHeuristic textDir, int offset) {
+    public static boolean isLevelBoundary(Layout layout, TextDirectionHeuristic textDir,
+                                          int offset) {
         int line = layout.getLineForOffset(offset);
         Directions dirs = getLineDirections(layout, textDir, line);
         if (dirs == DIRS_ALL_LEFT_TO_RIGHT || dirs == DIRS_ALL_RIGHT_TO_LEFT) {
@@ -232,7 +164,6 @@ public class HiddenLayout {
      * Returns the range of the run that the character at offset belongs to.
      * @param offset the offset
      * @return The range of the run
-     * @hide
      */
     public static long getRunRange(Layout layout, TextDirectionHeuristic textDir, int offset) {
         int line = layout.getLineForOffset(offset);
@@ -276,9 +207,8 @@ public class HiddenLayout {
      * 1 and this method returns false for the offset = 6 since the BiDi level of Run 1 is higher
      * than the level of Run 2.
      *
-     * @returns true if offset is at the BiDi level transition point and trailing BiDi level is
-     *          higher than previous BiDi level. See above for the detail.
-     * @hide
+     * @return true if offset is at the BiDi level transition point and trailing BiDi level is
+     *         higher than previous BiDi level. See above for the detail.
      */
     public static boolean primaryIsTrailingPrevious(Layout layout, TextDirectionHeuristic textDir,
                                                     int offset) {
@@ -339,7 +269,6 @@ public class HiddenLayout {
      * #primaryIsTrailingPrevious for all offsets on a line.
      * @param line The line giving the offsets we compute the information for
      * @return The array of results, indexed from 0, where 0 corresponds to the line start offset
-     * @hide
      */
     public static boolean[] primaryIsTrailingPreviousAllLineOffsets(Layout layout,
                                                                     TextDirectionHeuristic textDir,
@@ -378,7 +307,6 @@ public class HiddenLayout {
     /**
      * Get the primary horizontal position for the specified text offset, but
      * optionally clamp it so that it doesn't exceed the width of the layout.
-     * @hide
      */
     public static float getPrimaryHorizontal(Layout layout, TextDirectionHeuristic textDir,
                                              int offset, boolean clamped) {
@@ -428,296 +356,9 @@ public class HiddenLayout {
                 : layout.getSecondaryHorizontal(offset);
     }
 
-//    /**
-//     * Computes in linear time the results of calling #getHorizontal for all offsets on a line.
-//     *
-//     * @param line The line giving the offsets we compute information for
-//     * @param clamped Whether to clamp the results to the width of the layout
-//     * @param primary Whether the results should be the primary or the secondary horizontal
-//     * @return The array of results, indexed from 0, where 0 corresponds to the line start offset
-//     */
-//    private static float[] getLineHorizontals(Layout layout, TextDirectionHeuristic textDir,
-//                                              int line, boolean clamped, boolean primary) {
-//        int start = layout.getLineStart(line);
-//        int end = layout.getLineEnd(line);
-//        int dir = layout.getParagraphDirection(line);
-//        boolean hasTab = layout.getLineContainsTab(line);
-//        Directions directions = getLineDirections(layout, textDir, line);
-//
-//        TabStops tabStops = null;
-//        CharSequence text = layout.getText();
-//        if (hasTab && text instanceof Spanned) {
-//            // Just checking this line should be good enough, tabs should be
-//            // consistent across all lines in a paragraph.
-//            TabStopSpan[] tabs = getParagraphSpans((Spanned) text, start, end, TabStopSpan.class);
-//            if (tabs.length > 0) {
-//                tabStops = new TabStops(TAB_INCREMENT, tabs); // XXX should reuse
-//            }
-//        }
-//
-//        TextLine tl = TextLine.obtain();
-//        tl.set(layout.getPaint(), text, start, end, dir, directions, hasTab, tabStops,
-//                layout.getEllipsisStart(line),
-//                layout.getEllipsisStart(line) + layout.getEllipsisCount(line));
-//        boolean[] trailings = primaryIsTrailingPreviousAllLineOffsets(layout, textDir, line);
-//        if (!primary) {
-//            for (int offset = 0; offset < trailings.length; ++offset) {
-//                trailings[offset] = !trailings[offset];
-//            }
-//        }
-//        float[] wid = tl.measureAllOffsets(trailings, null);
-//        TextLine.recycle(tl);
-//
-//        if (clamped) {
-//            for (int offset = 0; offset < wid.length; ++offset) {
-//                final int width = layout.getWidth();
-//                if (wid[offset] > width) {
-//                    wid[offset] = width;
-//                }
-//            }
-//        }
-//        int left = layout.getParagraphLeft(line);
-//        int right = layout.getParagraphRight(line);
-//
-//        int lineStartPos = getLineStartPos(layout, textDir, line, left, right);
-//        float[] horizontal = new float[end - start + 1];
-//        for (int offset = 0; offset < horizontal.length; ++offset) {
-//            horizontal[offset] = lineStartPos + wid[offset];
-//        }
-//        return horizontal;
-//    }
-
-//    /**
-//     * Like {@link #getLineExtent(int,TabStops,boolean)} but determines the
-//     * tab stops instead of using the ones passed in.
-//     * @param line the index of the line
-//     * @param full whether to include trailing whitespace
-//     * @return the extent of the line
-//     */
-//    private static float getLineExtent(Layout layout, TextDirectionHeuristic textDir, int line, boolean full) {
-//        final int start = layout.getLineStart(line);
-//        final int end = full ? layout.getLineEnd(line) : layout.getLineVisibleEnd(line);
-//
-//        final boolean hasTabs = layout.getLineContainsTab(line);
-//        TabStops tabStops = null;
-//        CharSequence text = layout.getText();
-//        if (hasTabs && text instanceof Spanned) {
-//            // Just checking this line should be good enough, tabs should be
-//            // consistent across all lines in a paragraph.
-//            TabStopSpan[] tabs = getParagraphSpans((Spanned) text, start, end, TabStopSpan.class);
-//            if (tabs.length > 0) {
-//                tabStops = new TabStops(TAB_INCREMENT, tabs); // XXX should reuse
-//            }
-//        }
-//        final Directions directions = getLineDirections(layout, textDir, line);
-//        // Returned directions can actually be null
-//        if (directions == null) {
-//            return 0f;
-//        }
-//        final int dir = layout.getParagraphDirection(line);
-//
-//        final TextLine tl = TextLine.obtain();
-//        final TextPaint paint = new TextPaint();
-//        paint.set(layout.getPaint());
-//        paint.setStartHyphenEdit(getStartHyphenEdit(line));
-//        paint.setEndHyphenEdit(getEndHyphenEdit(line));
-//        tl.set(paint, text, start, end, dir, directions, hasTabs, tabStops,
-//                layout.getEllipsisStart(line), layout.getEllipsisStart(line) + layout.getEllipsisCount(line));
-//        if (layout.isJustificationRequired(line)) {
-//            tl.justify(getJustifyWidth(line));
-//        }
-//        final float width = tl.metrics(null);
-//        TextLine.recycle(tl);
-//        return width;
-//    }
-
-//    /**
-//     * Returns the signed horizontal extent of the specified line, excluding
-//     * leading margin.  If full is false, excludes trailing whitespace.
-//     * @param line the index of the line
-//     * @param tabStops the tab stops, can be null if we know they're not used.
-//     * @param full whether to include trailing whitespace
-//     * @return the extent of the text on this line
-//     */
-//    private static float getLineExtent(Layout layout, TextDirectionHeuristic textDir, int line, TabStops tabStops, boolean full) {
-//        final int start = layout.getLineStart(line);
-//        final int end = full ? layout.getLineEnd(line) : layout.getLineVisibleEnd(line);
-//        final boolean hasTabs = layout.getLineContainsTab(line);
-//        final Directions directions = getLineDirections(layout, textDir, line);
-//        final int dir = layout.getParagraphDirection(line);
-//
-//        final TextLine tl = TextLine.obtain();
-//        final TextPaint paint = new TextPaint();
-//        paint.set(layout.getPaint());
-//        paint.setStartHyphenEdit(getStartHyphenEdit(line)); //TODO: (EW) getStartHyphenEdit is overridden by dynamiclayout and static layout since at least R
-//        paint.setEndHyphenEdit(getEndHyphenEdit(line)); //TODO: (EW) getEndHyphenEdit is overridden by dynamiclayout and static layout since at least R
-//        tl.set(paint, layout.getText(), start, end, dir, directions, hasTabs, tabStops,
-//                layout.getEllipsisStart(line), layout.getEllipsisStart(line) + layout.getEllipsisCount(line));
-//        //TODO: (EW) isJustificationRequired checks mJustificationMode, which is only set from the
-//        // hidden setJustificationMode and only used there. I'm not sure how to get this info
-////        if (isJustificationRequired(layout, line)) {
-////            tl.justify(getJustifyWidth(line));
-////        }
-//        final float width = tl.metrics(null);
-//        TextLine.recycle(tl);
-//        return width;
-//    }
-
-//    // (EW) as of S nothing seems to be overriding this, but if that changes, using this will cause
-//    // different behavior for those layout types
-//    // I suppose that's not really any worse than this code changing in future versions making a
-//    // change in functionality
-//    /**
-//     * Get the character offset on the specified line whose position is
-//     * closest to the specified horizontal position.
-//     *
-//     * @param line the line used to find the closest offset
-//     * @param horiz the horizontal position used to find the closest offset
-//     * @param primary whether to use the primary position or secondary position to find the offset
-//     *
-//     * @hide
-//     */
-//    public static int getOffsetForHorizontal(Layout layout, TextDirectionHeuristic textDir,
-//                                             int line, float horiz, boolean primary) {
-//        // TODO: use Paint.getOffsetForAdvance to avoid binary search
-//        final int lineEndOffset = layout.getLineEnd(line);
-//        final int lineStartOffset = layout.getLineStart(line);
-//
-//        Directions dirs = getLineDirections(layout, textDir, line);
-//
-//        TextLine tl = TextLine.obtain();
-//        // XXX: we don't care about tabs as we just use TextLine#getOffsetToLeftRightOf here.
-//        tl.set(layout.getPaint(), layout.getText(), lineStartOffset, lineEndOffset, layout.getParagraphDirection(line), dirs,
-//                false, null,
-//                layout.getEllipsisStart(line), layout.getEllipsisStart(line) + layout.getEllipsisCount(line));
-//        final HorizontalMeasurementProvider horizontal =
-//                new HorizontalMeasurementProvider(layout, textDir, line, primary);
-//
-//        final int max;
-//        if (line == layout.getLineCount() - 1) {
-//            max = lineEndOffset;
-//        } else {
-//            max = tl.getOffsetToLeftRightOf(lineEndOffset - lineStartOffset,
-//                    !layout.isRtlCharAt(lineEndOffset - 1)) + lineStartOffset;
-//        }
-//        int best = lineStartOffset;
-//        float bestdist = Math.abs(horizontal.get(lineStartOffset) - horiz);
-//
-//        for (int i = 0; i < dirs.mDirections.length; i += 2) {
-//            int here = lineStartOffset + dirs.mDirections[i];
-//            int there = here + (dirs.mDirections[i+1] & RUN_LENGTH_MASK);
-//            boolean isRtl = (dirs.mDirections[i+1] & RUN_RTL_FLAG) != 0;
-//            int swap = isRtl ? -1 : 1;
-//
-//            if (there > max)
-//                there = max;
-//            int high = there - 1 + 1, low = here + 1 - 1, guess;
-//
-//            while (high - low > 1) {
-//                guess = (high + low) / 2;
-//                int adguess = getOffsetAtStartOf(layout, guess);
-//
-//                if (horizontal.get(adguess) * swap >= horiz * swap) {
-//                    high = guess;
-//                } else {
-//                    low = guess;
-//                }
-//            }
-//
-//            if (low < here + 1)
-//                low = here + 1;
-//
-//            if (low < there) {
-//                int aft = tl.getOffsetToLeftRightOf(low - lineStartOffset, isRtl) + lineStartOffset;
-//                low = tl.getOffsetToLeftRightOf(aft - lineStartOffset, !isRtl) + lineStartOffset;
-//                if (low >= here && low < there) {
-//                    float dist = Math.abs(horizontal.get(low) - horiz);
-//                    if (aft < there) {
-//                        float other = Math.abs(horizontal.get(aft) - horiz);
-//
-//                        if (other < dist) {
-//                            dist = other;
-//                            low = aft;
-//                        }
-//                    }
-//
-//                    if (dist < bestdist) {
-//                        bestdist = dist;
-//                        best = low;
-//                    }
-//                }
-//            }
-//
-//            float dist = Math.abs(horizontal.get(here) - horiz);
-//
-//            if (dist < bestdist) {
-//                bestdist = dist;
-//                best = here;
-//            }
-//        }
-//
-//        float dist = Math.abs(horizontal.get(max) - horiz);
-//
-//        if (dist <= bestdist) {
-//            best = max;
-//        }
-//
-//        TextLine.recycle(tl);
-//        return best;
-//    }
-
-//    /**
-//     * Responds to #getHorizontal queries, by selecting the better strategy between:
-//     * - calling #getHorizontal explicitly for each query
-//     * - precomputing all #getHorizontal measurements, and responding to any query in constant time
-//     * The first strategy is used for LTR-only text, while the second is used for all other cases.
-//     * The class is currently only used in #getOffsetForHorizontal, so reuse with care in other
-//     * contexts.
-//     */
-//    private static class HorizontalMeasurementProvider {
-//        final Layout mLayout;
-//        final TextDirectionHeuristic mTextDir;
-//
-//        private final int mLine;
-//        private final boolean mPrimary;
-//
-//        private float[] mHorizontals;
-//        private int mLineStartOffset;
-//
-//        HorizontalMeasurementProvider(final Layout layout, final TextDirectionHeuristic textDir, final int line, final boolean primary) {
-//            mLayout = layout;
-//            mTextDir = textDir;
-//
-//            mLine = line;
-//            mPrimary = primary;
-//            init();
-//        }
-//
-//        private void init() {
-//            final Directions dirs = getLineDirections(mLayout, mTextDir, mLine);
-//            if (dirs == DIRS_ALL_LEFT_TO_RIGHT) {
-//                return;
-//            }
-//
-//            mHorizontals = getLineHorizontals(mLayout, mTextDir, mLine, false, mPrimary);
-//            mLineStartOffset = mLayout.getLineStart(mLine);
-//        }
-//
-//        float get(final int offset) {
-//            final int index = offset - mLineStartOffset;
-//            if (mHorizontals == null || index < 0 || index >= mHorizontals.length) {
-//                return getHorizontal(mLayout, offset, mPrimary);
-//            } else {
-//                return mHorizontals[index];
-//            }
-//        }
-//    }
-
     /**
      * Return the vertical position of the bottom of the specified line without the line spacing
      * added.
-     *
-     * @hide
      */
     public static int getLineBottomWithoutSpacing(Layout layout, int line) {
         //FUTURE: (EW) getLineBottomWithoutSpacing wasn't added until Pie. comparing where Pie used
@@ -770,7 +411,6 @@ public class HiddenLayout {
     /**
      * Determine whether we should clamp cursor position. Currently it's
      * only robust for left-aligned displays.
-     * @hide
      */
     public static boolean shouldClampCursor(Layout layout, int line) {
         // Only clamp cursor position in left-aligned displays.
@@ -949,21 +589,15 @@ public class HiddenLayout {
          * accessed by masking with RUN_LENGTH_MASK.  The level is in the higher bits, accessed by
          * shifting by RUN_LEVEL_SHIFT and masking by RUN_LEVEL_MASK. To simply test for an RTL
          * direction, test the bit using RUN_RTL_FLAG, if set then the direction is rtl.
-         * @hide
          */
         public int[] mDirections;
 
-        /**
-         * @hide
-         */
         public Directions(int[] dirs) {
             mDirections = dirs;
         }
 
         /**
          * Returns number of BiDi runs.
-         *
-         * @hide
          */
         public @IntRange(from = 0) int getRunCount() {
             return mDirections.length / 2;
@@ -974,7 +608,6 @@ public class HiddenLayout {
          *
          * @param runIndex the index of the BiDi run
          * @return the start offset of the BiDi run.
-         * @hide
          */
         public @IntRange(from = 0) int getRunStart(@IntRange(from = 0) int runIndex) {
             return mDirections[runIndex * 2];
@@ -989,7 +622,6 @@ public class HiddenLayout {
          *
          * @param runIndex the index of the BiDi run
          * @return the length of the BiDi run.
-         * @hide
          */
         public @IntRange(from = 0) int getRunLength(@IntRange(from = 0) int runIndex) {
             return mDirections[runIndex * 2 + 1] & RUN_LENGTH_MASK;
@@ -1000,14 +632,13 @@ public class HiddenLayout {
          *
          * @param runIndex the index of the BiDi run
          * @return true if the BiDi run is RTL.
-         * @hide
          */
         public boolean isRunRtl(int runIndex) {
             return (mDirections[runIndex * 2 + 1] & RUN_RTL_FLAG) != 0;
         }
     }
 
-    @IntDef(/*prefix = { "DIR_" }, */value = {
+    @IntDef(value = {
             Layout.DIR_LEFT_TO_RIGHT,
             Layout.DIR_RIGHT_TO_LEFT
     })
@@ -1057,7 +688,8 @@ public class HiddenLayout {
             };
             int[] expectedHiddenEnumIndices = new int[] { ALIGN_LEFT_INDEX, ALIGN_RIGHT_INDEX };
             String[] expectedHiddenEnumNames = new String[] { ALIGN_LEFT_NAME, ALIGN_RIGHT_NAME };
-            Layout.Alignment[] expectedHiddenEnums = new Layout.Alignment[expectedHiddenEnumIndices.length];
+            Layout.Alignment[] expectedHiddenEnums =
+                    new Layout.Alignment[expectedHiddenEnumIndices.length];
             if (allEnums != null) {
                 final boolean[] allEnumsAccessibleFlag = new boolean[allEnums.length];
                 for (Layout.Alignment accessibleEnum : expectedAccessibleEnums) {
@@ -1072,7 +704,10 @@ public class HiddenLayout {
                         // skip accessible enums
                         continue;
                     }
-                    for (int expectedHiddenEnumsIndex = 0; expectedHiddenEnumsIndex < expectedHiddenEnumIndices.length; expectedHiddenEnumsIndex++) {
+                    for (int expectedHiddenEnumsIndex = 0;
+                         expectedHiddenEnumsIndex < expectedHiddenEnumIndices.length;
+                         expectedHiddenEnumsIndex++) {
+
                         boolean currentAllEnumNameSame =
                                 expectedHiddenEnumNames[expectedHiddenEnumsIndex].equals(
                                         allEnums[allEnumsIndex].name());
@@ -1133,11 +768,9 @@ public class HiddenLayout {
 
     private static final float TAB_INCREMENT = 20;
 
-    /** @hide */
     public static final Directions DIRS_ALL_LEFT_TO_RIGHT =
             new Directions(new int[] { 0, RUN_LENGTH_MASK });
 
-    /** @hide */
     public static final Directions DIRS_ALL_RIGHT_TO_LEFT =
             new Directions(new int[] { 0, RUN_LENGTH_MASK | RUN_RTL_FLAG });
 }

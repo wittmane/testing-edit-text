@@ -16,18 +16,16 @@
 
 package com.wittmane.testingedittext.aosp.text;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import java.text.CharacterIterator;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used in other hidden classes
 /**
  * An implementation of {@link java.text.CharacterIterator} that iterates over a given CharSequence.
- * {@hide}
  */
 public class CharSequenceCharacterIterator implements CharacterIterator {
-    private static final String TAG = CharSequenceCharacterIterator.class.getSimpleName();
     private final int mBeginIndex, mEndIndex;
     private int mIndex;
     private final CharSequence mCharSeq;
@@ -101,6 +99,7 @@ public class CharSequenceCharacterIterator implements CharacterIterator {
         return mIndex;
     }
 
+    @NonNull
     public Object clone() {
         try {
             return super.clone();

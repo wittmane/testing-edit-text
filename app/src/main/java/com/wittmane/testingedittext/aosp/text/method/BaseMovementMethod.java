@@ -20,22 +20,18 @@ package com.wittmane.testingedittext.aosp.text.method;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.method.MetaKeyKeyListener;
-import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
-
+// (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
+// TextView and a couple methods were hidden.
 /**
  * Base classes for movement methods.
- *
- * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView and
- * a couple methods were hidden.
  */
 public class BaseMovementMethod implements MovementMethod {
-    static final String TAG = BaseMovementMethod.class.getSimpleName();
 
     @Override
     public boolean canSelectArbitrarily() {
@@ -104,26 +100,26 @@ public class BaseMovementMethod implements MovementMethod {
         if ((event.getSource() & InputDevice.SOURCE_CLASS_POINTER) != 0) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_SCROLL: {
-                    final float vscroll;
-                    final float hscroll;
+                    final float vScroll;
+                    final float hScroll;
                     if ((event.getMetaState() & KeyEvent.META_SHIFT_ON) != 0) {
-                        vscroll = 0;
-                        hscroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+                        vScroll = 0;
+                        hScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
                     } else {
-                        vscroll = -event.getAxisValue(MotionEvent.AXIS_VSCROLL);
-                        hscroll = event.getAxisValue(MotionEvent.AXIS_HSCROLL);
+                        vScroll = -event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+                        hScroll = event.getAxisValue(MotionEvent.AXIS_HSCROLL);
                     }
 
                     boolean handled = false;
-                    if (hscroll < 0) {
-                        handled |= scrollLeft(widget, text, (int)Math.ceil(-hscroll));
-                    } else if (hscroll > 0) {
-                        handled |= scrollRight(widget, text, (int)Math.ceil(hscroll));
+                    if (hScroll < 0) {
+                        handled |= scrollLeft(widget, text, (int)Math.ceil(-hScroll));
+                    } else if (hScroll > 0) {
+                        handled |= scrollRight(widget, text, (int)Math.ceil(hScroll));
                     }
-                    if (vscroll < 0) {
-                        handled |= scrollUp(widget, text, (int)Math.ceil(-vscroll));
-                    } else if (vscroll > 0) {
-                        handled |= scrollDown(widget, text, (int)Math.ceil(vscroll));
+                    if (vScroll < 0) {
+                        handled |= scrollUp(widget, text, (int)Math.ceil(-vScroll));
+                    } else if (vScroll > 0) {
+                        handled |= scrollDown(widget, text, (int)Math.ceil(vScroll));
                     }
                     return handled;
                 }
@@ -161,7 +157,6 @@ public class BaseMovementMethod implements MovementMethod {
      *
      * @param widget The text view.
      * @param buffer The text buffer.
-     * @param event The key event.
      * @param keyCode The key code.
      * @param movementMetaState The keyboard meta states used for movement.
      * @param event The key event.
@@ -371,12 +366,10 @@ public class BaseMovementMethod implements MovementMethod {
         return false;
     }
 
-    /** {@hide} */
     protected boolean leftWord(EditText widget, Spannable buffer) {
         return false;
     }
 
-    /** {@hide} */
     protected boolean rightWord(EditText widget, Spannable buffer) {
         return false;
     }
@@ -471,7 +464,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param buffer The text buffer.
      * @param amount The number of characters to scroll by.  Must be at least 1.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollLeft(EditText widget, Spannable buffer, int amount) {
         final int minScrollX = getScrollBoundsLeft(widget);
@@ -492,7 +484,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param buffer The text buffer.
      * @param amount The number of characters to scroll by.  Must be at least 1.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollRight(EditText widget, Spannable buffer, int amount) {
         final int maxScrollX = getScrollBoundsRight(widget) - getInnerWidth(widget);
@@ -513,7 +504,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param buffer The text buffer.
      * @param amount The number of lines to scroll by.  Must be at least 1.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollUp(EditText widget, Spannable buffer, int amount) {
         final Layout layout = widget.getLayout();
@@ -540,7 +530,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param buffer The text buffer.
      * @param amount The number of lines to scroll by.  Must be at least 1.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollDown(EditText widget, Spannable buffer, int amount) {
         final Layout layout = widget.getLayout();
@@ -570,7 +559,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param widget The text view.
      * @param buffer The text buffer.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollPageUp(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
@@ -590,7 +578,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param widget The text view.
      * @param buffer The text buffer.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollPageDown(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
@@ -612,7 +599,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param widget The text view.
      * @param buffer The text buffer.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollTop(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
@@ -630,7 +616,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param widget The text view.
      * @param buffer The text buffer.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollBottom(EditText widget, Spannable buffer) {
         final Layout layout = widget.getLayout();
@@ -650,7 +635,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param widget The text view.
      * @param buffer The text buffer.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollLineStart(EditText widget, Spannable buffer) {
         final int minScrollX = getScrollBoundsLeft(widget);
@@ -669,7 +653,6 @@ public class BaseMovementMethod implements MovementMethod {
      * @param widget The text view.
      * @param buffer The text buffer.
      * @return True if the event was handled.
-     * @hide
      */
     protected boolean scrollLineEnd(EditText widget, Spannable buffer) {
         final int maxScrollX = getScrollBoundsRight(widget) - getInnerWidth(widget);

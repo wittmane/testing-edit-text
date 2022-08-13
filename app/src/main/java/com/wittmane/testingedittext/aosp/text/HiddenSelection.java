@@ -23,7 +23,7 @@ import android.text.Spannable;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 
 /**
- * (EW) content from Selection that is blocked for app developers to access
+ * (EW) content from Selection that is blocked from apps accessing
  */
 public class HiddenSelection {
     // (EW) this was restricted with @hide
@@ -36,8 +36,8 @@ public class HiddenSelection {
 
     // (EW) this was restricted with @hide and @UnsupportedAppUsage
     public static boolean moveToPreceding(
-            Spannable text, PositionIterator iter, boolean extendSelection) {
-        final int offset = iter.preceding(Selection.getSelectionEnd(text));
+            Spannable text, PositionIterator iterator, boolean extendSelection) {
+        final int offset = iterator.preceding(Selection.getSelectionEnd(text));
         if (offset != PositionIterator.DONE) {
             if (extendSelection) {
                 Selection.extendSelection(text, offset);
@@ -50,8 +50,8 @@ public class HiddenSelection {
 
     // (EW) this was restricted with @hide and @UnsupportedAppUsage
     public static boolean moveToFollowing(
-            Spannable text, PositionIterator iter, boolean extendSelection) {
-        final int offset = iter.following(Selection.getSelectionEnd(text));
+            Spannable text, PositionIterator iterator, boolean extendSelection) {
+        final int offset = iterator.following(Selection.getSelectionEnd(text));
         if (offset != PositionIterator.DONE) {
             if (extendSelection) {
                 Selection.extendSelection(text, offset);

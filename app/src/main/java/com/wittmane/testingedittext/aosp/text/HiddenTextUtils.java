@@ -31,6 +31,9 @@ import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 
 import java.lang.reflect.Array;
 
+/**
+ * (EW) content from TextUtils that is blocked from apps accessing
+ */
 public class HiddenTextUtils {
 
     // Returns true if the character's presence could affect RTL layout.
@@ -80,7 +83,6 @@ public class HiddenTextUtils {
      * @param spanned The Spanned from which spans were extracted
      * @return A subset of spans where empty spans ({@link Spanned#getSpanStart(Object)}  ==
      * {@link Spanned#getSpanEnd(Object)} have been removed. The initial order is preserved
-     * @hide
      */
     @SuppressWarnings("unchecked")
     public static <T> T[] removeEmptySpans(T[] spans, Spanned spanned, Class<T> klass) {
@@ -119,7 +121,6 @@ public class HiddenTextUtils {
      * Pack 2 int values into a long, useful as a return value for a range
      * @see #unpackRangeStartFromLong(long)
      * @see #unpackRangeEndFromLong(long)
-     * @hide
      */
     public static long packRangeInLong(int start, int end) {
         return (((long) start) << 32) | end;
@@ -129,7 +130,6 @@ public class HiddenTextUtils {
      * Get the start value from a range packed in a long by {@link #packRangeInLong(int, int)}
      * @see #unpackRangeEndFromLong(long)
      * @see #packRangeInLong(int, int)
-     * @hide
      */
     public static int unpackRangeStartFromLong(long range) {
         return (int) (range >>> 32);
@@ -139,7 +139,6 @@ public class HiddenTextUtils {
      * Get the end value from a range packed in a long by {@link #packRangeInLong(int, int)}
      * @see #unpackRangeStartFromLong(long)
      * @see #packRangeInLong(int, int)
-     * @hide
      */
     public static int unpackRangeEndFromLong(long range) {
         return (int) (range & 0x00000000FFFFFFFFL);
@@ -147,7 +146,6 @@ public class HiddenTextUtils {
 
     /**
      * Returns whether or not the specified spanned text has a style span.
-     * @hide
      */
     public static boolean hasStyleSpan(@NonNull Spanned spanned) {
         Preconditions.checkArgument(spanned != null);
@@ -171,8 +169,6 @@ public class HiddenTextUtils {
      * Trims the text to {@link #PARCEL_SAFE_TEXT_LENGTH} length. Returns the string as it is if
      * the length() is smaller than {@link #PARCEL_SAFE_TEXT_LENGTH}. Used for text that is parceled
      * into a {@link Parcelable}.
-     *
-     * @hide
      */
     @Nullable
     public static <T extends CharSequence> T trimToParcelableSize(@Nullable T text) {
@@ -185,8 +181,6 @@ public class HiddenTextUtils {
      * pair, returns a CharSequence of length {@code size-1}.
      *
      * @param size length of the result, should be greater than 0
-     *
-     * @hide
      */
     @Nullable
     public static <T extends CharSequence> T trimToSize(@Nullable T text,

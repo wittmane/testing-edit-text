@@ -25,6 +25,8 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.view.ContentInfoCompat.Flags;
+import androidx.core.view.ContentInfoCompat.Source;
 
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -47,13 +49,12 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+// (EW) this was copied from AOSP because that is hidden and we need to create an instance of it and
+// use our custom EditText instead of the AOSP TextView.
 /**
  * Default implementation for {@link View#onReceiveContent} for {@link EditText} components. This
  * class handles insertion of text (plain text, styled text, HTML, etc) but not images or other
  * content.
- *
- * (EW) copied from AOSP because that is hidden and we need to create an instance of it and use our
- * custom EditText instead of the AOSP TextView.
  */
 @RequiresApi(api = Build.VERSION_CODES.S)
 public final class TextViewOnReceiveContentListener implements OnReceiveContentListener {
@@ -67,7 +68,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
             Log.d(LOG_TAG, "onReceive: " + payload);
         }
-        final /*@Source */int source = payload.getSource();
+        final @Source int source = payload.getSource();
         if (source == SOURCE_INPUT_METHOD) {
             // InputConnection.commitContent() should only be used for non-text input which is not
             // supported by the default implementation.
@@ -84,8 +85,8 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         // replace/insert. This is to preserve the original behavior with respect to TextWatcher
         // notifications fired from SpannableStringBuilder when replace/insert is called.
         final ClipData clip = payload.getClip();
-        final /*@Flags */int flags = payload.getFlags();
-        final Editable editable = (Editable) ((EditText) view).getText();
+        final @Flags int flags = payload.getFlags();
+        final Editable editable = ((EditText) view).getText();
         final Context context = view.getContext();
         boolean didFirst = false;
         for (int i = 0; i < clip.getItemCount(); i++) {
@@ -139,7 +140,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
     }
 
     private static @NonNull CharSequence coerceToText(@NonNull ClipData clip,
-                                                      @NonNull Context context, /*@Flags */int flags) {
+                                                      @NonNull Context context, @Flags int flags) {
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         for (int i = 0; i < clip.getItemCount(); i++) {
             CharSequence itemText;
@@ -156,22 +157,8 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         return ssb;
     }
 
-//    /**
-//     * On Android S and above, the platform can provide non-text suggestions (e.g. images) via the
-//     * augmented autofill framework (see
-//     * <a href="/guide/topics/text/autofill-services">autofill services</a>). In order for an app to
-//     * be able to handle these suggestions, it must normally implement the
-//     * {@link android.view.OnReceiveContentListener} API. To make the adoption of this smoother for
-//     * apps that have previously implemented the
-//     * {@link android.view.inputmethod.InputConnection#commitContent(InputContentInfo, int, Bundle)}
-//     * API, we reuse that API as a fallback if {@link android.view.OnReceiveContentListener} is not
-//     * yet implemented by the app. This fallback is only enabled on Android S. This change ID
-//     * disables the fallback, such that apps targeting Android T and above must implement the
-//     * {@link android.view.OnReceiveContentListener} API in order to accept non-text suggestions.
-//     */
-//    @ChangeId
-//    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.S) // Enabled on Android T and higher
-//    private static final long AUTOFILL_NON_TEXT_REQUIRES_ON_RECEIVE_CONTENT_LISTENER = 163400105L;
+    // (EW) skipped AUTOFILL_NON_TEXT_REQUIRES_ON_RECEIVE_CONTENT_LISTENER (see comment in
+    // isUsageOfImeCommitContentEnabled)
 
     /**
      * Returns true if we can use the IME {@link InputConnection#commitContent} API in order handle
@@ -315,7 +302,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         if (remainingItems.isEmpty()) {
             return null;
         }
-//        return new ClipData(description, remainingItems);
+
         final ClipData clipData = new ClipData(description, remainingItems.get(0));
         for (int i = 1; i < remainingItems.size(); i++) {
             clipData.addItem(remainingItems.get(i));

@@ -25,13 +25,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
 /**
  * Simple static methods to be called at the start of your own methods to verify
  * correct arguments and state.
  */
 public class Preconditions {
 
-//    @UnsupportedAppUsage
     public static void checkArgument(boolean expression) {
         if (!expression) {
             throw new IllegalArgumentException();
@@ -46,7 +46,6 @@ public class Preconditions {
      *                     be converted to a string using {@link String#valueOf(Object)}
      * @throws IllegalArgumentException if {@code expression} is false
      */
-//    @UnsupportedAppUsage
     public static void checkArgument(boolean expression, final Object errorMessage) {
         if (!expression) {
             throw new IllegalArgumentException(String.valueOf(errorMessage));
@@ -132,7 +131,6 @@ public class Preconditions {
      * @deprecated - use {@link java.util.Objects#requireNonNull} instead.
      */
     @Deprecated
-//    @UnsupportedAppUsage
     public static @NonNull <T> T checkNotNull(final T reference) {
         if (reference == null) {
             throw new NullPointerException();
@@ -152,7 +150,6 @@ public class Preconditions {
      * @deprecated - use {@link java.util.Objects#requireNonNull} instead.
      */
     @Deprecated
-//    @UnsupportedAppUsage
     public static @NonNull <T> T checkNotNull(final T reference, final Object errorMessage) {
         if (reference == null) {
             throw new NullPointerException(String.valueOf(errorMessage));
@@ -168,7 +165,6 @@ public class Preconditions {
      * @param message exception message
      * @throws IllegalStateException if {@code expression} is false
      */
-//    @UnsupportedAppUsage
     public static void checkState(final boolean expression, String message) {
         if (!expression) {
             throw new IllegalStateException(message);
@@ -182,7 +178,6 @@ public class Preconditions {
      * @param expression a boolean expression
      * @throws IllegalStateException if {@code expression} is false
      */
-//    @UnsupportedAppUsage
     public static void checkState(final boolean expression) {
         checkState(expression, null);
     }
@@ -375,7 +370,6 @@ public class Preconditions {
      * @return the validated int value
      * @throws IllegalArgumentException if {@code value} was not within the range
      */
-//    @UnsupportedAppUsage
     public static int checkArgumentInRange(int value, int lower, int upper,
                                            String valueName) {
         if (value < lower) {

@@ -47,10 +47,10 @@ import java.lang.reflect.Method;
 import java.text.BreakIterator;
 import java.util.Locale;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here in order to be
+// used
 /**
  * Helper class for EditText. Bridge between the EditText and the Dictionary service.
- *
- * @hide
  */
 public class SpellChecker implements SpellCheckerSessionListener {
     private static final String TAG = SpellChecker.class.getSimpleName();
@@ -104,9 +104,6 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     private Runnable mSpellRunnable;
 
-    private static final int FLAG_GRAMMAR_ERROR = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    ? SuggestionSpan.FLAG_GRAMMAR_ERROR : 8;
-
     public SpellChecker(EditText textView) {
         mTextView = textView;
 
@@ -123,6 +120,8 @@ public class SpellChecker implements SpellCheckerSessionListener {
     void resetSession() {
         closeSession();
 
+        // (EW) the AOSP version used the text services manager for the user, but we didn't
+        // implement that
         mTextServicesManager = mTextView.getTextServicesManager();
         if (mCurrentLocale == null
                 || mTextView.length() == 0
@@ -161,7 +160,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         mLength = 0;
 
         // Remove existing misspelled SuggestionSpans
-        mTextView.removeMisspelledSpans((Editable) mTextView.getText());
+        mTextView.removeMisspelledSpans(mTextView.getText());
     }
 
     private void setLocale(Locale locale) {
@@ -305,7 +304,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
     private void spellCheck(boolean forceCheckWhenEditingWord) {
         if (mSpellCheckerSession == null) return;
 
-        Editable editable = (Editable) mTextView.getText();
+        Editable editable = mTextView.getText();
         final int selectionStart = Selection.getSelectionStart(editable);
         final int selectionEnd = Selection.getSelectionEnd(editable);
 
@@ -404,7 +403,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         if (suggestionsInfo == null || suggestionsInfo.getCookie() != mCookie) {
             return null;
         }
-        final Editable editable = (Editable) mTextView.getText();
+        final Editable editable = mTextView.getText();
         final int sequenceNumber = suggestionsInfo.getSequence();
         for (int k = 0; k < mLength; ++k) {
             if (sequenceNumber == mIds[k]) {
@@ -420,8 +419,8 @@ public class SpellChecker implements SpellCheckerSessionListener {
                         ((attributes & SuggestionsInfo.RESULT_ATTR_IN_THE_DICTIONARY) > 0);
                 final boolean looksLikeTypo =
                         ((attributes & SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO) > 0);
-                final boolean looksLikeGrammarError =
-                        ((attributes & SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR) > 0);
+                final boolean looksLikeGrammarError = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                        && (attributes & SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR) > 0;
 
                 // Validates the suggestions range in case the SpellCheckSpan is out-of-date but not
                 // removed as expected.
@@ -474,10 +473,13 @@ public class SpellChecker implements SpellCheckerSessionListener {
             Editable editable, int start, int end, RemoveReason reason) {
         SuggestionSpan[] spans = editable.getSpans(start, end, SuggestionSpan.class);
         for (SuggestionSpan span : spans) {
+            int errorFlags = SuggestionSpan.FLAG_MISSPELLED;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                errorFlags |= SuggestionSpan.FLAG_GRAMMAR_ERROR;
+            }
             if (editable.getSpanStart(span) == start
                     && editable.getSpanEnd(span) == end
-                    && (span.getFlags() & (SuggestionSpan.FLAG_MISSPELLED
-                    | SuggestionSpan.FLAG_GRAMMAR_ERROR)) != 0) {
+                    && (span.getFlags() & errorFlags) != 0) {
                 if (DBG) {
                     Log.i(TAG, "Remove existing misspelled/grammar error span on "
                             + editable.subSequence(start, end) + ", reason: " + reason);
@@ -489,7 +491,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     @Override
     public void onGetSuggestions(SuggestionsInfo[] results) {
-        final Editable editable = (Editable) mTextView.getText();
+        final Editable editable = mTextView.getText();
         for (int i = 0; i < results.length; ++i) {
             final SpellCheckSpan spellCheckSpan =
                     onGetSuggestionsInternal(results[i], USE_SPAN_RANGE, USE_SPAN_RANGE);
@@ -503,7 +505,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     @Override
     public void onGetSentenceSuggestions(SentenceSuggestionsInfo[] results) {
-        final Editable editable = (Editable) mTextView.getText();
+        final Editable editable = mTextView.getText();
         for (int i = 0; i < results.length; ++i) {
             final SentenceSuggestionsInfo ssi = results[i];
             if (ssi == null) {
@@ -561,11 +563,13 @@ public class SpellChecker implements SpellCheckerSessionListener {
     // When calling this method, RESULT_ATTR_LOOKS_LIKE_TYPO or RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR
     // (or both) should be set in suggestionsInfo.
     private void createMisspelledSuggestionSpan(Editable editable, SuggestionsInfo suggestionsInfo,
-                                                SpellCheckSpan spellCheckSpan, int offset, int length) {
+                                                SpellCheckSpan spellCheckSpan, int offset,
+                                                int length) {
         final int spellCheckSpanStart = editable.getSpanStart(spellCheckSpan);
         final int spellCheckSpanEnd = editable.getSpanEnd(spellCheckSpan);
-        if (spellCheckSpanStart < 0 || spellCheckSpanEnd <= spellCheckSpanStart)
+        if (spellCheckSpanStart < 0 || spellCheckSpanEnd <= spellCheckSpanStart) {
             return; // span was removed in the meantime
+        }
 
         final int start;
         final int end;
@@ -596,7 +600,8 @@ public class SpellChecker implements SpellCheckerSessionListener {
         if ((suggestionsAttrs & SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO) != 0) {
             flags |= SuggestionSpan.FLAG_MISSPELLED;
         }
-        if ((suggestionsAttrs & SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR) != 0) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && (suggestionsAttrs & SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR) != 0) {
             flags |= SuggestionSpan.FLAG_GRAMMAR_ERROR;
         }
         SuggestionSpan suggestionSpan =
@@ -611,7 +616,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
      * A wrapper of sentence iterator which only processes the specified window of the given text.
      */
     private static class SentenceIteratorWrapper {
-        private BreakIterator mSentenceIterator;
+        private final BreakIterator mSentenceIterator;
         private int mStartOffset;
         private int mEndOffset;
 
@@ -662,7 +667,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
     }
 
     private class SpellParser {
-        private Object mRange = new Object();
+        private final Object mRange = new Object();
 
         // Forces to do spell checker even user is editing the word.
         private boolean mForceCheckWhenEditingWord;
@@ -678,17 +683,17 @@ public class SpellChecker implements SpellCheckerSessionListener {
                 parseEnd = end;
             }
             if (parseEnd > start) {
-                setRangeSpan((Editable) mTextView.getText(), start, parseEnd);
+                setRangeSpan(mTextView.getText(), start, parseEnd);
                 parse();
             }
         }
 
         public boolean isFinished() {
-            return ((Editable) mTextView.getText()).getSpanStart(mRange) < 0;
+            return (mTextView.getText()).getSpanStart(mRange) < 0;
         }
 
         public void stop() {
-            removeRangeSpan((Editable) mTextView.getText());
+            removeRangeSpan(mTextView.getText());
             mForceCheckWhenEditingWord = false;
         }
 
@@ -708,7 +713,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         }
 
         public void parse() {
-            Editable editable = (Editable) mTextView.getText();
+            Editable editable = mTextView.getText();
             final int textChangeStart = editable.getSpanStart(mRange);
             final int textChangeEnd = editable.getSpanEnd(mRange);
 
@@ -755,7 +760,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
                         // skip this span
                         createSpellCheckSpan = false;
                         if (DBG) {
-                            Log.i(TAG, "The range is overrapped. Skip spell check.");
+                            Log.i(TAG, "The range is overlapped. Skip spell check.");
                         }
                         break;
                     }
@@ -807,7 +812,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
     }
 
     private RangeWrapper<Integer> detectSentenceBoundary(CharSequence sequence,
-                                                  int textChangeStart, int textChangeEnd) {
+                                                         int textChangeStart, int textChangeEnd) {
         // Only process a substring of the full text due to performance concern.
         final int iteratorWindowStart = findSeparator(sequence,
                 Math.max(0, textChangeStart - MAX_SENTENCE_LENGTH),
@@ -930,6 +935,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         return haveWordBoundariesChanged;
     }
 
+    // (EW) custom wrapper around Range to support older versions
     private static final class RangeWrapper<T extends Comparable<? super T>> {
         final Range<T> mRange;
         final T mLower;

@@ -30,14 +30,13 @@ import com.wittmane.testingedittext.aosp.text.HiddenSelection;
 
 import java.util.Locale;
 
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
 /**
  * Walks through cursor positions at word boundaries. Internally uses
  * {@link BreakIterator#getWordInstance(Locale)}, and caches {@link CharSequence}
  * for performance reasons.
  *
  * Also provides methods to determine word boundaries.
- *
- * (EW) the AOSP version of this is hidden from apps, so it had to be copied here.
  */
 public class WordIterator implements HiddenSelection.PositionIterator {
     // Size of the window for the word iterator, should be greater than the longest word's length

@@ -29,9 +29,8 @@ import android.view.ViewConfiguration;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
-/**
- * (EW) copied from AOSP because we need to use our custom EditText instead of the AOSP TextView
- */
+// (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
+// TextView
 public class Touch {
     private Touch() { }
 
@@ -50,8 +49,9 @@ public class Touch {
         boolean ltr = layout.getParagraphDirection(top) > 0;
 
         int left, right;
-        if (widget.getHorizontallyScrolling()) {
-            final int verticalPadding = widget.getTotalPaddingTop() + widget.getTotalPaddingBottom();
+        if (widget.isHorizontallyScrollable()) {
+            final int verticalPadding =
+                    widget.getTotalPaddingTop() + widget.getTotalPaddingBottom();
             final int bottom = layout.getLineForVertical(y + widget.getHeight() - verticalPadding);
 
             left = Integer.MAX_VALUE;
