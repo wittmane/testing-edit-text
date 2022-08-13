@@ -52,12 +52,12 @@ public class EditableInputConnection extends BaseInputConnection {
     private static final boolean DEBUG = false;
     private static final boolean LOG_CALLS = true;
     private static final String TAG = EditableInputConnection.class.getSimpleName();
-    private final @NonNull EditText mTextView;
+    private final @NonNull EditText mEditText;
 
     protected final InputMethodManager mIMM;
 
     // Keeps track of nested begin/end batch edit to ensure this connection always has a
-    // balanced impact on its associated TextView.
+    // balanced impact on its associated EditText.
     // A negative value means that this connection has been finished by the InputMethodManager.
     private int mBatchEditNesting;
 
@@ -80,7 +80,7 @@ public class EditableInputConnection extends BaseInputConnection {
 
     public EditableInputConnection(@NonNull EditText targetView) {
         super(targetView, true);
-        mTextView = targetView;
+        mEditText = targetView;
         // (EW) copied from BaseInputConnection because this protected variable is marked @hide
         mIMM = (InputMethodManager)targetView.getContext().getSystemService(
                 Context.INPUT_METHOD_SERVICE);
@@ -89,7 +89,7 @@ public class EditableInputConnection extends BaseInputConnection {
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
     public @NonNull Editable getEditable() {
-        return mTextView.getEditableText();
+        return mEditText.getEditableText();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
@@ -212,7 +212,7 @@ public class EditableInputConnection extends BaseInputConnection {
         }
         synchronized(this) {
             if (mBatchEditNesting >= 0) {
-                mTextView.beginBatchEdit();
+                mEditText.beginBatchEdit();
                 mBatchEditNesting++;
                 return true;
             }
@@ -231,8 +231,8 @@ public class EditableInputConnection extends BaseInputConnection {
                 // When the connection is reset by the InputMethodManager and reportFinish
                 // is called, some endBatchEdit calls may still be asynchronously received from the
                 // IME. Do not take these into account, thus ensuring that this IC's final
-                // contribution to mTextView's nested batch edit count is zero.
-                mTextView.endBatchEdit();
+                // contribution to mEditText's nested batch edit count is zero.
+                mEditText.endBatchEdit();
                 mBatchEditNesting--;
                 return true;
             }
@@ -242,7 +242,7 @@ public class EditableInputConnection extends BaseInputConnection {
 
     private void endComposingRegionEditInternal() {
         // The ContentCapture service is interested in Composing-state changes.
-        mTextView.notifyContentCaptureTextChanged();
+        mEditText.notifyContentCaptureTextChanged();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -277,10 +277,10 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "clearMetaKeyStates: states=" + states);
         }
         final Editable content = getEditable();
-        KeyListener kl = mTextView.getKeyListener();
+        KeyListener kl = mEditText.getKeyListener();
         if (kl != null) {
             try {
-                kl.clearMetaKeyState(mTextView, content, states);
+                kl.clearMetaKeyState(mEditText, content, states);
             } catch (AbstractMethodError e) {
                 // This is an old listener that doesn't implement the
                 // new method.
@@ -295,14 +295,14 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCompletion: CompletionInfo=" + text);
         }
-        mTextView.beginBatchEdit();
-        mTextView.onCommitCompletion(text);
-        mTextView.endBatchEdit();
+        mEditText.beginBatchEdit();
+        mEditText.onCommitCompletion(text);
+        mEditText.endBatchEdit();
         return true;
     }
 
     /**
-     * Calls the {@link EditText#onCommitCorrection} method of the associated TextView.
+     * Calls the {@link EditText#onCommitCorrection} method of the associated EditText.
      */
     @RequiresApi(api = VERSION_CODES.HONEYCOMB)
     @Override
@@ -310,13 +310,13 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCorrection: correctionInfo=" + correctionInfo);
         }
-        mTextView.beginBatchEdit();
+        mEditText.beginBatchEdit();
         //FUTURE: (EW) the AOSP version only flashes a highlight on the new text position as if
         // assuming that correction was already made and this method was only meant as a visual
         // indication despite the documentation sounding like this should actually change text. This
         // is probably a good candidate for alternate functionality options.
-        mTextView.onCommitCorrection(correctionInfo);
-        mTextView.endBatchEdit();
+        mEditText.onCommitCorrection(correctionInfo);
+        mEditText.endBatchEdit();
         return true;
     }
 
@@ -326,7 +326,7 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performEditorAction: editorAction=" + editorAction);
         }
-        mTextView.onEditorAction(editorAction);
+        mEditText.onEditorAction(editorAction);
         return true;
     }
 
@@ -336,9 +336,9 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performContextMenuAction: id=" + id);
         }
-        mTextView.beginBatchEdit();
-        mTextView.onTextContextMenuItem(id);
-        mTextView.endBatchEdit();
+        mEditText.beginBatchEdit();
+        mEditText.onTextContextMenuItem(id);
+        mEditText.endBatchEdit();
         return true;
     }
 
@@ -352,9 +352,9 @@ public class EditableInputConnection extends BaseInputConnection {
         //FUTURE: (EW) if this returns null, no text is shown in the full screen text field
         // (landscape) so be sure to consider this when figuring out the weird behavior options
         ExtractedText et = new ExtractedText();
-        if (mTextView.extractText(extractedTextRequest, et)) {
+        if (mEditText.extractText(extractedTextRequest, et)) {
             if ((flags&GET_EXTRACTED_TEXT_MONITOR) != 0) {
-                mTextView.setExtracting(extractedTextRequest);
+                mEditText.setExtracting(extractedTextRequest);
             }
             return et;
         }
@@ -364,7 +364,7 @@ public class EditableInputConnection extends BaseInputConnection {
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     public boolean performSpellCheck() {
-        mTextView.onPerformSpellCheck();
+        mEditText.onPerformSpellCheck();
         return true;
     }
 
@@ -383,7 +383,7 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performPrivateCommand: action=" + action + ", bundle=" + bundle);
         }
-        mTextView.onPrivateIMECommand(action, bundle);
+        mEditText.onPrivateIMECommand(action, bundle);
         return true;
     }
 
@@ -431,14 +431,14 @@ public class EditableInputConnection extends BaseInputConnection {
         // since we're not allowed to use those for some reason.
         setUpdateCursorAnchorInfoMode(cursorUpdateMode);
         if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0) {
-            if (mTextView.isInLayout()) {
+            if (mEditText.isInLayout()) {
                 // In this case, the view hierarchy is currently undergoing a layout pass.
                 // IMM#updateCursorAnchorInfo is supposed to be called soon after the layout
                 // pass is finished.
             } else {
                 // This will schedule a layout pass of the view tree, and the layout event
                 // eventually triggers IMM#updateCursorAnchorInfo.
-                mTextView.requestLayout();
+                mEditText.requestLayout();
             }
         }
         return true;
@@ -498,7 +498,7 @@ public class EditableInputConnection extends BaseInputConnection {
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     public boolean setImeConsumesInput(boolean imeConsumesInput) {
-        mTextView.setImeConsumesInput(imeConsumesInput);
+        mEditText.setImeConsumesInput(imeConsumesInput);
         return true;
     }
 

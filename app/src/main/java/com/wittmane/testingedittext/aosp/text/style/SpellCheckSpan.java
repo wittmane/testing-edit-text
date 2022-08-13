@@ -29,7 +29,7 @@ import android.os.Parcelable;
 // TextUtils#writeToParcel. the AOSP version didn't have CREATOR, and I think the type ID might be
 // some alternative to that somehow. it seems more appropriate to just implement Parcelable.
 /**
- * A SpellCheckSpan is an internal data structure created by the TextView's SpellChecker to
+ * A SpellCheckSpan is an internal data structure created by the EditText's SpellChecker to
  * annotate portions of the text that are about to or currently being spell checked. They are
  * automatically removed once the spell check is completed.
  */

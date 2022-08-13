@@ -36,14 +36,14 @@ import java.util.Objects;
 public final class SelectionActionModeHelper {
 
     private final Editor mEditor;
-    private final EditText mTextView;
+    private final EditText mEditText;
 
     private final SelectionTracker mSelectionTracker;
 
     public SelectionActionModeHelper(@NonNull Editor editor) {
         mEditor = Objects.requireNonNull(editor);
-        mTextView = mEditor.getTextView();
-        mSelectionTracker = new SelectionTracker(mTextView);
+        mEditText = mEditor.getEditText();
+        mSelectionTracker = new SelectionTracker(mEditText);
     }
 
     /**
@@ -62,12 +62,12 @@ public final class SelectionActionModeHelper {
      * The {@link EditText} selection start and end index may not be sorted, this method will swap
      * the {@link EditText} selection index if the start index is greater than end index.
      *
-     * @param textView the selected TextView.
+     * @param editText the selected EditText.
      * @return the swap result, index 0 is the start index and index 1 is the end index.
      */
-    private static int[] sortSelectionIndicesFromTextView(EditText textView) {
-        int selectionStart = textView.getSelectionStart();
-        int selectionEnd = textView.getSelectionEnd();
+    private static int[] sortSelectionIndicesFromTextView(EditText editText) {
+        int selectionStart = editText.getSelectionStart();
+        int selectionEnd = editText.getSelectionEnd();
         return sortSelectionIndices(selectionStart, selectionEnd);
     }
 
@@ -78,7 +78,7 @@ public final class SelectionActionModeHelper {
      * Starts Selection ActionMode.
      */
     public void startSelectionActionModeAsync() {
-        int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mTextView);
+        int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mEditText);
         mSelectionTracker.onOriginalSelection(sortedSelectionIndices[0], sortedSelectionIndices[1]);
         startSelectionActionMode();
     }
@@ -135,7 +135,7 @@ public final class SelectionActionModeHelper {
     // handling smart or link selections
     private void startActionMode(@Editor.TextActionMode int actionMode) {
         final SelectionModifierCursorController controller = mEditor.getSelectionController();
-        if (controller != null && mTextView.isTextEditable()) {
+        if (controller != null && mEditText.isTextEditable()) {
             controller.show();
         }
         mEditor.startActionModeInternal(actionMode);
@@ -153,7 +153,7 @@ public final class SelectionActionModeHelper {
         if (actionMode != null) {
             actionMode.invalidate();
         }
-        final int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mTextView);
+        final int[] sortedSelectionIndices = sortSelectionIndicesFromTextView(mEditText);
         mSelectionTracker.onSelectionUpdated(sortedSelectionIndices[0], sortedSelectionIndices[1]);
     }
 
@@ -164,13 +164,13 @@ public final class SelectionActionModeHelper {
      */
     private static final class SelectionTracker {
 
-        private final EditText mTextView;
+        private final EditText mEditText;
 
         private int mSelectionStart;
         private int mSelectionEnd;
 
-        SelectionTracker(EditText textView) {
-            mTextView = Objects.requireNonNull(textView);
+        SelectionTracker(EditText editText) {
+            mEditText = Objects.requireNonNull(editText);
         }
 
         // (EW) skipped the text and isLink parameters since they were just used for logging
@@ -193,7 +193,7 @@ public final class SelectionActionModeHelper {
             if (isSelectionStarted()) {
                 mSelectionStart = selectionStart;
                 mSelectionEnd = selectionEnd;
-                mTextView.notifyContentCaptureTextChanged();
+                mEditText.notifyContentCaptureTextChanged();
             }
         }
 
@@ -201,7 +201,7 @@ public final class SelectionActionModeHelper {
          * Called when the selection action mode is destroyed.
          */
         public void onSelectionDestroyed() {
-            mTextView.notifyContentCaptureTextChanged();
+            mEditText.notifyContentCaptureTextChanged();
         }
 
         // (EW) skipped #onSelectionAction because it just did logging and set #mAllowReset to

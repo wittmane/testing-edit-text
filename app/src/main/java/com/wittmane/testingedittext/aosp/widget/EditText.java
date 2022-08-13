@@ -138,7 +138,6 @@ import android.view.textservice.TextServicesManager;
 import android.view.translation.TranslationSpec;
 import android.view.translation.ViewTranslationRequest;
 import android.widget.Scroller;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
@@ -384,7 +383,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private boolean mHighlightPathBogus = true;
 
     // Although these fields are specific to editable text, they are not added to Editor because
-    // they are defined by the TextView's style and are theme-dependent.
+    // they are defined by the EditText's style and are theme-dependent.
     int mCursorDrawableRes;
     private Drawable mCursorDrawable;
     // Note: this might be stale if setTextSelectHandleLeft is used. We could simplify the code
@@ -409,7 +408,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private static final int NO_POINTER_ID = -1;
     /**
      * The prime (the 1st finger) pointer id which is used as a lock to prevent multi touch among
-     * TextView and the handle views which are rendered on popup windows.
+     * EditText and the handle views which are rendered on popup windows.
      */
     private int mPrimePointerId = NO_POINTER_ID;
 
@@ -525,7 +524,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private void init(
             Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        // TextView is important by default, unless app developer overrode attribute.
+        // EditText is important by default, unless app developer overrode attribute.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // (EW) autofill support started in Oreo
             if (getImportantForAutofill() == IMPORTANT_FOR_AUTOFILL_AUTO) {
@@ -564,7 +563,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         /*
          * Look the appearance up without checking first if it exists because
-         * almost every TextView has one and it greatly simplifies the logic
+         * almost every EditText has one and it greatly simplifies the logic
          * to be able to parse the appearance first and then let specific tags
          * for this View override it.
          */
@@ -872,7 +871,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
-        // of lines of height are unchanged for multi-line TextViews.
+        // of lines of height are unchanged for multi-line EditTexts.
         setInputTypeSingleLine(singleLine);
         applySingleLine(singleLine, singleLine, singleLine,
                 // Does not apply automated max length filter since length filter will be resolved
@@ -947,7 +946,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         /*
          * Views are not normally clickable unless specified to be.
-         * However, TextViews that have input or movement methods *are*
+         * However, EditTexts that have input or movement methods *are*
          * clickable by default. By setting clickable here, we implicitly set focusable as well
          * if not overridden by the developer.
          */
@@ -1155,7 +1154,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (!enabled) {
-            // Hide the soft input if the currently active TextView is disabled
+            // Hide the soft input if the currently active EditText is disabled
             InputMethodManager imm = getInputMethodManager();
             if (imm != null && imm.isActive(this)) {
                 imm.hideSoftInputFromWindow(getWindowToken(), 0);
@@ -1227,15 +1226,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the length, in characters, of the text managed by this TextView
-     * @return The length of the text managed by the TextView in characters.
+     * Returns the length, in characters, of the text managed by this EditText
+     * @return The length of the text managed by the EditText in characters.
      */
     public int length() {
         return mText.length();
     }
 
     /**
-     * Return the text that TextView is displaying as an Editable object.
+     * Return the text that EditText is displaying as an Editable object.
      *
      * @see #getText
      */
@@ -1279,9 +1278,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Gets the current {@link KeyListener} for the TextView.
-     * This will frequently be null for non-EditText TextViews.
-     * @return the current key listener for this TextView.
+     * Gets the current {@link KeyListener} for the EditText.
+     * @return the current key listener for this EditText.
      *
      * @attr ref android.R.styleable#TextView_digits
      */
@@ -1290,7 +1288,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the key listener to be used with this TextView.  This can be null
+     * Sets the key listener to be used with this EditText.  This can be null
      * to disallow user input.  Note that this method has significant and
      * subtle interactions with soft keyboards and other input method:
      * see {@link KeyListener#getInputType() KeyListener.getInputType()}
@@ -1298,8 +1296,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * content type of the text view with the content type returned by the
      * key listener.
      * <p>
-     * Be warned that if you want a TextView with a key listener or movement
-     * method not to be focusable, or if you want a TextView without a
+     * Be warned that if you want a EditText with a key listener or movement
+     * method not to be focusable, or if you want a EditText without a
      * key listener or movement method to be focusable, you must call
      * {@link #setFocusable} again after calling this to get the focusability
      * back the way you want it.
@@ -1341,10 +1339,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Gets the {@link MovementMethod} being used for this TextView,
+     * Gets the {@link MovementMethod} being used for this EditText,
      * which provides positioning, scrolling, and text selection functionality.
-     * This will frequently be null for non-EditText TextViews.
-     * @return the movement method being used for this TextView.
+     * @return the movement method being used for this EditText.
      * @see MovementMethod
      */
     public final MovementMethod getMovementMethod() {
@@ -1353,11 +1350,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Sets the {@link MovementMethod} for handling arrow key movement
-     * for this TextView. This can be null to disallow using the arrow keys to move the
+     * for this EditText. This can be null to disallow using the arrow keys to move the
      * cursor or scroll the view.
      * <p>
-     * Be warned that if you want a TextView with a key listener or movement
-     * method not to be focusable, or if you want a TextView without a
+     * Be warned that if you want a EditText with a key listener or movement
+     * method not to be focusable, or if you want a EditText without a
      * key listener or movement method to be focusable, you must call
      * {@link #setFocusable} again after calling this to get the focusability
      * back the way you want it.
@@ -1395,9 +1392,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Gets the current {@link android.text.method.TransformationMethod} for the TextView.
+     * Gets the current {@link android.text.method.TransformationMethod} for the EditText.
      * This is frequently null, except for single-line and password fields.
-     * @return the current transformation method for this TextView.
+     * @return the current transformation method for this EditText.
      */
     public final TransformationMethod getTransformationMethod() {
         return mTransformation;
@@ -1405,7 +1402,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Sets the transformation that is applied to the text that this
-     * TextView is displaying.
+     * EditText is displaying.
      */
     public final void setTransformationMethod(TransformationMethod method) {
         if (method == mTransformation) {
@@ -1652,15 +1649,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Updates the top padding of the TextView so that {@code firstBaselineToTopHeight} is
-     * the distance between the top of the TextView and first line's baseline.
+     * Updates the top padding of the EditText so that {@code firstBaselineToTopHeight} is
+     * the distance between the top of the EditText and first line's baseline.
      * <p>
      * <img src="{@docRoot}reference/android/images/text/widget/first_last_baseline.png" />
-     * <figcaption>First and last baseline metrics for a TextView.</figcaption>
+     * <figcaption>First and last baseline metrics for a EditText.</figcaption>
      *
      * <strong>Note</strong> that if {@code FontMetrics.top} or {@code FontMetrics.ascent} was
      * already greater than {@code firstBaselineToTopHeight}, the top padding is not updated.
-     * Moreover since this function sets the top padding, if the height of the TextView is less than
+     * Moreover since this function sets the top padding, if the height of the EditText is less than
      * the sum of top padding, line height and bottom padding, top of the line will be pushed
      * down and bottom will be clipped.
      *
@@ -1695,15 +1692,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Updates the bottom padding of the TextView so that {@code lastBaselineToBottomHeight} is
-     * the distance between the bottom of the TextView and the last line's baseline.
+     * Updates the bottom padding of the EditText so that {@code lastBaselineToBottomHeight} is
+     * the distance between the bottom of the EditText and the last line's baseline.
      * <p>
      * <img src="{@docRoot}reference/android/images/text/widget/first_last_baseline.png" />
-     * <figcaption>First and last baseline metrics for a TextView.</figcaption>
+     * <figcaption>First and last baseline metrics for a EditText.</figcaption>
      *
      * <strong>Note</strong> that if {@code FontMetrics.bottom} or {@code FontMetrics.descent} was
      * already greater than {@code lastBaselineToBottomHeight}, the bottom padding is not updated.
-     * Moreover since this function sets the bottom padding, if the height of the TextView is less
+     * Moreover since this function sets the bottom padding, if the height of the EditText is less
      * than the sum of top padding, line height and bottom padding, bottom of the text will be
      * clipped.
      *
@@ -1739,7 +1736,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the distance between the first text baseline and the top of this TextView.
+     * Returns the distance between the first text baseline and the top of this EditText.
      *
      * @see #setFirstBaselineToTopHeight(int)
      * @attr ref android.R.styleable#TextView_firstBaselineToTopHeight
@@ -1750,7 +1747,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the distance between the last text baseline and the bottom of this TextView.
+     * Returns the distance between the last text baseline and the bottom of this EditText.
      *
      * @see #setLastBaselineToBottomHeight(int)
      * @attr ref android.R.styleable#TextView_lastBaselineToBottomHeight
@@ -2047,7 +2044,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    // Maps styleable attributes that exist both in TextView style and TextAppearance.
+    // Maps styleable attributes that exist both in EditText style and TextAppearance.
     private static final SparseIntArray sAppearanceValues = new SparseIntArray();
     static {
         sAppearanceValues.put(R.styleable.EditText_android_textColorHighlight,
@@ -2325,9 +2322,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Get the default primary {@link Locale} of the text in this TextView. This will always be
+     * Get the default primary {@link Locale} of the text in this EditText. This will always be
      * the first member of {@link #getTextLocales()}.
-     * @return the default primary {@link Locale} of the text in this TextView.
+     * @return the default primary {@link Locale} of the text in this EditText.
      */
     @NonNull
     public Locale getTextLocale() {
@@ -2335,8 +2332,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Get the default {@link LocaleList} of the text in this TextView.
-     * @return the default {@link LocaleList} of the text in this TextView.
+     * Get the default {@link LocaleList} of the text in this EditText.
+     * @return the default {@link LocaleList} of the text in this EditText.
      */
     @RequiresApi(api = Build.VERSION_CODES.N)
     @NonNull @Size(min = 1)
@@ -2385,7 +2382,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Set the default {@link Locale} of the text in this TextView to a one-member
+     * Set the default {@link Locale} of the text in this EditText to a one-member
      * {@link LocaleList} containing just the given Locale.
      *
      * @param locale the {@link Locale} for drawing text, must not be null.
@@ -2403,7 +2400,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Set the default {@link LocaleList} of the text in this TextView to the given value.
+     * Set the default {@link LocaleList} of the text in this EditText to the given value.
      *
      * This value is used to choose appropriate typefaces for ambiguous characters (typically used
      * for CJK locales to disambiguate Hanzi/Kanji/Hanja characters). It also affects
@@ -2448,7 +2445,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * @return the size (in pixels) of the default text size in this TextView.
+     * @return the size (in pixels) of the default text size in this EditText.
      */
     @InspectableProperty
     @ViewDebug.ExportedProperty(category = "text")
@@ -2472,8 +2469,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * pixel" units.  This size is adjusted based on the current density and
      * user font size preference.
      *
-     * <p>Note: if this TextView has the auto-size feature enabled than this function is no-op.
-     *
      * @param size The scaled pixel size.
      *
      * @attr ref android.R.styleable#TextView_textSize
@@ -2485,8 +2480,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Set the default text size to a given unit and value. See {@link
      * TypedValue} for the possible dimension units.
-     *
-     * <p>Note: if this TextView has the auto-size feature enabled than this function is no-op.
      *
      * @param unit The desired dimension unit.
      * @param size The desired size in the given units.
@@ -2623,7 +2616,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Set the TextView's elegant height metrics flag. This setting selects font
+     * Set the EditText's elegant height metrics flag. This setting selects font
      * variants that have not been compacted to fit Latin-based vertical
      * metrics, and also increases top and bottom bounds to provide more space.
      *
@@ -2685,7 +2678,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Get the value of the TextView's elegant height metrics flag. This setting selects font
+     * Get the value of the EditText's elegant height metrics flag. This setting selects font
      * variants that have not been compacted to fit Latin-based vertical
      * metrics, and also increases top and bottom bounds to provide more space.
      * @return {@code true} if the elegant height metrics flag is set.
@@ -2770,10 +2763,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the break strategy for breaking paragraphs into lines. The default value for
-     * TextView is {@link Layout#BREAK_STRATEGY_HIGH_QUALITY}, and the default value for
-     * EditText is {@link Layout#BREAK_STRATEGY_SIMPLE}, the latter to avoid the
-     * text "dancing" when being edited.
+     * Sets the break strategy for breaking paragraphs into lines. The default value for EditText
+     * is {@link Layout#BREAK_STRATEGY_SIMPLE} to avoid the text "dancing" when being edited.
      * <p/>
      * Enabling hyphenation with either using {@link Layout#HYPHENATION_FREQUENCY_NORMAL} or
      * {@link Layout#HYPHENATION_FREQUENCY_FULL} while line breaking is set to one of
@@ -2814,9 +2805,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Sets the frequency of automatic hyphenation to use when determining word breaks.
-     * The default value for both TextView and {@link EditText} is
-     * {@link Layout#HYPHENATION_FREQUENCY_NONE}. Note that the default hyphenation frequency value
-     * is set from the theme.
+     * The default value for EditText is {@link Layout#HYPHENATION_FREQUENCY_NONE}. Note that the
+     * default hyphenation frequency value is set from the theme.
      * <p/>
      * Enabling hyphenation with either using {@link Layout#HYPHENATION_FREQUENCY_NORMAL} or
      * {@link Layout#HYPHENATION_FREQUENCY_FULL} while line breaking is set to one of
@@ -2905,8 +2895,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * <li>Set font width to 150.
      * <pre>
      * <code>
-     *   TextView textView = (TextView) findViewById(R.id.textView);
-     *   textView.setFontVariationSettings("'wdth' 150");
+     *   EditText editText = (EditText) findViewById(R.id.editText);
+     *   editText.setFontVariationSettings("'wdth' 150");
      * </code>
      * </pre>
      * </li>
@@ -2914,8 +2904,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * <li>Set the font slant to 20 degrees and ask for italic style.
      * <pre>
      * <code>
-     *   TextView textView = (TextView) findViewById(R.id.textView);
-     *   textView.setFontVariationSettings("'slnt' 20, 'ital' 1");
+     *   EditText editText = (EditText) findViewById(R.id.editText);
+     *   editText.setFontVariationSettings("'slnt' 20, 'ital' 1");
      * </code>
      * </pre>
      * </p>
@@ -2925,7 +2915,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param fontVariationSettings font variation settings. You can pass null or empty string as
      *                              no variation settings.
      * @return true if the given settings is effective to at least one font file underlying this
-     *         TextView. This function also returns true for empty settings string. Otherwise
+     *         EditText. This function also returns true for empty settings string. Otherwise
      *         returns false.
      *
      * @throws IllegalArgumentException If given string is not a valid font variation settings
@@ -2991,7 +2981,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Gets the text colors for the different states (normal, selected, focused) of the TextView.
+     * Gets the text colors for the different states (normal, selected, focused) of the EditText.
      *
      * @see #setTextColor(ColorStateList)
      * @see #setTextColor(int)
@@ -3040,7 +3030,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Sets whether the soft input method will be made visible when this
-     * TextView gets focused. The default is true.
+     * EditText gets focused. The default is true.
      */
     public final void setShowSoftInputOnFocus(boolean show) {
         mEditor.mShowSoftInputOnFocus = show;
@@ -3048,7 +3038,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Returns whether the soft input method will be made visible when this
-     * TextView gets focused. The default is true.
+     * EditText gets focused. The default is true.
      */
     public final boolean getShowSoftInputOnFocus() {
         // When there is no Editor, return default true value
@@ -3148,7 +3138,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Sets the color of the hint text for all the states (disabled, focussed, selected...) of this
-     * TextView.
+     * EditText.
      *
      * @see #setHintTextColor(ColorStateList)
      * @see #getHintTextColors()
@@ -3176,7 +3166,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * @return the color of the hint text, for the different states of this TextView.
+     * @return the color of the hint text, for the different states of this EditText.
      *
      * @see #setHintTextColor(ColorStateList)
      * @see #setHintTextColor(int)
@@ -3202,7 +3192,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Sets the horizontal alignment of the text and the
      * vertical gravity that will be used when there is extra space
-     * in the TextView beyond what is required for the text itself.
+     * in the EditText beyond what is required for the text itself.
      *
      * @see Gravity
      * @attr ref android.R.styleable#TextView_gravity
@@ -3240,7 +3230,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the horizontal and vertical alignment of this TextView.
+     * Returns the horizontal and vertical alignment of this EditText.
      *
      * @see Gravity
      * @attr ref android.R.styleable#TextView_gravity
@@ -3307,13 +3297,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the height of the TextView to be at least {@code minLines} tall.
+     * Sets the height of the EditText to be at least {@code minLines} tall.
      * <p>
-     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * This value is used for height calculation if LayoutParams does not force EditText to have an
      * exact height. Setting this value overrides other previous minimum height configurations such
      * as {@link #setMinHeight(int)} or {@link #setHeight(int)}.
      *
-     * @param minLines the minimum height of TextView in terms of number of lines
+     * @param minLines the minimum height of EditText in terms of number of lines
      *
      * @see #getMinLines()
      * @see #setLines(int)
@@ -3329,10 +3319,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the minimum height of TextView in terms of number of lines or -1 if the minimum
+     * Returns the minimum height of EditText in terms of number of lines or -1 if the minimum
      * height was set using {@link #setMinHeight(int)} or {@link #setHeight(int)}.
      *
-     * @return the minimum height of TextView in terms of number of lines or -1 if the minimum
+     * @return the minimum height of EditText in terms of number of lines or -1 if the minimum
      *         height is not defined in lines
      *
      * @see #setMinLines(int)
@@ -3346,9 +3336,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the height of the TextView to be at least {@code minPixels} tall.
+     * Sets the height of the EditText to be at least {@code minPixels} tall.
      * <p>
-     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * This value is used for height calculation if LayoutParams does not force EditText to have an
      * exact height. Setting this value overrides previous minimum height configurations such as
      * {@link #setMinLines(int)} or {@link #setLines(int)}.
      * <p>
@@ -3356,7 +3346,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@code minHeight} and the value set in {@link #setMinimumHeight(int)}, the greater one is
      * used to decide the final height.
      *
-     * @param minPixels the minimum height of TextView in terms of pixels
+     * @param minPixels the minimum height of EditText in terms of pixels
      *
      * @see #getMinHeight()
      * @see #setHeight(int)
@@ -3372,10 +3362,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the minimum height of TextView in terms of pixels or -1 if the minimum height was
+     * Returns the minimum height of EditText in terms of pixels or -1 if the minimum height was
      * set using {@link #setMinLines(int)} or {@link #setLines(int)}.
      *
-     * @return the minimum height of TextView in terms of pixels or -1 if the minimum height is not
+     * @return the minimum height of EditText in terms of pixels or -1 if the minimum height is not
      *         defined in pixels
      *
      * @see #setMinHeight(int)
@@ -3388,13 +3378,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the height of the TextView to be at most {@code maxLines} tall.
+     * Sets the height of the EditText to be at most {@code maxLines} tall.
      * <p>
-     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * This value is used for height calculation if LayoutParams does not force EditText to have an
      * exact height. Setting this value overrides previous maximum height configurations such as
      * {@link #setMaxHeight(int)} or {@link #setLines(int)}.
      *
-     * @param maxLines the maximum height of TextView in terms of number of lines
+     * @param maxLines the maximum height of EditText in terms of number of lines
      *
      * @see #getMaxLines()
      * @see #setLines(int)
@@ -3410,10 +3400,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the maximum height of TextView in terms of number of lines or -1 if the
+     * Returns the maximum height of EditText in terms of number of lines or -1 if the
      * maximum height was set using {@link #setMaxHeight(int)} or {@link #setHeight(int)}.
      *
-     * @return the maximum height of TextView in terms of number of lines. -1 if the maximum height
+     * @return the maximum height of EditText in terms of number of lines. -1 if the maximum height
      *         is not defined in lines.
      *
      * @see #setMaxLines(int)
@@ -3427,13 +3417,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the height of the TextView to be at most {@code maxPixels} tall.
+     * Sets the height of the EditText to be at most {@code maxPixels} tall.
      * <p>
-     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * This value is used for height calculation if LayoutParams does not force EditText to have an
      * exact height. Setting this value overrides previous maximum height configurations such as
      * {@link #setMaxLines(int)} or {@link #setLines(int)}.
      *
-     * @param maxPixels the maximum height of TextView in terms of pixels
+     * @param maxPixels the maximum height of EditText in terms of pixels
      *
      * @see #getMaxHeight()
      * @see #setHeight(int)
@@ -3449,10 +3439,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the maximum height of TextView in terms of pixels or -1 if the maximum height was
+     * Returns the maximum height of EditText in terms of pixels or -1 if the maximum height was
      * set using {@link #setMaxLines(int)} or {@link #setLines(int)}.
      *
-     * @return the maximum height of TextView in terms of pixels or -1 if the maximum height
+     * @return the maximum height of EditText in terms of pixels or -1 if the maximum height
      *         is not defined in pixels
      *
      * @see #setMaxHeight(int)
@@ -3466,13 +3456,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the height of the TextView to be exactly {@code lines} tall.
+     * Sets the height of the EditText to be exactly {@code lines} tall.
      * <p>
-     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * This value is used for height calculation if LayoutParams does not force EditText to have an
      * exact height. Setting this value overrides previous minimum/maximum height configurations
      * such as {@link #setMinLines(int)} or {@link #setMaxLines(int)}.
      *
-     * @param lines the exact height of the TextView in terms of lines
+     * @param lines the exact height of the EditText in terms of lines
      *
      * @see #setHeight(int)
      *
@@ -3487,13 +3477,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the height of the TextView to be exactly <code>pixels</code> tall.
+     * Sets the height of the EditText to be exactly <code>pixels</code> tall.
      * <p>
-     * This value is used for height calculation if LayoutParams does not force TextView to have an
+     * This value is used for height calculation if LayoutParams does not force EditText to have an
      * exact height. Setting this value overrides previous minimum/maximum height configurations
      * such as {@link #setMinHeight(int)} or {@link #setMaxHeight(int)}.
      *
-     * @param pixels the exact height of the TextView in terms of pixels
+     * @param pixels the exact height of the EditText in terms of pixels
      *
      * @see #setLines(int)
      *
@@ -3508,13 +3498,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the width of the TextView to be at least {@code minEms} wide.
+     * Sets the width of the EditText to be at least {@code minEms} wide.
      * <p>
-     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * This value is used for width calculation if LayoutParams does not force EditText to have an
      * exact width. Setting this value overrides previous minimum width configurations such as
      * {@link #setMinWidth(int)} or {@link #setWidth(int)}.
      *
-     * @param minEms the minimum width of TextView in terms of ems
+     * @param minEms the minimum width of EditText in terms of ems
      *
      * @see #getMinEms()
      * @see #setEms(int)
@@ -3530,10 +3520,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the minimum width of TextView in terms of ems or -1 if the minimum width was set
+     * Returns the minimum width of EditText in terms of ems or -1 if the minimum width was set
      * using {@link #setMinWidth(int)} or {@link #setWidth(int)}.
      *
-     * @return the minimum width of TextView in terms of ems. -1 if the minimum width is not
+     * @return the minimum width of EditText in terms of ems. -1 if the minimum width is not
      *         defined in ems
      *
      * @see #setMinEms(int)
@@ -3547,9 +3537,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the width of the TextView to be at least {@code minPixels} wide.
+     * Sets the width of the EditText to be at least {@code minPixels} wide.
      * <p>
-     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * This value is used for width calculation if LayoutParams does not force EditText to have an
      * exact width. Setting this value overrides previous minimum width configurations such as
      * {@link #setMinEms(int)} or {@link #setEms(int)}.
      * <p>
@@ -3557,7 +3547,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@code minWidth} and the value set in {@link #setMinimumWidth(int)}, the greater one is used
      * to decide the final width.
      *
-     * @param minPixels the minimum width of TextView in terms of pixels
+     * @param minPixels the minimum width of EditText in terms of pixels
      *
      * @see #getMinWidth()
      * @see #setWidth(int)
@@ -3573,10 +3563,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the minimum width of TextView in terms of pixels or -1 if the minimum width was set
+     * Returns the minimum width of EditText in terms of pixels or -1 if the minimum width was set
      * using {@link #setMinEms(int)} or {@link #setEms(int)}.
      *
-     * @return the minimum width of TextView in terms of pixels or -1 if the minimum width is not
+     * @return the minimum width of EditText in terms of pixels or -1 if the minimum width is not
      *         defined in pixels
      *
      * @see #setMinWidth(int)
@@ -3590,13 +3580,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the width of the TextView to be at most {@code maxEms} wide.
+     * Sets the width of the EditText to be at most {@code maxEms} wide.
      * <p>
-     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * This value is used for width calculation if LayoutParams does not force EditText to have an
      * exact width. Setting this value overrides previous maximum width configurations such as
      * {@link #setMaxWidth(int)} or {@link #setWidth(int)}.
      *
-     * @param maxEms the maximum width of TextView in terms of ems
+     * @param maxEms the maximum width of EditText in terms of ems
      *
      * @see #getMaxEms()
      * @see #setEms(int)
@@ -3612,10 +3602,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the maximum width of TextView in terms of ems or -1 if the maximum width was set
+     * Returns the maximum width of EditText in terms of ems or -1 if the maximum width was set
      * using {@link #setMaxWidth(int)} or {@link #setWidth(int)}.
      *
-     * @return the maximum width of TextView in terms of ems or -1 if the maximum width is not
+     * @return the maximum width of EditText in terms of ems or -1 if the maximum width is not
      *         defined in ems
      *
      * @see #setMaxEms(int)
@@ -3629,13 +3619,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the width of the TextView to be at most {@code maxPixels} wide.
+     * Sets the width of the EditText to be at most {@code maxPixels} wide.
      * <p>
-     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * This value is used for width calculation if LayoutParams does not force EditText to have an
      * exact width. Setting this value overrides previous maximum width configurations such as
      * {@link #setMaxEms(int)} or {@link #setEms(int)}.
      *
-     * @param maxPixels the maximum width of TextView in terms of pixels
+     * @param maxPixels the maximum width of EditText in terms of pixels
      *
      * @see #getMaxWidth()
      * @see #setWidth(int)
@@ -3651,10 +3641,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the maximum width of TextView in terms of pixels or -1 if the maximum width was set
+     * Returns the maximum width of EditText in terms of pixels or -1 if the maximum width was set
      * using {@link #setMaxEms(int)} or {@link #setEms(int)}.
      *
-     * @return the maximum width of TextView in terms of pixels. -1 if the maximum width is not
+     * @return the maximum width of EditText in terms of pixels. -1 if the maximum width is not
      *         defined in pixels
      *
      * @see #setMaxWidth(int)
@@ -3668,13 +3658,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the width of the TextView to be exactly {@code ems} wide.
+     * Sets the width of the EditText to be exactly {@code ems} wide.
      *
-     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * This value is used for width calculation if LayoutParams does not force EditText to have an
      * exact width. Setting this value overrides previous minimum/maximum configurations such as
      * {@link #setMinEms(int)} or {@link #setMaxEms(int)}.
      *
-     * @param ems the exact width of the TextView in terms of ems
+     * @param ems the exact width of the EditText in terms of ems
      *
      * @see #setWidth(int)
      *
@@ -3689,13 +3679,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the width of the TextView to be exactly {@code pixels} wide.
+     * Sets the width of the EditText to be exactly {@code pixels} wide.
      * <p>
-     * This value is used for width calculation if LayoutParams does not force TextView to have an
+     * This value is used for width calculation if LayoutParams does not force EditText to have an
      * exact width. Setting this value overrides previous minimum/maximum width configurations
      * such as {@link #setMinWidth(int)} or {@link #setMaxWidth(int)}.
      *
-     * @param pixels the exact width of the TextView in terms of pixels
+     * @param pixels the exact width of the EditText in terms of pixels
      *
      * @see #setEms(int)
      *
@@ -3710,13 +3700,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets line spacing for this TextView.  Each line other than the last line will have its height
+     * Sets line spacing for this EditText.  Each line other than the last line will have its height
      * multiplied by {@code mult} and have {@code add} added to it.
      *
      * @param add The value in pixels that should be added to each line other than the last line.
      *            This will be applied after the multiplier
-     * @param multiplier The value by which each line height other than the last line will be multiplied
-     *             by
+     * @param multiplier The value by which each line height other than the last line will be
+     *                   multiplied by
      *
      * @attr ref android.R.styleable#TextView_lineSpacingExtra
      * @attr ref android.R.styleable#TextView_lineSpacingMultiplier
@@ -3752,7 +3742,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Gets the line spacing extra space
      *
-     * @return the extra space that is added to the height of each lines of this TextView.
+     * @return the extra space that is added to the height of each lines of this EditText.
      *
      * @see #setLineSpacing(float, float)
      * @see #getLineSpacingMultiplier()
@@ -3765,8 +3755,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets an explicit line height for this TextView. This is equivalent to the vertical distance
-     * between subsequent baselines in the TextView.
+     * Sets an explicit line height for this EditText. This is equivalent to the vertical distance
+     * between subsequent baselines in the EditText.
      *
      * @param lineHeight the line height in pixels
      *
@@ -3787,9 +3777,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Convenience method to append the specified text to the TextView's
-     * display buffer, upgrading it to {@link android.widget.TextView.BufferType#EDITABLE}
-     * if it was not already editable.
+     * Convenience method to append the specified text to the EditText's
+     * display buffer.
      *
      * @param text text to be appended to the already displayed text
      */
@@ -3798,9 +3787,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Convenience method to append the specified text slice to the TextView's
-     * display buffer, upgrading it to {@link android.widget.TextView.BufferType#EDITABLE}
-     * if it was not already editable.
+     * Convenience method to append the specified text slice to the EditText's
+     * display buffer.
      *
      * @param text text to be appended to the already displayed text
      * @param start the index of the first character in the {@code text}
@@ -3940,7 +3928,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Sets the text to be displayed. TextView <em>does not</em> accept
+     * Sets the text to be displayed. EditText <em>does not</em> accept
      * HTML-like formatting, which you can do with text strings in XML resource files.
      * To style your strings, attach android.text.style.* objects to a
      * {@link android.text.SpannableString}, or see the
@@ -3948,10 +3936,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * Available Resource Types</a> documentation for an example of setting
      * formatted text in the XML resource file.
      * <p/>
-     * When required, TextView will use {@link android.text.Spannable.Factory} to create final or
-     * intermediate {@link Spannable Spannables}. Likewise it will use
-     * {@link android.text.Editable.Factory} to create final or intermediate
-     * {@link Editable Editables}.
+     * When required, EditText will use {@link android.text.Editable.Factory} to create final or
+     * intermediate {@link Editable Editables}.
      *
      * @param text text to be displayed
      *
@@ -4020,7 +4006,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
         Spannable sp = (Spannable) text;
 
-        // Remove any ChangeWatchers that might have come from other TextViews.
+        // Remove any ChangeWatchers that might have come from other EditTexts.
         final ChangeWatcher[] watchers = sp.getSpans(0, sp.length(), ChangeWatcher.class);
         final int count = watchers.length;
         for (int i = 0; i < count; i++) {
@@ -4069,10 +4055,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the TextView to display the specified slice of the specified
+     * Sets the EditText to display the specified slice of the specified
      * char array. You must promise that you will not change the contents
      * of the array except for right before another call to setText(),
-     * since the TextView has no way to know that the text
+     * since the EditText has no way to know that the text
      * has changed and that it needs to invalidate and re-layout.
      *
      * @param text char array to be displayed
@@ -4108,10 +4094,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@link #setText(CharSequence)} except that the cursor position (if any) is retained in the
      * new text.
      * <p/>
-     * When required, TextView will use {@link android.text.Spannable.Factory} to create final or
-     * intermediate {@link Spannable Spannables}. Likewise it will use
-     * {@link android.text.Editable.Factory} to create final or intermediate
-     * {@link Editable Editables}.
+     * When required, EditText will use {@link android.text.Editable.Factory} to create final or
+     * intermediate {@link Editable Editables}.
      *
      * @param text text to be displayed
      *
@@ -4147,7 +4131,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the text to be displayed when the text of the TextView is empty.
+     * Sets the text to be displayed when the text of the EditText is empty.
      * Null means to use the normal empty text. The hint does not currently
      * participate in determining the size of the view.
      *
@@ -4174,7 +4158,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the text to be displayed when the text of the TextView is empty,
+     * Sets the text to be displayed when the text of the EditText is empty,
      * from a resource.
      *
      * @attr ref android.R.styleable#TextView_hint
@@ -4185,7 +4169,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Returns the hint that is displayed when the text of the TextView
+     * Returns the hint that is displayed when the text of the EditText
      * is empty.
      *
      * @attr ref android.R.styleable#TextView_hint
@@ -5958,8 +5942,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * If this TextView contains editable content, extract a portion of it
-     * based on the information in <var>request</var> in to <var>outText</var>.
+     * Extract a portion of this EditText's editable content based on the information in
+     * <var>request</var> in to <var>outText</var>.
      * @return Returns true if the text was successfully extracted, else false.
      */
     public boolean extractText(ExtractedTextRequest request, ExtractedText outText) {
@@ -6434,7 +6418,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Set whether the TextView includes extra top and bottom padding to make
+     * Set whether the EditText includes extra top and bottom padding to make
      * room for accents that go above the normal ascent and descent.
      * The default is true.
      *
@@ -6442,9 +6426,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @attr ref android.R.styleable#TextView_includeFontPadding
      */
-    public void setIncludeFontPadding(boolean includepad) {
-        if (mIncludePad != includepad) {
-            mIncludePad = includepad;
+    public void setIncludeFontPadding(boolean includePad) {
+        if (mIncludePad != includePad) {
+            mIncludePad = includePad;
 
             if (mLayout != null) {
                 nullLayouts();
@@ -6455,7 +6439,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Gets whether the TextView includes extra top and bottom padding to make
+     * Gets whether the EditText includes extra top and bottom padding to make
      * room for accents that go above the normal ascent and descent.
      *
      * @see #setIncludeFontPadding(boolean)
@@ -7078,8 +7062,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Move the cursor, if needed, so that it is at an offset that is visible
      * to the user.  This will not move the cursor if it represents more than
-     * one character (a selection range).  This will only work if the
-     * TextView contains spannable text; otherwise it will do nothing.
+     * one character (a selection range).
      *
      * @return True if the cursor was actually moved, false otherwise.
      */
@@ -7326,7 +7309,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @param ellipsis Type of ellipsis to be applied.
      * @throws IllegalArgumentException When the value of <code>ellipsis</code> parameter is
      *      {@link TextUtils.TruncateAt#MARQUEE}.
-     * @see TextView#setEllipsize(TextUtils.TruncateAt)
+     * @see android.widget.TextView#setEllipsize(TextUtils.TruncateAt)
      */
     public void setEllipsize(TextUtils.TruncateAt ellipsis) {
         if (ellipsis == TextUtils.TruncateAt.MARQUEE) {
@@ -7356,7 +7339,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Set the TextView so that when it takes focus, all the text is
+     * Set the EditText so that when it takes focus, all the text is
      * selected.
      *
      * @attr ref android.R.styleable#TextView_selectAllOnFocus
@@ -7366,10 +7349,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Set whether the cursor is visible. The default is true. Note that this property only
-     * makes sense for editable TextView. If IME is consuming the input, the cursor will always be
-     * invisible, visibility will be updated as the last state when IME does not consume
-     * the input anymore.
+     * Set whether the cursor is visible. The default is true. If IME is consuming the input, the
+     * cursor will always be invisible, visibility will be updated as the last state when IME does
+     * not consume the input anymore.
      *
      * @see #isCursorVisible()
      *
@@ -7407,10 +7389,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * @return whether or not the cursor is visible (assuming this TextView is editable). This
-     * method may return {@code false} when the IME is consuming the input even if the
-     * {@code mEditor.mCursorVisible} attribute is {@code true} or {@code #setCursorVisible(true)}
-     * is called.
+     * @return whether or not the cursor is visible. This method may return {@code false} when the
+     * IME is consuming the input even if the {@code mEditor.mCursorVisible} attribute is
+     * {@code true} or {@code #setCursorVisible(true)} is called.
      *
      * @see #setCursorVisible(boolean)
      *
@@ -7441,7 +7422,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * length <code>lengthBefore</code>. It is an error to attempt to make
      * changes to <code>text</code> from this callback.
      *
-     * @param text The text the TextView is displaying
+     * @param text The text the EditText is displaying
      * @param start The offset of the start of the range of the text that was
      * modified
      * @param lengthBefore The length of the former text that has been replaced
@@ -7469,7 +7450,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Adds a TextWatcher to the list of those whose methods are called
-     * whenever this TextView's text changes.
+     * whenever this EditText's text changes.
      * <p>
      * In 1.0, the {@link TextWatcher#afterTextChanged} method was erroneously
      * not called after {@link #setText} calls.  Now, doing {@link #setText}
@@ -7487,7 +7468,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Removes the specified TextWatcher from the list of those whose
      * methods are called
-     * whenever this TextView's text changes.
+     * whenever this EditText's text changes.
      */
     public void removeTextChangedListener(TextWatcher watcher) {
         if (mListeners != null) {
@@ -7904,12 +7885,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      *
      * @param event The motion event that is being handled and carries the pointer info.
      * @param fromHandleView true if the event is delivered to selection handle or insertion
-     * handle; false if this event is delivered to TextView.
+     * handle; false if this event is delivered to EditText.
      * @return Returns true to indicate that onTouchEvent() can continue processing the motion
      * event, otherwise false.
      *  - Always returns true for the first finger.
-     *  - For secondary fingers, if the first or current finger is from TextView, returns false.
-     *    This is to make touch mutually exclusive between the TextView and the handles, but
+     *  - For secondary fingers, if the first or current finger is from EditText, returns false.
+     *    This is to make touch mutually exclusive between the EditText and the handles, but
      *    not among the handles.
      */
     boolean isFromPrimePointer(MotionEvent event, boolean fromHandleView) {
@@ -8039,8 +8020,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * @return True iff this TextView contains a text that can be edited, or if this is
-     * a selectable TextView.
+     * @return True iff this EditText contains a text that can be edited.
      */
     boolean isTextEditable() {
         return onCheckIsTextEditor() && isEnabled();
@@ -8168,7 +8148,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Unlike {@link #textCanBeSelected()}, this method is based on the <i>current</i> state of the
-     * TextView. {@link #textCanBeSelected()} has to be true (this is one of the conditions to have
+     * EditText. {@link #textCanBeSelected()} has to be true (this is one of the conditions to have
      * a selection controller (see {@link Editor#prepareCursorControllers()}), but this is not
      * sufficient.
      */
@@ -8177,8 +8157,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Test based on the <i>intrinsic</i> charateristics of the TextView.
-     * The text must be spannable and the movement method must allow for arbitary selection.
+     * Test based on the <i>intrinsic</i> characteristics of the EditText.
+     * The text must be spannable and the movement method must allow for arbitrary selection.
      *
      * See also {@link #canSelectText()}.
      */
@@ -8240,10 +8220,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * acceptable and it's more important to make this method asynchronous.
      *
      * @return The locale that should be used for a word iterator
-     * in this TextView, based on the current spell checker settings,
+     * in this EditText, based on the current spell checker settings,
      * the current IME's locale, or the system default locale.
-     * Please note that a word iterator in this TextView is different from another word iterator
-     * used by SpellChecker.java of TextView. This method should be used for the former.
+     * Please note that a word iterator in this EditText is different from another word iterator
+     * used by SpellChecker.java of EditText. This method should be used for the former.
      */
     // TODO: Support multi-locale
     // TODO: Update the text services locale immediately after the keyboard locale is switched
@@ -8253,7 +8233,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * @return {@code true} if this TextView is specialized for showing and interacting with the
+     * @return {@code true} if this EditText is specialized for showing and interacting with the
      * extracted text in a full-screen input method.
      */
     boolean isInExtractedMode() {
@@ -8265,7 +8245,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * Caveat: This method may not return the latest spell checker locale, but this should be
      * acceptable and it's more important to make this method asynchronous.
      *
-     * @return The locale that should be used for a spell checker in this TextView,
+     * @return The locale that should be used for a spell checker in this EditText,
      * based on the current spell checker settings, the current IME's locale, or the system default
      * locale.
      */
@@ -8582,7 +8562,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
             if (viewFor == VIEW_STRUCTURE_FOR_ASSIST
                     || viewFor == VIEW_STRUCTURE_FOR_CONTENT_CAPTURE) {
-                // Extract style information that applies to the TextView as a whole.
+                // Extract style information that applies to the EditText as a whole.
                 int style = 0;
                 int typefaceStyle = getTypefaceStyle();
                 if ((typefaceStyle & Typeface.BOLD) != 0) {
@@ -8592,7 +8572,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     style |= AssistStructure.ViewNode.TEXT_STYLE_ITALIC;
                 }
 
-                // Global styles can also be set via TextView.setPaintFlags().
+                // Global styles can also be set via EditText.setPaintFlags().
                 int paintFlags = mTextPaint.getFlags();
                 if ((paintFlags & Paint.FAKE_BOLD_TEXT_FLAG) != 0) {
                     style |= AssistStructure.ViewNode.TEXT_STYLE_BOLD;
@@ -8604,7 +8584,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     style |= AssistStructure.ViewNode.TEXT_STYLE_STRIKE_THRU;
                 }
 
-                // TextView does not have its own text background color. A background is either part
+                // EditText does not have its own text background color. A background is either part
                 // of the View (and can be any drawable) or a BackgroundColorSpan inside the text.
                 structure.setTextStyle(getTextSize(), getCurrentTextColor(),
                         AssistStructure.ViewNode.TEXT_COLOR_UNDEFINED /* bgColor */, style);
@@ -8667,7 +8647,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public void autofill(AutofillValue value) {
         if (!isTextEditable()) {
-            Log.w(LOG_TAG, "cannot autofill non-editable TextView: " + this);
+            Log.w(LOG_TAG, "cannot autofill non-editable EditText: " + this);
             return;
         }
         if (!value.isText()) {
@@ -8698,7 +8678,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Gets the {@link TextView}'s current text for AutoFill. The value is trimmed to 100K
+     * Gets the {@link EditText}'s current text for AutoFill. The value is trimmed to 100K
      * {@code char}s if longer.
      *
      * @return current text, {@code null} if the text is not editable
@@ -8906,7 +8886,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Returns whether this text view is a current input method target.  The
      * default implementation just checks with {@link InputMethodManager}.
-     * @return True if the TextView is a current input method target; false otherwise.
+     * @return True if the EditText is a current input method target; false otherwise.
      */
     public boolean isInputMethodTarget() {
         InputMethodManager imm = getInputMethodManager();
@@ -9082,13 +9062,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Return whether or not suggestions are enabled on this TextView. The suggestions are generated
+     * Return whether or not suggestions are enabled on this EditText. The suggestions are generated
      * by the IME or by the spell checker as the user types. This is done by adding
      * {@link SuggestionSpan}s to the text.
      *
      * When suggestions are enabled (default), this list of suggestions will be displayed when the
      * user asks for them on these parts of the text. This value depends on the inputType of this
-     * TextView.
+     * EditText.
      *
      * The class of the input type must be {@link InputType#TYPE_CLASS_TEXT}.
      *
@@ -9139,7 +9119,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@link android.view.ActionMode.Callback#onActionItemClicked(ActionMode,
      * android.view.MenuItem)}.
      *
-     * <p>Note that text selection mode is not started when a TextView receives focus and the
+     * <p>Note that text selection mode is not started when a EditText receives focus and the
      * {@link android.R.attr#selectAllOnFocus} flag has been set. The content is highlighted in
      * that case, to allow for quick replacement.
      */
@@ -9176,7 +9156,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@link android.view.ActionMode.Callback#onActionItemClicked(android.view.ActionMode,
      * android.view.MenuItem)}.</p>
      *
-     * <p>Note that text insertion mode is not started when a TextView receives focus and the
+     * <p>Note that text insertion mode is not started when a EditText receives focus and the
      * {@link android.R.attr#selectAllOnFocus} flag has been set.</p>
      */
     public void setCustomInsertionActionModeCallback(ActionMode.Callback actionModeCallback) {
@@ -9448,7 +9428,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Override
     public boolean onDragEvent(DragEvent event) {
         if (!mEditor.hasInsertionController()) {
-            // If this TextView is not editable, defer to the default View implementation. This
+            // If this EditText is not editable, defer to the default View implementation. This
             // will check for the presence of an OnReceiveContentListener and accept/reject
             // drag events depending on whether the listener is/isn't set.
             return super.onDragEvent(event);
@@ -9501,9 +9481,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     /**
      * Returns resolved {@link TextDirectionHeuristic} that will be used for text layout.
-     * The {@link TextDirectionHeuristic} that is used by TextView is only available after
+     * The {@link TextDirectionHeuristic} that is used by EditText is only available after
      * {@link #getTextDirection()} and {@link #getLayoutDirection()} is resolved. Therefore the
-     * return value may not be the same as the one TextView uses if the View's layout direction is
+     * return value may not be the same as the one EditText uses if the View's layout direction is
      * not resolved or detached from parent root view.
      */
     public @NonNull TextDirectionHeuristic getTextDirectionHeuristic() {
@@ -9612,7 +9592,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * User interface state that is stored by TextView for implementing
+     * User interface state that is stored by EditText for implementing
      * {@link View#onSaveInstanceState}.
      */
     public static class SavedState extends BaseSavedState {
@@ -9798,13 +9778,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Default {@link TextView} implementation for receiving content. Apps wishing to provide
+     * Default {@link EditText} implementation for receiving content. Apps wishing to provide
      * custom behavior should configure a listener via {@link #setOnReceiveContentListener}.
      *
-     * <p>For non-editable TextViews the default behavior is a no-op (returns the passed-in
-     * content without acting on it).
-     *
-     * <p>For editable TextViews the default behavior is to insert text into the view, coercing
+     * <p>For editable EditTexts the default behavior is to insert text into the view, coercing
      * non-text content to text as needed. The MIME types "text/plain" and "text/html" have
      * well-defined behavior for this, while other MIME types have reasonable fallback behavior
      * (see {@link ClipData.Item#coerceToStyledText}).
@@ -9851,7 +9828,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             // TODO(b/177214256): support selectable text translation.
             //  We use the TransformationMethod to implement showing the translated text. The
-            //  TextView does not support the text length change for TransformationMethod. If the
+            //  EditText does not support the text length change for TransformationMethod. If the
             //  text is selectable or editable, it will crash while selecting the text. To support
             //  it, it needs broader changes to text APIs, we only allow to translate non selectable
             //  and editable text in S.

@@ -74,7 +74,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     private static final int USE_SPAN_RANGE = -1;
 
-    private final EditText mTextView;
+    private final EditText mEditText;
 
     SpellCheckerSession mSpellCheckerSession;
 
@@ -104,15 +104,15 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     private Runnable mSpellRunnable;
 
-    public SpellChecker(EditText textView) {
-        mTextView = textView;
+    public SpellChecker(EditText editText) {
+        mEditText = editText;
 
         // Arbitrary: these arrays will automatically double their sizes on demand
         final int size = 1;
         mIds = ArrayUtils.newUnpaddedIntArray(size);
         mSpellCheckSpans = new SpellCheckSpan[mIds.length];
 
-        setLocale(mTextView.getSpellCheckerLocale());
+        setLocale(mEditText.getSpellCheckerLocale());
 
         mCookie = hashCode();
     }
@@ -122,9 +122,9 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
         // (EW) the AOSP version used the text services manager for the user, but we didn't
         // implement that
-        mTextServicesManager = mTextView.getTextServicesManager();
+        mTextServicesManager = mEditText.getTextServicesManager();
         if (mCurrentLocale == null
-                || mTextView.length() == 0
+                || mEditText.length() == 0
                 || !isSpellCheckerEnabled(mTextServicesManager)
                 || !hasCurrentSpellCheckerSubtype(mTextServicesManager)) {
             mSpellCheckerSession = null;
@@ -145,7 +145,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
                         .setShouldReferToSpellCheckerLanguageSettings(true)
                         .build();
                 mSpellCheckerSession = mTextServicesManager.newSpellCheckerSession(
-                        params, mTextView.getContext().getMainExecutor(), this);
+                        params, mEditText.getContext().getMainExecutor(), this);
             } else {
                 mSpellCheckerSession = mTextServicesManager.newSpellCheckerSession(
                         null /* Bundle not currently used by the textServicesManager */, null,
@@ -160,7 +160,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         mLength = 0;
 
         // Remove existing misspelled SuggestionSpans
-        mTextView.removeMisspelledSpans(mTextView.getText());
+        mEditText.removeMisspelledSpans(mEditText.getText());
     }
 
     private void setLocale(Locale locale) {
@@ -175,7 +175,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         }
 
         // This class is the listener for locale change: warn other locale-aware objects
-        mTextView.onLocaleChanged();
+        mEditText.onLocaleChanged();
     }
 
     /**
@@ -197,7 +197,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         }
 
         if (mSpellRunnable != null) {
-            mTextView.removeCallbacks(mSpellRunnable);
+            mEditText.removeCallbacks(mSpellRunnable);
         }
     }
 
@@ -238,7 +238,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
     void onPerformSpellCheck() {
         // Triggers full content spell check.
         final int start = 0;
-        final int end = mTextView.length();
+        final int end = mEditText.length();
         if (DBG) {
             Log.d(TAG, "performSpellCheckAroundSelection: " + start + ", " + end);
         }
@@ -257,13 +257,13 @@ public class SpellChecker implements SpellCheckerSessionListener {
             Log.d(TAG, "Start spell-checking: " + start + ", " + end + ", "
                     + forceCheckWhenEditingWord);
         }
-        final Locale locale = mTextView.getSpellCheckerLocale();
+        final Locale locale = mEditText.getSpellCheckerLocale();
         final boolean isSessionActive = isSessionActive();
         if (locale == null || mCurrentLocale == null || (!(mCurrentLocale.equals(locale)))) {
             setLocale(locale);
             // Re-check the entire text
             start = 0;
-            end = mTextView.getText().length();
+            end = mEditText.getText().length();
         } else {
             final boolean spellCheckerActivated = isSpellCheckerEnabled(mTextServicesManager);
             if (isSessionActive != spellCheckerActivated) {
@@ -304,7 +304,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
     private void spellCheck(boolean forceCheckWhenEditingWord) {
         if (mSpellCheckerSession == null) return;
 
-        Editable editable = mTextView.getText();
+        Editable editable = mEditText.getText();
         final int selectionStart = Selection.getSelectionStart(editable);
         final int selectionEnd = Selection.getSelectionEnd(editable);
 
@@ -403,7 +403,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         if (suggestionsInfo == null || suggestionsInfo.getCookie() != mCookie) {
             return null;
         }
-        final Editable editable = mTextView.getText();
+        final Editable editable = mEditText.getText();
         final int sequenceNumber = suggestionsInfo.getSequence();
         for (int k = 0; k < mLength; ++k) {
             if (sequenceNumber == mIds[k]) {
@@ -491,7 +491,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     @Override
     public void onGetSuggestions(SuggestionsInfo[] results) {
-        final Editable editable = mTextView.getText();
+        final Editable editable = mEditText.getText();
         for (int i = 0; i < results.length; ++i) {
             final SpellCheckSpan spellCheckSpan =
                     onGetSuggestionsInternal(results[i], USE_SPAN_RANGE, USE_SPAN_RANGE);
@@ -505,7 +505,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
     @Override
     public void onGetSentenceSuggestions(SentenceSuggestionsInfo[] results) {
-        final Editable editable = mTextView.getText();
+        final Editable editable = mEditText.getText();
         for (int i = 0; i < results.length; ++i) {
             final SentenceSuggestionsInfo ssi = results[i];
             if (ssi == null) {
@@ -554,10 +554,10 @@ public class SpellChecker implements SpellCheckerSessionListener {
                 }
             };
         } else {
-            mTextView.removeCallbacks(mSpellRunnable);
+            mEditText.removeCallbacks(mSpellRunnable);
         }
 
-        mTextView.postDelayed(mSpellRunnable, SPELL_PAUSE_DURATION);
+        mEditText.postDelayed(mSpellRunnable, SPELL_PAUSE_DURATION);
     }
 
     // When calling this method, RESULT_ATTR_LOOKS_LIKE_TYPO or RESULT_ATTR_LOOKS_LIKE_GRAMMAR_ERROR
@@ -605,11 +605,11 @@ public class SpellChecker implements SpellCheckerSessionListener {
             flags |= SuggestionSpan.FLAG_GRAMMAR_ERROR;
         }
         SuggestionSpan suggestionSpan =
-                new SuggestionSpan(mTextView.getContext(), suggestions, flags);
+                new SuggestionSpan(mEditText.getContext(), suggestions, flags);
         removeErrorSuggestionSpan(editable, start, end, RemoveReason.REPLACE);
         editable.setSpan(suggestionSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        mTextView.invalidateRegion(start, end, false /* No cursor involved */);
+        mEditText.invalidateRegion(start, end, false /* No cursor involved */);
     }
 
     /**
@@ -674,7 +674,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
 
         public void parse(int start, int end, boolean forceCheckWhenEditingWord) {
             mForceCheckWhenEditingWord = forceCheckWhenEditingWord;
-            final int max = mTextView.length();
+            final int max = mEditText.length();
             final int parseEnd;
             if (end > max) {
                 Log.w(TAG, "Parse invalid region, from " + start + " to " + end);
@@ -683,17 +683,17 @@ public class SpellChecker implements SpellCheckerSessionListener {
                 parseEnd = end;
             }
             if (parseEnd > start) {
-                setRangeSpan(mTextView.getText(), start, parseEnd);
+                setRangeSpan(mEditText.getText(), start, parseEnd);
                 parse();
             }
         }
 
         public boolean isFinished() {
-            return (mTextView.getText()).getSpanStart(mRange) < 0;
+            return (mEditText.getText()).getSpanStart(mRange) < 0;
         }
 
         public void stop() {
-            removeRangeSpan(mTextView.getText());
+            removeRangeSpan(mEditText.getText());
             mForceCheckWhenEditingWord = false;
         }
 
@@ -713,7 +713,7 @@ public class SpellChecker implements SpellCheckerSessionListener {
         }
 
         public void parse() {
-            Editable editable = mTextView.getText();
+            Editable editable = mEditText.getText();
             final int textChangeStart = editable.getSpanStart(mRange);
             final int textChangeEnd = editable.getSpanEnd(mRange);
 
