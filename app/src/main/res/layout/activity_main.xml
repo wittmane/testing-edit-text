@@ -92,6 +92,7 @@
                         android:textIsSelectable="false"
                         android:lineHeight="100sp"
                         android:firstBaselineToTopHeight="40sp"
+                        app:firstBaselineToTopHeight="40sp"
                         android:imeActionLabel="my action"
                         android:imeActionId="42"
                         android:fontFamily="cursive"
@@ -474,6 +475,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="textCapWords"
                         android:allowUndo="false"
+                        app:allowUndo="false"
                         android:hint="textCapWords, no undo"/>
                 </LinearLayout>
             </LinearLayout>

@@ -260,9 +260,21 @@
         <!-- Distance from the top of the TextView to the first text baseline. If set, this
              overrides the value set for paddingTop. -->
         <attr name="android:firstBaselineToTopHeight" />
+        <!-- (EW) Duplicate of android:firstBaselineToTopHeight if necessary to support older
+             versions since that was only added in API level 28 (Pie). I've seen it still work as
+             early as 22 (Lollipop MR1), but I'm not sure what allows it to work on older version to
+             be certain if it would always work back through Lollipop MR1 and no further. if both
+             are specified, android:firstBaselineToTopHeight will take precedence. -->
+        <attr name="firstBaselineToTopHeight" format="dimension" />
         <!-- Distance from the bottom of the TextView to the last text baseline. If set, this
              overrides the value set for paddingBottom. -->
         <attr name="android:lastBaselineToBottomHeight" />
+        <!-- (EW) Duplicate of android:lastBaselineToBottomHeight if necessary to support older
+             versions since that was only added in API level 28 (Pie). I've seen it still work as
+             early as 22 (Lollipop MR1), but I'm not sure what allows it to work on older version to
+             be certain if it would always work back through Lollipop MR1 and no further. if both
+             are specified, android:lastBaselineToBottomHeight will take precedence. -->
+        <attr name="lastBaselineToBottomHeight" format="dimension" />
         <!-- The type of data being placed in a text field, used to help an
              input method decide how to let the user enter text.  The constants
              here correspond to those defined by
@@ -273,6 +285,12 @@
         <attr name="android:inputType" />
         <!-- Whether undo should be allowed for editable text. Defaults to true. -->
         <attr name="android:allowUndo" />
+        <!-- (EW) Duplicate of android:allowUndo if necessary to support older versions since that
+             was only added in API level 23 (Marshmallow). I've seen it still work as early as 22
+             (Lollipop MR1), but I'm not sure what allows it to work on older version to be certain
+             if it would always work back through Lollipop MR1 and no further. if both are
+             specified, android:lastBaselineToBottomHeight will take precedence. -->
+        <attr name="allowUndo" format="boolean" />
         <!-- Additional features you can enable in an IME associated with an editor
              to improve the integration with your application.  The constants
              here correspond to those defined by

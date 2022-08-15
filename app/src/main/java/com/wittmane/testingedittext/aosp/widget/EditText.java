@@ -608,6 +608,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         int lastBaselineToBottomHeight = -1;
         int lineHeight = -1;
 
+        // (EW) flags for whether the android attributes were specified in order to determine if a
+        // custom copy of the attribute should be ignored
+        boolean allowUndoSet = false;
+        boolean firstBaselineToTopHeightSet = false;
+        boolean lastBaselineToBottomHeightSet = false;
+
         readTextAppearance(context, typedArray, attributes, true /* styleArray */);
 
         int attrCount = typedArray.getIndexCount();
@@ -754,6 +760,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // (EW) this Android attribute was added in API level 23 (Marshmallow), but I've
                 // seen it still work as early as 22 (Lollipop MR1)
                 mEditor.mAllowUndo = typedArray.getBoolean(attr, true);
+                allowUndoSet = true;
+
+            } else if (attr == R.styleable.EditText_allowUndo) {
+                // (EW) copy of EditText_android_allowUndo to allow use in older versions, but the
+                // android attribute should take precedence over this custom one if both were
+                // entered
+                if (!allowUndoSet) {
+                    mEditor.mAllowUndo = typedArray.getBoolean(attr, true);
+                }
 
             } else if (attr == R.styleable.EditText_android_imeOptions) {
                 mEditor.createInputContentTypeIfNeeded();
@@ -819,16 +834,42 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // could just create a custom attribute for it, but until there is a need for it,
                 // it's easier to just use the existing attribute.
                 firstBaselineToTopHeight = typedArray.getDimensionPixelSize(attr, -1);
+                firstBaselineToTopHeightSet = true;
+
+            } else if (attr == R.styleable.EditText_firstBaselineToTopHeight
+                    && !firstBaselineToTopHeightSet) {
+                // (EW) copy of EditText_android_firstBaselineToTopHeight to allow use in older
+                // versions, but the android attribute should take precedence over this custom one
+                // if both were entered
+                firstBaselineToTopHeight = typedArray.getDimensionPixelSize(attr, -1);
 
             } else if (attr == R.styleable.EditText_android_lastBaselineToBottomHeight) {
                 // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
                 // still work as early as 22 (Lollipop MR1)
                 lastBaselineToBottomHeight = typedArray.getDimensionPixelSize(attr, -1);
+                lastBaselineToBottomHeightSet = true;
+
+            } else if (attr == R.styleable.EditText_lastBaselineToBottomHeight
+                    && !lastBaselineToBottomHeightSet) {
+                // (EW) copy of EditText_android_lastBaselineToBottomHeight to allow use in older
+                // versions, but the android attribute should take precedence over this custom one
+                // if both were entered
+                lastBaselineToBottomHeight = typedArray.getDimensionPixelSize(attr, -1);
 
             } else if (attr == R.styleable.EditText_android_lineHeight) {
-                // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
-                // still work as early as 22 (Lollipop MR1)
-                lineHeight = typedArray.getDimensionPixelSize(attr, -1);
+                // (EW) this Android attribute was added in API level 28 (Pie), but I've seen the
+                // attribute to still register as early as 22 (Lollipop MR1). the actual
+                // functionality of specifying the line height seems unstable on older versions.
+                // on Kitkat, it gets extra space below the line of text even a single line, rather
+                // only being added space between lines. on Lollipop, it gets extra space only
+                // between rows, but only if at least one row wraps. on Oreo, it seems to have no
+                // effect. I didn't bother checking other versions. maybe there is something more we
+                // can do to support these versions, but I'm not certain. I'll just hide it behind a
+                // version check to avoid unexpected behavior changing between versions.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    lineHeight = typedArray.getDimensionPixelSize(attr, -1);
+                }
+
             }
         }
 
