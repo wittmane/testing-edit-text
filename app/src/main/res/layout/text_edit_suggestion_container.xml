@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2015 The Android Open Source Project
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<!-- (EW) from versions 24 (Nougat) through at least 31 (S / Android 12). prior to Nougat,
+     Editor.SuggestionsPopupWindow#initContentView just created a new ListView from code, rather
+     than using a layout file, but this was added presumably as a compatibility version for the Holo
+     theme, so this wasn't actually the code used in the older versions. the code alternative from
+     versions 21 (Lollipop) through 23 (Marshmallow) still matched this despite using the Material
+     theme otherwise, but for better consistency with the theme generally and across versions of
+     this app, this will only actually be in the Holo theme on those versions. see comment in
+     Theme.Material in v21/themes. -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+    <!-- (EW) the ListView created from code on older versions (see above) got added as the content
+         view for the PopupWindow, and it seems that only the layout params were specified, but more
+         attributes are set here, which may be unnecessary, but since the AOSP version uses this for
+         compatibility, it seems fine to leave unless there is a known issue with it. -->
+    <LinearLayout
+        android:id="@+id/suggestionWindowContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:elevation="@dimen/text_edit_floating_toolbar_elevation"
+        android:layout_margin="@dimen/text_edit_floating_toolbar_margin"
+        android:background="@drawable/text_edit_suggestions_window"
+        android:dropDownSelector="@android:drawable/list_selector_background"
+        android:divider="@null">
+        <ListView
+            android:id="@+id/suggestionContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="?android:attr/dividerHorizontal">
+            <!-- Suggestions will be added here. -->
+        </ListView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:divider="?android:attr/dividerHorizontal"
+            android:showDividers="middle">
+            <TextView
+                style="@style/Widget.Holo.SuggestionButton"
+                android:id="@+id/addToDictionaryButton"
+                android:text="@string/addToDictionary" />
+            <TextView
+                style="@style/Widget.Holo.SuggestionButton"
+                android:id="@+id/deleteButton"
+                android:text="@string/deleteText" />
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>
