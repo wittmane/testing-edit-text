@@ -388,17 +388,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private Drawable mCursorDrawable;
     // Note: this might be stale if setTextSelectHandleLeft is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    //FUTURE: (EW) we don't have this same concern, so this could be removed
+    //TODO: (EW) we don't have this same concern, so this could be removed
     private int mTextSelectHandleLeftRes;
     private Drawable mTextSelectHandleLeft;
     // Note: this might be stale if setTextSelectHandleRight is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    //FUTURE: (EW) we don't have this same concern, so this could be removed
+    //TODO: (EW) we don't have this same concern, so this could be removed
     private int mTextSelectHandleRightRes;
     private Drawable mTextSelectHandleRight;
     // Note: this might be stale if setTextSelectHandle is used. We could simplify the code
     // by removing it, but we would break apps targeting <= P that use it by reflection.
-    //FUTURE: (EW) we don't have this same concern, so this could be removed
+    //TODO: (EW) we don't have this same concern, so this could be removed
     private int mTextSelectHandleRes;
     private Drawable mTextSelectHandle;
     int mTextEditSuggestionItemLayout;
@@ -706,7 +706,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 text = typedArray.getText(attr);
 
             } else if (attr == R.styleable.EditText_android_scrollHorizontally) {
-                //FUTURE: (EW) setting this via xml doesn't seem to work (even in the AOSP version
+                //TODO: (EW) setting this via xml doesn't seem to work (even in the AOSP version
                 // at least as of S), but if #setHorizontallyScrolling is used, it works fine. this
                 // should be fixed so the xml setup also works.
                 if (typedArray.getBoolean(attr, false)) {
@@ -724,7 +724,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // https://stackoverflow.com/a/33872646), and since that blocks entering or
                 // scrolling text, it probably makes the most sense to be done when disabling the
                 // view.
-                //FUTURE: (EW) it might be nice to allow this to work when disabled without having
+                //TODO: (EW) it might be nice to allow this to work when disabled without having
                 // to manually clear the key listener.
                 ellipsize = typedArray.getInt(attr, ellipsize);
 
@@ -829,10 +829,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // still work as early as 22 (Lollipop MR1). I'm not sure what allows it to work on
                 // older version to be certain if it would always work back through Lollipop MR1 and
                 // no further.
-                //FUTURE: (EW) functionality for this, lastBaselineToBottomHeight,
-                // android_lineHeight, and allowUndo probably could work on older versions, so we
-                // could just create a custom attribute for it, but until there is a need for it,
-                // it's easier to just use the existing attribute.
                 firstBaselineToTopHeight = typedArray.getDimensionPixelSize(attr, -1);
                 firstBaselineToTopHeightSet = true;
 
@@ -884,7 +880,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         final boolean numberPasswordInputType = variation
                 == (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD);
 
-        //FUTURE: (EW) I think this is only necessary if this is moved to a library
+        //TODO: (EW) I think this is only necessary if this is moved to a library
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
         mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
@@ -2390,7 +2386,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         KeyListener listener = mEditor.mKeyListener;
         if (listener instanceof DigitsKeyListener) {
-            //FUTURE: (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
+            //TODO: (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
             // that returns a DigitsKeyListener based on an the settings of a existing
             // DigitsKeyListener, with the locale modified. DigitsKeyListener doesn't seem to have
             // any way to check the sign or decimal, and since the listener could come from
@@ -4795,7 +4791,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    //FUTURE: (EW) View#focusSearch says is marked as only allowing @FocusRealDirection (like
+    //TODO: (EW) View#focusSearch says is marked as only allowing @FocusRealDirection (like
     // @FocusDirection, but without forward/backward), but based on looking into the implementation
     // (as of S), ViewGroup#focusSearch and ViewRootImpl#focusSearch (only implementers of
     // ViewParent that I found) both call FocusFinder#findNextFocus, which doesn't have the same
@@ -5884,7 +5880,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onCheckIsTextEditor() {
-        //FUTURE: (EW) this probably should be made to always be true since TYPE_NULL indicates text
+        //TODO: (EW) this probably should be made to always be true since TYPE_NULL indicates text
         // is not editable, which doesn't make sense for an edit text. I'm leaving this for now to
         // allow #setKeyListener to pass null to allow an ellipsis to show (see comment in #init for
         // EditText_android_ellipsize), but it doesn't really make sense for an edit test to have no
@@ -6056,7 +6052,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         Selection.setSelection(sp, start, end);
 
         // Finally, update the selection mode.
-        //FUTURE: (EW) the AOSP version checked text.flags for ExtractedText.FLAG_SELECTING to either
+        //TODO: (EW) the AOSP version checked text.flags for ExtractedText.FLAG_SELECTING to either
         // call MetaKeyKeyListener.startSelecting or MetaKeyKeyListener.stopSelecting, but those are
         // hidden and have been defined at least since Kitkat, but it has been hidden with a comment
         // saying it's pending API review, and at least as of S, they have been marked with
@@ -6203,7 +6199,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         alignment = Layout.Alignment.ALIGN_OPPOSITE;
                         break;
                     case Gravity.LEFT:
-                        //FUTURE: (EW) this value eventually gets passed to Layout, which checks
+                        //TODO: (EW) this value eventually gets passed to Layout, which checks
                         // getParagraphDirection for each line in drawText to determine the
                         // conversion to ALIGN_NORMAL or ALIGN_OPPOSITE, so I don't think we can
                         // replicate this functionality just using those. we could check something
@@ -6216,7 +6212,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         alignment = HiddenLayout.Alignment.ALIGN_LEFT;
                         break;
                     case Gravity.RIGHT:
-                        //FUTURE: (EW) see Gravity.LEFT case comment
+                        //TODO: (EW) see Gravity.LEFT case comment
                         alignment = HiddenLayout.Alignment.ALIGN_RIGHT;
                         break;
                     case Gravity.CENTER_HORIZONTAL:
@@ -6237,12 +6233,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 alignment = Layout.Alignment.ALIGN_CENTER;
                 break;
             case TEXT_ALIGNMENT_VIEW_START:
-                //FUTURE: (EW) see Gravity.LEFT case comment
+                //TODO: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
                         ? HiddenLayout.Alignment.ALIGN_RIGHT : HiddenLayout.Alignment.ALIGN_LEFT;
                 break;
             case TEXT_ALIGNMENT_VIEW_END:
-                //FUTURE: (EW) see Gravity.LEFT case comment
+                //TODO: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
                         ? HiddenLayout.Alignment.ALIGN_LEFT : HiddenLayout.Alignment.ALIGN_RIGHT;
                 break;
@@ -6682,15 +6678,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          * Don't cap the hint to a certain number of lines.
          * (Do cap it, though, if we have a maximum pixel height.)
          */
-        //FUTURE: (EW) Layout#getHeight(boolean) is hidden. the base implementation simply calls
+        //TODO: (EW) Layout#getHeight(boolean) is hidden. the base implementation simply calls
         // Layout#getHeight(). DynamicLayout and BoringLayout don't override it, but StaticLayout
-        // does (and it's marked as UnsupportedAppUsage), which means this only might cause an issue
-        // with the hint text in certain cases. trying to copy the logic from StaticLayout is
-        // difficult because it uses some private fields that don't have getters and trying to
-        // recalculate the values would be difficult and very fragile. even without needing to
-        // recalculate the values, copying the logic is probably a reasonably fragile solution.
-        // until there is a specific known issue that this causes, this will just have to call the
-        // method that is accessible.
+        // does, which means this only might cause an issue with the hint text in certain cases.
+        // trying to copy the logic from StaticLayout is difficult because it uses some private
+        // fields that don't have getters and trying to recalculate the values would be difficult
+        // and very fragile. even without needing to recalculate the values, copying the logic is
+        // probably a reasonably fragile solution. until there is a specific known issue that this
+        // causes, this will just have to call the method that is accessible.
         int desired = layout.getHeight();
 
         int linecount = layout.getLineCount();
@@ -7789,7 +7784,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // the current extract editor would be interested in it.
             if (ims != null && ims.mExtractedTextRequest != null) {
                 if (ims.mBatchEditNesting != 0) {
-                    //FUTURE: (EW) this expands the extracted text to include all of the
+                    //TODO: (EW) this expands the extracted text to include all of the
                     // ParcelableSpans, and in the case of spellcheck being enabled, this seems to
                     // result in a full extract, so this will need to be handled when adding options
                     // to limit extracting text
@@ -8772,7 +8767,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return;
         }
         if (extraDataKey.equals(AccessibilityNodeInfo.EXTRA_DATA_RENDERING_INFO_KEY)) {
-            //FUTURE: (EW) the AOSP version starting in R obtained a
+            //TODO: (EW) the AOSP version starting in R obtained a
             // AccessibilityNodeInfo.ExtraRenderingInfo to set the layout and text size in order to
             // call #setExtraRenderingInfo on info, but that method is hidden and there doesn't seem
             // to be a way for apps to even get the AccessibilityNodeInfo.ExtraRenderingInfo or

@@ -311,9 +311,9 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "commitCorrection: correctionInfo=" + correctionInfo);
         }
         mEditText.beginBatchEdit();
-        //FUTURE: (EW) the AOSP version only flashes a highlight on the new text position as if
+        //TODO: (EW) the AOSP version only flashes a highlight on the new text position as if
         // assuming that correction was already made and this method was only meant as a visual
-        // indication despite the documentation sounding like this should actually change text. This
+        // indication despite the documentation sounding like this should actually change text. this
         // is probably a good candidate for alternate functionality options.
         mEditText.onCommitCorrection(correctionInfo);
         mEditText.endBatchEdit();
@@ -349,7 +349,7 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest
                     + ", flags=" + flags);
         }
-        //FUTURE: (EW) if this returns null, no text is shown in the full screen text field
+        //TODO: (EW) if this returns null, no text is shown in the full screen text field
         // (landscape) so be sure to consider this when figuring out the weird behavior options
         ExtractedText et = new ExtractedText();
         if (mEditText.extractText(extractedTextRequest, et)) {
@@ -409,7 +409,7 @@ public class EditableInputConnection extends BaseInputConnection {
                 InputConnection.CURSOR_UPDATE_MONITOR;
         final int unknownFlags = cursorUpdateMode & ~KNOWN_FLAGS_MASK;
         if (unknownFlags != 0) {
-            //FUTURE: (EW) failing because of an unknown flag seems weird, but the documentation does
+            //TODO: (EW) failing because of an unknown flag seems weird, but the documentation does
             // call this out. still might be a decent thing for configurable handling.
             if (DEBUG) {
                 Log.d(TAG, "Rejecting requestUpdateCursorAnchorInfo due to unknown flags." +

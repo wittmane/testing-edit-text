@@ -361,7 +361,7 @@ public class HiddenLayout {
      * added.
      */
     public static int getLineBottomWithoutSpacing(Layout layout, int line) {
-        //FUTURE: (EW) getLineBottomWithoutSpacing wasn't added until Pie. comparing where Pie used
+        //TODO: (EW) getLineBottomWithoutSpacing wasn't added until Pie. comparing where Pie used
         // this in Editor to the alternative in Oreo MR1, 4/5 called Layout#getLineBottom(line). the
         // other called Layout#getLineTop(line + 1), but used the result slightly different, so it
         // may not have meant to be equivalent. simply using Layout#getLineTop for older versions

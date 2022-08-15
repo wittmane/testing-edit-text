@@ -1157,7 +1157,7 @@ class Editor {
                 } else {
                     stopTextActionMode();
                 }
-                //FUTURE: (EW) this makes a single click not pop up suggestions after having focused
+                //TODO: (EW) this makes a single click not pop up suggestions after having focused
                 // away from the text field, but the underline is still there, which seems weird.
                 // this is what AOSP does, but maybe consider ditching this.
                 downgradeEasyCorrectionSpans();
@@ -1492,10 +1492,10 @@ class Editor {
                 partialEndOffset += delta;
 
                 // Adjust offsets to ensure we contain full spans.
-                //FUTURE: (EW) this expands the extracted text to include all of the
-                // ParcelableSpans, and in the case of spellcheck being enabled, this seems to
-                // result in a full extract, so this will need to be handled when adding options
-                // to limit extracting text
+                //TODO: (EW) this expands the extracted text to include all of the ParcelableSpans,
+                // and in the case of spellcheck being enabled, this seems to result in a full
+                // extract, so this will need to be handled when adding options to limit extracting
+                // text
                 Object[] spans = getParcelableSpans(content, partialStartOffset, partialEndOffset);
                 int i = spans.length;
                 while (i > 0) {
@@ -1670,7 +1670,7 @@ class Editor {
                 // (EW) InputMethodState#updateCursor was only called prior to Lollipop and was
                 // replaced with InputMethodState#updateCursorAnchorInfo in later versions (handled
                 // elsewhere)
-                //FUTURE: (EW) rather than just comparing versions, this might be a decent thing as a
+                //TODO: (EW) rather than just comparing versions, this might be a decent thing as a
                 // config option for testing (call updateCursor instead of updateCursorAnchorInfo on
                 // more recent version or maybe both)
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
@@ -2779,7 +2779,7 @@ class Editor {
         }
 
         private void sendEasySpanNotification(int textChangedType, EasyEditSpan span) {
-            //FUTURE: (EW) EasyEditSpan#getPendingIntent is hidden from apps, which seems weird since
+            //TODO: (EW) EasyEditSpan#getPendingIntent is hidden from apps, which seems weird since
             // setting it in the constructor can be used by apps. I'm not sure how non-framework
             // text editors are expected to be able to handle this. I'm leaving this here for
             // visibility in case there ever is a way for us to do this.
@@ -3442,7 +3442,7 @@ class Editor {
                     }
                     final String originalText = TextUtils.substring(editable, spanStart, spanEnd);
 
-                    //FUTURE: (EW) Settings.ACTION_USER_DICTIONARY_INSERT is hidden and starting in
+                    //TODO: (EW) Settings.ACTION_USER_DICTIONARY_INSERT is hidden, and starting in
                     // S, it is restricted so reflection doesn't even work, but since it's just a
                     // string, we can just hard-code the value, but that has the chance to suddenly
                     // break on a new version, and given that reflection is blocked this seems even
@@ -3451,7 +3451,7 @@ class Editor {
                     // I haven't been able to find an alternative. I tried just adding the word to
                     // the dictionary with UserDictionary.Words#addWord rather than relying on the
                     // questionably accessible system activity, but that doesn't seem to work
-                    // on anything later than lollipop, and that's mentioned in the comment in
+                    // on anything later than Lollipop, and that's mentioned in the comment in
                     // UserDictionary saying "Starting on API 23, the user dictionary is only
                     // accessible through IME and spellchecker." also see
                     // https://stackoverflow.com/a/38417970. it seems that there currently isn't a
@@ -4112,7 +4112,7 @@ class Editor {
     // insertion, and it uses same menu items as TextActionModeCallback, which is more than the AOSP
     // version, is only text (rather than icons), and has a slightly different order than the AOSP
     // version.
-    //FUTURE: (EW) since more buttons from TextActionModeCallback from more recent versions were
+    //TODO: (EW) since more buttons from TextActionModeCallback from more recent versions were
     // added to the ActionPopupWindow, the functionality there more closely matches the
     // functionality from TextActionModeCallback from more recent versions. consider removing this
     // and migrate any missing functionality to ActionPopupWindow to have a more consistent between
@@ -5608,7 +5608,7 @@ class Editor {
         @Override
         protected int getOffsetAtCoordinate(@NonNull Layout layout, int line, float x) {
             final float localX = mEditText.convertToLocalHorizontalCoordinate(x);
-            //FUTURE: (EW) this doesn't match AOSP. as of S, it got Layout#getOffsetForHorizontal for
+            //TODO: (EW) this doesn't match AOSP. as of S, it got Layout#getOffsetForHorizontal for
             // both the primary and secondary horizontal and had some logic to determine which to
             // use, but the overload with the boolean primary argument isn't accessible. I'm not
             // completely sure what the separate horizontals are for, but it seems related to LTR vs
@@ -6750,7 +6750,7 @@ class Editor {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     return ((SpannableStringBuilder) text).getTextWatcherDepth() > 0;
                 } else {
-                    //FUTURE: (EW) AOSP EditText didn't support undo in this version, so there is
+                    //TODO: (EW) AOSP EditText didn't support undo in this version, so there is
                     // nothing there to copy from for this case. SpannableStringBuilder doesn't seem
                     // to even internally track this, so there doesn't seem to be any other way to
                     // do this check. This is incorrect, but I'm not sure if it actually has a bad
