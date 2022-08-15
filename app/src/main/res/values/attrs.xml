@@ -16,6 +16,7 @@
 -->
 <resources>
     <declare-styleable name="Theme">
+        <!-- (EW) flag to be able to indicate whether a custom theme inherits from a holo theme -->
         <attr name="isHoloTheme" format="boolean" />
 
         <!-- (EW) android:textEditSuggestionContainerLayout is private, so we have to copy it
@@ -35,32 +36,13 @@
              prior to Android 10. -->
         <!-- Specifies that a theme has a light background with dark text on top. -->
         <attr name="isLightTheme" format="boolean" />
-
-        <!-- Text color, typeface, size, and style for "large" text. Defaults to primary text color. -->
-        <attr name="android:textAppearanceLarge" />
     </declare-styleable>
-    <declare-styleable name="CustomSimpleTextView2">
-        <attr name="android:text" />
-<!--        <attr name="android:layout_width" />-->
-<!--        <attr name="android:layout_height" />-->
-        <attr name="android:inputType" />
-        <attr name="android:gravity" />
-        <attr name="android:hint" />
-<!--        <attr name="android:textColor" />-->
-        <!-- Reference to a drawable that will be drawn under the insertion cursor. -->
-        <attr name="android:textCursorDrawable" />
-
-        <attr name="android:textSelectHandleLeft" />
-        <attr name="android:textSelectHandleRight" />
-        <attr name="android:textSelectHandle" />
-    </declare-styleable>
-<!--    &lt;!&ndash; Reference to a drawable that will be drawn under the insertion cursor. &ndash;&gt;-->
-<!--    <attr name="textCursorDrawable" format="reference" />-->
 
     <declare-styleable name="TextAppearance">
         <!-- Text color. -->
         <attr name="android:textColor" />
-        <!-- Size of the text. Recommended dimension type for text is "sp" for scaled-pixels (example: 15sp). -->
+        <!-- Size of the text. Recommended dimension type for text is "sp" for scaled-pixels
+             (example: 15sp). -->
         <attr name="android:textSize" />
         <!-- Style (normal, bold, italic, bold|italic) for the text. -->
         <attr name="android:textStyle" />
@@ -71,7 +53,8 @@
         <!-- Font family (named by string or as a font resource reference) for the text. -->
         <attr name="android:fontFamily" />
         <!-- Specifies the {@link android.os.LocaleList} for the text.
-             May be a string value, which is a comma-separated language tag list, such as "ja-JP,zh-CN".
+             May be a string value, which is a comma-separated language tag list, such as
+             "ja-JP,zh-CN".
              When not specified or an empty string is given, it will fallback to the default one.
              {@see android.os.LocaleList#forLanguageTags(String)} -->
         <attr name="android:textLocale" />
@@ -121,7 +104,8 @@
         <attr name="android:textColorHint" />
         <!-- Base text color, typeface, size, and style. -->
         <attr name="android:textAppearance" />
-        <!-- Size of the text. Recommended dimension type for text is "sp" for scaled-pixels (example: 15sp). -->
+        <!-- Size of the text. Recommended dimension type for text is "sp" for scaled-pixels
+             (example: 15sp). -->
         <attr name="android:textSize" />
         <!-- Sets the horizontal scaling factor for the text. -->
         <attr name="android:textScaleX" />
@@ -135,20 +119,20 @@
         <attr name="android:fontFamily" />
         <!-- Specifies the {@link android.os.LocaleList} for the text in this TextView.
              If not given, the system default will be used.
-             May be a string value, which is a comma-separated language tag list, such as "ja-JP,zh-CN".
+             May be a string value, which is a comma-separated language tag list, such as
+             "ja-JP,zh-CN".
              When not specified or an empty string is given, it will fallback to the default one.
              {@see android.os.LocaleList#forLanguageTags(String)}
              {@see android.widget.TextView#setTextLocales(android.os.LocaleList)} -->
-        <!-- TODO: add back when changing the target API (only supported since 29) or just delete if it isn't necessary -->
-<!--        <attr name="android:textLocale" />-->
+        <attr name="android:textLocale" />
         <!-- Text color for links. -->
         <attr name="android:textColorLink" />
         <!-- Makes the cursor visible (the default) or invisible. -->
         <attr name="android:cursorVisible" />
         <!-- Makes the TextView be at most this many lines tall.
-
-        When used on an editable text, the <code>inputType</code> attribute's value must be
-        combined with the <code>textMultiLine</code> flag for the maxLines attribute to apply. -->
+             When used on an editable text, the <code>inputType</code> attribute's value must be
+             combined with the <code>textMultiLine</code> flag for the maxLines attribute to
+             apply. -->
         <attr name="android:maxLines" />
         <!-- Makes the TextView be at most this many pixels tall. -->
         <attr name="android:maxHeight" />
@@ -159,9 +143,9 @@
              layout parameters. -->
         <attr name="android:height" />
         <!-- Makes the TextView be at least this many lines tall.
-
-        When used on an editable text, the <code>inputType</code> attribute's value must be
-        combined with the <code>textMultiLine</code> flag for the minLines attribute to apply. -->
+             When used on an editable text, the <code>inputType</code> attribute's value must be
+             combined with the <code>textMultiLine</code> flag for the minLines attribute to
+             apply. -->
         <attr name="android:minLines" />
         <!-- Makes the TextView be at least this many pixels tall. -->
         <attr name="android:minHeight" />
@@ -185,11 +169,12 @@
         <!-- Whether the text is allowed to be wider than the view (and
              therefore can be scrolled horizontally). -->
         <attr name="android:scrollHorizontally" />
-        <!-- Specifies whether the widget is enabled. The interpretation of the enabled state varies by subclass.
-             For example, a non-enabled EditText prevents the user from editing the contained text, and
-             a non-enabled Button prevents the user from tapping the button.
-             The appearance of enabled and non-enabled widgets may differ, if the drawables referenced
-             from evaluating state_enabled differ. -->
+        <!-- Specifies whether the widget is enabled. The interpretation of the enabled state varies
+             by subclass.
+             For example, a non-enabled EditText prevents the user from editing the contained text,
+             and a non-enabled Button prevents the user from tapping the button.
+             The appearance of enabled and non-enabled widgets may differ, if the drawables
+             referenced from evaluating state_enabled differ. -->
         <attr name="android:enabled" />
         <!-- If the text is selectable, select it all when the view takes
              focus. -->
@@ -369,10 +354,6 @@
     <declare-styleable name="TextViewAppearance">
         <!-- Base text color, typeface, size, and style. -->
         <attr name="android:textAppearance" />
-    </declare-styleable>
-    <declare-styleable name="TextViewMultiLineBackgroundState">
-        <!-- State identifier indicating a TextView has a multi-line layout. -->
-        <attr name="android:state_multiline" />
     </declare-styleable>
     <!-- Attributes that can be used with {@link android.view.View} or
          any of its subclasses.  Also see {@link #ViewGroup_Layout} for
@@ -725,7 +706,7 @@
 
         <!-- Specifies the id of a view for which this view serves as a label for
              accessibility purposes. For example, a TextView before an EditText in
-             the UI usually specifies what infomation is contained in the EditText.
+             the UI usually specifies what information is contained in the EditText.
              Hence, the TextView is a label for the EditText. -->
         <attr name="android:labelFor" />
 
@@ -762,9 +743,7 @@
         <!-- Defines the gravity to apply to the foreground drawable. The gravity defaults
              to fill. -->
         <attr name="android:foregroundGravity" />
-<!--        &lt;!&ndash; Defines whether the foreground drawable should be drawn inside the padding.-->
-<!--             This property is turned on by default. &ndash;&gt;-->
-<!--        <attr name="android:foregroundInsidePadding" />-->
+
         <!-- Tint to apply to the foreground. -->
         <attr name="android:foregroundTint" />
         <!-- Blending mode used to apply the foreground tint. -->

@@ -60,7 +60,8 @@
 
     <!-- (EW) from styles_holo (versions 24 (Nougat) through at least 31 (S / Android 12)). see
          comment on Widget.Holo.SuggestionButton for prior versions. -->
-    <style name="TextAppearance.Holo.SuggestionHighlight" parent="@android:style/TextAppearance.SuggestionHighlight" />
+    <style name="TextAppearance.Holo.SuggestionHighlight"
+        parent="@android:style/TextAppearance.SuggestionHighlight" />
 
     <!-- (EW) from styles_holo (versions 24 (Nougat) through at least 31 (S / Android 12)). prior to
          Nougat, text_edit_suggestion_container didn't exist to use this, and instead Editor just

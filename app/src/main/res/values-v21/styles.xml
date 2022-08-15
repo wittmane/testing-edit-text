@@ -16,7 +16,8 @@
 -->
 <resources>
     <!-- (EW) from styles_material (versions 24 (Nougat) through at least 31 (S / Android 12)) -->
-    <style name="TextAppearance.Material.TextSuggestionHighlight" parent="@android:style/TextAppearance.Material">
+    <style name="TextAppearance.Material.TextSuggestionHighlight"
+        parent="@android:style/TextAppearance.Material">
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
