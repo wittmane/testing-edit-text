@@ -1248,7 +1248,16 @@ class Editor {
             }
             // Order matters! Must be done before onParentLostFocus to rely on isShowingUp
             hideCursorAndSpanControllers();
-            stopTextActionModeWithPreservingSelection();
+            // (EW) the AOSP version didn't start stopping the text action mode here until Nougat,
+            // although in Marshmallow it did start hiding the selection modifier cursor controller,
+            // which is now done in in the text action mode's #onDestroyActionMode. the fixed
+            // location TextActionModeFixedCallback (originally named SelectionActionModeCallback),
+            // which was used prior to Marshmallow (replaced with TextActionModeCallback), shouldn't
+            // be stopped because clicking its overflow menu button triggers focus changed, so if it
+            // was stopped, the user could never click an overflow item.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                stopTextActionModeWithPreservingSelection();
+            }
             if (mSuggestionsPopupWindow != null) {
                 mSuggestionsPopupWindow.onParentLostFocus();
             }
@@ -1806,7 +1815,8 @@ class Editor {
             mTextActionMode = mEditText.startActionMode(
                     actionModeCallback, ActionMode.TYPE_FLOATING);
         } else {
-            ActionMode.Callback actionModeCallback = new SelectionActionModeCallback();
+            ActionMode.Callback actionModeCallback =
+                    new TextActionModeFixedCallback(TextActionMode.INSERTION);
             mTextActionMode = mEditText.startActionMode(actionModeCallback);
         }
         if (mTextActionMode != null && getInsertionController() != null) {
@@ -1917,7 +1927,7 @@ class Editor {
             mTextActionMode =
                     mEditText.startActionMode(actionModeCallback, ActionMode.TYPE_FLOATING);
         } else {
-            ActionMode.Callback actionModeCallback = new SelectionActionModeCallback();
+            ActionMode.Callback actionModeCallback = new TextActionModeFixedCallback(actionMode);
             mTextActionMode = mEditText.startActionMode(actionModeCallback);
         }
 
@@ -3802,58 +3812,6 @@ class Editor {
                     : mCustomInsertionActionModeCallback;
         }
 
-        private void populateMenuWithItems(Menu menu) {
-            if (mEditText.canCut()) {
-                menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT,
-                        android.R.string.cut)
-                        .setAlphabeticShortcut('x')
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-
-            if (mEditText.canCopy()) {
-                menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY,
-                        android.R.string.copy)
-                        .setAlphabeticShortcut('c')
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-
-            if (mEditText.canPaste()) {
-                menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE,
-                        android.R.string.paste)
-                        .setAlphabeticShortcut('v')
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-
-        if (mEditText.canShare()) {
-            menu.add(Menu.NONE, EditText.ID_SHARE, MENU_ITEM_ORDER_SHARE, R.string.share)
-                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mEditText.canRequestAutofill()) {
-                final String selected = mEditText.getSelectedText();
-                if (selected == null || selected.isEmpty()) {
-                    menu.add(Menu.NONE, EditText.ID_AUTOFILL, MENU_ITEM_ORDER_AUTOFILL,
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
-                                    ? android.R.string.autofill : R.string.autofill)
-                            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-                }
-            }
-
-            if (mEditText.canPasteAsPlainText()) {
-                menu.add(
-                        Menu.NONE,
-                        EditText.ID_PASTE_AS_PLAIN_TEXT,
-                        MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                                ? android.R.string.paste_as_plain_text
-                                : R.string.paste_as_plain_text)
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-            }
-
-            updateSelectAllItem(menu);
-            updateReplaceItem(menu);
-        }
-
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             updateSelectAllItem(menu);
@@ -3864,29 +3822,6 @@ class Editor {
                 return customCallback.onPrepareActionMode(mode, menu);
             }
             return true;
-        }
-
-        private void updateSelectAllItem(Menu menu) {
-            boolean canSelectAll = mEditText.canSelectAllText();
-            boolean selectAllItemExists = menu.findItem(EditText.ID_SELECT_ALL) != null;
-            if (canSelectAll && !selectAllItemExists) {
-                menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
-                        android.R.string.selectAll)
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-            } else if (!canSelectAll && selectAllItemExists) {
-                menu.removeItem(EditText.ID_SELECT_ALL);
-            }
-        }
-
-        private void updateReplaceItem(Menu menu) {
-            boolean canReplace = mEditText.isSuggestionsEnabled() && shouldOfferToShowSuggestions();
-            boolean replaceItemExists = menu.findItem(EditText.ID_REPLACE) != null;
-            if (canReplace && !replaceItemExists) {
-                menu.add(Menu.NONE, EditText.ID_REPLACE, MENU_ITEM_ORDER_REPLACE, R.string.replace)
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-            } else if (!canReplace && replaceItemExists) {
-                menu.removeItem(EditText.ID_REPLACE);
-            }
         }
 
         @Override
@@ -3960,6 +3895,81 @@ class Editor {
                     (int) Math.floor(mSelectionBounds.top + textVerticalOffset),
                     (int) Math.ceil(mSelectionBounds.right + textHorizontalOffset),
                     (int) Math.ceil(mSelectionBounds.bottom + textVerticalOffset));
+        }
+    }
+
+    private void populateMenuWithItems(Menu menu) {
+        if (mEditText.canCut()) {
+            menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT,
+                    android.R.string.cut)
+                    .setAlphabeticShortcut('x')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+
+        if (mEditText.canCopy()) {
+            menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY,
+                    android.R.string.copy)
+                    .setAlphabeticShortcut('c')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+
+        if (mEditText.canPaste()) {
+            menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE,
+                    android.R.string.paste)
+                    .setAlphabeticShortcut('v')
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+
+        if (mEditText.canShare()) {
+            menu.add(Menu.NONE, EditText.ID_SHARE, MENU_ITEM_ORDER_SHARE, R.string.share)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mEditText.canRequestAutofill()) {
+            final String selected = mEditText.getSelectedText();
+            if (selected == null || selected.isEmpty()) {
+                menu.add(Menu.NONE, EditText.ID_AUTOFILL, MENU_ITEM_ORDER_AUTOFILL,
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
+                                ? android.R.string.autofill : R.string.autofill)
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+            }
+        }
+
+        if (mEditText.canPasteAsPlainText()) {
+            menu.add(
+                    Menu.NONE,
+                    EditText.ID_PASTE_AS_PLAIN_TEXT,
+                    MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                            ? android.R.string.paste_as_plain_text
+                            : R.string.paste_as_plain_text)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        }
+
+        updateSelectAllItem(menu);
+        updateReplaceItem(menu);
+    }
+
+    private void updateSelectAllItem(Menu menu) {
+        boolean canSelectAll = mEditText.canSelectAllText();
+        boolean selectAllItemExists = menu.findItem(EditText.ID_SELECT_ALL) != null;
+        if (canSelectAll && !selectAllItemExists) {
+            menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
+                    android.R.string.selectAll)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        } else if (!canSelectAll && selectAllItemExists) {
+            menu.removeItem(EditText.ID_SELECT_ALL);
+        }
+    }
+
+    private void updateReplaceItem(Menu menu) {
+        boolean canReplace = mEditText.isSuggestionsEnabled() && shouldOfferToShowSuggestions();
+        boolean replaceItemExists = menu.findItem(EditText.ID_REPLACE) != null;
+        if (canReplace && !replaceItemExists) {
+            menu.add(Menu.NONE, EditText.ID_REPLACE, MENU_ITEM_ORDER_REPLACE, R.string.replace)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        } else if (!canReplace && replaceItemExists) {
+            menu.removeItem(EditText.ID_REPLACE);
         }
     }
 
@@ -4095,10 +4105,13 @@ class Editor {
 
     // (EW) replaced with TextActionModeCallback in Marshmallow when it move to a floating popup,
     // rather than a fixed location. TextActionModeCallback is used for both selection and
-    // insertion, but as the name implies, this class was only used for selection in old version,
-    // and both in addition to this, ActionPopupWindow was used both for selection and insertion to
-    // show a popup, similar to TextActionModeCallback.
-    //TODO: (EW) deduplicate with TextActionModeCallback
+    // insertion, but as this class's original name (SelectionActionModeCallback) implied, it was
+    // only used for selection, and in addition to this, ActionPopupWindow was used both for
+    // selection and insertion to show a popup, similar to TextActionModeCallback. to simplify logic
+    // and have more consistent functionality between versions, our version of this also is used for
+    // insertion, and it uses same menu items as TextActionModeCallback, which is more than the AOSP
+    // version, is only text (rather than icons), and has a slightly different order than the AOSP
+    // version.
     //FUTURE: (EW) since more buttons from TextActionModeCallback from more recent versions were
     // added to the ActionPopupWindow, the functionality there more closely matches the
     // functionality from TextActionModeCallback from more recent versions. consider removing this
@@ -4111,58 +4124,65 @@ class Editor {
      * The default callback provides a subset of Select All, Cut, Copy and Paste actions, depending
      * on which of these this EditText supports.
      */
-    private class SelectionActionModeCallback implements ActionMode.Callback {
+    private class TextActionModeFixedCallback implements ActionMode.Callback {
+        private final boolean mHasSelection;
+
+        public TextActionModeFixedCallback(@TextActionMode int mode) {
+            mHasSelection = mode == TextActionMode.SELECTION;
+        }
+
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             mode.setTitle(mEditText.getContext().getString(R.string.textSelectionCABTitle));
             mode.setSubtitle(null);
             mode.setTitleOptionalHint(true);
-            menu.add(Menu.NONE, EditText.ID_SELECT_ALL, 0, android.R.string.selectAll)
-                    .setAlphabeticShortcut('a')
-                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            if (mEditText.canCut()) {
-                menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT, android.R.string.cut)
-                        .setAlphabeticShortcut('x')
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-            if (mEditText.canCopy()) {
-                menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY, android.R.string.copy)
-                        .setAlphabeticShortcut('c')
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-            if (mEditText.canPaste()) {
-                menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE,
-                        android.R.string.paste)
-                        .setAlphabeticShortcut('v')
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-            if (mCustomSelectionActionModeCallback != null) {
-                if (!mCustomSelectionActionModeCallback.onCreateActionMode(mode, menu)) {
-                    // The custom mode can choose to cancel the action mode
+
+            populateMenuWithItems(menu);
+
+            Callback customCallback = getCustomCallback();
+            if (customCallback != null) {
+                if (!customCallback.onCreateActionMode(mode, menu)) {
+                    // The custom mode can choose to cancel the action mode, dismiss selection.
+                    Selection.setSelection(mEditText.getText(), mEditText.getSelectionEnd());
                     return false;
                 }
             }
-            if (menu.hasVisibleItems() || mode.getCustomView() != null) {
-                getSelectionController().show();
-                mEditText.setHasTransientState(true);
-                return true;
+
+            if (mHasSelection) {
+                if (menu.hasVisibleItems() || mode.getCustomView() != null) {
+                    getSelectionController().show();
+                    mEditText.setHasTransientState(true);
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
-                return false;
+                return true;
             }
+        }
+
+        private Callback getCustomCallback() {
+            return mHasSelection
+                    ? mCustomSelectionActionModeCallback
+                    : mCustomInsertionActionModeCallback;
         }
 
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            if (mCustomSelectionActionModeCallback != null) {
-                return mCustomSelectionActionModeCallback.onPrepareActionMode(mode, menu);
+            updateSelectAllItem(menu);
+            updateReplaceItem(menu);
+
+            Callback customCallback = getCustomCallback();
+            if (customCallback != null) {
+                return customCallback.onPrepareActionMode(mode, menu);
             }
             return true;
         }
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            if (mCustomSelectionActionModeCallback != null &&
-                    mCustomSelectionActionModeCallback.onActionItemClicked(mode, item)) {
+            Callback customCallback = getCustomCallback();
+            if (customCallback != null && customCallback.onActionItemClicked(mode, item)) {
                 return true;
             }
             return mEditText.onTextContextMenuItem(item.getItemId());
@@ -4170,8 +4190,9 @@ class Editor {
 
         @Override
         public void onDestroyActionMode(ActionMode mode) {
-            if (mCustomSelectionActionModeCallback != null) {
-                mCustomSelectionActionModeCallback.onDestroyActionMode(mode);
+            Callback customCallback = getCustomCallback();
+            if (customCallback != null) {
+                customCallback.onDestroyActionMode(mode);
             }
             /*
              * If we're ending this mode because we're detaching from a window,
