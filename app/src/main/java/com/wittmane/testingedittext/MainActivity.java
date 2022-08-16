@@ -16,14 +16,24 @@
 
 package com.wittmane.testingedittext;
 
+import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Intent;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.Spanned;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.TextView;
+
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
@@ -103,5 +113,66 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater findMenuItems = getMenuInflater();
+        findMenuItems.inflate(R.menu.main, menu);
+        View view = findViewById(android.R.id.content);
+        if (view != null && menu != null) {
+            for (int i = 0; i < menu.size(); i++) {
+                MenuItem item = menu.getItem(i);
+                matchMenuIconColor(view, item, getActionBar());
+            }
+        }
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(final MenuItem item) {
+        final int itemId = item.getItemId();
+        if (itemId == R.id.action_settings) {
+            final Intent intent = new Intent();
+            intent.setClass(this, SettingsActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Set a menu item's icon to matching text color.
+     * @param view the view to use to look up the root view to find the action bar text.
+     * @param menuItem the menu item that should change colors.
+     * @param actionBar target ActionBar.
+     */
+    private static void matchMenuIconColor(final View view, final MenuItem menuItem,
+                                          final ActionBar actionBar) {
+        ArrayList<View> views = new ArrayList<>();
+
+        view.getRootView().findViewsWithText(views, actionBar.getTitle(),
+                View.FIND_VIEWS_WITH_TEXT);
+        if (views.size() == 1 && views.get(0) instanceof TextView) {
+            int color = ((TextView) views.get(0)).getCurrentTextColor();
+            setIconColor(menuItem, color);
+        }
+    }
+
+    /**
+     * Set a menu item's icon to specific color.
+     * @param menuItem the menu item that should change colors.
+     * @param color the color that the icon should be changed to.
+     */
+    private static void setIconColor(final MenuItem menuItem, final int color) {
+        if (menuItem != null) {
+            Drawable drawable = menuItem.getIcon();
+            if (drawable != null) {
+                drawable.mutate();
+                drawable.setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+            }
+        }
     }
 }
