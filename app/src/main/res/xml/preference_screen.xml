@@ -14,30 +14,101 @@
      limitations under the License.
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:key="edit_text_settings">
 
-    <PreferenceCategory android:title="Category 1">
+    <PreferenceCategory android:title="@string/documented_variable_functionality_category">
 
+        <com.wittmane.testingedittext.SeekBarDialogPreference
+            android:key="pref_key_limit_returned_text"
+            android:title="@string/limit_returned_text_title"
+            android:summary="@string/limit_returned_text_summary"
+            app:minValue="@integer/config_returned_text_limit_min"
+            app:maxValue="@integer/config_returned_text_limit_max"
+            app:stepValue="@integer/config_returned_text_limit_step"
+            app:valueText="@string/unit_characters"
+            app:defaultValueText="@string/no_character_limit" />
+
+        <!--TODO: (EW) make these enable/disable based on each other since only certain combinations
+             make sense-->
         <SwitchPreference
-            android:key="foo"
-            android:summaryOff="Example summary off"
-            android:summaryOn="Example summary on"
-            android:title="Example Switch Preference" />
+            android:key="pref_key_skip_extracting_text"
+            android:title="@string/skip_extracting_text_title"
+            android:summaryOn="@string/skip_extracting_text_summary_on"
+            android:summaryOff="@string/skip_extracting_text_summary_off" />
+        <SwitchPreference
+            android:key="pref_key_extract_full_text"
+            android:title="@string/extract_full_text_title"
+            android:summaryOn="@string/extract_full_text_summary_on"
+            android:summaryOff="@string/extract_full_text_summary_off" />
+        <com.wittmane.testingedittext.SeekBarDialogPreference
+            android:key="pref_key_limit_extract_monitor_text"
+            android:title="@string/limit_extract_monitor_text_title"
+            android:summary="@string/limit_extract_monitor_text_summary"
+            app:minValue="@integer/config_extract_monitor_text_limit_min"
+            app:maxValue="@integer/config_extract_monitor_text_limit_max"
+            app:stepValue="@integer/config_extract_monitor_text_limit_step"
+            app:valueText="@string/unit_characters"
+            app:defaultValueText="@string/no_character_limit" />
+
+        <!--TODO: (EW) option for getExtractedText to comply with the fields in request for how many
+             chars to return-->
+
+        <!--TODO: (EW) options to modify text input-->
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Category 2">
+    <PreferenceCategory android:title="@string/unclear_documentation_category">
 
-        <EditTextPreference
-            android:key="bar"
-            android:title="Example Edit Text Preference" />
+        <SwitchPreference
+            android:key="pref_key_delete_around_composing_text"
+            android:title="@string/delete_around_composing_text_title"
+            android:summaryOn="@string/delete_around_composing_text_summary_on"
+            android:summaryOff="@string/delete_around_composing_text_summary_off" />
 
-<!--        <ListPreference-->
-<!--            android:defaultValue="reply"-->
-<!--            android:entries="@array/reply_entries"-->
-<!--            android:entryValues="@array/reply_values"-->
-<!--            android:key="baz"-->
-<!--            android:title="Example Edit Text Preference" />-->
+        <SwitchPreference
+            android:key="pref_key_keep_empty_composing_position"
+            android:title="@string/keep_empty_composing_position_title"
+            android:summaryOn="@string/keep_empty_composing_position_summary_on"
+            android:summaryOff="@string/keep_empty_composing_position_summary_off" />
+
+        <SwitchPreference
+            android:key="pref_key_update_selection_after_extracted_text"
+            android:title="@string/update_selection_after_extracted_text_title"
+            android:summaryOn="@string/update_selection_after_extracted_text_summary_on"
+            android:summaryOff="@string/update_selection_after_extracted_text_summary_off" />
+
+        <!--TODO: (EW) only update on changes-->
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/simulate_old_target_versions_category">
+
+        <SwitchPreference
+            android:key="pref_key_implement_setcomposingregion"
+            android:title="@string/implement_setcomposingregion_title"
+            android:summaryOn="@string/implement_setcomposingregion_summary_on"
+            android:summaryOff="@string/implement_setcomposingregion_summary_off" />
+
+        <SwitchPreference
+            android:key="pref_key_implement_getsurroundingtext"
+            android:title="@string/implement_getsurroundingtext_title"
+            android:summaryOn="@string/implement_getsurroundingtext_summary_on"
+            android:summaryOff="@string/implement_getsurroundingtext_summary_off" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/simulate_system_behavior_category">
+
+        <com.wittmane.testingedittext.SeekBarDialogPreference
+            android:key="pref_key_update_delay"
+            android:title="@string/update_delay_title"
+            android:summary="@string/update_delay_summary"
+            app:minValue="@integer/config_update_delay_min"
+            app:maxValue="@integer/config_update_delay_max"
+            app:stepValue="@integer/config_update_delay_step"
+            app:defaultValue="@integer/config_update_delay_default"
+            app:valueText="@string/abbreviation_unit_milliseconds" />
 
     </PreferenceCategory>
 

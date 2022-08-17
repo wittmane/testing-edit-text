@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (C) 2022 Eli Wittman
+     Copyright 2015, The Android Open Source Project
      Copyright (C) 2006 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +37,15 @@
              prior to Android 10. -->
         <!-- Specifies that a theme has a light background with dark text on top. -->
         <attr name="isLightTheme" format="boolean" />
+    </declare-styleable>
+
+    <declare-styleable name="SeekBarDialogPreference">
+        <attr name="maxValue" format="integer" />
+        <attr name="minValue" format="integer" />
+        <attr name="stepValue" format="integer" />
+        <attr name="defaultValue" format="integer" />
+        <attr name="valueText" format="string|reference" />
+        <attr name="defaultValueText" format="string|reference" />
     </declare-styleable>
 
     <declare-styleable name="TextAppearance">

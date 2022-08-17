@@ -30,7 +30,8 @@ public class SettingsActivity extends PreferenceActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        addPreferencesFromResource(R.xml.preference_screen);
+        getFragmentManager().beginTransaction()
+                .replace(android.R.id.content, new SettingsFragment()).commit();
     }
 
     @Override
@@ -40,5 +41,10 @@ public class SettingsActivity extends PreferenceActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean isValidFragment(final String fragmentName) {
+        return SettingsFragment.class.getName().equals(fragmentName);
     }
 }

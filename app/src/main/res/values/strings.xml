@@ -13,12 +13,73 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Testing Edit Text</string>
     <!--TODO: (EW) AOSP has global_action_settings, media_route_chooser_extended_settings, and
          notification_app_name_settings that are all "Settings" in english, so we can probably copy
          translations for those if all 3 match-->
     <string name="settings">Settings</string>
+
+    <!-- Title of the button to revert to the default value of the device in the settings dialog
+         [CHAR LIMIT=15] -->
+    <!--TODO: (EW) from simple keyboard - copy translations too-->
+    <string name="button_default">Default</string>
+
+    <string name="documented_variable_functionality_category">Documented variable functionality</string>
+
+    <string name="limit_returned_text_title">Limit text returned around the cursor</string>
+    <string name="limit_returned_text_summary">InputConnection\'s getTextBeforeCursor, getTextAfterCursor, and getSurroundingText methods specifically mention in their documentation that the returned text may not be as long as what was requested, such as for performance reasons. Set a hard limit of the length of text returned on either before or after the cursor.\nCurrently not implemented</string>
+    <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
+    <string name="unit_characters"><xliff:g id="CHARACTERS" example="50">%s</xliff:g> characters</string>
+    <string name="no_character_limit">No limit</string>
+
+    <string name="skip_extracting_text_title">Skip extracting text</string>
+    <string name="extract_full_text_summary_on">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Do nothing, and always return null.\nCurrently not implemented</string>
+    <string name="extract_full_text_summary_off">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Extract text normally.</string>
+
+    <string name="extract_full_text_title">Extract full text</string>
+    <string name="skip_extracting_text_summary_on">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text.\nCurrently not implemented</string>
+    <string name="skip_extracting_text_summary_off">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always use the partial offsets when updating extracted text.</string>
+
+    <string name="limit_extract_monitor_text_title">Limit extract text</string>
+    <string name="limit_extract_monitor_text_summary">When updating extracted text with full text, limit the length of the text that is sent.\nCurrently not implemented</string>
+
+    <string name="unclear_documentation_category">Unclear documentation</string>
+
+    <!--TODO: (EW) flip this to have framework EditText functionality on false (this might be the
+         one to deviate since I think the framework functionality is actually a bug, but try to
+         verify based on investigating the code-->
+    <string name="delete_around_composing_text_title">Delete around composing text</string>
+    <string name="delete_around_composing_text_summary_on">Documentation for InputConnection#deleteSurroundingText only says that text around the cursor will be deleted, but the framework EditText deletes text before the smaller of the cursor or composition and after the larger of the cursor or composition. Match that assuming it\'s poorly documented functionality and delete text around both the cursor and composition.</string>
+    <string name="delete_around_composing_text_summary_off">Documentation for InputConnection#deleteSurroundingText only says that text around the cursor will be deleted, but the framework EditText deletes text before the smaller of the cursor or composition and after the larger of the cursor or composition. Match the documentation and delete only around the cursor, regardless of the position of the composition. (Currently not implemented)</string>
+
+    <string name="keep_empty_composing_position_title">Keep empty composing position</string>
+    <string name="keep_empty_composing_position_summary_on">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Keep the empty composition (additional composing text will be added in the same place). (Currently not implemented)</string>
+    <string name="keep_empty_composing_position_summary_off">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Remove the empty composition.</string>
+
+    <string name="update_selection_after_extracted_text_title">Update selection before text extract</string>
+    <string name="update_selection_after_extracted_text_summary_on">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateSelection before updateExtractedText.\nCurrently not implemented</string>
+    <string name="update_selection_after_extracted_text_summary_off">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateExtractedText before updateSelection (what the framework EditText does).</string>
+
+    <string name="simulate_old_target_versions_category">Simulate old target versions</string>
+
+    <!--TODO: (EW) flip this to have framework EditText functionality on false-->
+    <string name="implement_setcomposingregion_title">Implement setComposingRegion</string>
+    <string name="implement_setcomposingregion_summary_on">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets at least that version.</string>
+    <string name="implement_setcomposingregion_summary_off">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets an earlier version, so it will do nothing and just return false.\nCurrently not implemented</string>
+
+    <!--TODO: (EW) flip this to have framework EditText functionality on false-->
+    <string name="implement_getsurroundingtext_title">Implement getSurroundingText</string>
+    <string name="implement_getsurroundingtext_summary_on">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets at least that version.</string>
+    <string name="implement_getsurroundingtext_summary_off">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets an earlier version, so it will just return null.\nCurrently not implemented</string>
+
+    <string name="simulate_system_behavior_category">Simulate system behavior</string>
+
+    <string name="update_delay_title">Delay selection and extracted text updates</string>
+    <string name="update_delay_summary">Simulate a delay from a slow device. Delay calls to InputMethodManager#updateSelection and InputMethodManager#updateExtractedText.\nCurrently not implemented</string>
+    <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
+    <string name="abbreviation_unit_milliseconds"><xliff:g id="MILLISECONDS">%s</xliff:g>ms</string>
+
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>
