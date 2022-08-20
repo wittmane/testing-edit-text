@@ -42,6 +42,7 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.Settings;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 
 /**
@@ -98,7 +99,16 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "getTextBeforeCursor: n=" + n + ", flags=" + flags);
         }
-        return super.getTextBeforeCursor(n, flags);
+        CharSequence textBeforeCursor = super.getTextBeforeCursor(n, flags);
+        // (EW) check the setting to force returning less text than requested. BaseInputConnection
+        // returns half of a surrogate pair, so we don't need any special handling to try to avoid
+        // cutting off in the middle of one.
+        int returnedTextLimit = Settings.getReturnedTextLimit();
+        if (returnedTextLimit > 0 && textBeforeCursor.length() > returnedTextLimit) {
+            return textBeforeCursor.subSequence(textBeforeCursor.length() - returnedTextLimit,
+                    textBeforeCursor.length());
+        }
+        return textBeforeCursor;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
@@ -107,7 +117,15 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "getTextAfterCursor: n=" + n + ", flags=" + flags);
         }
-        return super.getTextAfterCursor(n, flags);
+        CharSequence textAfterCursor = super.getTextAfterCursor(n, flags);
+        // (EW) check the setting to force returning less text than requested. BaseInputConnection
+        // returns half of a surrogate pair, so we don't need any special handling to try to avoid
+        // cutting off in the middle of one.
+        int returnedTextLimit = Settings.getReturnedTextLimit();
+        if (returnedTextLimit > 0 && textAfterCursor.length() > returnedTextLimit) {
+            return textAfterCursor.subSequence(0, returnedTextLimit);
+        }
+        return textAfterCursor;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
@@ -118,7 +136,25 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "getTextAfterCursor: beforeLength=" + beforeLength
                     + ", afterLength=" + afterLength + ", flags=" + flags);
         }
-        return super.getSurroundingText(beforeLength, afterLength, flags);
+        SurroundingText surroundingText =
+                super.getSurroundingText(beforeLength, afterLength, flags);
+        // (EW) check the setting to force returning less text than requested.
+        int returnedTextLimit = Settings.getReturnedTextLimit();
+        if (returnedTextLimit > 0) {
+            int extraBefore = Math.max(0, surroundingText.getSelectionStart() - returnedTextLimit);
+            int extraAfter = Math.max(0,
+                    surroundingText.getText().length() - surroundingText.getSelectionEnd()
+                            - returnedTextLimit);
+            if (extraBefore > 0 || extraAfter > 0) {
+                return new SurroundingText(
+                        surroundingText.getText().subSequence(
+                                extraBefore, surroundingText.getText().length() - extraAfter),
+                        surroundingText.getSelectionStart() - extraBefore,
+                        surroundingText.getSelectionEnd() - extraBefore,
+                        surroundingText.getOffset() + extraBefore);
+            }
+        }
+        return surroundingText;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.GINGERBREAD)

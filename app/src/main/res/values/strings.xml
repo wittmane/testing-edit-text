@@ -28,7 +28,7 @@
     <string name="documented_variable_functionality_category">Documented variable functionality</string>
 
     <string name="limit_returned_text_title">Limit text returned around the cursor</string>
-    <string name="limit_returned_text_summary">InputConnection\'s getTextBeforeCursor, getTextAfterCursor, and getSurroundingText methods specifically mention in their documentation that the returned text may not be as long as what was requested, such as for performance reasons. Set a hard limit of the length of text returned on either before or after the cursor.\nCurrently not implemented</string>
+    <string name="limit_returned_text_summary">InputConnection\'s getTextBeforeCursor, getTextAfterCursor, and getSurroundingText methods specifically mention in their documentation that the returned text may not be as long as what was requested, such as for performance reasons. Set a hard limit of the length of text returned on either before or after the cursor.</string>
     <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
     <string name="unit_characters"><xliff:g id="CHARACTERS" example="50">%s</xliff:g> characters</string>
     <string name="no_character_limit">No limit</string>

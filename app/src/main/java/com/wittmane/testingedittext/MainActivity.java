@@ -58,6 +58,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Settings.init(this);
         setContentView(R.layout.activity_main);
 
         InputFilter filter = new InputFilter() {
@@ -113,6 +114,12 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        Settings.onDestroy();
+        super.onDestroy();
     }
 
     @Override
