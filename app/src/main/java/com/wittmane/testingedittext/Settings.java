@@ -23,8 +23,12 @@ import android.preference.PreferenceManager;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
+    public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
+    public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
 
     private int mReturnedTextLimit;
+    private boolean mSkipSetComposingRegion;
+    private boolean mSkipGetSurroundingText;
 
     private SharedPreferences mPrefs;
 
@@ -59,6 +63,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSettings() {
         mReturnedTextLimit = readReturnedTextLimit(mPrefs);
+        mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
+        mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
     }
 
     private static int readReturnedTextLimit(final SharedPreferences prefs) {
@@ -67,5 +73,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getReturnedTextLimit() {
         return getInstance().mReturnedTextLimit;
+    }
+
+    private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION, false);
+    }
+
+    public static boolean shouldSkipSetComposingRegion() {
+        return getInstance().mSkipSetComposingRegion;
+    }
+
+    private static boolean readSkipGetSurroundingText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT, false);
+    }
+
+    public static boolean shouldSkipGetSurroundingText() {
+        return getInstance().mSkipGetSurroundingText;
     }
 }

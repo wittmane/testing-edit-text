@@ -85,16 +85,16 @@
     <PreferenceCategory android:title="@string/simulate_old_target_versions_category">
 
         <SwitchPreference
-            android:key="pref_key_implement_setcomposingregion"
-            android:title="@string/implement_setcomposingregion_title"
-            android:summaryOn="@string/implement_setcomposingregion_summary_on"
-            android:summaryOff="@string/implement_setcomposingregion_summary_off" />
+            android:key="pref_key_skip_setcomposingregion"
+            android:title="@string/skip_setcomposingregion_title"
+            android:summaryOn="@string/skip_setcomposingregion_summary_on"
+            android:summaryOff="@string/skip_setcomposingregion_summary_off" />
 
         <SwitchPreference
-            android:key="pref_key_implement_getsurroundingtext"
-            android:title="@string/implement_getsurroundingtext_title"
-            android:summaryOn="@string/implement_getsurroundingtext_summary_on"
-            android:summaryOff="@string/implement_getsurroundingtext_summary_off" />
+            android:key="pref_key_skip_getsurroundingtext"
+            android:title="@string/skip_getsurroundingtext_title"
+            android:summaryOn="@string/skip_getsurroundingtext_summary_on"
+            android:summaryOff="@string/skip_getsurroundingtext_summary_off" />
 
     </PreferenceCategory>
 

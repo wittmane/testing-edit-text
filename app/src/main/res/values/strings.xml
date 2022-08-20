@@ -63,15 +63,13 @@
 
     <string name="simulate_old_target_versions_category">Simulate old target versions</string>
 
-    <!--TODO: (EW) flip this to have framework EditText functionality on false-->
-    <string name="implement_setcomposingregion_title">Implement setComposingRegion</string>
-    <string name="implement_setcomposingregion_summary_on">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets at least that version.</string>
-    <string name="implement_setcomposingregion_summary_off">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets an earlier version, so it will do nothing and just return false.\nCurrently not implemented</string>
+    <string name="skip_setcomposingregion_title">Don\'t implement setComposingRegion</string>
+    <string name="skip_setcomposingregion_summary_on">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets an earlier version, so it will do nothing and just return false.</string>
+    <string name="skip_setcomposingregion_summary_off">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets at least that version.</string>
 
-    <!--TODO: (EW) flip this to have framework EditText functionality on false-->
-    <string name="implement_getsurroundingtext_title">Implement getSurroundingText</string>
-    <string name="implement_getsurroundingtext_summary_on">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets at least that version.</string>
-    <string name="implement_getsurroundingtext_summary_off">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets an earlier version, so it will just return null.\nCurrently not implemented</string>
+    <string name="skip_getsurroundingtext_title">Don\'t implement getSurroundingText</string>
+    <string name="skip_getsurroundingtext_summary_on">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets an earlier version, so it will just return null. Also, although not documented, this returns null to the IME if the editor takes too long to respond, so this can simulate that too.</string>
+    <string name="skip_getsurroundingtext_summary_off">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets at least that version.</string>
 
     <string name="simulate_system_behavior_category">Simulate system behavior</string>
 

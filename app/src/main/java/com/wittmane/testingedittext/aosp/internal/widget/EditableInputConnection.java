@@ -136,8 +136,16 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "getTextAfterCursor: beforeLength=" + beforeLength
                     + ", afterLength=" + afterLength + ", flags=" + flags);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate either an app
+        // targeting an older version or an app that takes too long to process this method.
+        if (Settings.shouldSkipGetSurroundingText()) {
+            return null;
+        }
+
         SurroundingText surroundingText =
                 super.getSurroundingText(beforeLength, afterLength, flags);
+
         // (EW) check the setting to force returning less text than requested.
         int returnedTextLimit = Settings.getReturnedTextLimit();
         if (returnedTextLimit > 0) {
@@ -154,6 +162,7 @@ public class EditableInputConnection extends BaseInputConnection {
                         surroundingText.getOffset() + extraBefore);
             }
         }
+
         return surroundingText;
     }
 
@@ -211,6 +220,13 @@ public class EditableInputConnection extends BaseInputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "setComposingRegion: start=" + start + ", end=" + end);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version
+        if (Settings.shouldSkipSetComposingRegion()) {
+            return false;
+        }
+
         final boolean result = super.setComposingRegion(start, end);
         // (EW) BaseInputConnection calls this, which is expected to be implemented by the
         // inherited type, but it is hidden from app developers, so we have to manually call it
