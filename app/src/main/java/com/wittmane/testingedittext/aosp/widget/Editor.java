@@ -1419,9 +1419,15 @@ class Editor {
         mEditText.onEndBatchEdit();
         mUndoInputFilter.endBatchEdit();
 
+        boolean needsToReportExtractedText = false;
         if (ims.mContentChanged || ims.mSelectionModeChanged) {
             mEditText.updateAfterEdit();
-            reportExtractedText();
+            // (EW) check the setting to determine which update method should be called first
+            if (Settings.shouldUpdateSelectionBeforeExtractedText()) {
+                needsToReportExtractedText = true;
+            } else {
+                reportExtractedText();
+            }
         } else if (ims.mCursorChanged) {
             // Cheesy way to get us to report the current cursor location.
             mEditText.invalidateCursor();
@@ -1429,6 +1435,9 @@ class Editor {
         // sendUpdateSelection knows to avoid sending if the selection did
         // not actually change.
         sendUpdateSelection();
+        if (needsToReportExtractedText) {
+            reportExtractedText();
+        }
 
         // Show drag handles if they were blocked by batch edit mode.
         if (mTextActionMode != null) {

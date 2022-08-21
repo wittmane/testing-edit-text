@@ -27,6 +27,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
     public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
             "pref_key_limit_extract_monitor_text";
+    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
+            "pref_key_update_selection_before_extracted_text";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
 
@@ -34,6 +36,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mSkipExtractingText;
     private boolean mExtractFullText;
     private int mExtractMonitorTextLimit;
+    private boolean mUpdateSelectionBeforeExtractedText;
     private boolean mSkipSetComposingRegion;
     private boolean mSkipGetSurroundingText;
 
@@ -73,6 +76,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mSkipExtractingText = readSkipExtractingText(mPrefs);
         mExtractFullText = readExtractFullText(mPrefs);
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
+        mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
     }
@@ -107,6 +111,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getExtractMonitorTextLimit() {
         return getInstance().mExtractMonitorTextLimit;
+    }
+
+    private static boolean readUpdateSelectionBeforeExtractedText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
+    }
+
+    public static boolean shouldUpdateSelectionBeforeExtractedText() {
+        return getInstance().mUpdateSelectionBeforeExtractedText;
     }
 
     private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {

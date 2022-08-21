@@ -57,9 +57,9 @@
     <string name="keep_empty_composing_position_summary_on">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Keep the empty composition (additional composing text will be added in the same place). (Currently not implemented)</string>
     <string name="keep_empty_composing_position_summary_off">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Remove the empty composition.</string>
 
-    <string name="update_selection_after_extracted_text_title">Update selection before text extract</string>
-    <string name="update_selection_after_extracted_text_summary_on">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateSelection before updateExtractedText.\nCurrently not implemented</string>
-    <string name="update_selection_after_extracted_text_summary_off">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateExtractedText before updateSelection (what the framework EditText does).</string>
+    <string name="update_selection_before_extracted_text_title">Update selection before text extract</string>
+    <string name="update_selection_before_extracted_text_summary_on">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateSelection before updateExtractedText.</string>
+    <string name="update_selection_before_extracted_text_summary_off">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateExtractedText before updateSelection (what the framework EditText does).</string>
 
     <string name="simulate_old_target_versions_category">Simulate old target versions</string>
 

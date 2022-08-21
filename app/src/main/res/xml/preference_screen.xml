@@ -77,10 +77,10 @@
             android:summaryOff="@string/keep_empty_composing_position_summary_off" />
 
         <SwitchPreference
-            android:key="pref_key_update_selection_after_extracted_text"
-            android:title="@string/update_selection_after_extracted_text_title"
-            android:summaryOn="@string/update_selection_after_extracted_text_summary_on"
-            android:summaryOff="@string/update_selection_after_extracted_text_summary_off"
+            android:key="pref_key_update_selection_before_extracted_text"
+            android:title="@string/update_selection_before_extracted_text_title"
+            android:summaryOn="@string/update_selection_before_extracted_text_summary_on"
+            android:summaryOff="@string/update_selection_before_extracted_text_summary_off"
             android:dependency="pref_key_skip_extracting_text" />
 
         <!--TODO: (EW) only update on changes-->
