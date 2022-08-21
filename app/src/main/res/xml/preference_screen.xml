@@ -35,12 +35,15 @@
             android:key="pref_key_skip_extracting_text"
             android:title="@string/skip_extracting_text_title"
             android:summaryOn="@string/skip_extracting_text_summary_on"
-            android:summaryOff="@string/skip_extracting_text_summary_off" />
+            android:summaryOff="@string/skip_extracting_text_summary_off"
+            android:disableDependentsState="true" />
         <SwitchPreference
             android:key="pref_key_extract_full_text"
             android:title="@string/extract_full_text_title"
             android:summaryOn="@string/extract_full_text_summary_on"
-            android:summaryOff="@string/extract_full_text_summary_off" />
+            android:summaryOff="@string/extract_full_text_summary_off"
+            android:dependency="pref_key_skip_extracting_text"
+            android:disableDependentsState="false" />
         <com.wittmane.testingedittext.SeekBarDialogPreference
             android:key="pref_key_limit_extract_monitor_text"
             android:title="@string/limit_extract_monitor_text_title"
@@ -49,7 +52,8 @@
             app:maxValue="@integer/config_extract_monitor_text_limit_max"
             app:stepValue="@integer/config_extract_monitor_text_limit_step"
             app:valueText="@string/unit_characters"
-            app:defaultValueText="@string/no_character_limit" />
+            app:defaultValueText="@string/no_character_limit"
+            android:dependency="pref_key_extract_full_text" />
 
         <!--TODO: (EW) option for getExtractedText to comply with the fields in request for how many
              chars to return-->
@@ -76,7 +80,8 @@
             android:key="pref_key_update_selection_after_extracted_text"
             android:title="@string/update_selection_after_extracted_text_title"
             android:summaryOn="@string/update_selection_after_extracted_text_summary_on"
-            android:summaryOff="@string/update_selection_after_extracted_text_summary_off" />
+            android:summaryOff="@string/update_selection_after_extracted_text_summary_off"
+            android:dependency="pref_key_skip_extracting_text" />
 
         <!--TODO: (EW) only update on changes-->
 

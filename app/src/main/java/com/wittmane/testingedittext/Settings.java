@@ -23,10 +23,17 @@ import android.preference.PreferenceManager;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
+    public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
+    public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
+    public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
+            "pref_key_limit_extract_monitor_text";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
 
     private int mReturnedTextLimit;
+    private boolean mSkipExtractingText;
+    private boolean mExtractFullText;
+    private int mExtractMonitorTextLimit;
     private boolean mSkipSetComposingRegion;
     private boolean mSkipGetSurroundingText;
 
@@ -63,6 +70,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSettings() {
         mReturnedTextLimit = readReturnedTextLimit(mPrefs);
+        mSkipExtractingText = readSkipExtractingText(mPrefs);
+        mExtractFullText = readExtractFullText(mPrefs);
+        mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
     }
@@ -73,6 +83,30 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getReturnedTextLimit() {
         return getInstance().mReturnedTextLimit;
+    }
+
+    private static boolean readSkipExtractingText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT, false);
+    }
+
+    public static boolean shouldSkipExtractingText() {
+        return getInstance().mSkipExtractingText;
+    }
+
+    private static boolean readExtractFullText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT, false);
+    }
+
+    public static boolean shouldExtractFullText() {
+        return getInstance().mExtractFullText;
+    }
+
+    private static int readExtractMonitorTextLimit(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT, -1);
+    }
+
+    public static int getExtractMonitorTextLimit() {
+        return getInstance().mExtractMonitorTextLimit;
     }
 
     private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {

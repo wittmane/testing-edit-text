@@ -105,6 +105,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.Settings;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;
@@ -1482,20 +1483,94 @@ class Editor {
 
         if (partialStartOffset != EXTRACT_NOTHING) {
             final int N = content.length();
-            if (partialStartOffset < 0) {
+            // (EW) check the setting to force doing a full text extract
+            if (partialStartOffset < 0 || Settings.shouldExtractFullText()) {
                 outText.partialStartOffset = outText.partialEndOffset = -1;
-                partialStartOffset = 0;
-                partialEndOffset = N;
+
+                //TODO: (EW) it might be good to have an option to respect request.hintMaxLines and
+                // request.hintMaxChars, which I assume only applies to full extracts, and it
+                // probably shouldn't limit this from returning the full change when triggered from
+                // a text change
+
+                // (EW) check the setting to see if the full text extract should limit how much text
+                // is returned
+                int textLimit = Settings.getExtractMonitorTextLimit();
+                if (textLimit > 0) {
+                    // (EW) the most important thing to return is text that changed. the
+                    // documentation for InputConnection#getExtractedText doesn't clearly indicate
+                    // what part of the text should be returned when it is limited, the existence of
+                    // startOffset at least seems to imply that selectionStart (and probably
+                    // selectionEnd) should be within the range of the returned text (in most cases
+                    // they should be in or near the changed text), so our next priority will be
+                    // include the selection.
+                    final int[] positionsOfInterest;
+                    if (partialStartOffset < 0) {
+                        // (EW) there is no change to be concerned about, so just focus on the
+                        // selection
+                        positionsOfInterest = new int[] {
+                                mEditText.getSelectionStart(),
+                                mEditText.getSelectionEnd(),
+                        };
+                    } else {
+                        //TODO: (EW) it might be good to have an option to always return the full
+                        // change, even if that's over the text limit
+                        if (partialEndOffset + delta - partialStartOffset > textLimit) {
+                            positionsOfInterest = new int[] {
+                                    Math.max(partialStartOffset,
+                                            Math.min(mEditText.getSelectionStart(),
+                                                    partialEndOffset + delta)),
+                                    Math.max(partialStartOffset,
+                                            Math.min(mEditText.getSelectionEnd(),
+                                                    partialEndOffset + delta)),
+                                    partialStartOffset,
+                                    partialEndOffset + delta
+                            };
+                        } else {
+                            positionsOfInterest = new int[] {
+                                    partialStartOffset,
+                                    partialEndOffset + delta,
+                                    mEditText.getSelectionStart(),
+                                    mEditText.getSelectionEnd(),
+                            };
+                        }
+                    }
+                    // (EW) figure out the range of text that should be used based on a prioritized
+                    // list of positions in the text that should be included, but don't go past the
+                    // text limit
+                    partialStartOffset = partialEndOffset = positionsOfInterest[0];
+                    for (int i = 1; i < positionsOfInterest.length; i++) {
+                        final int position = positionsOfInterest[i];
+                        if (position >= partialStartOffset && position <= partialEndOffset) {
+                            continue;
+                        }
+                        if (position > partialEndOffset) {
+                            partialEndOffset = partialStartOffset
+                                    + Math.min(position - partialStartOffset, textLimit);
+                        } else {
+                            partialStartOffset = partialEndOffset
+                                    - Math.min(partialEndOffset - position, textLimit);
+                        }
+                    }
+                    // (EW) with any extra space in the limit, we'll just add text on both sides
+                    // centered around the changed text and selection, but shift it if it goes past
+                    // either end of the text
+                    if (partialEndOffset - partialStartOffset < textLimit) {
+                        partialStartOffset = Math.max(0, partialStartOffset
+                                - (textLimit - (partialEndOffset - partialStartOffset)) / 2);
+                        partialEndOffset = Math.min(N, partialStartOffset + textLimit);
+                        partialStartOffset = Math.max(0, partialEndOffset - textLimit);
+                    }
+                } else {
+                    partialStartOffset = 0;
+                    partialEndOffset = N;
+                }
+                outText.startOffset = partialStartOffset;
             } else {
                 // Now use the delta to determine the actual amount of text
                 // we need.
                 partialEndOffset += delta;
 
                 // Adjust offsets to ensure we contain full spans.
-                //TODO: (EW) this expands the extracted text to include all of the ParcelableSpans,
-                // and in the case of spellcheck being enabled, this seems to result in a full
-                // extract, so this will need to be handled when adding options to limit extracting
-                // text
                 Object[] spans = getParcelableSpans(content, partialStartOffset, partialEndOffset);
                 int i = spans.length;
                 while (i > 0) {
@@ -1508,6 +1583,7 @@ class Editor {
 
                 outText.partialStartOffset = partialStartOffset;
                 outText.partialEndOffset = partialEndOffset - delta;
+                outText.startOffset = 0;
 
                 if (partialStartOffset > N) {
                     partialStartOffset = N;
@@ -1531,6 +1607,7 @@ class Editor {
             outText.partialStartOffset = 0;
             outText.partialEndOffset = 0;
             outText.text = "";
+            outText.startOffset = 0;
         }
         outText.flags = 0;
         // (EW) the AOSP version also checked MetaKeyKeyListener#getMetaState with
@@ -1548,9 +1625,8 @@ class Editor {
         if (mEditText.isSingleLine()) {
             outText.flags |= ExtractedText.FLAG_SINGLE_LINE;
         }
-        outText.startOffset = 0;
-        outText.selectionStart = mEditText.getSelectionStart();
-        outText.selectionEnd = mEditText.getSelectionEnd();
+        outText.selectionStart = mEditText.getSelectionStart() - outText.startOffset;
+        outText.selectionEnd = mEditText.getSelectionEnd() - outText.startOffset;
         // (EW) the output hint only exists since Pie
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             outText.hint = mEditText.getHint();

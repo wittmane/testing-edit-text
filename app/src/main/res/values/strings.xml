@@ -34,15 +34,15 @@
     <string name="no_character_limit">No limit</string>
 
     <string name="skip_extracting_text_title">Skip extracting text</string>
-    <string name="extract_full_text_summary_on">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Do nothing, and always return null.\nCurrently not implemented</string>
-    <string name="extract_full_text_summary_off">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Extract text normally.</string>
+    <string name="skip_extracting_text_summary_on">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Do nothing, and always return null.</string>
+    <string name="skip_extracting_text_summary_off">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Extract text normally.</string>
 
     <string name="extract_full_text_title">Extract full text</string>
-    <string name="skip_extracting_text_summary_on">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text.\nCurrently not implemented</string>
-    <string name="skip_extracting_text_summary_off">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always use the partial offsets when updating extracted text.</string>
+    <string name="extract_full_text_summary_on">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text for text changes.</string>
+    <string name="extract_full_text_summary_off">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always use the partial offsets when updating extracted text for text changes.</string>
 
     <string name="limit_extract_monitor_text_title">Limit extract text</string>
-    <string name="limit_extract_monitor_text_summary">When updating extracted text with full text, limit the length of the text that is sent.\nCurrently not implemented</string>
+    <string name="limit_extract_monitor_text_summary">When updating extracted text with full text, limit the length of the text that is sent.</string>
 
     <string name="unclear_documentation_category">Unclear documentation</string>
 

@@ -401,11 +401,23 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest
                     + ", flags=" + flags);
         }
+
+        // (EW) check the setting to force this method to do nothing since documentation says that
+        // this can return null if the editor can't comply with the request for some reason
+        if (Settings.shouldSkipExtractingText()) {
+            return null;
+        }
+
         //TODO: (EW) if this returns null, no text is shown in the full screen text field
-        // (landscape) so be sure to consider this when figuring out the weird behavior options
+        // (landscape) so be sure to consider this when figuring out the weird behavior options.
+        // we might want a separate setting to skip the extracted text monitor so we can still
+        // return something here to still allow the full screen text field to work. alternatively,
+        // can we disable going into full screen mode? based on the documentation, I'm not sure that
+        // just ignoring the text monitor is valid, but I've seen it happen, so it might still be
+        // reasonable to have for testing.
         ExtractedText et = new ExtractedText();
         if (mEditText.extractText(extractedTextRequest, et)) {
-            if ((flags&GET_EXTRACTED_TEXT_MONITOR) != 0) {
+            if ((flags & GET_EXTRACTED_TEXT_MONITOR) != 0) {
                 mEditText.setExtracting(extractedTextRequest);
             }
             return et;
