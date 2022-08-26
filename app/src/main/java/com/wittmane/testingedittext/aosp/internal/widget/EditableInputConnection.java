@@ -23,6 +23,7 @@ import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
+import android.text.Selection;
 import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -61,6 +62,9 @@ public class EditableInputConnection extends BaseInputConnection {
     // balanced impact on its associated EditText.
     // A negative value means that this connection has been finished by the InputMethodManager.
     private int mBatchEditNesting;
+
+    // (EW) from BaseInputConnection
+    private static final int INVALID_INDEX = -1;
 
     // (EW) from InputMethodManager
     private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
@@ -191,7 +195,71 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "getExtractedText: deleteSurroundingText=" + beforeLength
                     + ", afterLength=" + afterLength);
         }
-        return super.deleteSurroundingText(beforeLength, afterLength);
+
+        // (EW) from BaseInputConnection so we can add the setting for deleting around the composing
+        // text
+        final Editable content = getEditable();
+
+        beginBatchEdit();
+
+        int a = Selection.getSelectionStart(content);
+        int b = Selection.getSelectionEnd(content);
+
+        if (a > b) {
+            int tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        // Skip when the selection is not yet attached.
+        if (a == -1 || b == -1) {
+            endBatchEdit();
+            return false;
+        }
+
+        // (EW) check the setting to determine if deleting should also be done around the composing
+        // text. although this isn't documented functionality for this method, the AOSP code very
+        // intentionally shifts the range for what can be deleted to skip the composing text.
+        if (!Settings.shouldDeleteThroughComposingText()) {
+            // Ignore the composing text.
+            int ca = getComposingSpanStart(content);
+            int cb = getComposingSpanEnd(content);
+            if (cb < ca) {
+                int tmp = ca;
+                ca = cb;
+                cb = tmp;
+            }
+            if (ca != -1 && cb != -1) {
+                if (ca < a) a = ca;
+                if (cb > b) b = cb;
+            }
+        }
+
+        int deleted = 0;
+
+        if (beforeLength > 0) {
+            int start = a - beforeLength;
+            if (start < 0) start = 0;
+            final int numDeleteBefore = a - start;
+            if (a >= 0 && numDeleteBefore > 0) {
+                content.delete(start, a);
+                deleted = numDeleteBefore;
+            }
+        }
+
+        if (afterLength > 0) {
+            b = b - deleted;
+            int end = b + afterLength;
+            if (end > content.length()) end = content.length();
+            final int numDeleteAfter = end - b;
+            if (b >= 0 && numDeleteAfter > 0) {
+                content.delete(b, end);
+            }
+        }
+
+        endBatchEdit();
+
+        return true;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -201,7 +269,157 @@ public class EditableInputConnection extends BaseInputConnection {
             Log.d(TAG, "getExtractedText: deleteSurroundingTextInCodePoints="
                     + beforeLength + ", afterLength=" + afterLength);
         }
-        return super.deleteSurroundingTextInCodePoints(beforeLength, afterLength);
+
+        // (EW) from BaseInputConnection so we can add the setting for deleting around the composing
+        // text
+        final Editable content = getEditable();
+
+        beginBatchEdit();
+
+        int a = Selection.getSelectionStart(content);
+        int b = Selection.getSelectionEnd(content);
+
+        if (a > b) {
+            int tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        // (EW) check the setting to determine if deleting should also be done around the composing
+        // text. although this isn't documented functionality for this method, the AOSP code very
+        // intentionally shifts the range for what can be deleted to skip the composing text.
+        if (!Settings.shouldDeleteThroughComposingText()) {
+            // Ignore the composing text.
+            int ca = getComposingSpanStart(content);
+            int cb = getComposingSpanEnd(content);
+            if (cb < ca) {
+                int tmp = ca;
+                ca = cb;
+                cb = tmp;
+            }
+            if (ca != -1 && cb != -1) {
+                if (ca < a) a = ca;
+                if (cb > b) b = cb;
+            }
+        }
+
+        if (a >= 0 && b >= 0) {
+            final int start = findIndexBackward(content, a, Math.max(beforeLength, 0));
+            if (start != INVALID_INDEX) {
+                final int end = findIndexForward(content, b, Math.max(afterLength, 0));
+                if (end != INVALID_INDEX) {
+                    final int numDeleteBefore = a - start;
+                    if (numDeleteBefore > 0) {
+                        content.delete(start, a);
+                    }
+                    final int numDeleteAfter = end - b;
+                    if (numDeleteAfter > 0) {
+                        content.delete(b - numDeleteBefore, end - numDeleteBefore);
+                    }
+                }
+            }
+            // NOTE: You may think we should return false here if start and/or end is INVALID_INDEX,
+            // but the truth is that IInputConnectionWrapper running in the middle of IPC calls
+            // always returns true to the IME without waiting for the completion of this method as
+            // IInputConnectionWrapper#isAtive() returns true.  This is actually why some methods
+            // including this method look like asynchronous calls from the IME.
+        }
+
+        endBatchEdit();
+
+        return true;
+    }
+
+    // (EW) from BaseInputConnection
+    private static int findIndexBackward(final CharSequence cs, final int from,
+                                         final int numCodePoints) {
+        int currentIndex = from;
+        boolean waitingHighSurrogate = false;
+        final int N = cs.length();
+        if (currentIndex < 0 || N < currentIndex) {
+            return INVALID_INDEX;  // The starting point is out of range.
+        }
+        if (numCodePoints < 0) {
+            return INVALID_INDEX;  // Basically this should not happen.
+        }
+        int remainingCodePoints = numCodePoints;
+        while (true) {
+            if (remainingCodePoints == 0) {
+                return currentIndex;  // Reached to the requested length in code points.
+            }
+
+            --currentIndex;
+            if (currentIndex < 0) {
+                if (waitingHighSurrogate) {
+                    return INVALID_INDEX;  // An invalid surrogate pair is found.
+                }
+                return 0;  // Reached to the beginning of the text w/o any invalid surrogate pair.
+            }
+            final char c = cs.charAt(currentIndex);
+            if (waitingHighSurrogate) {
+                if (!java.lang.Character.isHighSurrogate(c)) {
+                    return INVALID_INDEX;  // An invalid surrogate pair is found.
+                }
+                waitingHighSurrogate = false;
+                --remainingCodePoints;
+                continue;
+            }
+            if (!java.lang.Character.isSurrogate(c)) {
+                --remainingCodePoints;
+                continue;
+            }
+            if (java.lang.Character.isHighSurrogate(c)) {
+                return INVALID_INDEX;  // A invalid surrogate pair is found.
+            }
+            waitingHighSurrogate = true;
+        }
+    }
+
+    // (EW) from BaseInputConnection
+    private static int findIndexForward(final CharSequence cs, final int from,
+                                        final int numCodePoints) {
+        int currentIndex = from;
+        boolean waitingLowSurrogate = false;
+        final int N = cs.length();
+        if (currentIndex < 0 || N < currentIndex) {
+            return INVALID_INDEX;  // The starting point is out of range.
+        }
+        if (numCodePoints < 0) {
+            return INVALID_INDEX;  // Basically this should not happen.
+        }
+        int remainingCodePoints = numCodePoints;
+        while (true) {
+            if (remainingCodePoints == 0) {
+                return currentIndex;  // Reached to the requested length in code points.
+            }
+
+            if (currentIndex >= N) {
+                if (waitingLowSurrogate) {
+                    return INVALID_INDEX;  // An invalid surrogate pair is found.
+                }
+                return N;  // Reached to the end of the text w/o any invalid surrogate pair.
+            }
+            final char c = cs.charAt(currentIndex);
+            if (waitingLowSurrogate) {
+                if (!java.lang.Character.isLowSurrogate(c)) {
+                    return INVALID_INDEX;  // An invalid surrogate pair is found.
+                }
+                --remainingCodePoints;
+                waitingLowSurrogate = false;
+                ++currentIndex;
+                continue;
+            }
+            if (!java.lang.Character.isSurrogate(c)) {
+                --remainingCodePoints;
+                ++currentIndex;
+                continue;
+            }
+            if (java.lang.Character.isLowSurrogate(c)) {
+                return INVALID_INDEX;  // A invalid surrogate pair is found.
+            }
+            waitingLowSurrogate = true;
+            ++currentIndex;
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)

@@ -65,10 +65,10 @@
     <PreferenceCategory android:title="@string/unclear_documentation_category">
 
         <SwitchPreference
-            android:key="pref_key_delete_around_composing_text"
-            android:title="@string/delete_around_composing_text_title"
-            android:summaryOn="@string/delete_around_composing_text_summary_on"
-            android:summaryOff="@string/delete_around_composing_text_summary_off" />
+            android:key="pref_key_delete_through_composing_text"
+            android:title="@string/delete_through_composing_text_title"
+            android:summaryOn="@string/delete_through_composing_text_summary_on"
+            android:summaryOff="@string/delete_through_composing_text_summary_off" />
 
         <SwitchPreference
             android:key="pref_key_keep_empty_composing_position"

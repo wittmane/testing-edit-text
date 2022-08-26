@@ -29,6 +29,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_limit_extract_monitor_text";
     public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
             "pref_key_update_selection_before_extracted_text";
+    public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT =
+            "pref_key_delete_through_composing_text";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
 
@@ -37,6 +39,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mExtractFullText;
     private int mExtractMonitorTextLimit;
     private boolean mUpdateSelectionBeforeExtractedText;
+    private boolean mDeleteThroughComposingText;
     private boolean mSkipSetComposingRegion;
     private boolean mSkipGetSurroundingText;
 
@@ -77,6 +80,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mExtractFullText = readExtractFullText(mPrefs);
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
         mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
+        mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
     }
@@ -115,6 +119,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readUpdateSelectionBeforeExtractedText(final SharedPreferences prefs) {
         return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
+    }
+
+    private static boolean readDeleteThroughComposingText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT, false);
+    }
+
+    public static boolean shouldDeleteThroughComposingText() {
+        return getInstance().mDeleteThroughComposingText;
     }
 
     public static boolean shouldUpdateSelectionBeforeExtractedText() {
