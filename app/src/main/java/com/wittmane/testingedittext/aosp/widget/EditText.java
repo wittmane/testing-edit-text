@@ -9785,8 +9785,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // constant used in getMetaState throughout AOSP code, so skipping it probably won't
             // even cause a real lack of functionality (at least currently) since other apps
             // probably aren't using it either. same basic need to skip this in
-            // Editor#extractTextInternal, ArrowKeyMovementMethod#handleMovementKey, and
-            // Touch#onTouchEvent. also MetaKeyKeyListener#stopSelecting is hidden pending API
+            // Editor#extractTextInternal, ArrowKeyMovementMethod#handleMovementKey,
+            // Touch#onTouchEvent, and EditableInputConnection#setSelection (originally
+            // BaseInputConnection). also MetaKeyKeyListener#stopSelecting is hidden pending API
             // review and marked with UnsupportedAppUsage, so there isn't much we could do.
         }
 

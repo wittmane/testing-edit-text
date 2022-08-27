@@ -1630,7 +1630,8 @@ class Editor {
         // getMetaState throughout AOSP code, so skipping it probably won't even cause a real lack
         // of functionality (at least currently) since other apps probably aren't using it either.
         // same basic need to skip this in EditText.ChangeWatcher#afterTextChanged,
-        // ArrowKeyMovementMethod#handleMovementKey, and Touch#onTouchEvent.
+        // ArrowKeyMovementMethod#handleMovementKey, Touch#onTouchEvent, and
+        // EditableInputConnection#setSelection (originally BaseInputConnection).
         if (mEditText.isSingleLine()) {
             outText.flags |= ExtractedText.FLAG_SINGLE_LINE;
         }

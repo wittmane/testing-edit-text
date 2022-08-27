@@ -31,6 +31,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_update_selection_before_extracted_text";
     public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT =
             "pref_key_delete_through_composing_text";
+    public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
+            "pref_key_keep_empty_composing_position";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
 
@@ -40,6 +42,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private int mExtractMonitorTextLimit;
     private boolean mUpdateSelectionBeforeExtractedText;
     private boolean mDeleteThroughComposingText;
+    private boolean mKeepEmptyComposingPosition;
     private boolean mSkipSetComposingRegion;
     private boolean mSkipGetSurroundingText;
 
@@ -81,6 +84,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
         mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
         mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
+        mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
     }
@@ -131,6 +135,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldUpdateSelectionBeforeExtractedText() {
         return getInstance().mUpdateSelectionBeforeExtractedText;
+    }
+
+    private static boolean readKeepEmptyComposingPosition(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION, false);
+    }
+
+    public static boolean shouldKeepEmptyComposingPosition() {
+        return getInstance().mKeepEmptyComposingPosition;
     }
 
     private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {

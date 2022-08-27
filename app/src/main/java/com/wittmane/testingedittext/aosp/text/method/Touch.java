@@ -150,7 +150,8 @@ public class Touch {
                         // probably won't even cause a real lack of functionality (at least
                         // currently) since other apps probably aren't using it either. same basic
                         // need to skip this in EditText.ChangeWatcher#afterTextChanged,
-                        // Editor#extractTextInternal, and ArrowKeyMovementMethod#handleMovementKey.
+                        // Editor#extractTextInternal, ArrowKeyMovementMethod#handleMovementKey, and
+                        // EditableInputConnection#setSelection (originally BaseInputConnection).
                         boolean cap = (event.getMetaState() & KeyEvent.META_SHIFT_ON) != 0
                                 || MetaKeyKeyListener.getMetaState(buffer,
                                         MetaKeyKeyListener.META_SHIFT_ON) == 1;
