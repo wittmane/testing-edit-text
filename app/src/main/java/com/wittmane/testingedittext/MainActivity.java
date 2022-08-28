@@ -33,6 +33,9 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.SettingsActivity;
+
 import java.util.ArrayList;
 
 public class MainActivity extends Activity {

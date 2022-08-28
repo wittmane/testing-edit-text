@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.settings;
 
 import android.content.Context;
 import android.content.SharedPreferences;

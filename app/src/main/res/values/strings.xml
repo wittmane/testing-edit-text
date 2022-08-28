@@ -44,6 +44,21 @@
     <string name="limit_extract_monitor_text_title">Limit extract text</string>
     <string name="limit_extract_monitor_text_summary">When updating extracted text with full text, limit the length of the text that is sent.</string>
 
+    <string name="modify_text_input_screen">Modify text input</string>
+
+    <string name="modify_committed_text_title">Modify committed text</string>
+    <string name="modify_committed_text_summary">Modify text when it is committed or the composition is finished</string>
+
+    <string name="modify_composed_text_title">Modify composed text</string>
+    <string name="modify_composed_text_summary">Modify text when it is being composed</string>
+
+    <string name="modify_composed_changes_only_title">Modify composed changes</string>
+    <string name="modify_composed_changes_only_summary">Only modify the part of the composition that is different from the previous composition</string>
+
+    <string name="restrict_input_text_category">Restrict input text</string>
+
+    <string name="translate_input_text_category">Translate input text</string>
+
     <string name="unclear_documentation_category">Unclear documentation</string>
 
     <string name="delete_through_composing_text_title">Delete through composing text</string>

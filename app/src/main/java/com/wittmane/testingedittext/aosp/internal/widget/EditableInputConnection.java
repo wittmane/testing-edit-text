@@ -53,7 +53,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.wittmane.testingedittext.Settings;
+import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 

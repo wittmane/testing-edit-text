@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2007 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -14,11 +15,15 @@
  * the License.
  */
 
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.settings;
 
 import android.app.ActionBar;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceFragment;
 import android.view.MenuItem;
 
 public class SettingsActivity extends PreferenceActivity {
@@ -31,7 +36,27 @@ public class SettingsActivity extends PreferenceActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         getFragmentManager().beginTransaction()
-                .replace(android.R.id.content, new SettingsFragment()).commit();
+                .replace(android.R.id.content, new MainSettingsFragment()).commit();
+    }
+
+    @Override
+    public boolean onPreferenceStartFragment(PreferenceFragment caller, Preference pref) {
+        // (EW) based on PreferenceActivity#onPreferenceStartFragment and
+        // PreferenceActivity#startPreferencePanel
+
+        Fragment f = Fragment.instantiate(this, pref.getFragment(), pref.getExtras());
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        transaction.replace(android.R.id.content, f);
+        if (pref.getTitleRes() != 0) {
+            transaction.setBreadCrumbTitle(pref.getTitleRes());
+        } else if (pref.getTitle() != null) {
+            transaction.setBreadCrumbTitle(pref.getTitle());
+        }
+        transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+        transaction.addToBackStack(null);
+        transaction.commitAllowingStateLoss();
+
+        return true;
     }
 
     @Override
@@ -45,6 +70,7 @@ public class SettingsActivity extends PreferenceActivity {
 
     @Override
     public boolean isValidFragment(final String fragmentName) {
-        return SettingsFragment.class.getName().equals(fragmentName);
+        return MainSettingsFragment.class.getName().equals(fragmentName)
+                || ModifyTextSettingsFragment.class.getName().equals(fragmentName);
     }
 }

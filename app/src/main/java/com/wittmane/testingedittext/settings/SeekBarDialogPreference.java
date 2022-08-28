@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wittmane.testingedittext;
+package com.wittmane.testingedittext.settings;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -27,6 +27,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import com.wittmane.testingedittext.R;
 
 public class SeekBarDialogPreference extends DialogPreference
         implements SeekBar.OnSeekBarChangeListener {

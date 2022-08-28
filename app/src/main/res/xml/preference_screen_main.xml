@@ -14,12 +14,13 @@
      limitations under the License.
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:key="edit_text_settings">
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
 
+    <!--TODO: (EW) find a way to extend preference summary or reduce the length of the tex to fit
+         all screens-->
     <PreferenceCategory android:title="@string/documented_variable_functionality_category">
 
-        <com.wittmane.testingedittext.SeekBarDialogPreference
+        <com.wittmane.testingedittext.settings.SeekBarDialogPreference
             android:key="pref_key_limit_returned_text"
             android:title="@string/limit_returned_text_title"
             android:summary="@string/limit_returned_text_summary"
@@ -29,8 +30,6 @@
             app:valueText="@string/unit_characters"
             app:defaultValueText="@string/no_character_limit" />
 
-        <!--TODO: (EW) make these enable/disable based on each other since only certain combinations
-             make sense-->
         <SwitchPreference
             android:key="pref_key_skip_extracting_text"
             android:title="@string/skip_extracting_text_title"
@@ -44,7 +43,7 @@
             android:summaryOff="@string/extract_full_text_summary_off"
             android:dependency="pref_key_skip_extracting_text"
             android:disableDependentsState="false" />
-        <com.wittmane.testingedittext.SeekBarDialogPreference
+        <com.wittmane.testingedittext.settings.SeekBarDialogPreference
             android:key="pref_key_limit_extract_monitor_text"
             android:title="@string/limit_extract_monitor_text_title"
             android:summary="@string/limit_extract_monitor_text_summary"
@@ -58,7 +57,9 @@
         <!--TODO: (EW) option for getExtractedText to comply with the fields in request for how many
              chars to return-->
 
-        <!--TODO: (EW) options to modify text input-->
+        <PreferenceScreen
+            android:fragment="com.wittmane.testingedittext.settings.ModifyTextSettingsFragment"
+            android:title="@string/modify_text_input_screen" />
 
     </PreferenceCategory>
 
@@ -105,7 +106,7 @@
 
     <PreferenceCategory android:title="@string/simulate_system_behavior_category">
 
-        <com.wittmane.testingedittext.SeekBarDialogPreference
+        <com.wittmane.testingedittext.settings.SeekBarDialogPreference
             android:key="pref_key_update_delay"
             android:title="@string/update_delay_title"
             android:summary="@string/update_delay_summary"
