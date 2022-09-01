@@ -31,13 +31,22 @@
 
     <PreferenceCategory android:title="@string/restrict_input_text_category">
 
-        <!--TODO: (EW) allow specific-->
+        <SwitchPreference
+            android:key="pref_key_restrict_to_include"
+            android:title="@string/restrict_to_include_title"
+            android:summaryOn="@string/restrict_to_include_summary_on"
+            android:summaryOff="@string/restrict_to_include_summary_off" />
 
-        <!--TODO: (EW) allow range-->
+        <!--TODO: (EW) implement-->
+<!--        <com.wittmane.testingedittext.settings.TextListPreference-->
+<!--            android:key="pref_key_restrict_specific"-->
+<!--            android:title="@string/restrict_specific_title"-->
+<!--            android:summary="@string/restrict_specific_summary" />-->
 
-        <!--TODO: (EW) block specific-->
-
-        <!--TODO: (EW) block range-->
+        <com.wittmane.testingedittext.settings.CodepointRangeDialogPreference
+            android:key="pref_key_restrict_range"
+            android:title="@string/restrict_range_title"
+            android:summary="@string/restrict_range_summary" />
 
     </PreferenceCategory>
 

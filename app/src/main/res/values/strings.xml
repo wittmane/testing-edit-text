@@ -25,6 +25,8 @@
     <!--TODO: (EW) from simple keyboard - copy translations too-->
     <string name="button_default">Default</string>
 
+    <string name="button_clear">Clear</string>
+
     <string name="documented_variable_functionality_category">Documented variable functionality</string>
 
     <string name="limit_returned_text_title">Limit text returned around the cursor</string>
@@ -56,6 +58,16 @@
     <string name="modify_composed_changes_only_summary">Only modify the part of the composition that is different from the previous composition</string>
 
     <string name="restrict_input_text_category">Restrict input text</string>
+
+    <string name="restrict_to_include_title">Only allow certain input</string>
+    <string name="restrict_to_include_summary_on">Only allow the text configured below as valid input and reject anything else</string>
+    <string name="restrict_to_include_summary_off">Block the text configured below and allow everything else</string>
+
+    <string name="restrict_specific_title">Specific text</string>
+    <string name="restrict_specific_summary">Allow/block specific text</string>
+
+    <string name="restrict_range_title">Codepoint range</string>
+    <string name="restrict_range_summary">Allow/block a range of code points</string>
 
     <string name="translate_input_text_category">Translate input text</string>
 
