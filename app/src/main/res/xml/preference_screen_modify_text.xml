@@ -37,11 +37,10 @@
             android:summaryOn="@string/restrict_to_include_summary_on"
             android:summaryOff="@string/restrict_to_include_summary_off" />
 
-        <!--TODO: (EW) implement-->
-<!--        <com.wittmane.testingedittext.settings.TextListPreference-->
-<!--            android:key="pref_key_restrict_specific"-->
-<!--            android:title="@string/restrict_specific_title"-->
-<!--            android:summary="@string/restrict_specific_summary" />-->
+        <com.wittmane.testingedittext.settings.TextListPreference
+            android:key="pref_key_restrict_specific"
+            android:title="@string/restrict_specific_title"
+            android:summary="@string/restrict_specific_summary" />
 
         <com.wittmane.testingedittext.settings.CodepointRangeDialogPreference
             android:key="pref_key_restrict_range"

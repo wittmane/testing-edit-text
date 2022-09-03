@@ -66,6 +66,9 @@
     <string name="restrict_specific_title">Specific text</string>
     <string name="restrict_specific_summary">Allow/block specific text</string>
 
+    <!-- U+2026: "…" HORIZONTAL ELLIPSIS -->
+    <string name="use_special_characters">Use special characters (\\n, \\r, \\t, \\0, \\u\u2026)</string>
+
     <string name="restrict_range_title">Codepoint range</string>
     <string name="restrict_range_summary">Allow/block a range of code points</string>
 

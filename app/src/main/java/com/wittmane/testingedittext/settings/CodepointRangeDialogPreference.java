@@ -231,7 +231,7 @@ public class CodepointRangeDialogPreference extends DialogPreference {
     }
 
     private static boolean isValidCodepoint(int codepoint) {
-        return codepoint >= 0 && codepoint <= 0x10FFFF;
+        return codepoint >= 0 && codepoint <= Character.MAX_CODE_POINT;
     }
 
     private static int parseCodepointFromCharacter(CharSequence text) {
