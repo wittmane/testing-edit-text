@@ -53,7 +53,10 @@
 
         <!--TODO: (EW) shift codepoint-->
 
-        <!--TODO: (EW) translate specific characters/words-->
+        <com.wittmane.testingedittext.settings.TextTranslateListPreference
+            android:key="pref_key_translate_specific"
+            android:title="@string/translate_specific_title"
+            android:summary="@string/translate_specific_summary" />
 
     </PreferenceCategory>
 

@@ -18,8 +18,6 @@ package com.wittmane.testingedittext.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
-import android.preference.DialogPreference;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.Spanned;
@@ -41,7 +39,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CodepointRangeDialogPreference extends DialogPreference {
+public class CodepointRangeDialogPreference extends DialogPreferenceBase {
 
     private static final int NOT_A_CODEPOINT = -1;
 
@@ -52,32 +50,17 @@ public class CodepointRangeDialogPreference extends DialogPreference {
     private EditText mEndCodepointView;
     private EditText mEndUnicodeView;
 
-    private final CharSequence mBaseSummary;
-
     public CodepointRangeDialogPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
         setDialogLayoutResource(R.layout.codepoint_range_dialog);
-        mBaseSummary = getSummary();
     }
 
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
         final int[] value = readValue();
-        setSummary(getValueText(value));
+        setValueSummary(getValueText(value));
         return view;
-    }
-
-    @Override
-    public void setSummary(CharSequence summary) {
-        if (mBaseSummary != null && mBaseSummary.length() > 0) {
-            if (summary != null && !summary.equals("")) {
-                summary = mBaseSummary + "\n" + summary;
-            } else {
-                summary = mBaseSummary;
-            }
-        }
-        super.setSummary(summary);
     }
 
     @Override
@@ -407,7 +390,7 @@ public class CodepointRangeDialogPreference extends DialogPreference {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
             final int[] value = readDefaultValue();
-            setSummary(getValueText(value));
+            setValueSummary(getValueText(value));
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
             int startCodepoint = getCodepointFromFields(
@@ -427,13 +410,9 @@ public class CodepointRangeDialogPreference extends DialogPreference {
             }
 
             int[] value = new int[] { startCodepoint, endCodepoint };
-            setSummary(getValueText(value));
+            setValueSummary(getValueText(value));
             writeValue(value);
         }
-    }
-
-    private SharedPreferences getPrefs() {
-        return getPreferenceManager().getSharedPreferences();
     }
 
     public void writeValue(final @Nullable @Size(2) int[] value) {

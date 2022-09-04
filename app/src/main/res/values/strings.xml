@@ -74,6 +74,9 @@
 
     <string name="translate_input_text_category">Translate input text</string>
 
+    <string name="translate_specific_title">Translate specific text</string>
+    <string name="translate_specific_summary">Change text into different text</string>
+
     <string name="unclear_documentation_category">Unclear documentation</string>
 
     <string name="delete_through_composing_text_title">Delete through composing text</string>

@@ -28,7 +28,6 @@
         <TableLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:stretchColumns="0"
             android:id="@+id/text_table" >
             <!-- rows will be added programmatically -->
         </TableLayout>
