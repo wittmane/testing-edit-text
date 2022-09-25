@@ -25,13 +25,13 @@ import android.preference.DialogPreference;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.ExtendingSeekBar.OnExtendingSeekBarChangeListener;
 
 public class SeekBarDialogPreference extends DialogPreference
-        implements SeekBar.OnSeekBarChangeListener {
+        implements OnExtendingSeekBarChangeListener {
 
     private final int mMaxValue;
     private final int mMinValue;
@@ -41,7 +41,7 @@ public class SeekBarDialogPreference extends DialogPreference
     private final String mDefaultValueText;
 
     private TextView mValueView;
-    private SeekBar mSeekBar;
+    private ExtendingSeekBar mSeekBar;
 
     private final CharSequence mBaseSummary;
 
@@ -86,32 +86,12 @@ public class SeekBarDialogPreference extends DialogPreference
     @Override
     protected View onCreateDialogView() {
         final View view = super.onCreateDialogView();
-        mSeekBar = (SeekBar)view.findViewById(R.id.seek_bar_dialog_bar);
-        mSeekBar.setMax(mMaxValue - mMinValue);
+        mSeekBar = view.findViewById(R.id.seek_bar_dialog_bar);
+        mSeekBar.setRange(mMinValue, mMaxValue, mStepValue);
         mSeekBar.setOnSeekBarChangeListener(this);
         mValueView = (TextView)view.findViewById(R.id.seek_bar_dialog_value);
 
         return view;
-    }
-
-    private int getProgressFromValue(final int value) {
-        return value - mMinValue;
-    }
-
-    private int getValueFromProgress(final int progress) {
-        return progress + mMinValue;
-    }
-
-    private int clipValue(final int value) {
-        final int clippedValue = Math.min(mMaxValue, Math.max(mMinValue, value));
-        if (mStepValue <= 1) {
-            return clippedValue;
-        }
-        return clippedValue - (clippedValue % mStepValue);
-    }
-
-    private int getClippedValueFromProgress(final int progress) {
-        return clipValue(getValueFromProgress(progress));
     }
 
     @Override
@@ -119,7 +99,7 @@ public class SeekBarDialogPreference extends DialogPreference
         super.onBindDialogView(view);
         final int value = readValue();
         mValueView.setText(getValueText(value));
-        mSeekBar.setProgress(getProgressFromValue(clipValue(value)));
+        mSeekBar.setProgress(value);
     }
 
     @Override
@@ -137,27 +117,23 @@ public class SeekBarDialogPreference extends DialogPreference
             setSummary(getValueText(value));
             writeDefaultValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
-            final int value = getClippedValueFromProgress(mSeekBar.getProgress());
+            final int value = mSeekBar.getProgress();
             setSummary(getValueText(value));
             writeValue(value);
         }
     }
 
     @Override
-    public void onProgressChanged(final SeekBar seekBar, final int progress,
+    public void onProgressChanged(final ExtendingSeekBar seekBar, final int progress,
                                   final boolean fromUser) {
-        final int value = getClippedValueFromProgress(progress);
-        mValueView.setText(getValueText(value));
-        if (!fromUser) {
-            mSeekBar.setProgress(getProgressFromValue(value));
-        }
+        mValueView.setText(getValueText(progress));
     }
 
     @Override
-    public void onStartTrackingTouch(final SeekBar seekBar) {}
+    public void onStartTrackingTouch(final ExtendingSeekBar seekBar) {}
 
     @Override
-    public void onStopTrackingTouch(final SeekBar seekBar) {}
+    public void onStopTrackingTouch(final ExtendingSeekBar seekBar) {}
 
     private SharedPreferences getPrefs() {
         return getPreferenceManager().getSharedPreferences();

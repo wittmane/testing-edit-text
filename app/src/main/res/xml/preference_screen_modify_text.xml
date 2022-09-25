@@ -13,7 +13,8 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
 
     <SwitchPreference
         android:key="pref_key_modify_committed_text"
@@ -51,7 +52,15 @@
 
     <PreferenceCategory android:title="@string/translate_input_text_category">
 
-        <!--TODO: (EW) shift codepoint-->
+        <com.wittmane.testingedittext.settings.SeekBarDialogPreference
+            android:key="pref_key_shift_codepoint"
+            android:title="@string/shift_codepoint_title"
+            android:summary="@string/shift_codepoint_summary"
+            app:minValue="@integer/config_shift_codepoint_min"
+            app:maxValue="@integer/config_shift_codepoint_max"
+            app:stepValue="@integer/config_shift_codepoint_step"
+            app:defaultValue="@integer/config_shift_codepoint_default"
+            app:valueText="@string/unit_codepoints" />
 
         <com.wittmane.testingedittext.settings.TextTranslateListPreference
             android:key="pref_key_translate_specific"

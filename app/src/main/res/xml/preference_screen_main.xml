@@ -20,6 +20,10 @@
          all screens-->
     <PreferenceCategory android:title="@string/documented_variable_functionality_category">
 
+        <PreferenceScreen
+            android:fragment="com.wittmane.testingedittext.settings.ModifyTextSettingsFragment"
+            android:title="@string/modify_text_input_screen" />
+
         <com.wittmane.testingedittext.settings.SeekBarDialogPreference
             android:key="pref_key_limit_returned_text"
             android:title="@string/limit_returned_text_title"
@@ -56,10 +60,6 @@
 
         <!--TODO: (EW) option for getExtractedText to comply with the fields in request for how many
              chars to return-->
-
-        <PreferenceScreen
-            android:fragment="com.wittmane.testingedittext.settings.ModifyTextSettingsFragment"
-            android:title="@string/modify_text_input_screen" />
 
     </PreferenceCategory>
 

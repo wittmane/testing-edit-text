@@ -74,6 +74,10 @@
 
     <string name="translate_input_text_category">Translate input text</string>
 
+    <string name="shift_codepoint_title">Shift codepoints</string>
+    <string name="shift_codepoint_summary">Shift all codepoints a fixed amount, wrapping at the ends of the range of codepoints</string>
+    <string name="unit_codepoints"><xliff:g id="CODEPOINTS">%s</xliff:g> codepoints</string>
+
     <string name="translate_specific_title">Translate specific text</string>
     <string name="translate_specific_summary">Change text into different text</string>
 
