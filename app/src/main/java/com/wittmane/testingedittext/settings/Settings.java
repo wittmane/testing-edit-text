@@ -20,8 +20,25 @@ package com.wittmane.testingedittext.settings;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.Size;
+
+import com.wittmane.testingedittext.settings.TextListPreferenceBase.TextList;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
+    private static final String TAG = Settings.class.getSimpleName();
+
+    public static final String PREF_MODIFY_COMMITTED_TEXT = "pref_key_modify_committed_text";
+    public static final String PREF_MODIFY_COMPOSED_TEXT = "pref_key_modify_composed_text";
+    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY = "pref_key_modify_composed_changes_only";
+    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END = "pref_key_consider_composed_changes_from_end";
+    public static final String PREF_RESTRICT_TO_INCLUDE = "pref_key_restrict_to_include";
+    public static final String PREF_RESTRICT_SPECIFIC = "pref_key_restrict_specific";
+    public static final String PREF_RESTRICT_RANGE = "pref_key_restrict_range";
+    public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
+    public static final String PREF_TRANSLATE_SPECIFIC = "pref_key_translate_specific";
     public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
     public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
     public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
@@ -36,6 +53,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
 
+    private boolean mModifyCommittedText;
+    private boolean mModifyComposedText;
+    private boolean mConsiderComposedChangesFromEnd;
+    private boolean mModifyComposedChangesOnly;
+    private boolean mRestrictToInclude;
+    private String[] mRestrictSpecific;
+    private int[] mRestrictRange;
+    private int mShiftCodepoint;
+    private TranslateText[] mTranslateSpecific;
     private int mReturnedTextLimit;
     private boolean mSkipExtractingText;
     private boolean mExtractFullText;
@@ -78,6 +104,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private void loadSettings() {
+        mModifyCommittedText = readModifyCommittedText(mPrefs);
+        mModifyComposedText = readModifyComposedText(mPrefs);
+        mModifyComposedChangesOnly = readModifyComposedChangesOnly(mPrefs);
+        mConsiderComposedChangesFromEnd = readConsiderComposedChangesFromEnd(mPrefs);
+        mRestrictToInclude = readRestrictToInclude(mPrefs);
+        mRestrictSpecific = readRestrictSpecific(mPrefs);
+        mRestrictRange = readRestrictRange(mPrefs);
+        mShiftCodepoint = readShiftCodepoint(mPrefs);
+        mTranslateSpecific = readTranslateSpecific(mPrefs);
         mReturnedTextLimit = readReturnedTextLimit(mPrefs);
         mSkipExtractingText = readSkipExtractingText(mPrefs);
         mExtractFullText = readExtractFullText(mPrefs);
@@ -87,6 +122,179 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
+    }
+
+    private static boolean readModifyCommittedText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT, false);
+    }
+
+    public static boolean shouldModifyCommittedText() {
+        return getInstance().mModifyCommittedText;
+    }
+
+    private static boolean readModifyComposedText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT, false);
+    }
+
+    public static boolean shouldModifyComposedText() {
+        return getInstance().mModifyComposedText;
+    }
+
+    private static boolean readModifyComposedChangesOnly(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY, false);
+    }
+
+    public static boolean shouldModifyComposedChangesOnly() {
+        return getInstance().mModifyComposedChangesOnly;
+    }
+
+    private static boolean readConsiderComposedChangesFromEnd(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END, false);
+    }
+
+    public static boolean shouldConsiderComposedChangesFromEnd() {
+        return getInstance().mConsiderComposedChangesFromEnd;
+    }
+
+    private static boolean readRestrictToInclude(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE, false);
+    }
+
+    public static boolean shouldRestrictToInclude() {
+        return getInstance().mRestrictToInclude;
+    }
+
+    private static String[] readRestrictSpecific(final SharedPreferences prefs) {
+        TextList<String> textList =
+                (new TextListPreference.Reader(prefs, PREF_RESTRICT_SPECIFIC)).readValue();
+        String[] result = new String[textList.mDataArray.length];
+        for (int i = 0; i < textList.mDataArray.length; i++) {
+            if (textList.mEscapeChars) {
+                result[i] = escapeChars(textList.mDataArray[i]);
+            } else {
+                result[i] = textList.mDataArray[i];
+            }
+        }
+        return result;
+    }
+
+    public static String[] getRestrictSpecific() {
+        return getInstance().mRestrictSpecific;
+    }
+
+    private static String escapeChars(String text) {
+        if (text == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean escapeNextChar = false;
+        char[] unicode;
+        int i = 0;
+        while (i < text.length()) {
+            char current = text.charAt(i);
+            if (escapeNextChar) {
+                switch (current) {
+                    case 'n':
+                        sb.append('\n');
+                        break;
+                    case 'r':
+                        sb.append('\r');
+                        break;
+                    case 't':
+                        sb.append('\t');
+                        break;
+                    case '0':
+                        sb.append('\0');
+                        break;
+                    case 'u':
+                        unicode = new char[4];
+                        int unicodeIndex = 0;
+                        while (unicodeIndex < unicode.length
+                                && i + unicodeIndex + 1 < text.length()) {
+                            char foo = text.charAt(i + unicodeIndex + 1);
+                            if (!((foo >= '0' && foo <= '9') || (foo >= 'a' && foo <= 'f'))) {
+                                break;
+                            }
+                            unicode[unicodeIndex] = foo;
+                            unicodeIndex++;
+                        }
+                        if (unicodeIndex != unicode.length) {
+                            Log.e(TAG, "Invalid escape character at " + (i + unicodeIndex + 1)
+                                    + ": \"" + text + "\"");
+                            if (unicodeIndex == 0) {
+                                // no hex digits were listed, so treat as just an unnecessary escape
+                                // of the 'u' character and just use the original character
+                                // (skipping '\'). don't increment i to process the current char
+                                // again as not being escaped
+                                escapeNextChar = false;
+                                continue;
+                            }
+                            // assume leading 0s were just skipped. shift the existing values and
+                            // insert 0s.
+                            int shift = unicode.length - unicodeIndex;
+                            for (int j = unicode.length - 1; j >= 0; j--) {
+                                unicode[j] = j - shift >= 0 ? unicode[j - shift] : '0';
+                            }
+                        }
+                        sb.append((char)Integer.parseInt(new String(unicode), 16));
+                        i += unicodeIndex;
+                        break;
+                    case '\\':
+                        sb.append('\\');
+                        break;
+                    default:
+                        Log.e(TAG, "Invalid escape character at " + i + ": \"" + text + "\"");
+                        // treat as just an unnecessary escape of the character and just use the
+                        // original character (skipping '\'). don't increment i to process the
+                        // current char again as not being escaped
+                        escapeNextChar = false;
+                        continue;
+                }
+                escapeNextChar = false;
+            } else if (text.charAt(i) == '\\') {
+                escapeNextChar = true;
+            } else {
+                sb.append(current);
+            }
+            i++;
+        }
+        return sb.toString();
+    }
+
+    private static @Nullable @Size(2) int[] readRestrictRange(final SharedPreferences prefs) {
+        return (new CodepointRangeDialogPreference.Reader(prefs, PREF_RESTRICT_RANGE)).readValue();
+    }
+
+    public static @Nullable @Size(2) int[] getRestrictRange() {
+        return getInstance().mRestrictRange;
+    }
+
+    private static int readShiftCodepoint(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_SHIFT_CODEPOINT, 0);
+    }
+
+    public static int getShiftCodepoint() {
+        return getInstance().mShiftCodepoint;
+    }
+
+    private static TranslateText[] readTranslateSpecific(final SharedPreferences prefs) {
+        TextList<TranslateText> textList =
+                (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC))
+                        .readValue();
+        TranslateText[] result = new TranslateText[textList.mDataArray.length];
+        for (int i = 0; i < textList.mDataArray.length; i++) {
+            if (textList.mEscapeChars) {
+                result[i] = new TranslateText(escapeChars(textList.mDataArray[i].getOriginal()),
+                        escapeChars(textList.mDataArray[i].getTranslation()));
+            } else {
+                result[i] = textList.mDataArray[i];
+            }
+        }
+        return result;
+    }
+
+    public static TranslateText[] getTranslateSpecific() {
+        return getInstance().mTranslateSpecific;
     }
 
     private static int readReturnedTextLimit(final SharedPreferences prefs) {

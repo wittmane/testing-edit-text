@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.wittmane.testingedittext.settings;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -25,10 +28,18 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 public class TextTranslateListPreference
-        extends TextListPreferenceBase<TextTranslateListPreference.TranslateText> {
+        extends TextListPreferenceBase<TranslateText> {
+
+    private Reader mReader;
 
     public TextTranslateListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        mReader = new Reader(getSharedPreferences(), getKey());
     }
 
     @Override
@@ -41,15 +52,16 @@ public class TextTranslateListPreference
                         ? "\u2190"
                         : "\u2192");
         return new View[] {
-                createEditText(data == null ? null : data.mOriginal),
+                createEditText(data == null ? null : data.getOriginal()),
                 rangeIndicator,
-                createEditText(data == null ? null : data.mTranslation)
+                createEditText(data == null ? null : data.getTranslation())
         };
     }
 
     @Override
     protected boolean isRowEmpty(TranslateText rowData) {
-        return TextUtils.isEmpty(rowData.mOriginal) && TextUtils.isEmpty(rowData.mTranslation);
+        return TextUtils.isEmpty(rowData.getOriginal())
+                && TextUtils.isEmpty(rowData.getTranslation());
     }
 
     @Override
@@ -64,10 +76,10 @@ public class TextTranslateListPreference
         TranslateText[] translationArray = new TranslateText[mRows.size()];
         for (int i = 0; i < mRows.size(); i++) {
             translationArray[i] = new TranslateText();
-            translationArray[i].mOriginal =
-                    ((EditText)mRows.get(i).mContent[0]).getText().toString();
-            translationArray[i].mTranslation =
-                    ((EditText)mRows.get(i).mContent[2]).getText().toString();
+            translationArray[i].setOriginal(
+                    ((EditText)mRows.get(i).mContent[0]).getText().toString());
+            translationArray[i].setTranslation(
+                    ((EditText)mRows.get(i).mContent[2]).getText().toString());
         }
         return translationArray;
     }
@@ -76,36 +88,47 @@ public class TextTranslateListPreference
     protected String[] flattenDataArray(final @NonNull TranslateText[] dataArray) {
         String[] result = new String[dataArray.length * 2];
         for (int i = 0; i < dataArray.length; i++) {
-            result[i * 2] = dataArray[i].mOriginal;
-            result[i * 2 + 1] = dataArray[i].mTranslation;
+            result[i * 2] = dataArray[i].getOriginal();
+            result[i * 2 + 1] = dataArray[i].getTranslation();
         }
         return result;
     }
 
     @Override
-    protected @NonNull TranslateText[] buildDataArray(final @NonNull String[] data) {
-        // add 1 in case there is an odd number of pieces after the escaped characters flag (assume
-        // the last translation is "")
-        TranslateText[] translationArray = new TranslateText[(data.length + 1) / 2];
-        // copy all of the pieces (alternating between original and translation) except for
-        // piece 0 (escape characters flag) to the translation array
-        for (int i = 0; i < data.length; i++) {
-            int index = i / 2;
-            if (i % 2 == 0) {
-                translationArray[index] = new TranslateText();
-                translationArray[index].mOriginal = data[i];
-            } else {
-                translationArray[index].mTranslation = data[i];
-            }
-        }
-
-        return translationArray;
+    protected Reader getReader() {
+        return mReader;
     }
 
-    @NonNull
-    @Override
-    protected TranslateText[] getDefaultDataArray() {
-        return new TranslateText[0];
+    public static class Reader extends TextListPreferenceBase.Reader<TranslateText> {
+        public Reader(SharedPreferences prefs, String key) {
+            super(prefs, key);
+        }
+
+        @Override
+        protected @NonNull TranslateText[] buildDataArray(final @NonNull String[] data) {
+            // add 1 in case there is an odd number of pieces after the escaped characters flag
+            // (assume the last translation is "")
+            TranslateText[] translationArray = new TranslateText[(data.length + 1) / 2];
+            // copy all of the pieces (alternating between original and translation) except for
+            // piece 0 (escape characters flag) to the translation array
+            for (int i = 0; i < data.length; i++) {
+                int index = i / 2;
+                if (i % 2 == 0) {
+                    translationArray[index] = new TranslateText();
+                    translationArray[index].setOriginal(data[i]);
+                } else {
+                    translationArray[index].setTranslation(data[i]);
+                }
+            }
+
+            return translationArray;
+        }
+
+        @NonNull
+        @Override
+        protected TranslateText[] getDefaultDataArray() {
+            return new TranslateText[0];
+        }
     }
 
     @Override
@@ -125,14 +148,9 @@ public class TextTranslateListPreference
             // fully fix this, and the extra logic and slightly weird behavior of changing quote
             // types doesn't seem worth it for this minor visual bug.
             //TODO: (EW) should this change for RTL?
-            sb.append("\"").append(dataArray[i].mOriginal).append("\", -> \"")
-                    .append(dataArray[i].mTranslation).append("\"");
+            sb.append("\"").append(dataArray[i].getOriginal()).append("\", -> \"")
+                    .append(dataArray[i].getTranslation()).append("\"");
         }
         return sb.toString();
-    }
-
-    protected static class TranslateText {
-        private String mOriginal;
-        private String mTranslation;
     }
 }

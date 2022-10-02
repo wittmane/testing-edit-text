@@ -30,6 +30,7 @@ import android.text.Selection;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.method.KeyListener;
 import android.util.Log;
@@ -53,9 +54,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.widget.EditText;
+import com.wittmane.testingedittext.settings.TranslateText;
 
 import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 
@@ -67,6 +70,7 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 public class EditableInputConnection implements InputConnection {
     private static final boolean DEBUG = false;
     private static final boolean LOG_CALLS = true;
+    private static final boolean LOG_TEXT_MODIFICATION = true;
     private static final String TAG = EditableInputConnection.class.getSimpleName();
     private static final Object COMPOSING = new ComposingText();
     private static final int INVALID_INDEX = -1;
@@ -171,6 +175,15 @@ public class EditableInputConnection implements InputConnection {
 
     public static int getComposingSpanEnd(Spannable text) {
         return text.getSpanEnd(COMPOSING);
+    }
+
+    private static CharSequence getComposition(Spannable text) {
+        int start = getComposingSpanStart(text);
+        int end = getComposingSpanEnd(text);
+        if (start < 0 || end <= start) {
+            return null;
+        }
+        return text.subSequence(start, end);
     }
 
     /**
@@ -315,11 +328,178 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitText: text=" + text + ", newCursorPosition=" + newCursorPosition);
         }
+        if (Settings.shouldModifyCommittedText()) {
+            text = modifyText(text);
+        }
         replaceText(text, newCursorPosition, false);
         // (EW) the AOSP version also called sendCurrentText, but that does nothing since
         // mFallbackMode would be false for an EditText
         return true;
     }
+
+    private static CharSequence modifyText(CharSequence text) {
+        return modifyText(text, 0, 0);
+    }
+
+    private static CharSequence modifyText(CharSequence text,
+                                           int startCodePointToSkip, int endCodePointsToSkip) {
+        Editable editable = new SpannableStringBuilder(text);
+        restrictText(editable, startCodePointToSkip, endCodePointsToSkip);
+        String restricted = editable.toString();
+        translateText(editable, startCodePointToSkip, endCodePointsToSkip);
+        if (LOG_TEXT_MODIFICATION) {
+            Log.d(TAG, "modifyText: \"" + text + "\" -> \"" + restricted + "\" -> \""
+                    + editable + "\""
+                    + (startCodePointToSkip > 0 || endCodePointsToSkip > 0
+                            ? " (evaluating " + startCodePointToSkip + " - "
+                                    + (CodePointUtils.codePointCount(text) - endCodePointsToSkip)
+                                    + ")"
+                            : ""));
+        }
+        return editable;
+    }
+
+    private static void restrictText(Editable text,
+                                     int startCodePointToSkip, int endCodePointsToSkip) {
+        boolean restrictToInclude = Settings.shouldRestrictToInclude();
+        String[] specificRestrictions = Settings.getRestrictSpecific();
+        int[] codepointRangeRestriction = Settings.getRestrictRange();
+
+        int codePointIndex = startCodePointToSkip;
+        while (codePointIndex < CodePointUtils.codePointCount(text) - endCodePointsToSkip) {
+            int charIndex = CodePointUtils.codePointIndexToCharIndex(text, codePointIndex);
+            int codePoint = Character.codePointAt(text, codePointIndex);
+            int codePointCharLength = CodePointUtils.codePointLength(text, codePointIndex);
+
+            boolean inSpecificRestrictions = false;
+            int specificRestrictionCharLength = 0;
+            for (String specificRestriction : specificRestrictions) {
+                if (TextUtils.isEmpty(specificRestriction)) {
+                    continue;
+                }
+                int restrictionCodepointLength = CodePointUtils.codePointCount(specificRestriction);
+                int remainingTextLength =
+                        CodePointUtils.codePointCount(text) - endCodePointsToSkip - codePointIndex;
+                if (remainingTextLength >= restrictionCodepointLength
+                        && TextUtils.equals(specificRestriction,
+                                CodePointUtils.codePointSubsequence(text, codePointIndex,
+                                        codePointIndex + restrictionCodepointLength))) {
+                    inSpecificRestrictions = true;
+                    specificRestrictionCharLength = specificRestriction.length();
+                    break;
+                }
+            }
+
+            if (restrictToInclude) {
+                if (inSpecificRestrictions) {
+                    // this whole text block is allowed. move the position to the end of the block.
+                    codePointIndex += specificRestrictionCharLength;
+                } else if (codepointRangeRestriction != null &&
+                        (codePoint >= codepointRangeRestriction[0]
+                                && codePoint <= codepointRangeRestriction[1])) {
+                    // this codepoint is inside of the included range. move to the next codepoint.
+                    codePointIndex++;
+                } else {
+                    // everything else is restricted, so get rid of the current codepoint. no need
+                    // to update the position since the next codepoint will be in the current
+                    // position.
+                    if (LOG_TEXT_MODIFICATION) {
+                        Log.d(TAG, "restrictText: \""
+                                + text.subSequence(charIndex, charIndex + codePointCharLength)
+                                + "\" not allowed");
+                    }
+                    text.delete(charIndex, charIndex + codePointCharLength);
+                }
+
+            } else {
+                if (inSpecificRestrictions) {
+                    // this whole text block is not allowed, so get rid of it. no need to update the
+                    // position since the next codepoint will be in the current position.
+                    if (LOG_TEXT_MODIFICATION) {
+                        Log.d(TAG, "restrictText: \""
+                                + text.subSequence(charIndex,
+                                        charIndex + specificRestrictionCharLength)
+                                + "\" blocked (specific)");
+                    }
+                    text.delete(charIndex, charIndex + specificRestrictionCharLength);
+                } else if (codepointRangeRestriction != null &&
+                        (codePoint >= codepointRangeRestriction[0]
+                                && codePoint <= codepointRangeRestriction[1])) {
+                    // this codepoint is not allowed, so get rid of it. no need to update the
+                    // position since the next codepoint will be in the current position.
+                    if (LOG_TEXT_MODIFICATION) {
+                        Log.d(TAG, "restrictText: \""
+                                + text.subSequence(charIndex, charIndex + codePointCharLength)
+                                + "\" blocked (range)");
+                    }
+                    text.delete(charIndex, charIndex + codePointCharLength);
+                } else {
+                    // everything else is allowed. move to the next codepoint.
+                    codePointIndex++;
+                }
+            }
+        }
+    }
+
+    private static void translateText(Editable text,
+                                      int startCodePointToSkip, int endCodePointsToSkip) {
+        TranslateText[] specificTranslations = Settings.getTranslateSpecific();
+        int codepointShift = Settings.getShiftCodepoint();
+
+        int codePointIndex = startCodePointToSkip;
+        while (codePointIndex < CodePointUtils.codePointCount(text) - endCodePointsToSkip) {
+            int charIndex = CodePointUtils.codePointIndexToCharIndex(text, codePointIndex);
+            int codePoint = Character.codePointAt(text, codePointIndex);
+            int codePointCharLength = CodePointUtils.codePointLength(text, codePointIndex);
+
+            TranslateText matchingTranslation = null;
+            for (TranslateText specificTranslation : specificTranslations) {
+                CharSequence original = specificTranslation.getOriginal();
+                if (TextUtils.isEmpty(original)) {
+                    // can't translate nothing into something, so just ignore this
+                    continue;
+                }
+                int originalLength = CodePointUtils.codePointCount(original);
+                int remainingTextLength =
+                        CodePointUtils.codePointCount(text) - endCodePointsToSkip - codePointIndex;
+                if (remainingTextLength >= originalLength
+                        && TextUtils.equals(original,
+                                CodePointUtils.codePointSubsequence(text, codePointIndex,
+                                        codePointIndex + originalLength))) {
+                    matchingTranslation = specificTranslation;
+                    break;
+                }
+            }
+
+            if (matchingTranslation != null) {
+                int originalLength = matchingTranslation.getOriginal().length();
+                if (LOG_TEXT_MODIFICATION) {
+                    Log.d(TAG, "translateText: \""
+                            + text.subSequence(charIndex, charIndex + originalLength) + "\" -> \""
+                            + matchingTranslation.getTranslation() + "\" (specific)");
+                }
+                text.replace(charIndex, charIndex + originalLength,
+                        matchingTranslation.getTranslation());
+                codePointIndex +=
+                        CodePointUtils.codePointCount(matchingTranslation.getTranslation());
+            } else {
+                int shiftedCodepoint = (codePoint + codepointShift) % Character.MAX_CODE_POINT;
+                if (shiftedCodepoint != codePoint) {
+                    String shiftedCodePointString =
+                            CodePointUtils.codePointString(shiftedCodepoint);
+                    if (LOG_TEXT_MODIFICATION) {
+                        Log.d(TAG, "translateText: \""
+                                + text.subSequence(charIndex, charIndex + codePointCharLength)
+                                + "\" -> \"" + shiftedCodePointString + "\" (shift)");
+                    }
+                    text.replace(charIndex, charIndex + codePointCharLength,
+                            CodePointUtils.codePointString(shiftedCodepoint));
+                }
+                codePointIndex++;
+            }
+        }
+    }
+
 
     /**
      * The default implementation performs the deletion around the current selection position of the
@@ -1028,8 +1208,169 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "setComposingText: text=" + text
                     + ", newCursorPosition=" + newCursorPosition);
         }
+        if (Settings.shouldModifyComposedText()) {
+            // (EW) due to some weird behavior in #replaceText (see comment there), the default
+            // composing span won't be added if the input is already a Spannable, so we need to keep
+            // that distinction here so that this modification doesn't impact that functionality.
+            boolean needsDowngradeFromSpannable = !(text instanceof Spannable);
+
+            CharSequence composition = getComposition(getEditable());
+            if (Settings.shouldModifyComposedChangesOnly() && composition != null) {
+                Editable editable = getEditable();
+                CharSequence currentComposition = editable.subSequence(
+                        getComposingSpanStart(getEditable()),
+                        getComposingSpanEnd(getEditable()));
+                ChangedTextBlock changedText = Settings.shouldConsiderComposedChangesFromEnd()
+                        ? ChangedTextBlock.diffEndChange(currentComposition, text)
+                        : ChangedTextBlock.diff(currentComposition, text, false);
+                text = modifyText(text,
+                        CodePointUtils.codePointCount(changedText.unchangedBeginning),
+                        CodePointUtils.codePointCount(changedText.unchangedEnd));
+            } else {
+                text = modifyText(text);
+            }
+            if (needsDowngradeFromSpannable) {
+                text = new SpannedString(text);
+            }
+        }
         replaceText(text, newCursorPosition, true);
         return true;
+    }
+
+    private static class ChangedTextBlock {
+        public final CharSequence unchangedBeginning;
+        public final CharSequence changedBefore;
+        public final CharSequence changedAfter;
+        public final CharSequence unchangedEnd;
+
+        private ChangedTextBlock(CharSequence unchangedBeginning, CharSequence changedBefore,
+                                 CharSequence changedAfter, CharSequence unchangedEnd) {
+            this.unchangedBeginning = unchangedBeginning;
+            this.changedBefore = changedBefore;
+            this.changedAfter = changedAfter;
+            this.unchangedEnd = unchangedEnd;
+        }
+
+        /**
+         * Determine a single continuous block of text that differs between two sequences. Note this
+         * only evaluates the text, not other things like spans.
+         * @param initialText the initial sequence of text.
+         * @param updatedText the modified sequence of text.
+         * @param includeWholeAmbiguousChange indicates whether the whole ambiguous portion of a
+         *                                   change should be included or if it should be assumed
+         *                                   that the change was at the end. for example, with an
+         *                                   initial sequence of "a" and an updated sequence of
+         *                                   "aa", there isn't a way to determine whether the second
+         *                                   'a' was added before or after the first. in this
+         *                                   example, true would return "aa" as the changed portion,
+         *                                   and false would return one "a" as the unchanged
+         *                                   beginning and the second "a" as the only change.
+         * @return a ChangedTextBlock indicating what region of the text changed.
+         */
+        public static ChangedTextBlock diff(CharSequence initialText, CharSequence updatedText,
+                                            boolean includeWholeAmbiguousChange) {
+            if (TextUtils.equals(initialText, updatedText)) {
+                return new ChangedTextBlock(initialText, "", "", "");
+            }
+
+            // get the number of characters from the beginning of both the initial and updated text
+            // that match
+            int startMatchLength = 0;
+            for (int i = 0; i < Math.min(updatedText.length(), initialText.length()); i++) {
+                if (initialText.charAt(i) == updatedText.charAt(i)) {
+                    startMatchLength++;
+                } else {
+                    break;
+                }
+            }
+            // get the number of characters from the end of both the initial and updated text that
+            // match
+            int endMatchLength = 0;
+            for (int i = 1; i <= Math.min(updatedText.length(), initialText.length()); i++) {
+                char initialChar = initialText.charAt(initialText.length() - i);
+                char updateChar = updatedText.charAt(updatedText.length() - i);
+                if (initialChar == updateChar) {
+                    endMatchLength++;
+                } else {
+                    break;
+                }
+            }
+
+            // find the number of characters that are shared between the subsequence of the matching
+            // leading subsequence and the matching trailing subsequence for each of the sequences
+            // (or the gap between these subsequences). these will identify the changing region or
+            // the region that's ambiguous as to what specifically changed.
+            // for example "abcd" -> "abbcd":
+            //              ¯=__ 1    ¯¯___ 0
+            // for example "abcd" -> "abzcd":
+            //              ¯¯__ 0    ¯¯ __ -1
+            final int initialTextMatchOverlap =
+                    startMatchLength - (initialText.length() - endMatchLength);
+            final int newTextMatchOverlap =
+                    startMatchLength - (updatedText.length() - endMatchLength);
+
+            int unchangedBeginningLength;
+            int unchangedEndLength;
+            if (initialTextMatchOverlap > 0 || newTextMatchOverlap > 0) {
+                // the overlapping match means that there must be a repeated subsequence that was
+                // added or removed, such as abcbcd -> abcbcbcd or abcded -> abcd. it isn't clear
+                // which repeated piece was added/removed, so we'll just assume it is the last one
+                // if not including the whole ambiguous piece as changed.
+                if (initialTextMatchOverlap > newTextMatchOverlap) {
+                    // adding text
+                    unchangedBeginningLength = includeWholeAmbiguousChange
+                            ? initialText.length() - endMatchLength
+                            : startMatchLength;
+                    unchangedEndLength = initialText.length() - startMatchLength;
+                } else /*if (initialTextMatchOverlap < newTextMatchOverlap)*/ {
+                    // removing text
+                    unchangedBeginningLength = includeWholeAmbiguousChange
+                            ? updatedText.length() - endMatchLength
+                            : startMatchLength;
+                    unchangedEndLength = updatedText.length() - startMatchLength;
+                }
+            } else {
+                unchangedBeginningLength = startMatchLength;
+                unchangedEndLength = endMatchLength;
+            }
+            int initialTextChangeEnd = initialText.length() - unchangedEndLength;
+            int updatedTextChangeEnd = updatedText.length() - unchangedEndLength;
+
+            return new ChangedTextBlock(
+                    initialText.subSequence(0, unchangedBeginningLength),
+                    initialText.subSequence(unchangedBeginningLength, initialTextChangeEnd),
+                    updatedText.subSequence(unchangedBeginningLength, updatedTextChangeEnd),
+                    initialText.subSequence(initialTextChangeEnd, initialText.length()));
+        }
+
+        /**
+         * Determine a single continuous block of text that differs between two sequences assuming
+         * that the change always includes the end of the text. This essentially just finds any
+         * matching leading subsequence in both sequences. Note this only evaluates the text, not
+         * other things like spans.
+         * @param initialText the initial sequence of text.
+         * @param updatedText the modified sequence of text.
+         * @return a ChangedTextBlock indicating what region of the text changed.
+         */
+        public static ChangedTextBlock diffEndChange(CharSequence initialText,
+                                                     CharSequence updatedText) {
+            // get the number of characters from the beginning of both the initial and updated text
+            // that match
+            int startMatchLength = 0;
+            for (int i = 0; i < Math.min(updatedText.length(), initialText.length()); i++) {
+                if (updatedText.charAt(i) == initialText.charAt(i)) {
+                    startMatchLength++;
+                } else {
+                    break;
+                }
+            }
+
+            return new ChangedTextBlock(
+                    initialText.subSequence(0, startMatchLength),
+                    initialText.subSequence(startMatchLength, initialText.length()),
+                    updatedText.subSequence(startMatchLength, updatedText.length()),
+                    "");
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.GINGERBREAD)
@@ -1206,6 +1547,11 @@ public class EditableInputConnection implements InputConnection {
 
         if (composing) {
             Spannable sp;
+            //TODO: (EW) this is weird. the default spans aren't added if the input is already a
+            // Spannable. my best guess is to allow the IME to override the style for the
+            // composition (although that may be weird since it wouldn't match when calling
+            // #setComposingRegion). still, if that was the intention, I would expect it to be
+            // checking for Spanned, since that's the parent that allows spans.
             if (!(text instanceof Spannable)) {
                 sp = new SpannableStringBuilder(text);
                 text = sp;

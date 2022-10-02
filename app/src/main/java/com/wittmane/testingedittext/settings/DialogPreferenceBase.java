@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.wittmane.testingedittext.settings;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.preference.DialogPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -54,9 +54,5 @@ public abstract class DialogPreferenceBase extends DialogPreference {
                     .append('\n')
                     .append(mValueSummary));
         }
-    }
-
-    protected SharedPreferences getPrefs() {
-        return getPreferenceManager().getSharedPreferences();
     }
 }

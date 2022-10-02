@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.wittmane.testingedittext.settings;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -25,8 +28,16 @@ import androidx.annotation.NonNull;
 
 public class TextListPreference extends TextListPreferenceBase<String> {
 
+    private Reader mReader;
+
     public TextListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        mReader = new Reader(getSharedPreferences(), getKey());
     }
 
     @Override
@@ -57,14 +68,26 @@ public class TextListPreference extends TextListPreferenceBase<String> {
     }
 
     @Override
-    protected @NonNull String[] buildDataArray(final @NonNull String[] data) {
-        return data;
+    protected Reader getReader() {
+        return mReader;
     }
 
-    @NonNull
-    @Override
-    protected String[] getDefaultDataArray() {
-        return new String[0];
+    public static class Reader extends TextListPreferenceBase.Reader<String> {
+        public Reader(SharedPreferences prefs, String key) {
+            super(prefs, key);
+        }
+
+        @Override
+        protected @NonNull String[] buildDataArray(final @NonNull String[] data) {
+            return data;
+        }
+
+        @NonNull
+        @Override
+        protected String[] getDefaultDataArray() {
+            return new String[0];
+        }
+
     }
 
     @Override

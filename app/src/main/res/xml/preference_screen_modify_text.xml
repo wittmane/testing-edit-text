@@ -30,6 +30,12 @@
         android:summary="@string/modify_composed_changes_only_summary"
         android:dependency="pref_key_modify_composed_text" />
 
+    <SwitchPreference
+        android:key="pref_key_consider_composed_changes_from_end"
+        android:title="@string/consider_composed_changes_from_end_title"
+        android:summary="@string/consider_composed_changes_from_end_summary"
+        android:dependency="pref_key_modify_composed_changes_only" />
+
     <PreferenceCategory android:title="@string/restrict_input_text_category">
 
         <SwitchPreference
@@ -52,6 +58,11 @@
 
     <PreferenceCategory android:title="@string/translate_input_text_category">
 
+        <com.wittmane.testingedittext.settings.TextTranslateListPreference
+            android:key="pref_key_translate_specific"
+            android:title="@string/translate_specific_title"
+            android:summary="@string/translate_specific_summary" />
+
         <com.wittmane.testingedittext.settings.SeekBarDialogPreference
             android:key="pref_key_shift_codepoint"
             android:title="@string/shift_codepoint_title"
@@ -61,11 +72,6 @@
             app:stepValue="@integer/config_shift_codepoint_step"
             app:defaultValue="@integer/config_shift_codepoint_default"
             app:valueText="@string/unit_codepoints" />
-
-        <com.wittmane.testingedittext.settings.TextTranslateListPreference
-            android:key="pref_key_translate_specific"
-            android:title="@string/translate_specific_title"
-            android:summary="@string/translate_specific_summary" />
 
     </PreferenceCategory>
 

@@ -13,11 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.wittmane.testingedittext.settings;
 
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.Spanned;
@@ -32,6 +35,7 @@ import android.widget.EditText;
 import androidx.annotation.Nullable;
 import androidx.annotation.Size;
 
+import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
 
 import java.util.ArrayList;
@@ -50,15 +54,24 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     private EditText mEndCodepointView;
     private EditText mEndUnicodeView;
 
+    private Reader mReader;
+
     public CodepointRangeDialogPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
+
         setDialogLayoutResource(R.layout.codepoint_range_dialog);
+    }
+
+    @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        mReader = new Reader(getSharedPreferences(), getKey());
     }
 
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
-        final int[] value = readValue();
+        final int[] value = mReader.readValue();
         setValueSummary(getValueText(value));
         return view;
     }
@@ -90,7 +103,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             @Override
             public void onTextChanged(CharSequence charSequence, int start, int before,
                                       int count) {
-                if (codePointCount(charSequence) <= 1) {
+                if (CodePointUtils.codePointCount(charSequence) <= 1) {
                     return;
                 }
                 CharSequence newText = new StringBuilder().appendCodePoint(
@@ -121,7 +134,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             @Override
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
                                        int dstart, int dend) {
-                if (source == null || codePointCount(source) == 0) {
+                if (source == null || CodePointUtils.codePointCount(source) == 0) {
                     return null;
                 }
                 StringBuilder sb = new StringBuilder();
@@ -161,7 +174,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             @Override
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
                                        int dstart, int dend) {
-                if (source == null || codePointCount(source) == 0) {
+                if (source == null || CodePointUtils.codePointCount(source) == 0) {
                     return null;
                 }
                 StringBuilder sb = new StringBuilder();
@@ -206,19 +219,12 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         });
     }
 
-    private static int codePointCount(final CharSequence text) {
-        if (TextUtils.isEmpty(text)) {
-            return 0;
-        }
-        return Character.codePointCount(text, 0, text.length());
-    }
-
     private static boolean isValidCodepoint(int codepoint) {
         return codepoint >= 0 && codepoint <= Character.MAX_CODE_POINT;
     }
 
     private static int parseCodepointFromCharacter(CharSequence text) {
-        if (codePointCount(text) != 1) {
+        if (CodePointUtils.codePointCount(text) != 1) {
             return NOT_A_CODEPOINT;
         }
         return Character.codePointAt(text, 0);
@@ -268,7 +274,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             charArray[i] = chars.get(i);
         }
         String characterString = String.valueOf(charArray);
-        if (codePointCount(characterString) != 1) {
+        if (CodePointUtils.codePointCount(characterString) != 1) {
             return NOT_A_CODEPOINT;
         }
         return characterString.codePointAt(0);
@@ -370,7 +376,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     protected void onBindDialogView(final View view) {
         super.onBindDialogView(view);
-        final int[] value = readValue();
+        final int[] value = mReader.readValue();
         if (value == null) {
             return;
         }
@@ -389,7 +395,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     public void onClick(final DialogInterface dialog, final int which) {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
-            final int[] value = readDefaultValue();
+            final int[] value = mReader.readDefaultValue();
             setValueSummary(getValueText(value));
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
@@ -416,32 +422,49 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     }
 
     public void writeValue(final @Nullable @Size(2) int[] value) {
-        getPrefs().edit().putString(getKey(), value == null ? null : value[0] + "-" + value[1])
+        getSharedPreferences().edit()
+                .putString(getKey(), value == null ? null : value[0] + "-" + value[1])
                 .apply();
     }
 
     public void clearValue() {
-        getPrefs().edit().remove(getKey()).apply();
+        getSharedPreferences().edit().remove(getKey()).apply();
     }
 
-    public @Nullable @Size(2) int[] readValue() {
-        String rawValue = getPrefs().getString(getKey(), null);
-        if (rawValue == null || rawValue.equals("")) {
-            return null;
-        }
-        String[] pieces = rawValue.split("-");
-        if (pieces.length != 2) {
-            return null;
-        }
-        try {
-            return new int[]{ Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]) };
-        } catch(NumberFormatException e) {
-            return null;
-        }
+    @Override
+    public void setKey(String key) {
+        super.setKey(key);
+        mReader.mKey = key;
     }
 
-    public @Nullable @Size(2) int[] readDefaultValue() {
-        return null;
+    public static class Reader {
+        private final SharedPreferences mPrefs;
+        private String mKey;
+
+        public Reader(SharedPreferences prefs, String key) {
+            mPrefs = prefs;
+            mKey = key;
+        }
+
+        public @Nullable @Size(2) int[] readValue() {
+            String rawValue = mPrefs.getString(mKey, null);
+            if (rawValue == null || rawValue.equals("")) {
+                return null;
+            }
+            String[] pieces = rawValue.split("-");
+            if (pieces.length != 2) {
+                return null;
+            }
+            try {
+                return new int[]{Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1])};
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        private @Nullable @Size(2) int[] readDefaultValue() {
+            return null;
+        }
     }
 
     public String getValueText(final @Nullable @Size(2) int[] value) {

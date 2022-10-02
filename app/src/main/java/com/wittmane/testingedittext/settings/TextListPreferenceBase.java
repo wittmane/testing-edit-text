@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.wittmane.testingedittext.settings;
 
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.Resources.Theme;
@@ -72,7 +74,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
-        final TextList<T> value = readValue();
+        final TextList<T> value = getReader().readValue();
         setValueSummary(getValueText(value.mDataArray));
         return view;
     }
@@ -89,7 +91,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     protected void onBindDialogView(final View view) {
         super.onBindDialogView(view);
 
-        final TextList<T> value = readValue();
+        final TextList<T> value = getReader().readValue();
 
         mRows.clear();
         for (T data : value.mDataArray) {
@@ -320,7 +322,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     public void onClick(final DialogInterface dialog, final int which) {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
-            final TextList<T> value = readDefaultValue();
+            final TextList<T> value = getReader().readDefaultValue();
             setValueSummary(getValueText(value.mDataArray));
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
@@ -333,55 +335,90 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
 
     protected abstract T[] getData();
 
-    private @NonNull TextList<T> readValue() {
-        String rawValue = getPrefs().getString(getKey(), null);
-        if (TextUtils.isEmpty(rawValue)) {
-            return readDefaultValue();
+    @Override
+    public void setKey(String key) {
+        super.setKey(key);
+        Reader reader = getReader();
+        if (reader != null) {
+            reader.mKey = key;
         }
-        StringBuilder sb = new StringBuilder();
-        int delimiterStart = 0;
-        for (int i = 0; i < rawValue.length(); i++) {
-            char c = rawValue.charAt(i);
-            if (c >= '0' && c <= '9') {
-                sb.append(c);
-            } else {
-                delimiterStart = i;
-                break;
+    }
+
+    @NonNull
+    protected abstract Reader<T> getReader();
+
+    protected static abstract class Reader<T> {
+        private final SharedPreferences mPrefs;
+        private String mKey;
+
+        protected Reader(SharedPreferences prefs, String key) {
+            mPrefs = prefs;
+            mKey = key;
+        }
+
+        @NonNull
+        public TextList<T> readValue() {
+            String rawValue = mPrefs.getString(mKey, null);
+            if (TextUtils.isEmpty(rawValue)) {
+                return readDefaultValue();
             }
-        }
-        int delimiterLength;
-        try {
-            delimiterLength = Integer.parseInt(sb.toString());
-        } catch (NumberFormatException e) {
-            Log.e(TAG, "Failed to parse delimiter length from preference " + getKey() + ": "
-                    + rawValue);
-            return readDefaultValue();
-        }
-        if (delimiterStart + delimiterLength > rawValue.length()) {
-            Log.e(TAG, "Invalid delimiter length length (" + delimiterLength + ") from preference "
-                    + getKey() + ": " + rawValue);
-            return readDefaultValue();
-        }
-        String[] pieces = rawValue.split(Pattern.quote(
-                rawValue.substring(delimiterStart, delimiterStart + delimiterLength)));
+            StringBuilder sb = new StringBuilder();
+            int delimiterStart = 0;
+            for (int i = 0; i < rawValue.length(); i++) {
+                char c = rawValue.charAt(i);
+                if (c >= '0' && c <= '9') {
+                    sb.append(c);
+                } else {
+                    delimiterStart = i;
+                    break;
+                }
+            }
+            int delimiterLength;
+            try {
+                delimiterLength = Integer.parseInt(sb.toString());
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "Failed to parse delimiter length from preference " + mKey + ": "
+                        + rawValue);
+                return readDefaultValue();
+            }
+            if (delimiterStart + delimiterLength > rawValue.length()) {
+                Log.e(TAG, "Invalid delimiter length length (" + delimiterLength
+                        + ") from preference " + mKey + ": " + rawValue);
+                return readDefaultValue();
+            }
+            String[] pieces = rawValue.split(Pattern.quote(
+                    rawValue.substring(delimiterStart, delimiterStart + delimiterLength)));
 
-        boolean escapeChars;
-        if (pieces[1].equals("1")) {
-            escapeChars = true;
-        } else if (pieces[1].equals("0")) {
-            escapeChars = false;
-        } else {
-            Log.e(TAG, "Invalid escape character flag (" + pieces[1] + ") from preference "
-                    + getKey() + ": " + rawValue);
-            escapeChars = false;
+            boolean escapeChars;
+            if (pieces[1].equals("1")) {
+                escapeChars = true;
+            } else if (pieces[1].equals("0")) {
+                escapeChars = false;
+            } else {
+                Log.e(TAG, "Invalid escape character flag (" + pieces[1] + ") from preference "
+                        + mKey + ": " + rawValue);
+                escapeChars = false;
+            }
+
+            // create a new array excluding pieces 0 (delimiter length) and 1 (special characters
+            // flag)
+            String[] data = new String[pieces.length - 2];
+            if (pieces.length > 2) {
+                System.arraycopy(pieces, 2, data, 0, pieces.length - 2);
+            }
+            return new TextList<T>(buildDataArray(data), escapeChars);
         }
 
-        // create a new array excluding pieces 0 (delimiter length) and 1 (special characters flag)
-        String[] data = new String[pieces.length - 2];
-        if (pieces.length > 2) {
-            System.arraycopy(pieces, 2, data, 0, pieces.length - 2);
+        @NonNull
+        private TextList<T> readDefaultValue() {
+            return new TextList<T>(getDefaultDataArray(), false);
         }
-        return new TextList<T>(buildDataArray(data), escapeChars);
+
+        @NonNull
+        protected abstract T[] buildDataArray(final @NonNull String[] data);
+
+        @NonNull
+        protected abstract T[] getDefaultDataArray();
     }
 
     private void writeValue(final @NonNull TextList<T> value) {
@@ -395,7 +432,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         for (String s : dataForSave) {
             sb.append(delimiter).append(s);
         }
-        getPrefs().edit().putString(getKey(), sb.toString()).apply();
+        getSharedPreferences().edit().putString(getKey(), sb.toString()).apply();
     }
 
     private String determineDelimiter(final String[] pieces) {
@@ -490,19 +527,9 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
 
     protected abstract String[] flattenDataArray(final @NonNull T[] data);
 
-    protected abstract @NonNull T[] buildDataArray(final @NonNull String[] data);
-
     public void clearValue() {
-        getPrefs().edit().remove(getKey()).apply();
+        getSharedPreferences().edit().remove(getKey()).apply();
     }
-
-    @NonNull
-    private TextList<T> readDefaultValue() {
-        return new TextList<T>(getDefaultDataArray(), false);
-    }
-
-    @NonNull
-    protected abstract T[] getDefaultDataArray();
 
     protected abstract String getValueText(final @NonNull T[] value);
 

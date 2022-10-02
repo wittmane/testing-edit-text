@@ -57,6 +57,9 @@
     <string name="modify_composed_changes_only_title">Modify composed changes</string>
     <string name="modify_composed_changes_only_summary">Only modify the part of the composition that is different from the previous composition</string>
 
+    <string name="consider_composed_changes_from_end_title">Only consider composed changes from end of text</string>
+    <string name="consider_composed_changes_from_end_summary">For determining the changed portion of the composition, assume the change is always at the end of the composition. This means that if the beginning of the composition was changed, the whole composition would be considered as having changed.</string>
+
     <string name="restrict_input_text_category">Restrict input text</string>
 
     <string name="restrict_to_include_title">Only allow certain input</string>
