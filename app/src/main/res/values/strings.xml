@@ -111,7 +111,7 @@
     <string name="simulate_system_behavior_category">Simulate system behavior</string>
 
     <string name="update_delay_title">Delay selection and extracted text updates</string>
-    <string name="update_delay_summary">Simulate a delay from a slow device. Delay calls to InputMethodManager#updateSelection and InputMethodManager#updateExtractedText.\nCurrently not implemented</string>
+    <string name="update_delay_summary">Simulate a delay from a slow device. Delay calls to InputMethodManager#updateSelection and InputMethodManager#updateExtractedText.</string>
     <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
     <string name="abbreviation_unit_milliseconds"><xliff:g id="MILLISECONDS">%s</xliff:g>ms</string>
 

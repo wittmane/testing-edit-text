@@ -441,11 +441,11 @@ public class ExtendingSeekBar extends ViewGroup {
 
         // if the shift goes past the real end, cap it and reallocate the extra shifting space to be
         // used for normal steps
-        if (mCurrentMinValue + shift <= mMinValue) {
+        if (mCurrentMinValue + shift - mStepsToShiftRange * mStepValue <= mMinValue) {
             mCurrentMinValue = mMinValue;
             mCurrentMaxValue = mMinValue
                     + (mInternalSeekBar.getTotalSteps() - 1 - mStepsToShiftRange) * mStepValue;
-        } else if (mCurrentMaxValue + shift >= mMaxValue) {
+        } else if (mCurrentMaxValue + shift + mStepsToShiftRange * mStepValue >= mMaxValue) {
             mCurrentMaxValue = mMaxValue;
             mCurrentMinValue = mMaxValue
                     - (mInternalSeekBar.getTotalSteps() - 1 - mStepsToShiftRange) * mStepValue;
@@ -527,7 +527,8 @@ public class ExtendingSeekBar extends ViewGroup {
 
     private int getBaseOffset() {
         if (mMinValue < mCurrentMinValue) {
-            return mCurrentMinValue - Math.min(mCurrentMinValue - mMinValue, mStepsToShiftRange);
+            return mCurrentMinValue - Math.min(mCurrentMinValue - mMinValue,
+                    mStepsToShiftRange * mStepValue);
         }
         return mMinValue;
     }
@@ -556,15 +557,11 @@ public class ExtendingSeekBar extends ViewGroup {
         // least 1px)
         mMaxVisibleSteps = width / Math.max(2, (int)(dpToPx(1) * 2));
 
-        if ((mMaxValue - mMinValue) / mStepValue < mMaxVisibleSteps
-                && (mRequestedVisibleRange <= 0
-                || mMaxValue - mMinValue <= mRequestedVisibleRange)) {
-            // the full range with the specified precision fits, so nothing to do
-            return;
-        }
-
-        if (mMaxVisibleSteps >= DEFAULT_STEPS_TO_SHIFT_RANGE * 3) {
-            mStepsToShiftRange = DEFAULT_STEPS_TO_SHIFT_RANGE;
+        int stepsToShiftRange;
+        if (mMaxVisibleSteps >= DEFAULT_STEPS_TO_SHIFT_RANGE * 4) {
+            // since there is at least as much space for real steps as the combined shift range on
+            // both sides, the default can be used
+            stepsToShiftRange = DEFAULT_STEPS_TO_SHIFT_RANGE;
         } else if (mMaxVisibleSteps < 3) {
             // don't have enough room to even have a point one each side to shift and a single point
             // to select a value, so we can't use the shifting range functionality. this really
@@ -577,19 +574,37 @@ public class ExtendingSeekBar extends ViewGroup {
             mIgnoreInternalProgressChanges = false;
             return;
         } else {
-            mStepsToShiftRange = mMaxVisibleSteps / 3;
+            // make sure there is at least as much space for real steps as the combined shift range
+            // on both sides
+            stepsToShiftRange = mMaxVisibleSteps / 4;
         }
-
-        final int currentValue = getProgress();
-        mIgnoreInternalProgressChanges = true;
+        if (mRequestedVisibleRange > 0) {
+            // make sure there aren't more total steps for shifting than real steps
+            stepsToShiftRange = Math.min(Math.max(1, mRequestedVisibleRange / 2),
+                    stepsToShiftRange);
+        }
 
         // subtract 1 to convert the number of allowed points to the number of spaces between points
         int maxInternalRange = mMaxVisibleSteps - 1;
 
-        int visibleRange = (maxInternalRange - mStepsToShiftRange * 2) * mStepValue;
+        int visibleRange = (maxInternalRange - stepsToShiftRange * 2) * mStepValue;
         if (mRequestedVisibleRange > 0 && visibleRange > mRequestedVisibleRange) {
-            maxInternalRange = mRequestedVisibleRange / mStepValue + mStepsToShiftRange * 2;
+            maxInternalRange = mRequestedVisibleRange / mStepValue + stepsToShiftRange * 2;
         }
+
+        if (maxInternalRange >= mMaxValue - mMinValue) {
+            // the full range with the specified precision fits, so nothing to do
+            return;
+        }
+
+        mStepsToShiftRange = stepsToShiftRange;
+
+        // save the current progress value so we can set it back after modifying the range and block
+        // notifying listeners of progress changes since this shouldn't actually change the
+        // progress, even though the internal progress will shift (any calculations from that may be
+        // off while we haven't fully updated ranges
+        final int currentValue = getProgress();
+        mIgnoreInternalProgressChanges = true;
 
         int currentValueCenteredMin = currentValue - maxInternalRange / 2 * mStepValue;
         int currentValueCenteredMax = currentValueCenteredMin + maxInternalRange * mStepValue;
@@ -1247,6 +1262,8 @@ public class ExtendingSeekBar extends ViewGroup {
         }
     }
 
+    //TODO: (EW) I'm not sure I need this custom class. Timers#scheduleAtFixedRate might be all I
+    // need here. this was added largely for some earlier design needs that ended up changing.
     private static class RepeatingTimer {
         Timer mTimer;
         private long mTimerStartTime;

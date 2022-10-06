@@ -130,8 +130,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
 
@@ -334,6 +338,8 @@ class Editor {
     private final int mLineChangeSlopMin;
 
     private CursorAnchorInfo mLastCursorAnchorInfo;
+
+    private final DelayedUpdater mDelayedUpdater = new DelayedUpdater();
 
     Editor(EditText editText) {
         mEditText = editText;
@@ -1685,7 +1691,8 @@ class Editor {
             return false;
         }
         final InputMethodManager imm = getInputMethodManager();
-        if (imm == null) {
+        int updateDelay = Settings.getUpdateDelay();
+        if (updateDelay <= 0 && imm == null) {
             return false;
         }
         if (EditText.DEBUG_EXTRACT) {
@@ -1707,7 +1714,11 @@ class Editor {
                                 + ": " + ims.mExtractedText.text);
             }
 
-            imm.updateExtractedText(mEditText, req.token, ims.mExtractedText);
+            if (updateDelay > 0) {
+                mDelayedUpdater.queueUpdate(new ExtractTextUpdateEntry(req.token, ims.mExtractedText), updateDelay);
+            } else {
+                imm.updateExtractedText(mEditText, req.token, ims.mExtractedText);
+            }
             ims.mChangedStart = EXTRACT_UNKNOWN;
             ims.mChangedEnd = EXTRACT_UNKNOWN;
             ims.mChangedDelta = 0;
@@ -1721,7 +1732,8 @@ class Editor {
         if (null != mInputMethodState && mInputMethodState.mBatchEditNesting <= 0
                 && !mHasPendingRestartInputForSetText) {
             final InputMethodManager imm = getInputMethodManager();
-            if (null != imm) {
+            int updateDelay = Settings.getUpdateDelay();
+            if (null != imm || updateDelay > 0) {
                 final int selectionStart = mEditText.getSelectionStart();
                 final int selectionEnd = mEditText.getSelectionEnd();
                 final Spannable sp = mEditText.getText();
@@ -1729,9 +1741,83 @@ class Editor {
                 int candEnd = EditableInputConnection.getComposingSpanEnd(sp);
                 // InputMethodManager#updateSelection skips sending the message if
                 // none of the parameters have changed since the last time we called it.
-                imm.updateSelection(mEditText,
-                        selectionStart, selectionEnd, candStart, candEnd);
+                if (updateDelay > 0) {
+                    mDelayedUpdater.queueUpdate(new SelectionUpdateEntry(
+                            selectionStart, selectionEnd, candStart, candEnd), updateDelay);
+                } else {
+                    imm.updateSelection(mEditText,
+                            selectionStart, selectionEnd, candStart, candEnd);
+                }
             }
+        }
+    }
+
+    private interface UpdateEntry {
+        void sendUpdate(InputMethodManager imm, EditText editText);
+    }
+
+    private static class ExtractTextUpdateEntry implements UpdateEntry {
+        private final int mToken;
+        private final ExtractedText mExtractedText;
+        public ExtractTextUpdateEntry(int token, ExtractedText extractedText) {
+            mToken = token;
+            mExtractedText = extractedText;
+        }
+
+        public void sendUpdate(InputMethodManager imm, EditText editText) {
+            imm.updateExtractedText(editText, mToken, mExtractedText);
+        }
+    }
+
+    private static class SelectionUpdateEntry implements UpdateEntry {
+        private final int mSelectionStart;
+        private final int mSelectionEnd;
+        private final int mCandidatesStart;
+        private final int mCandidatesEnd;
+        public SelectionUpdateEntry(int selectionStart, int selectionEnd,
+                                    int candidatesStart, int candidatesEnd) {
+            mSelectionStart = selectionStart;
+            mSelectionEnd = selectionEnd;
+            mCandidatesStart = candidatesStart;
+            mCandidatesEnd = candidatesEnd;
+        }
+
+        public void sendUpdate(InputMethodManager imm, EditText editText) {
+            imm.updateSelection(editText,
+                    mSelectionStart, mSelectionEnd, mCandidatesStart, mCandidatesEnd);
+        }
+    }
+
+    private class DelayedUpdater {
+        private final Queue<UpdateEntry> mUpdateQueue = new LinkedList<>();
+        private final LinkedList<Timer> mUpdateQueueTimers = new LinkedList<>();
+
+        private synchronized void queueUpdate(UpdateEntry updateEntry, int delay) {
+            final Timer timer = new Timer();
+            mUpdateQueue.add(updateEntry);
+            mUpdateQueueTimers.add(timer);
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    synchronized (DelayedUpdater.this) {
+                        final UpdateEntry update = mUpdateQueue.poll();
+                        final InputMethodManager imm = getInputMethodManager();
+                        if (update != null && imm != null) {
+                            update.sendUpdate(imm, mEditText);
+                        }
+                        mUpdateQueueTimers.remove(timer);
+                    }
+                }
+            }, delay);
+        }
+
+        //TODO: (EW) is there any reason we would need to reset state and clear any queued updates?
+        private synchronized void clearUpdateQueue() {
+            mUpdateQueue.clear();
+            for (Timer timer : mUpdateQueueTimers) {
+                timer.cancel();
+            }
+            mUpdateQueueTimers.clear();
         }
     }
 

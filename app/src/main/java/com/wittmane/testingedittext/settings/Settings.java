@@ -52,6 +52,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_keep_empty_composing_position";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
+    public static final String PREF_UPDATE_DELAY = "pref_key_update_delay";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -71,6 +72,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mKeepEmptyComposingPosition;
     private boolean mSkipSetComposingRegion;
     private boolean mSkipGetSurroundingText;
+    private int mUpdateDelay;
 
     private SharedPreferences mPrefs;
 
@@ -122,6 +124,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
+        mUpdateDelay = readUpdateDelay(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -367,5 +370,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldSkipGetSurroundingText() {
         return getInstance().mSkipGetSurroundingText;
+    }
+
+    private static int readUpdateDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_UPDATE_DELAY, 0);
+    }
+
+    public static int getUpdateDelay() {
+        return getInstance().mUpdateDelay;
     }
 }
