@@ -26,6 +26,13 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
 
+import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.SystemBehaviorSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.TargetVersionSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.UnclearDocumentationSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.VariableFunctionalitySettingsFragment;
+
 public class SettingsActivity extends PreferenceActivity {
 
     @Override
@@ -71,6 +78,10 @@ public class SettingsActivity extends PreferenceActivity {
     @Override
     public boolean isValidFragment(final String fragmentName) {
         return MainSettingsFragment.class.getName().equals(fragmentName)
-                || ModifyTextSettingsFragment.class.getName().equals(fragmentName);
+                || ModifyTextSettingsFragment.class.getName().equals(fragmentName)
+                || SystemBehaviorSettingsFragment.class.getName().equals(fragmentName)
+                || TargetVersionSettingsFragment.class.getName().equals(fragmentName)
+                || UnclearDocumentationSettingsFragment.class.getName().equals(fragmentName)
+                || VariableFunctionalitySettingsFragment.class.getName().equals(fragmentName);
     }
 }

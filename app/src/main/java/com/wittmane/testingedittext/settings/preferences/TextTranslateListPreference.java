@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -26,6 +26,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+
+import com.wittmane.testingedittext.settings.TranslateText;
 
 public class TextTranslateListPreference
         extends TextListPreferenceBase<TranslateText> {

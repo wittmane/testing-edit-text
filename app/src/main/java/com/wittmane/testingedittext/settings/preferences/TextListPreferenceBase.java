@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.settings.preferences;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -49,6 +49,7 @@ import android.widget.TextView.OnEditorActionListener;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.TextList;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -75,7 +76,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
         final TextList<T> value = getReader().readValue();
-        setValueSummary(getValueText(value.mDataArray));
+        setValueSummary(getValueText(value.getDataArray()));
         return view;
     }
 
@@ -94,7 +95,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         final TextList<T> value = getReader().readValue();
 
         mRows.clear();
-        for (T data : value.mDataArray) {
+        for (T data : value.getDataArray()) {
             if (isRowEmpty(data)) {
                 continue;
             }
@@ -102,7 +103,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         }
         addRow(null);
 
-        mEscapeCharactersCheckBox.setChecked(value.mEscapeChars);
+        mEscapeCharactersCheckBox.setChecked(value.escapeChars());
     }
 
     protected abstract View[] createRowContent(T data);
@@ -323,12 +324,12 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
             final TextList<T> value = getReader().readDefaultValue();
-            setValueSummary(getValueText(value.mDataArray));
+            setValueSummary(getValueText(value.getDataArray()));
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
             TextList<T> value = new TextList<T>(getData(), mEscapeCharactersCheckBox.isChecked());
 
-            setValueSummary(getValueText(value.mDataArray));
+            setValueSummary(getValueText(value.getDataArray()));
             writeValue(value);
         }
     }
@@ -422,9 +423,9 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     }
 
     private void writeValue(final @NonNull TextList<T> value) {
-        String[] rowData = flattenDataArray(value.mDataArray);
+        String[] rowData = flattenDataArray(value.getDataArray());
         String[] dataForSave = new String[rowData.length + 1];
-        dataForSave[0] = value.mEscapeChars ? "1" : "0";
+        dataForSave[0] = value.escapeChars() ? "1" : "0";
         System.arraycopy(rowData, 0, dataForSave, 1, rowData.length);
 
         String delimiter = determineDelimiter(dataForSave);
@@ -547,15 +548,5 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
             }
         }
         return false;
-    }
-
-    protected static class TextList<T> {
-        protected final @NonNull T[] mDataArray;
-        protected final boolean mEscapeChars;
-
-        protected TextList(@NonNull T[] dataArray, boolean escapeChars) {
-            mDataArray = dataArray;
-            mEscapeChars = escapeChars;
-        }
     }
 }

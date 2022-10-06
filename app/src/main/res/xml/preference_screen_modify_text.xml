@@ -44,12 +44,12 @@
             android:summaryOn="@string/restrict_to_include_summary_on"
             android:summaryOff="@string/restrict_to_include_summary_off" />
 
-        <com.wittmane.testingedittext.settings.TextListPreference
+        <com.wittmane.testingedittext.settings.preferences.TextListPreference
             android:key="pref_key_restrict_specific"
             android:title="@string/restrict_specific_title"
             android:summary="@string/restrict_specific_summary" />
 
-        <com.wittmane.testingedittext.settings.CodepointRangeDialogPreference
+        <com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference
             android:key="pref_key_restrict_range"
             android:title="@string/restrict_range_title"
             android:summary="@string/restrict_range_summary" />
@@ -58,12 +58,12 @@
 
     <PreferenceCategory android:title="@string/translate_input_text_category">
 
-        <com.wittmane.testingedittext.settings.TextTranslateListPreference
+        <com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference
             android:key="pref_key_translate_specific"
             android:title="@string/translate_specific_title"
             android:summary="@string/translate_specific_summary" />
 
-        <com.wittmane.testingedittext.settings.SeekBarDialogPreference
+        <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
             android:key="pref_key_shift_codepoint"
             android:title="@string/shift_codepoint_title"
             android:summary="@string/shift_codepoint_summary"

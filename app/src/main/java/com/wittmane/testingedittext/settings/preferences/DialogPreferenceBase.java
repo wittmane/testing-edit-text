@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
 import android.preference.DialogPreference;

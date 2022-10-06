@@ -25,7 +25,9 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.Size;
 
-import com.wittmane.testingedittext.settings.TextListPreferenceBase.TextList;
+import com.wittmane.testingedittext.settings.preferences.TextListPreference;
+import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
+import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = Settings.class.getSimpleName();
@@ -170,12 +172,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static String[] readRestrictSpecific(final SharedPreferences prefs) {
         TextList<String> textList =
                 (new TextListPreference.Reader(prefs, PREF_RESTRICT_SPECIFIC)).readValue();
-        String[] result = new String[textList.mDataArray.length];
-        for (int i = 0; i < textList.mDataArray.length; i++) {
-            if (textList.mEscapeChars) {
-                result[i] = escapeChars(textList.mDataArray[i]);
+        String[] result = new String[textList.getDataArray().length];
+        for (int i = 0; i < textList.getDataArray().length; i++) {
+            if (textList.escapeChars()) {
+                result[i] = escapeChars(textList.getDataArray()[i]);
             } else {
-                result[i] = textList.mDataArray[i];
+                result[i] = textList.getDataArray()[i];
             }
         }
         return result;
@@ -284,13 +286,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         TextList<TranslateText> textList =
                 (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC))
                         .readValue();
-        TranslateText[] result = new TranslateText[textList.mDataArray.length];
-        for (int i = 0; i < textList.mDataArray.length; i++) {
-            if (textList.mEscapeChars) {
-                result[i] = new TranslateText(escapeChars(textList.mDataArray[i].getOriginal()),
-                        escapeChars(textList.mDataArray[i].getTranslation()));
+        TranslateText[] result = new TranslateText[textList.getDataArray().length];
+        for (int i = 0; i < textList.getDataArray().length; i++) {
+            if (textList.escapeChars()) {
+                result[i] = new TranslateText(escapeChars(textList.getDataArray()[i].getOriginal()),
+                        escapeChars(textList.getDataArray()[i].getTranslation()));
             } else {
-                result[i] = textList.mDataArray[i];
+                result[i] = textList.getDataArray()[i];
             }
         }
         return result;

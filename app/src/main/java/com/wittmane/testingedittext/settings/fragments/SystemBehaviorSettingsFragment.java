@@ -13,18 +13,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.wittmane.testingedittext.settings;
+
+package com.wittmane.testingedittext.settings.fragments;
 
 import android.os.Bundle;
 import android.preference.PreferenceFragment;
 
 import com.wittmane.testingedittext.R;
 
-public class ModifyTextSettingsFragment extends PreferenceFragment {
+public class SystemBehaviorSettingsFragment extends PreferenceFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        addPreferencesFromResource(R.xml.preference_screen_modify_text);
+        addPreferencesFromResource(R.xml.preference_screen_system_behavior);
     }
 }
