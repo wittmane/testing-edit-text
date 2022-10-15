@@ -52,8 +52,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_delete_through_composing_text";
     public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
             "pref_key_keep_empty_composing_position";
-    public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
+    public static final String PREF_SKIP_PERFORMSPELLCHECK = "pref_key_skip_performspellcheck";
+    public static final String PREF_SKIP_SETIMECONSUMESINPUT = "pref_key_skip_setimeconsumesinput";
+    public static final String PREF_SKIP_COMMITCONTENT = "pref_key_skip_commitcontent";
+    public static final String PREF_SKIP_CLOSECONNECTION = "pref_key_skip_closeconnection";
+    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS = "pref_key_skip_deletesurroundingtextincodepoints";
+    public static final String PREF_SKIP_REQUESTCURSORUPDATES = "pref_key_skip_requestcursorupdates";
+    public static final String PREF_SKIP_COMMITCORRECTION = "pref_key_skip_commitcorrection";
+    public static final String PREF_SKIP_GETSELECTEDTEXT = "pref_key_skip_getselectedtext";
+    public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_UPDATE_DELAY = "pref_key_update_delay";
 
     private boolean mModifyCommittedText;
@@ -72,8 +80,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mUpdateSelectionBeforeExtractedText;
     private boolean mDeleteThroughComposingText;
     private boolean mKeepEmptyComposingPosition;
-    private boolean mSkipSetComposingRegion;
     private boolean mSkipGetSurroundingText;
+    private boolean mSkipPerformSpellCheck;
+    private boolean mSkipSetImeConsumesInput;
+    private boolean mSkipCommitContent;
+    private boolean mSkipCloseConnection;
+    private boolean mSkipDeleteSurroundingTextInCodePoints;
+    private boolean mSkipRequestCursorUpdates;
+    private boolean mSkipCommitCorrection;
+    private boolean mSkipGetSelectedText;
+    private boolean mSkipSetComposingRegion;
     private int mUpdateDelay;
 
     private SharedPreferences mPrefs;
@@ -121,11 +137,22 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mSkipExtractingText = readSkipExtractingText(mPrefs);
         mExtractFullText = readExtractFullText(mPrefs);
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
-        mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
+
         mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
         mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
-        mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
+        mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
+
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
+        mSkipPerformSpellCheck = readSkipPerformSpellCheck(mPrefs);
+        mSkipSetImeConsumesInput = readSkipSetImeConsumesInput(mPrefs);
+        mSkipCommitContent = readSkipCommitContent(mPrefs);
+        mSkipCloseConnection = readSkipCloseConnection(mPrefs);
+        mSkipDeleteSurroundingTextInCodePoints = readSkipDeleteSurroundingTextInCodePoints(mPrefs);
+        mSkipRequestCursorUpdates = readSkipRequestCursorUpdates(mPrefs);
+        mSkipCommitCorrection = readSkipCommitCorrection(mPrefs);
+        mSkipGetSelectedText = readSkipGetSelectedText(mPrefs);
+        mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
+
         mUpdateDelay = readUpdateDelay(mPrefs);
     }
 
@@ -358,20 +385,84 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mKeepEmptyComposingPosition;
     }
 
-    private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {
-        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION, false);
-    }
-
-    public static boolean shouldSkipSetComposingRegion() {
-        return getInstance().mSkipSetComposingRegion;
-    }
-
     private static boolean readSkipGetSurroundingText(final SharedPreferences prefs) {
         return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT, false);
     }
 
     public static boolean shouldSkipGetSurroundingText() {
         return getInstance().mSkipGetSurroundingText;
+    }
+
+    private static boolean readSkipPerformSpellCheck(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK, false);
+    }
+
+    public static boolean shouldSkipPerformSpellCheck() {
+        return getInstance().mSkipPerformSpellCheck;
+    }
+
+    private static boolean readSkipSetImeConsumesInput(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT, false);
+    }
+
+    public static boolean shouldSkipSetImeConsumesInput() {
+        return getInstance().mSkipSetImeConsumesInput;
+    }
+
+    private static boolean readSkipCommitContent(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_COMMITCONTENT, false);
+    }
+
+    public static boolean shouldSkipCommitContent() {
+        return getInstance().mSkipCommitContent;
+    }
+
+    private static boolean readSkipCloseConnection(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION, false);
+    }
+
+    public static boolean shouldSkipCloseConnection() {
+        return getInstance().mSkipCloseConnection;
+    }
+
+    private static boolean readSkipDeleteSurroundingTextInCodePoints(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS, false);
+    }
+
+    public static boolean shouldSkipDeleteSurroundingTextInCodePoints() {
+        return getInstance().mSkipDeleteSurroundingTextInCodePoints;
+    }
+
+    private static boolean readSkipRequestCursorUpdates(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES, false);
+    }
+
+    public static boolean shouldSkipRequestCursorUpdates() {
+        return getInstance().mSkipRequestCursorUpdates;
+    }
+
+    private static boolean readSkipCommitCorrection(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION, false);
+    }
+
+    public static boolean shouldSkipCommitCorrection() {
+        return getInstance().mSkipCommitCorrection;
+    }
+
+    private static boolean readSkipGetSelectedText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT, false);
+    }
+
+    public static boolean shouldSkipGetSelectedText() {
+        return getInstance().mSkipGetSelectedText;
+    }
+
+    private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION, false);
+    }
+
+    public static boolean shouldSkipSetComposingRegion() {
+        return getInstance().mSkipSetComposingRegion;
     }
 
     private static int readUpdateDelay(final SharedPreferences prefs) {

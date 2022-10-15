@@ -5968,7 +5968,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
             mInputConnection = ic;
-            return ic;
+            return ic.createWrapper();
         }
         mInputConnection = null;
         return null;

@@ -100,13 +100,44 @@
 
     <string name="simulate_old_target_versions_screen">Simulate old target versions</string>
 
-    <string name="skip_setcomposingregion_title">Don\'t implement setComposingRegion</string>
-    <string name="skip_setcomposingregion_summary_on">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets an earlier version, so it will do nothing and just return false.</string>
-    <string name="skip_setcomposingregion_summary_off">InputConnection#setComposingRegion was added in API level 9 (Gingerbread), so this will act as a text editor that targets at least that version.</string>
+    <string name="added_in_api_level_31">Added in API level 31 (Android 12)</string>
+    <string name="added_in_api_level_25">Added in API level 25 (Nougat MR1)</string>
+    <string name="added_in_api_level_24">Added in API level 24 (Nougat)</string>
+    <string name="added_in_api_level_21">Added in API level 21 (Lollipop)</string>
+    <string name="added_in_api_level_11">Added in API level 11 (Honeycomb)</string>
+    <string name="added_in_api_level_9">Added in API level 9 (Gingerbread)</string>
 
+    <!--TODO: (EW) it might make more sense to have a separate setting for delaying this call to
+         test potentially returning null to the IME-->
     <string name="skip_getsurroundingtext_title">Don\'t implement getSurroundingText</string>
-    <string name="skip_getsurroundingtext_summary_on">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets an earlier version, so it will just return null. Also, although not documented, this returns null to the IME if the editor takes too long to respond, so this can simulate that too.</string>
-    <string name="skip_getsurroundingtext_summary_off">InputConnection#getSurroundingText was added in API level 31 (Android 12), so this will act as a text editor that targets at least that version.</string>
+    <string name="skip_getsurroundingtext_summary">Behave as if InputConnection#getSurroundingText wasn\'t implemented, like some text editors targeting an earlier version, so it will just return null. Also, although not documented, this returns null to the IME if the editor takes too long to respond, so this can simulate that too.</string>
+
+    <string name="skip_performspellcheck_title">Don\'t implement performSpellCheck</string>
+    <string name="skip_performspellcheck_summary">Behave as if InputConnection#performSpellCheck wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
+
+    <string name="skip_setimeconsumesinput_title">Don\'t implement setImeConsumesInput</string>
+    <string name="skip_setimeconsumesinput_summary">Behave as if InputConnection#setImeConsumesInput wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
+
+    <string name="skip_commitcontent_title">Don\'t implement commitContent</string>
+    <string name="skip_commitcontent_summary">Behave as if InputConnection#commitContent wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false.</string>
+
+    <string name="skip_closeconnection_title">Don\'t implement closeConnection</string>
+    <string name="skip_closeconnection_summary">Behave as if InputConnection#closeConnection wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing.</string>
+
+    <string name="skip_deletesurroundingtextincodepoints_title">Don\'t implement deleteSurroundingTextInCodePoints</string>
+    <string name="skip_deletesurroundingtextincodepoints_summary">Behave as if InputConnection#deleteSurroundingTextInCodePoints wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false.</string>
+
+    <string name="skip_requestcursorupdates_title">Don\'t implement requestCursorUpdates</string>
+    <string name="skip_requestcursorupdates_summary">Behave as if InputConnection#requestCursorUpdates wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false (or crash prior to Nougat).</string>
+
+    <string name="skip_commitcorrection_title">Don\'t implement commitCorrection</string>
+    <string name="skip_commitcorrection_summary">Behave as if InputConnection#commitCorrection wasn\'t implemented, like some text editors targeting an earlier version, so it will just crash (due to a bug in Android, it still crashes on Nougat and later).</string>
+
+    <string name="skip_getselectedtext_title">Don\'t implement getSelectedText</string>
+    <string name="skip_getselectedtext_summary">Behave as if InputConnection#getSelectedText wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing and just return null (documentation doesn\'t clarify this behavior, but this is what happens) (or crash prior to Nougat).</string>
+
+    <string name="skip_setcomposingregion_title">Don\'t implement setComposingRegion</string>
+    <string name="skip_setcomposingregion_summary">Behave as if InputConnection#setComposingRegion wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing and just return false (or crash prior to Nougat).</string>
 
     <string name="simulate_system_behavior_screen">Simulate system behavior</string>
 

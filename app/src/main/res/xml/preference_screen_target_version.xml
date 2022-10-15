@@ -15,16 +15,78 @@
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <SwitchPreference
-        android:key="pref_key_skip_setcomposingregion"
-        android:title="@string/skip_setcomposingregion_title"
-        android:summaryOn="@string/skip_setcomposingregion_summary_on"
-        android:summaryOff="@string/skip_setcomposingregion_summary_off" />
+    <PreferenceCategory android:title="@string/added_in_api_level_31">
 
-    <SwitchPreference
-        android:key="pref_key_skip_getsurroundingtext"
-        android:title="@string/skip_getsurroundingtext_title"
-        android:summaryOn="@string/skip_getsurroundingtext_summary_on"
-        android:summaryOff="@string/skip_getsurroundingtext_summary_off" />
+        <SwitchPreference
+            android:key="pref_key_skip_getsurroundingtext"
+            android:title="@string/skip_getsurroundingtext_title"
+            android:summary="@string/skip_getsurroundingtext_summary" />
+
+        <SwitchPreference
+            android:key="pref_key_skip_performspellcheck"
+            android:title="@string/skip_performspellcheck_title"
+            android:summary="@string/skip_performspellcheck_summary" />
+
+        <SwitchPreference
+            android:key="pref_key_skip_setimeconsumesinput"
+            android:title="@string/skip_setimeconsumesinput_title"
+            android:summary="@string/skip_setimeconsumesinput_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/added_in_api_level_25">
+
+        <SwitchPreference
+            android:key="pref_key_skip_commitcontent"
+            android:title="@string/skip_commitcontent_title"
+            android:summary="@string/skip_commitcontent_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/added_in_api_level_24">
+
+        <SwitchPreference
+            android:key="pref_key_skip_closeconnection"
+            android:title="@string/skip_closeconnection_title"
+            android:summary="@string/skip_closeconnection_summary" />
+
+        <SwitchPreference
+            android:key="pref_key_skip_deletesurroundingtextincodepoints"
+            android:title="@string/skip_deletesurroundingtextincodepoints_title"
+            android:summary="@string/skip_deletesurroundingtextincodepoints_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/added_in_api_level_21">
+
+        <SwitchPreference
+            android:key="pref_key_skip_requestcursorupdates"
+            android:title="@string/skip_requestcursorupdates_title"
+            android:summary="@string/skip_requestcursorupdates_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/added_in_api_level_11">
+
+        <SwitchPreference
+            android:key="pref_key_skip_commitcorrection"
+            android:title="@string/skip_commitcorrection_title"
+            android:summary="@string/skip_commitcorrection_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/added_in_api_level_9">
+
+        <SwitchPreference
+            android:key="pref_key_skip_getselectedtext"
+            android:title="@string/skip_getselectedtext_title"
+            android:summary="@string/skip_getselectedtext_summary" />
+
+        <SwitchPreference
+            android:key="pref_key_skip_setcomposingregion"
+            android:title="@string/skip_setcomposingregion_title"
+            android:summary="@string/skip_setcomposingregion_summary" />
+
+    </PreferenceCategory>
 
 </PreferenceScreen>

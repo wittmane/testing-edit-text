@@ -44,6 +44,7 @@ import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputContentInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.SurroundingText;
@@ -74,6 +75,9 @@ public class EditableInputConnection implements InputConnection {
     private static final String TAG = EditableInputConnection.class.getSimpleName();
     private static final Object COMPOSING = new ComposingText();
     private static final int INVALID_INDEX = -1;
+
+    private static boolean sHasCheckedCanLieAboutMissingMethods = false;
+    private static boolean sCanLieAboutMissingMethods = false;
 
     private static class ComposingText implements NoCopySpan {
     }
@@ -252,6 +256,13 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "closeConnection");
         }
 
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. the lying wrapper should prevent this from getting called, but as a
+        // fallback, we can still just ignore the call.
+        if (Settings.shouldSkipCloseConnection()) {
+            return;
+        }
+
         finishComposingText();
         // (EW) the AOSP version only did this starting in S, which is also when it is available
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -307,6 +318,26 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitCorrection: correctionInfo=" + correctionInfo);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. the lying wrapper theoretically should prevent this from getting called,
+        // and although documentation states "Since Android Build.VERSION_CODES.N until
+        // Build.VERSION_CODES.TIRAMISU, this API returned false when the target application does
+        // not implement this method.", what I've seen in testing is that this does the exact same
+        // thing as prior to Nougat, that is, crash the app. I would have expected it to only crash
+        // prior to Nougat, like getSelectedText, requestCursorUpdates, and setComposingRegion.
+        // com.android.internal.view.InputConnectionWrapper#commitCorrection doesn't actually check
+        // isMethodMissing like the others, so this just seems like a bug there. until android fixes
+        // the bug, we'll just crash to match that behavior on all versions, rather than only on
+        // versions prior to Nougat.
+        // also, note that the return value sent here isn't actually sent to the IME, so even if
+        // this was to return false, the IME still sees a return of true, so we can only mimic the
+        // behavior as long as the lying wrapper still works.
+        if (Settings.shouldSkipCommitCorrection()) {
+            throw new AbstractMethodError(
+                    "boolean android.view.inputmethod.InputConnection.commitCorrection(android.view.inputmethod.CorrectionInfo)");
+        }
+
         mEditText.beginBatchEdit();
         //TODO: (EW) the AOSP version only flashes a highlight on the new text position as if
         // assuming that correction was already made and this method was only meant as a visual
@@ -702,6 +733,19 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "deleteSurroundingTextInCodePoints: beforeLength="
                     + beforeLength + ", afterLength=" + afterLength);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. the lying wrapper should prevent this from getting called, but if that
+        // fails, and this does get called, we can't actually mimic the behavior because the return
+        // value sent here isn't actually sent to the IME, which is specifically why we need the
+        // lying wrapper. simply ignoring the request and returning false wouldn't be a valid test
+        // case because the IME would have no indication that we don't implement this method, so it
+        // would behave unexpectedly because technically the editor would be misbehaving. we'll just
+        // log an error and behave as if this setting was disabled.
+        if (Settings.shouldSkipDeleteSurroundingTextInCodePoints()) {
+            Log.e(TAG, "couldn't fake not implementing deleteSurroundingTextInCodePoints");
+        }
+
         final Editable content = getEditable();
 
         beginBatchEdit();
@@ -900,6 +944,20 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "getSelectedText: flags=" + flags);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
+        // stack being one level off since this method did get called). the lying wrapper should
+        // prevent this from getting called starting in Nougat, but if that fails we can still just
+        // return null to mimic the behavior.
+        if (Settings.shouldSkipGetSelectedText()) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                throw new AbstractMethodError(
+                        "java.lang.CharSequence android.view.inputmethod.InputConnection.getSelectedText(int)");
+            }
+            return null;
+        }
+
         final Editable content = getEditable();
 
         int a = Selection.getSelectionStart(content);
@@ -1093,6 +1151,19 @@ public class EditableInputConnection implements InputConnection {
     public boolean requestCursorUpdates(int cursorUpdateMode) {
         if (LOG_CALLS) {
             Log.d(TAG, "requestCursorUpdates: cursorUpdateMode=" + cursorUpdateMode);
+        }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
+        // stack being one level off since this method did get called). the lying wrapper should
+        // prevent this from getting called starting in Nougat, but if that fails we can still just
+        // return false to mimic the behavior.
+        if (Settings.shouldSkipRequestCursorUpdates()) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                throw new AbstractMethodError(
+                        "boolean android.view.inputmethod.InputConnection.requestCursorUpdates(int)");
+            }
+            return false;
         }
 
         // It is possible that any other bit is used as a valid flag in a future release.
@@ -1381,9 +1452,21 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version
+        // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
+        // stack being one level off since this method did get called). the lying wrapper should
+        // prevent this from getting called starting in Nougat, but if that fails, and this does get
+        // called, we can't actually mimic the behavior because the return value sent here isn't
+        // actually sent to the IME, which is specifically why we need the lying wrapper. simply
+        // ignoring the request and returning false wouldn't be a valid test case because the IME
+        // would have no indication that we don't implement this method, so it would behave
+        // unexpectedly because technically the editor would be misbehaving. we'll just log an error
+        // and behave as if this setting was disabled.
         if (Settings.shouldSkipSetComposingRegion()) {
-            return false;
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                throw new AbstractMethodError(
+                        "boolean android.view.inputmethod.InputConnection.setComposingRegion(int, int)");
+            }
+            Log.e(TAG, "couldn't fake not implementing setComposingRegion");
         }
 
         final Editable content = getEditable();
@@ -1617,6 +1700,14 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "commitContent: inputContentInfo=" + inputContentInfo
                     + ", flags=" + flags + ", opts=" + opts);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. the lying wrapper should prevent this from getting called, but if that
+        // fails we can still just return false to mimic the behavior.
+        if (Settings.shouldSkipCommitContent()) {
+            return false;
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ClipDescription description = inputContentInfo.getDescription();
             if (mEditText.getReceiveContentMimeTypes() == null) {
@@ -1654,6 +1745,18 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "performSpellCheck");
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. the lying wrapper should prevent this from getting called, but as a
+        // fallback, we can still just ignore the call.
+        if (Settings.shouldSkipPerformSpellCheck()) {
+            // (EW) documentation notes that the return value will always be ignored from the
+            // editor, and the return to the IME is whether the input connection is valid, and this
+            // is the behavior I've seen in testing, so we'll just return true to match what the IME
+            // would see, not that this really matters.
+            return true;
+        }
+
         mEditText.onPerformSpellCheck();
         return true;
     }
@@ -1664,7 +1767,190 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "setImeConsumesInput: imeConsumesInput=" + imeConsumesInput);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. the lying wrapper should prevent this from getting called, but as a
+        // fallback, we can still just ignore the call.
+        if (Settings.shouldSkipSetImeConsumesInput()) {
+            // (EW) documentation notes that the return value will always be ignored from the
+            // editor, and the return to the IME is whether the input connection is valid, and this
+            // is the behavior I've seen in testing, so we'll just return true to match what the IME
+            // would see, not that this really matters.
+            return true;
+        }
+
         mEditText.setImeConsumesInput(imeConsumesInput);
         return true;
+    }
+
+    public InputConnection createWrapper() {
+        if (shouldSkipMethodsForOldVersionTest()
+                && canLieAboutMissingMethods(mEditText.getContext())) {
+            return new InputConnectionLyingWrapper(this);
+        }
+        // (EW) we know the wrapper won't work or isn't necessary, so don't bother with it
+        return this;
+    }
+
+    /**
+     * (EW) Wrapper class to lie about what methods are missing in order to mimic functionality of
+     * an old app.
+     *
+     * The IME doesn't actually directly interact with the InputConnection that is returned from
+     * View#onCreateInputConnection. Instead, InputMethodService#getCurrentInputConnection returns a
+     * com.android.internal.view.InputConnectionWrapper that the IME actually interacts with.
+     * That, by some means involving some sort of message dispatcher, calls
+     * com.android.internal.view.IInputConnectionWrapper#executeMessage, which is what actually
+     * calls the methods on the InputConnection returned from View#onCreateInputConnection.
+     *
+     * This is relevant because the values we return in InputConnection methods are sometimes
+     * ignored, notably in #setComposingRegion and #deleteSurroundingTextInCodePoints, which we want
+     * to mimic the behavior of an old app, which (on Nougat and later) would return false if it
+     * wasn't implemented, but since we have to implement it and our return value is ignored, just
+     * using the InputConnection normally would make it look to the IME that we support those
+     * method, so if we just ignored the request, that would be a bad test, which is why this
+     * wrapper is necessary.
+     *
+     * Prior to Nougat, when an InputConnection method was called on an app compiled against an old
+     * SDK version, and didn't implement the method, the app would crash with an
+     * AbstractMethodError (an old app still might implement them if it extended BaseInputConnection
+     * since it would use the one from the running android version, which does implement the
+     * method). This was fixed by having com.android.internal.view.InputConnectionWrapper check if
+     * the method was missing prior to dispatching the message to call it. That class determines if
+     * methods are missing with a bit flag of missing methods, which are passed to it's constructor.
+     *
+     * View#onCreateInputConnection is called by InputMethodManager#startInputInner, which
+     * determines the missing methods with InputConnectionInspector#getMissingMethodFlags and passes
+     * them to com.android.internal.view.IInputMethodManager#startInputOrWindowGainedFocus. That
+     * somehow gets to the com.android.internal.view.InputConnectionWrapper based on reviewing some
+     * stack traces in testing, but I'm not sure how to follow the code flow from the aidl to be
+     * sure of how. InputConnectionInspector#getMissingMethodFlags has an optimization for the known
+     * InputConnectionWrapper class, which just checks InputConnectionWrapper.getMissingMethodFlags
+     * (done starting in Nougat, where the class was added, through at least S).
+     * InputConnectionWrapper is an available class we can extend, and although
+     * #getMissingMethodFlags is marked as hidden, we can still implement that method, which will
+     * have our version called instead, where we can tell it that we don't implement methods even if
+     * we technically do. Without the optimization it would just use reflection to check if the
+     * method exists and isn't abstract, and I don't think there is a way to hide a method from
+     * reflection.
+     *
+     * This is a slightly fragile hack relying on that hidden method and general understanding of
+     * how this internally works, but this is just for a test setting to mimic an old app, so worst
+     * case scenario, it makes this test case invalid, but we can do some defensive things to guard
+     * against it if the test stops working with a newer version.
+     */
+    private static class InputConnectionLyingWrapper extends InputConnectionWrapper {
+
+        /**
+         * Initializes a wrapper.
+         *
+         * <p><b>Caveat:</b> Although the system can accept {@code (InputConnection) null} in some
+         * places, you cannot emulate such a behavior by non-null {@link InputConnectionWrapper} that
+         * has {@code null} in {@code target}.</p>
+         *
+         * @param target  the {@link InputConnection} to be proxied.
+         */
+        public InputConnectionLyingWrapper(InputConnection target) {
+            super(target, true);
+        }
+
+        // InputConnectionWrapper#getMissingMethodFlags was added in Nougat to handle when some of
+        // the InputConnection methods aren't implemented, and its signature has remained unchanged
+        // through at least S.
+        public int getMissingMethodFlags() {
+            // since this got called, that should mean that what we return will be used, so we
+            // should be able to lie about what methods were implemented
+            sCanLieAboutMissingMethods = true;
+
+            // ideally we would call InputConnectionWrapper#getMissingMethodFlags to start with the
+            // real value in case methods get added in newer versions, but that is a restricted API
+            // (warning logged specifies "dark greylist"), so we can't actually call it.
+            int missingMethodFlags = 0;
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+                // we know that we implement all of the methods through S, but we don't know if new
+                // methods have been added, but the bit flag follows a  consistent pattern so far,
+                // so we can just mark the rest of the bits so that if they mean anything, it should
+                // accurately be marking the new methods as not implemented
+                for (int i = 9; i < Integer.SIZE; i++) {
+                    missingMethodFlags |= 1 << i;
+                }
+            }
+
+            // unfortunately trying to access InputConnectionInspector$MissingMethodFlags fields via
+            // reflection throws a NoSuchFieldException and logs a warning indicating it is on the
+            // dark greylist, so we'll just have to hard-code the values here
+            if (Settings.shouldSkipGetSelectedText()) {
+                missingMethodFlags |= 1 << 0;
+            }
+            if (Settings.shouldSkipSetComposingRegion()) {
+                missingMethodFlags |= 1 << 1;
+            }
+            if (Settings.shouldSkipCommitCorrection()) {
+                // note that at least as of S, this isn't actually checked and the call causes a
+                // crash
+                missingMethodFlags |= 1 << 2;
+            }
+            if (Settings.shouldSkipRequestCursorUpdates()) {
+                missingMethodFlags |= 1 << 3;
+            }
+            if (Settings.shouldSkipDeleteSurroundingTextInCodePoints()) {
+                missingMethodFlags |= 1 << 4;
+            }
+            // skipping getHandler since that currently always just returns null
+            if (Settings.shouldSkipCloseConnection()) {
+                missingMethodFlags |= 1 << 6;
+            }
+            if (Settings.shouldSkipCommitContent()) {
+                missingMethodFlags |= 1 << 7;
+            }
+            if (Settings.shouldSkipGetSurroundingText()) {
+                missingMethodFlags |= 1 << 8;
+            }
+            // there are no flags for skipPerformSpellCheck or setImeConsumesInput
+
+            return missingMethodFlags;
+        }
+    }
+
+    private boolean shouldSkipMethodsForOldVersionTest() {
+        return Settings.shouldSkipGetSelectedText()
+                || Settings.shouldSkipSetComposingRegion()
+                || Settings.shouldSkipCommitCorrection()
+                || Settings.shouldSkipRequestCursorUpdates()
+                || Settings.shouldSkipDeleteSurroundingTextInCodePoints()
+                || Settings.shouldSkipCloseConnection()
+                || Settings.shouldSkipCommitContent()
+                || Settings.shouldSkipGetSurroundingText();
+    }
+
+    public static boolean canLieAboutMissingMethods(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            // tracking missing methods was added in Nougat, so it won't work before that
+            return false;
+        }
+
+        // avoid checking this multiple times since it shouldn't be changing
+        if (sHasCheckedCanLieAboutMissingMethods) {
+            return sCanLieAboutMissingMethods;
+        }
+
+        EditText testEditText = new EditText(context);
+        EditableInputConnection testInputConnection = new EditableInputConnection(testEditText);
+
+        // InputConnectionWrapper's constructor should call
+        // InputConnectionInspector#getMissingMethodFlags on the InputConnection it wraps (it has
+        // done this from Nougat through at least S), and that should use the optimization and check
+        // InputConnectionWrapper#getMissingMethodFlags, which should call our replacement, which
+        // will set sCanLieAboutMissingMethods, and if that doesn't happen, that probably means our
+        // lying wrapper doesn't work anymore. we're not actually checking the full code path, which
+        // would be calling InputMethodManager#restartInput, but that doesn't seem to work on a
+        // random view not attached to a layout, and it might do some async things that would break
+        // this synchronous check. we also can't just call
+        // InputConnectionWrapper#getMissingMethodFlags because that is a restricted API (warning
+        // logged specifies "dark greylist"), so we can't directly validate that much exists. this
+        // isn't perfect, but it currently seems like the best option.
+        new InputConnectionWrapper(new InputConnectionLyingWrapper(testInputConnection), true);
+        sHasCheckedCanLieAboutMissingMethods = true;
+        return sCanLieAboutMissingMethods;
     }
 }
