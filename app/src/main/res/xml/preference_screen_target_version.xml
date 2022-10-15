@@ -15,7 +15,8 @@
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory android:title="@string/added_in_api_level_31">
+    <PreferenceCategory android:title="@string/added_in_api_level_31"
+        android:key="pref_key_added_in_api_level_31">
 
         <SwitchPreference
             android:key="pref_key_skip_getsurroundingtext"
@@ -34,7 +35,8 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/added_in_api_level_25">
+    <PreferenceCategory android:title="@string/added_in_api_level_25"
+        android:key="pref_key_added_in_api_level_25">
 
         <SwitchPreference
             android:key="pref_key_skip_commitcontent"
@@ -43,7 +45,8 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/added_in_api_level_24">
+    <PreferenceCategory android:title="@string/added_in_api_level_24"
+        android:key="pref_key_added_in_api_level_24">
 
         <SwitchPreference
             android:key="pref_key_skip_closeconnection"
@@ -57,7 +60,8 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/added_in_api_level_21">
+    <PreferenceCategory android:title="@string/added_in_api_level_21"
+        android:key="pref_key_added_in_api_level_21">
 
         <SwitchPreference
             android:key="pref_key_skip_requestcursorupdates"
@@ -66,7 +70,8 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/added_in_api_level_11">
+    <PreferenceCategory android:title="@string/added_in_api_level_11"
+        android:key="pref_key_added_in_api_level_11">
 
         <SwitchPreference
             android:key="pref_key_skip_commitcorrection"
@@ -75,7 +80,8 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/added_in_api_level_9">
+    <PreferenceCategory android:title="@string/added_in_api_level_9"
+        android:key="pref_key_added_in_api_level_9">
 
         <SwitchPreference
             android:key="pref_key_skip_getselectedtext"

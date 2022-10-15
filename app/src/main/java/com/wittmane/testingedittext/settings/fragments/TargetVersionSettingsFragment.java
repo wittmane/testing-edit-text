@@ -16,10 +16,15 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
+import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.settings.Settings;
 
 public class TargetVersionSettingsFragment extends PreferenceFragment {
 
@@ -27,5 +32,44 @@ public class TargetVersionSettingsFragment extends PreferenceFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_target_version);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                && !EditableInputConnection.canLieAboutMissingMethods(getContext())) {
+            // these methods require lying to the framework about not implementing them to get the
+            // appropriate return value to the IME for a valid test, so since we can't seem to fake
+            // it that way, these aren't valid tests, so shouldn't be allowed.
+
+            SwitchPreference skipDeleteSurroundingTextInCodePointsPref
+                    = (SwitchPreference)findPreference(
+                            Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
+            skipDeleteSurroundingTextInCodePointsPref.setEnabled(false);
+            skipDeleteSurroundingTextInCodePointsPref.setChecked(false);
+
+            SwitchPreference skipSetComposingRegionPref
+                    = (SwitchPreference)findPreference(Settings.PREF_SKIP_SETCOMPOSINGREGION);
+            skipSetComposingRegionPref.setEnabled(false);
+            skipSetComposingRegionPref.setChecked(false);
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            PreferenceCategory addedInApiLevel31Category
+                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_31");
+            getPreferenceScreen().removePreference(addedInApiLevel31Category);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
+            PreferenceCategory addedInApiLevel25Category
+                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_25");
+            getPreferenceScreen().removePreference(addedInApiLevel25Category);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            PreferenceCategory addedInApiLevel24Category
+                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_24");
+            getPreferenceScreen().removePreference(addedInApiLevel24Category);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            PreferenceCategory addedInApiLevel21Category
+                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_21");
+            getPreferenceScreen().removePreference(addedInApiLevel21Category);
+        }
     }
 }
