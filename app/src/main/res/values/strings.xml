@@ -75,6 +75,13 @@
     <string name="restrict_range_title">Codepoint range</string>
     <string name="restrict_range_summary">Allow/block a range of code points</string>
 
+    <string name="from_range_start">From</string>
+    <string name="to_range_end">To</string>
+    <string name="character">Character</string>
+    <string name="codepoint">Codepoint</string>
+    <string name="unicode">Unicode</string>
+    <string name="use_split_unicode_for_surrogate_pairs">Split unicode for surrogate pairs</string>
+
     <string name="translate_input_text_category">Translate input text</string>
 
     <string name="shift_codepoint_title">Shift codepoints</string>

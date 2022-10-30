@@ -39,7 +39,7 @@
     <integer name="config_update_delay_step">50</integer>
 
     <integer name="config_shift_codepoint_default">0</integer>
-    <integer name="config_shift_codepoint_min">-1114111</integer>
-    <integer name="config_shift_codepoint_max">1114111</integer>
+    <integer name="config_shift_codepoint_min">-1114110</integer>
+    <integer name="config_shift_codepoint_max">1114110</integer>
     <integer name="config_shift_codepoint_step">1</integer>
 </resources>

@@ -112,7 +112,7 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         EditText editText = new EditText(getContext());
         editText.setSingleLine();
         TableRow.LayoutParams editTextLayoutParams = new TableRow.LayoutParams(
-                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 1f);
+                0, LayoutParams.WRAP_CONTENT, 1f);
         editText.setLayoutParams(editTextLayoutParams);
         editText.setImeOptions(EditorInfo.IME_ACTION_NEXT);
         if (!TextUtils.isEmpty(text)) {
