@@ -71,7 +71,7 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 public class EditableInputConnection implements InputConnection {
     private static final boolean DEBUG = false;
     private static final boolean LOG_CALLS = true;
-    private static final boolean LOG_TEXT_MODIFICATION = true;
+    private static final boolean LOG_TEXT_MODIFICATION = false;
     private static final String TAG = EditableInputConnection.class.getSimpleName();
     private static final Object COMPOSING = new ComposingText();
     private static final int INVALID_INDEX = -1;
@@ -129,24 +129,22 @@ public class EditableInputConnection implements InputConnection {
     }
 
     public static void setComposingSpans(Spannable text) {
-        setComposingSpans(text, 0, text.length());
-    }
-
-    private static void setComposingSpans(Spannable text, int start, int end) {
-        final Object[] sps = text.getSpans(start, end, Object.class);
-        if (sps != null) {
-            for (int i = sps.length - 1; i >= 0; i--) {
-                final Object o = sps[i];
-                if (o == COMPOSING) {
-                    text.removeSpan(o);
+        int start = 0;
+        int end = text.length();
+        final Object[] spans = text.getSpans(start, end, Object.class);
+        if (spans != null) {
+            for (int i = spans.length - 1; i >= 0; i--) {
+                final Object span = spans[i];
+                if (span == COMPOSING) {
+                    text.removeSpan(span);
                     continue;
                 }
 
-                final int fl = text.getSpanFlags(o);
-                if ((fl & (Spanned.SPAN_COMPOSING | Spanned.SPAN_POINT_MARK_MASK))
+                final int flags = text.getSpanFlags(span);
+                if ((flags & (Spanned.SPAN_COMPOSING | Spanned.SPAN_POINT_MARK_MASK))
                         != (Spanned.SPAN_COMPOSING | getCompositionSpanInclusivity())) {
-                    text.setSpan(o, text.getSpanStart(o), text.getSpanEnd(o),
-                            (fl & ~Spanned.SPAN_POINT_MARK_MASK)
+                    text.setSpan(span, text.getSpanStart(span), text.getSpanEnd(span),
+                            (flags & ~Spanned.SPAN_POINT_MARK_MASK)
                                     | Spanned.SPAN_COMPOSING
                                     | getCompositionSpanInclusivity());
                 }
@@ -285,10 +283,10 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "clearMetaKeyStates: states=" + states);
         }
         final Editable content = getEditable();
-        KeyListener kl = mEditText.getKeyListener();
-        if (kl != null) {
+        KeyListener keyListener = mEditText.getKeyListener();
+        if (keyListener != null) {
             try {
-                kl.clearMetaKeyState(mEditText, content, states);
+                keyListener.clearMetaKeyState(mEditText, content, states);
             } catch (AbstractMethodError e) {
                 // This is an old listener that doesn't implement the
                 // new method.
@@ -368,10 +366,12 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) added for modifying input text
     private static CharSequence modifyText(CharSequence text) {
         return modifyText(text, 0, 0);
     }
 
+    // (EW) added for modifying input text
     private static CharSequence modifyText(CharSequence text,
                                            int startCodePointToSkip, int endCodePointsToSkip) {
         Editable editable = new SpannableStringBuilder(text);
@@ -390,6 +390,7 @@ public class EditableInputConnection implements InputConnection {
         return editable;
     }
 
+    // (EW) added for modifying input text
     private static void restrictText(Editable text,
                                      int startCodePointToSkip, int endCodePointsToSkip) {
         boolean restrictToInclude = Settings.shouldRestrictToInclude();
@@ -406,6 +407,7 @@ public class EditableInputConnection implements InputConnection {
             int specificRestrictionCharLength = 0;
             for (String specificRestriction : specificRestrictions) {
                 if (TextUtils.isEmpty(specificRestriction)) {
+                    // it doesn't make sense to allow or block an empty string, so skip this line
                     continue;
                 }
                 int restrictionCodepointLength = CodePointUtils.codePointCount(specificRestriction);
@@ -472,6 +474,7 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
+    // (EW) added for modifying input text
     private static void translateText(Editable text,
                                       int startCodePointToSkip, int endCodePointsToSkip) {
         TranslateText[] specificTranslations = Settings.getTranslateSpecific();
@@ -560,17 +563,17 @@ public class EditableInputConnection implements InputConnection {
 
         beginBatchEdit();
 
-        int a = Selection.getSelectionStart(content);
-        int b = Selection.getSelectionEnd(content);
+        int selectionStart = Selection.getSelectionStart(content);
+        int selectionEnd = Selection.getSelectionEnd(content);
 
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (selectionStart > selectionEnd) {
+            int temp = selectionStart;
+            selectionStart = selectionEnd;
+            selectionEnd = temp;
         }
 
         // Skip when the selection is not yet attached.
-        if (a == -1 || b == -1) {
+        if (selectionStart == -1 || selectionEnd == -1) {
             endBatchEdit();
             return false;
         }
@@ -580,41 +583,43 @@ public class EditableInputConnection implements InputConnection {
         // intentionally shifts the range for what can be deleted to skip the composing text.
         if (!Settings.shouldDeleteThroughComposingText()) {
             // Ignore the composing text.
-            int ca = getComposingSpanStart(content);
-            int cb = getComposingSpanEnd(content);
-            if (cb < ca) {
-                int tmp = ca;
-                ca = cb;
-                cb = tmp;
+            int composingSpanStart = getComposingSpanStart(content);
+            int composingSpanEnd = getComposingSpanEnd(content);
+            if (composingSpanEnd < composingSpanStart) {
+                int temp = composingSpanStart;
+                composingSpanStart = composingSpanEnd;
+                composingSpanEnd = temp;
             }
-            if (ca != -1 && cb != -1) {
-                if (ca < a) a = ca;
-                if (cb > b) b = cb;
+            if (composingSpanStart != -1 && composingSpanEnd != -1) {
+                if (composingSpanStart < selectionStart) selectionStart = composingSpanStart;
+                if (composingSpanEnd > selectionEnd) selectionEnd = composingSpanEnd;
             }
         }
 
         int deleted = 0;
 
         if (beforeLength > 0) {
-            int start = a - beforeLength;
+            int start = selectionStart - beforeLength;
             if (start < 0) start = 0;
 
-            final int numDeleteBefore = a - start;
-            if (a >= 0 && numDeleteBefore > 0) {
-                content.delete(start, a);
+            final int numDeleteBefore = selectionStart - start;
+            if (selectionStart >= 0 && numDeleteBefore > 0) {
+                content.delete(start, selectionStart);
                 deleted = numDeleteBefore;
             }
         }
 
         if (afterLength > 0) {
-            b = b - deleted;
+            selectionEnd = selectionEnd - deleted;
 
-            int end = b + afterLength;
-            if (end > content.length()) end = content.length();
+            int end = selectionEnd + afterLength;
+            if (end > content.length()) {
+                end = content.length();
+            }
 
-            final int numDeleteAfter = end - b;
-            if (b >= 0 && numDeleteAfter > 0) {
-                content.delete(b, end);
+            final int numDeleteAfter = end - selectionEnd;
+            if (selectionEnd >= 0 && numDeleteAfter > 0) {
+                content.delete(selectionEnd, end);
             }
         }
 
@@ -623,12 +628,12 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
-    private static int findIndexBackward(final CharSequence cs, final int from,
+    private static int findIndexBackward(final CharSequence charSequence, final int from,
                                          final int numCodePoints) {
         int currentIndex = from;
         boolean waitingHighSurrogate = false;
-        final int N = cs.length();
-        if (currentIndex < 0 || N < currentIndex) {
+        final int length = charSequence.length();
+        if (currentIndex < 0 || length < currentIndex) {
             return INVALID_INDEX;  // The starting point is out of range.
         }
         if (numCodePoints < 0) {
@@ -647,32 +652,32 @@ public class EditableInputConnection implements InputConnection {
                 }
                 return 0;  // Reached to the beginning of the text w/o any invalid surrogate pair.
             }
-            final char c = cs.charAt(currentIndex);
+            final char c = charSequence.charAt(currentIndex);
             if (waitingHighSurrogate) {
-                if (!java.lang.Character.isHighSurrogate(c)) {
+                if (!Character.isHighSurrogate(c)) {
                     return INVALID_INDEX;  // An invalid surrogate pair is found.
                 }
                 waitingHighSurrogate = false;
                 --remainingCodePoints;
                 continue;
             }
-            if (!java.lang.Character.isSurrogate(c)) {
+            if (!Character.isSurrogate(c)) {
                 --remainingCodePoints;
                 continue;
             }
-            if (java.lang.Character.isHighSurrogate(c)) {
+            if (Character.isHighSurrogate(c)) {
                 return INVALID_INDEX;  // A invalid surrogate pair is found.
             }
             waitingHighSurrogate = true;
         }
     }
 
-    private static int findIndexForward(final CharSequence cs, final int from,
+    private static int findIndexForward(final CharSequence charSequence, final int from,
                                         final int numCodePoints) {
         int currentIndex = from;
         boolean waitingLowSurrogate = false;
-        final int N = cs.length();
-        if (currentIndex < 0 || N < currentIndex) {
+        final int length = charSequence.length();
+        if (currentIndex < 0 || length < currentIndex) {
             return INVALID_INDEX;  // The starting point is out of range.
         }
         if (numCodePoints < 0) {
@@ -685,15 +690,15 @@ public class EditableInputConnection implements InputConnection {
                 return currentIndex;  // Reached to the requested length in code points.
             }
 
-            if (currentIndex >= N) {
+            if (currentIndex >= length) {
                 if (waitingLowSurrogate) {
                     return INVALID_INDEX;  // An invalid surrogate pair is found.
                 }
-                return N;  // Reached to the end of the text w/o any invalid surrogate pair.
+                return length;  // Reached to the end of the text w/o any invalid surrogate pair.
             }
-            final char c = cs.charAt(currentIndex);
+            final char c = charSequence.charAt(currentIndex);
             if (waitingLowSurrogate) {
-                if (!java.lang.Character.isLowSurrogate(c)) {
+                if (!Character.isLowSurrogate(c)) {
                     return INVALID_INDEX;  // An invalid surrogate pair is found.
                 }
                 --remainingCodePoints;
@@ -701,12 +706,12 @@ public class EditableInputConnection implements InputConnection {
                 ++currentIndex;
                 continue;
             }
-            if (!java.lang.Character.isSurrogate(c)) {
+            if (!Character.isSurrogate(c)) {
                 --remainingCodePoints;
                 ++currentIndex;
                 continue;
             }
-            if (java.lang.Character.isLowSurrogate(c)) {
+            if (Character.isLowSurrogate(c)) {
                 return INVALID_INDEX;  // A invalid surrogate pair is found.
             }
             waitingLowSurrogate = true;
@@ -750,13 +755,13 @@ public class EditableInputConnection implements InputConnection {
 
         beginBatchEdit();
 
-        int a = Selection.getSelectionStart(content);
-        int b = Selection.getSelectionEnd(content);
+        int selectionStart = Selection.getSelectionStart(content);
+        int selectionEnd = Selection.getSelectionEnd(content);
 
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (selectionStart > selectionEnd) {
+            int temp = selectionStart;
+            selectionStart = selectionEnd;
+            selectionEnd = temp;
         }
 
         // (EW) check the setting to determine if deleting should also be done around the composing
@@ -764,31 +769,33 @@ public class EditableInputConnection implements InputConnection {
         // intentionally shifts the range for what can be deleted to skip the composing text.
         if (!Settings.shouldDeleteThroughComposingText()) {
             // Ignore the composing text.
-            int ca = getComposingSpanStart(content);
-            int cb = getComposingSpanEnd(content);
-            if (cb < ca) {
-                int tmp = ca;
-                ca = cb;
-                cb = tmp;
+            int composingSpanStart = getComposingSpanStart(content);
+            int composingSpanEnd = getComposingSpanEnd(content);
+            if (composingSpanEnd < composingSpanStart) {
+                int temp = composingSpanStart;
+                composingSpanStart = composingSpanEnd;
+                composingSpanEnd = temp;
             }
-            if (ca != -1 && cb != -1) {
-                if (ca < a) a = ca;
-                if (cb > b) b = cb;
+            if (composingSpanStart != -1 && composingSpanEnd != -1) {
+                if (composingSpanStart < selectionStart) selectionStart = composingSpanStart;
+                if (composingSpanEnd > selectionEnd) {
+                    selectionEnd = composingSpanEnd;
+                }
             }
         }
 
-        if (a >= 0 && b >= 0) {
-            final int start = findIndexBackward(content, a, Math.max(beforeLength, 0));
+        if (selectionStart >= 0 && selectionEnd >= 0) {
+            final int start = findIndexBackward(content, selectionStart, Math.max(beforeLength, 0));
             if (start != INVALID_INDEX) {
-                final int end = findIndexForward(content, b, Math.max(afterLength, 0));
+                final int end = findIndexForward(content, selectionEnd, Math.max(afterLength, 0));
                 if (end != INVALID_INDEX) {
-                    final int numDeleteBefore = a - start;
+                    final int numDeleteBefore = selectionStart - start;
                     if (numDeleteBefore > 0) {
-                        content.delete(start, a);
+                        content.delete(start, selectionStart);
                     }
-                    final int numDeleteAfter = end - b;
+                    final int numDeleteAfter = end - selectionEnd;
                     if (numDeleteAfter > 0) {
-                        content.delete(b - numDeleteBefore, end - numDeleteBefore);
+                        content.delete(selectionEnd - numDeleteBefore, end - numDeleteBefore);
                     }
                 }
             }
@@ -838,16 +845,16 @@ public class EditableInputConnection implements InputConnection {
         }
         final Editable content = getEditable();
 
-        int a = Selection.getSelectionStart(content);
-        int b = Selection.getSelectionEnd(content);
+        int selectionStart = Selection.getSelectionStart(content);
+        int selectionEnd = Selection.getSelectionEnd(content);
 
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (selectionStart > selectionEnd) {
+            int temp = selectionStart;
+            selectionStart = selectionEnd;
+            selectionEnd = temp;
         }
 
-        return TextUtils.getCapsMode(content, a, reqModes);
+        return TextUtils.getCapsMode(content, selectionStart, reqModes);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
@@ -858,25 +865,31 @@ public class EditableInputConnection implements InputConnection {
                     + ", flags=" + flags);
         }
 
-        // (EW) check the setting to force this method to do nothing since documentation says that
-        // this can return null if the editor can't comply with the request for some reason
-        if (Settings.shouldSkipExtractingText()) {
-            return null;
-        }
+        ExtractedText extractedText = new ExtractedText();
+        if (mEditText.extractText(extractedTextRequest, extractedText)) {
+            // (EW) documentation states "This method may fail either if the input connection has
+            // become invalid (such as its process crashing) or the client is taking too long to
+            // respond with the text (it is given a couple seconds to return). In either case, null
+            // is returned." this seems to imply a text editor shouldn't expect to return null, but
+            // documentation also states that the return could be null if "the editor can't comply
+            // with the request for some reason", which at least sounds like just ignoring the
+            // request might be valid (although maybe not expecting to always do so). for the sake
+            // of testing, we'll just force that to always be the case with a setting.
 
-        //TODO: (EW) if this returns null, no text is shown in the full screen text field
-        // (landscape) so be sure to consider this when figuring out the weird behavior options.
-        // we might want a separate setting to skip the extracted text monitor so we can still
-        // return something here to still allow the full screen text field to work. alternatively,
-        // can we disable going into full screen mode? based on the documentation, I'm not sure that
-        // just ignoring the text monitor is valid, but I've seen it happen, so it might still be
-        // reasonable to have for testing.
-        ExtractedText et = new ExtractedText();
-        if (mEditText.extractText(extractedTextRequest, et)) {
-            if ((flags & GET_EXTRACTED_TEXT_MONITOR) != 0) {
+            // (EW) it's not completely clear in this case if we should still try to process the
+            // GET_EXTRACTED_TEXT_MONITOR flag or if that's ok to ignore too. documentation doesn't
+            // really give any indication that it's ever valid to ignore the flag, but if we
+            // couldn't comply with the request for some reason, it seems reasonable that we also
+            // might not be able to comply with the flag either, so we'll leave that as a separate
+            // setting to check.
+            if ((flags & GET_EXTRACTED_TEXT_MONITOR) != 0
+                    && !Settings.shouldIgnoreExtractedTextMonitor()) {
                 mEditText.setExtracting(extractedTextRequest);
             }
-            return et;
+            // (EW) check the setting to see if we should force this method to not return anything
+            if (!Settings.shouldSkipExtractingText()) {
+                return extractedText;
+            }
         }
         return null;
     }
@@ -911,27 +924,27 @@ public class EditableInputConnection implements InputConnection {
     private CharSequence getTextBeforeCursorInternal(@IntRange(from = 0) int length, int flags) {
         final Editable content = getEditable();
 
-        int a = Selection.getSelectionStart(content);
-        int b = Selection.getSelectionEnd(content);
+        int selectionStart = Selection.getSelectionStart(content);
+        int selectionEnd = Selection.getSelectionEnd(content);
 
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (selectionStart > selectionEnd) {
+            int temp = selectionStart;
+            selectionStart = selectionEnd;
+            selectionEnd = temp;
         }
 
-        if (a <= 0) {
+        if (selectionStart <= 0) {
             return "";
         }
 
-        if (length > a) {
-            length = a;
+        if (length > selectionStart) {
+            length = selectionStart;
         }
 
         if ((flags & GET_TEXT_WITH_STYLES) != 0) {
-            return content.subSequence(a - length, a);
+            return content.subSequence(selectionStart - length, selectionStart);
         }
-        return TextUtils.substring(content, a - length, a);
+        return TextUtils.substring(content, selectionStart - length, selectionStart);
     }
 
     /**
@@ -960,21 +973,23 @@ public class EditableInputConnection implements InputConnection {
 
         final Editable content = getEditable();
 
-        int a = Selection.getSelectionStart(content);
-        int b = Selection.getSelectionEnd(content);
+        int selectionStart = Selection.getSelectionStart(content);
+        int selectionEnd = Selection.getSelectionEnd(content);
 
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (selectionStart > selectionEnd) {
+            int temp = selectionStart;
+            selectionStart = selectionEnd;
+            selectionEnd = temp;
         }
 
-        if (a == b || a < 0) return null;
+        if (selectionStart == selectionEnd || selectionStart < 0) {
+            return null;
+        }
 
         if ((flags & GET_TEXT_WITH_STYLES) != 0) {
-            return content.subSequence(a, b);
+            return content.subSequence(selectionStart, selectionEnd);
         }
-        return TextUtils.substring(content, a, b);
+        return TextUtils.substring(content, selectionStart, selectionEnd);
     }
 
     /**
@@ -1006,29 +1021,29 @@ public class EditableInputConnection implements InputConnection {
     private CharSequence getTextAfterCursorInternal(@IntRange(from = 0) int length, int flags) {
         final Editable content = getEditable();
 
-        int a = Selection.getSelectionStart(content);
-        int b = Selection.getSelectionEnd(content);
+        int selectionStart = Selection.getSelectionStart(content);
+        int selectionEnd = Selection.getSelectionEnd(content);
 
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (selectionStart > selectionEnd) {
+            int temp = selectionStart;
+            selectionStart = selectionEnd;
+            selectionEnd = temp;
         }
 
         // Guard against the case where the cursor has not been positioned yet.
-        if (b < 0) {
-            b = 0;
+        if (selectionEnd < 0) {
+            selectionEnd = 0;
         }
 
-        if (b + length > content.length()) {
-            length = content.length() - b;
+        if (selectionEnd + length > content.length()) {
+            length = content.length() - selectionEnd;
         }
 
 
         if ((flags & GET_TEXT_WITH_STYLES) != 0) {
-            return content.subSequence(b, b + length);
+            return content.subSequence(selectionEnd, selectionEnd + length);
         }
-        return TextUtils.substring(content, b, b + length);
+        return TextUtils.substring(content, selectionEnd, selectionEnd + length);
     }
 
     /**
@@ -1308,6 +1323,7 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) added for modifying input text
     private static class ChangedTextBlock {
         public final CharSequence unchangedBeginning;
         public final CharSequence changedBefore;
@@ -1393,7 +1409,7 @@ public class EditableInputConnection implements InputConnection {
                             ? initialText.length() - endMatchLength
                             : startMatchLength;
                     unchangedEndLength = initialText.length() - startMatchLength;
-                } else /*if (initialTextMatchOverlap < newTextMatchOverlap)*/ {
+                } else { // initialTextMatchOverlap < newTextMatchOverlap
                     // removing text
                     unchangedBeginningLength = includeWholeAmbiguousChange
                             ? updatedText.length() - endMatchLength
@@ -1472,29 +1488,37 @@ public class EditableInputConnection implements InputConnection {
         final Editable content = getEditable();
         beginBatchEdit();
         removeComposingSpans(content);
-        int a = start;
-        int b = end;
-        if (a > b) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        int composingStart = start;
+        int composingEnd = end;
+        if (composingStart > composingEnd) {
+            int temp = composingStart;
+            composingStart = composingEnd;
+            composingEnd = temp;
         }
         // Clip the end points to be within the content bounds.
         final int length = content.length();
-        if (a < 0) a = 0;
-        if (b < 0) b = 0;
-        if (a > length) a = length;
-        if (b > length) b = length;
+        if (composingStart < 0) {
+            composingStart = 0;
+        }
+        if (composingEnd < 0) {
+            composingEnd = 0;
+        }
+        if (composingStart > length) {
+            composingStart = length;
+        }
+        if (composingEnd > length) {
+            composingEnd = length;
+        }
 
         ensureDefaultComposingSpans();
         if (mDefaultComposingSpans != null) {
             for (int i = 0; i < mDefaultComposingSpans.length; ++i) {
-                content.setSpan(mDefaultComposingSpans[i], a, b,
+                content.setSpan(mDefaultComposingSpans[i], composingStart, composingEnd,
                         getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
             }
         }
 
-        content.setSpan(COMPOSING, a, b,
+        content.setSpan(COMPOSING, composingStart, composingEnd,
                 getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
 
         // (EW) the AOSP version also called sendCurrentText, but that does nothing since
@@ -1515,8 +1539,8 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "setSelection: start=" + start + ", end=" + end);
         }
         final Editable content = getEditable();
-        int len = content.length();
-        if (start > len || end > len || start < 0 || end < 0) {
+        int length = content.length();
+        if (start > length || end > length || start < 0 || end < 0) {
             // If the given selection is out of bounds, just ignore it.
             // Most likely the text was changed out from under the IME,
             // and the IME is going to have to update all of its state
@@ -1582,12 +1606,12 @@ public class EditableInputConnection implements InputConnection {
             Context context;
             context = mEditText.getContext();
             if (context != null) {
-                TypedArray ta = context.getTheme()
+                TypedArray typedArray = context.getTheme()
                         .obtainStyledAttributes(new int[] {
                                 android.R.attr.candidatesTextStyleSpans
                         });
-                CharSequence style = ta.getText(0);
-                ta.recycle();
+                CharSequence style = typedArray.getText(0);
+                typedArray.recycle();
                 if (style instanceof Spanned) {
                     mDefaultComposingSpans = ((Spanned)style).getSpans(
                             0, style.length(), Object.class);
@@ -1603,64 +1627,70 @@ public class EditableInputConnection implements InputConnection {
         beginBatchEdit();
 
         // delete composing text set previously.
-        int a = getComposingSpanStart(content);
-        int b = getComposingSpanEnd(content);
+        int composingSpanStart = getComposingSpanStart(content);
+        int composingSpanEnd = getComposingSpanEnd(content);
 
-        if (DEBUG) Log.v(TAG, "Composing span: " + a + " to " + b);
-
-        if (b < a) {
-            int tmp = a;
-            a = b;
-            b = tmp;
+        if (DEBUG) {
+            Log.v(TAG, "Composing span: " + composingSpanStart + " to " + composingSpanEnd);
         }
 
-        if (a != -1 && b != -1) {
+        if (composingSpanEnd < composingSpanStart) {
+            int temp = composingSpanStart;
+            composingSpanStart = composingSpanEnd;
+            composingSpanEnd = temp;
+        }
+
+        if (composingSpanStart != -1 && composingSpanEnd != -1) {
             removeComposingSpans(content);
         } else {
-            a = Selection.getSelectionStart(content);
-            b = Selection.getSelectionEnd(content);
-            if (a < 0) a = 0;
-            if (b < 0) b = 0;
-            if (b < a) {
-                int tmp = a;
-                a = b;
-                b = tmp;
+            composingSpanStart = Selection.getSelectionStart(content);
+            composingSpanEnd = Selection.getSelectionEnd(content);
+            if (composingSpanStart < 0) {
+                composingSpanStart = 0;
+            }
+            if (composingSpanEnd < 0) {
+                composingSpanEnd = 0;
+            }
+            if (composingSpanEnd < composingSpanStart) {
+                int temp = composingSpanStart;
+                composingSpanStart = composingSpanEnd;
+                composingSpanEnd = temp;
             }
         }
 
         if (composing) {
-            Spannable sp;
+            Spannable spannable;
             //TODO: (EW) this is weird. the default spans aren't added if the input is already a
             // Spannable. my best guess is to allow the IME to override the style for the
             // composition (although that may be weird since it wouldn't match when calling
             // #setComposingRegion). still, if that was the intention, I would expect it to be
             // checking for Spanned, since that's the parent that allows spans.
             if (!(text instanceof Spannable)) {
-                sp = new SpannableStringBuilder(text);
-                text = sp;
+                spannable = new SpannableStringBuilder(text);
+                text = spannable;
                 ensureDefaultComposingSpans();
                 if (mDefaultComposingSpans != null) {
                     for (int i = 0; i < mDefaultComposingSpans.length; ++i) {
-                        sp.setSpan(mDefaultComposingSpans[i], 0, sp.length(),
+                        spannable.setSpan(mDefaultComposingSpans[i], 0, spannable.length(),
                                 getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
                     }
                 }
             } else {
-                sp = (Spannable)text;
+                spannable = (Spannable)text;
             }
-            setComposingSpans(sp);
+            setComposingSpans(spannable);
         }
 
         if (DEBUG) {
-            Log.v(TAG, "Replacing from " + a + " to " + b + " with \""
+            Log.v(TAG, "Replacing from " + composingSpanStart + " to " + composingSpanEnd + " with \""
                     + text + "\", composing=" + composing
                     + ", type=" + text.getClass().getCanonicalName());
 
-            LogPrinter lp = new LogPrinter(Log.VERBOSE, TAG);
-            lp.println("Current text:");
-            TextUtils.dumpSpans(content, lp, "  ");
-            lp.println("Composing text:");
-            TextUtils.dumpSpans(text, lp, "  ");
+            LogPrinter logPrinter = new LogPrinter(Log.VERBOSE, TAG);
+            logPrinter.println("Current text:");
+            TextUtils.dumpSpans(content, logPrinter, "  ");
+            logPrinter.println("Composing text:");
+            TextUtils.dumpSpans(text, logPrinter, "  ");
         }
 
         // Position the cursor appropriately, so that after replacing the
@@ -1668,16 +1698,16 @@ public class EditableInputConnection implements InputConnection {
         // This allows us to deal with filters performing edits on the text
         // we are providing here.
         if (newCursorPosition > 0) {
-            newCursorPosition += b - 1;
+            newCursorPosition += composingSpanEnd - 1;
         } else {
-            newCursorPosition += a;
+            newCursorPosition += composingSpanStart;
         }
         if (newCursorPosition < 0) newCursorPosition = 0;
         if (newCursorPosition > content.length())
             newCursorPosition = content.length();
         Selection.setSelection(content, newCursorPosition);
 
-        content.replace(a, b, text);
+        content.replace(composingSpanStart, composingSpanEnd, text);
 
         if (DEBUG) {
             LogPrinter lp = new LogPrinter(Log.VERBOSE, TAG);

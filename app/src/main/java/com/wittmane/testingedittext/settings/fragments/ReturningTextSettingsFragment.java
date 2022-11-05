@@ -25,38 +25,38 @@ import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager.OnPreferencesChangedListener;
 
-public class ModifyTextSettingsFragment extends PreferenceFragment {
+public class ReturningTextSettingsFragment extends PreferenceFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        addPreferencesFromResource(R.xml.preference_screen_modify_text);
+        addPreferencesFromResource(R.xml.preference_screen_returning_text);
 
         new SwitchPreferenceDependencyManager(new String[]{
-                Settings.PREF_MODIFY_COMMITTED_TEXT,
-                Settings.PREF_MODIFY_COMPOSED_TEXT
+                Settings.PREF_SKIP_EXTRACTING_TEXT,
+                Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
+                Settings.PREF_EXTRACT_FULL_TEXT
         }, this, new OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefsChecked) {
-                updateModifyTextEnabledState(prefsChecked[0], prefsChecked[1]);
+                updateExtractTextEnabledState(prefsChecked[0], prefsChecked[1], prefsChecked[2]);
             }
         });
     }
 
-    private void updateModifyTextEnabledState(boolean modifyCommittedText,
-                                              boolean modifyComposedText) {
-        boolean enableModifierSettings = modifyCommittedText || modifyComposedText;
+    private void updateExtractTextEnabledState(boolean skipExtractingText,
+                                               boolean ignoreExtractedTextMonitor,
+                                               boolean extractFullText) {
+        Preference updateSelectionBeforeExtractedTextPref =
+                findPreference(Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT);
+        updateSelectionBeforeExtractedTextPref.setEnabled(!ignoreExtractedTextMonitor);
 
-        String[] prefKeys = new String[] {
-                Settings.PREF_RESTRICT_TO_INCLUDE,
-                Settings.PREF_RESTRICT_SPECIFIC,
-                Settings.PREF_RESTRICT_RANGE,
-                Settings.PREF_TRANSLATE_SPECIFIC,
-                Settings.PREF_SHIFT_CODEPOINT
-        };
-        for (String prefKey : prefKeys) {
-            Preference pref = findPreference(prefKey);
-            pref.setEnabled(enableModifierSettings);
-        }
+        Preference extractFullTextPref = findPreference(Settings.PREF_EXTRACT_FULL_TEXT);
+        extractFullTextPref.setEnabled(!ignoreExtractedTextMonitor);
+
+        Preference limitExtractMonitorTextPref =
+                findPreference(Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT);
+        limitExtractMonitorTextPref.setEnabled(!skipExtractingText
+                || (!ignoreExtractedTextMonitor && extractFullText));
     }
 }

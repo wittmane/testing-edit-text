@@ -18,13 +18,18 @@
     <!--TODO: (EW) find a way to extend preference summary or reduce the length of the text to fit
          all screens-->
 
+    <!--documented variable functionality-->
     <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.VariableFunctionalitySettingsFragment"
-        android:title="@string/documented_variable_functionality_screen" />
+        android:fragment="com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment"
+        android:title="@string/modify_text_input_screen" />
 
     <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.UnclearDocumentationSettingsFragment"
-        android:title="@string/unclear_documentation_screen" />
+        android:fragment="com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFragment"
+        android:title="@string/returning_text_screen" />
+
+    <PreferenceScreen
+        android:fragment="com.wittmane.testingedittext.settings.fragments.ComposingTextSettingsFragment"
+        android:title="@string/composing_text_screen" />
 
     <PreferenceScreen
         android:fragment="com.wittmane.testingedittext.settings.fragments.TargetVersionSettingsFragment"

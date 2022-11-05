@@ -27,25 +27,6 @@
 
     <string name="button_clear">Clear</string>
 
-    <string name="documented_variable_functionality_screen">Documented variable functionality</string>
-
-    <string name="limit_returned_text_title">Limit text returned around the cursor</string>
-    <string name="limit_returned_text_summary">InputConnection\'s getTextBeforeCursor, getTextAfterCursor, and getSurroundingText methods specifically mention in their documentation that the returned text may not be as long as what was requested, such as for performance reasons. Set a hard limit of the length of text returned on either before or after the cursor.</string>
-    <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
-    <string name="unit_characters"><xliff:g id="CHARACTERS" example="50">%s</xliff:g> characters</string>
-    <string name="no_character_limit">No limit</string>
-
-    <string name="skip_extracting_text_title">Skip extracting text</string>
-    <string name="skip_extracting_text_summary_on">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Do nothing, and always return null.</string>
-    <string name="skip_extracting_text_summary_off">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Extract text normally.</string>
-
-    <string name="extract_full_text_title">Extract full text</string>
-    <string name="extract_full_text_summary_on">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text for text changes.</string>
-    <string name="extract_full_text_summary_off">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always use the partial offsets when updating extracted text for text changes.</string>
-
-    <string name="limit_extract_monitor_text_title">Limit extract text</string>
-    <string name="limit_extract_monitor_text_summary">When updating extracted text with full text, limit the length of the text that is sent.</string>
-
     <string name="modify_text_input_screen">Modify text input</string>
 
     <string name="modify_committed_text_title">Modify committed text</string>
@@ -84,14 +65,41 @@
 
     <string name="translate_input_text_category">Translate input text</string>
 
+    <string name="translate_specific_title">Translate specific text</string>
+    <string name="translate_specific_summary">Change text into different text</string>
+
     <string name="shift_codepoint_title">Shift codepoints</string>
     <string name="shift_codepoint_summary">Shift all codepoints a fixed amount, wrapping at the ends of the range of codepoints</string>
     <string name="unit_codepoints"><xliff:g id="CODEPOINTS">%s</xliff:g> codepoints</string>
 
-    <string name="translate_specific_title">Translate specific text</string>
-    <string name="translate_specific_summary">Change text into different text</string>
+    <string name="returning_text_screen">Returning text</string>
 
-    <string name="unclear_documentation_screen">Unclear documentation</string>
+    <string name="skip_extracting_text_title">Skip extracting text</string>
+    <string name="skip_extracting_text_summary_on">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Do nothing, and always return null.</string>
+    <string name="skip_extracting_text_summary_off">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Extract text normally.</string>
+
+    <string name="ignore_extracted_text_monitor_title">Ignore the extracted text monitor flag</string>
+    <string name="ignore_extracted_text_monitor_summary_on">Ignore the GET_EXTRACTED_TEXT_MONITOR flag passed to InputConnection#getExtractedText and don\'t call InputMethodManager#updateExtractedText. Although documentation doesn\'t specifically call it out, it may be valid to skip when also returning null (not being able to comply with the request). Other uses to ignore this flag are probably inappropriate.</string>
+    <string name="ignore_extracted_text_monitor_summary_off">Respect the GET_EXTRACTED_TEXT_MONITOR flag passed to InputConnection#getExtractedText and call InputMethodManager#updateExtractedText whenever calling InputMethodManager#updateSelection.</string>
+
+    <string name="update_selection_before_extracted_text_title">Update selection before text extract</string>
+    <string name="update_selection_before_extracted_text_summary_on">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateSelection before updateExtractedText.</string>
+    <string name="update_selection_before_extracted_text_summary_off">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateExtractedText before updateSelection (what the framework EditText does).</string>
+
+    <string name="extract_full_text_title">Extract full text</string>
+    <string name="extract_full_text_summary_on">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text for text changes.</string>
+    <string name="extract_full_text_summary_off">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always use the partial offsets when updating extracted text for text changes.</string>
+
+    <string name="limit_extract_monitor_text_title">Limit extract text</string>
+    <string name="limit_extract_monitor_text_summary">When updating extracted text with full text or returning text from InputConnection#getExtractedText, limit the length of the text that is sent.</string>
+
+    <string name="limit_returned_text_title">Limit text returned around the cursor</string>
+    <string name="limit_returned_text_summary">InputConnection\'s getTextBeforeCursor, getTextAfterCursor, and getSurroundingText methods specifically mention in their documentation that the returned text may not be as long as what was requested, such as for performance reasons. Set a hard limit of the length of text returned on either before or after the cursor.</string>
+    <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
+    <string name="unit_characters"><xliff:g id="CHARACTERS" example="50">%s</xliff:g> characters</string>
+    <string name="no_character_limit">No limit</string>
+
+    <string name="composing_text_screen">Composing text</string>
 
     <string name="delete_through_composing_text_title">Delete through composing text</string>
     <string name="delete_through_composing_text_summary_on">Documentation for InputConnection\'s deleteSurroundingTextInCodePoints and deleteSurroundingText only says that text around the cursor will be deleted, but the framework EditText (intentionally, based on the code) deletes text before the smaller of the cursor or composition and after the larger of the cursor or composition. Simply match the documentation and don\'t even consider the composition.</string>
@@ -100,10 +108,6 @@
     <string name="keep_empty_composing_position_title">Keep empty composing position</string>
     <string name="keep_empty_composing_position_summary_on">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Keep the empty composition (additional composing text will be added in the same place).</string>
     <string name="keep_empty_composing_position_summary_off">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Remove the empty composition.</string>
-
-    <string name="update_selection_before_extracted_text_title">Update selection before text extract</string>
-    <string name="update_selection_before_extracted_text_summary_on">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateSelection before updateExtractedText.</string>
-    <string name="update_selection_before_extracted_text_summary_off">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Call updateExtractedText before updateSelection (what the framework EditText does).</string>
 
     <string name="simulate_old_target_versions_screen">Simulate old target versions</string>
 

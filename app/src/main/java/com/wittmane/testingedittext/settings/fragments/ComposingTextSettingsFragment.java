@@ -21,11 +21,11 @@ import android.preference.PreferenceFragment;
 
 import com.wittmane.testingedittext.R;
 
-public class VariableFunctionalitySettingsFragment extends PreferenceFragment {
+public class ComposingTextSettingsFragment extends PreferenceFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        addPreferencesFromResource(R.xml.preference_screen_variable_functionality);
+        addPreferencesFromResource(R.xml.preference_screen_composing_text);
     }
 }

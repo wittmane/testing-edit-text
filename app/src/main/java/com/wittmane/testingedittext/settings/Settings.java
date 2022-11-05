@@ -34,8 +34,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static final String PREF_MODIFY_COMMITTED_TEXT = "pref_key_modify_committed_text";
     public static final String PREF_MODIFY_COMPOSED_TEXT = "pref_key_modify_composed_text";
-    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY = "pref_key_modify_composed_changes_only";
-    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END = "pref_key_consider_composed_changes_from_end";
+    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY =
+            "pref_key_modify_composed_changes_only";
+    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END =
+            "pref_key_consider_composed_changes_from_end";
     public static final String PREF_RESTRICT_TO_INCLUDE = "pref_key_restrict_to_include";
     public static final String PREF_RESTRICT_SPECIFIC = "pref_key_restrict_specific";
     public static final String PREF_RESTRICT_RANGE = "pref_key_restrict_range";
@@ -43,6 +45,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_TRANSLATE_SPECIFIC = "pref_key_translate_specific";
     public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
     public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
+    public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR =
+            "pref_key_ignore_extracted_text_monitor";
     public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
     public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
             "pref_key_limit_extract_monitor_text";
@@ -57,8 +61,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SKIP_SETIMECONSUMESINPUT = "pref_key_skip_setimeconsumesinput";
     public static final String PREF_SKIP_COMMITCONTENT = "pref_key_skip_commitcontent";
     public static final String PREF_SKIP_CLOSECONNECTION = "pref_key_skip_closeconnection";
-    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS = "pref_key_skip_deletesurroundingtextincodepoints";
-    public static final String PREF_SKIP_REQUESTCURSORUPDATES = "pref_key_skip_requestcursorupdates";
+    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS =
+            "pref_key_skip_deletesurroundingtextincodepoints";
+    public static final String PREF_SKIP_REQUESTCURSORUPDATES =
+            "pref_key_skip_requestcursorupdates";
     public static final String PREF_SKIP_COMMITCORRECTION = "pref_key_skip_commitcorrection";
     public static final String PREF_SKIP_GETSELECTEDTEXT = "pref_key_skip_getselectedtext";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
@@ -75,6 +81,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private TranslateText[] mTranslateSpecific;
     private int mReturnedTextLimit;
     private boolean mSkipExtractingText;
+    private boolean mIgnoreExtractedTextMonitor;
     private boolean mExtractFullText;
     private int mExtractMonitorTextLimit;
     private boolean mUpdateSelectionBeforeExtractedText;
@@ -135,6 +142,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mTranslateSpecific = readTranslateSpecific(mPrefs);
         mReturnedTextLimit = readReturnedTextLimit(mPrefs);
         mSkipExtractingText = readSkipExtractingText(mPrefs);
+        mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
         mExtractFullText = readExtractFullText(mPrefs);
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
 
@@ -343,6 +351,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldSkipExtractingText() {
         return getInstance().mSkipExtractingText;
+    }
+
+    private static boolean readIgnoreExtractedTextMonitor(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR, false);
+    }
+
+    public static boolean shouldIgnoreExtractedTextMonitor() {
+        return getInstance().mIgnoreExtractedTextMonitor;
     }
 
     private static boolean readExtractFullText(final SharedPreferences prefs) {

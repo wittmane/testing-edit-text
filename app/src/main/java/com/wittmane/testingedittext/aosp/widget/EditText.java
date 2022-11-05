@@ -5911,6 +5911,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     outAttrs.hintLocales = null;
                 }
             }
+            if (com.wittmane.testingedittext.settings.Settings.shouldSkipExtractingText()) {
+                // (EW) if InputConnection#getExtractedText returns null, no text is shown in the
+                // full screen text field (landscape) so since we're forcing that to be null, we
+                // should also block the full screen view, since that would just be broken
+                outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+            }
             if (focusSearch(FOCUS_DOWN) != null) {
                 outAttrs.imeOptions |= EditorInfo.IME_FLAG_NAVIGATE_NEXT;
             }
