@@ -15,9 +15,6 @@
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--TODO: (EW) find a way to extend preference summary or reduce the length of the text to fit
-         all screens-->
-
     <!--documented variable functionality-->
     <PreferenceScreen
         android:fragment="com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment"

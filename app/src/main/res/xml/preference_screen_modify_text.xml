@@ -16,21 +16,21 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto" >
 
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_modify_committed_text"
         android:title="@string/modify_committed_text_title"
         android:summary="@string/modify_committed_text_summary" />
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_modify_composed_text"
         android:title="@string/modify_composed_text_title"
         android:summary="@string/modify_composed_text_summary" />
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_modify_composed_changes_only"
         android:title="@string/modify_composed_changes_only_title"
         android:summary="@string/modify_composed_changes_only_summary"
         android:dependency="pref_key_modify_composed_text" />
 
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_consider_composed_changes_from_end"
         android:title="@string/consider_composed_changes_from_end_title"
         android:summary="@string/consider_composed_changes_from_end_summary"
@@ -38,7 +38,7 @@
 
     <PreferenceCategory android:title="@string/restrict_input_text_category">
 
-        <SwitchPreference
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
             android:key="pref_key_restrict_to_include"
             android:title="@string/restrict_to_include_title"
             android:summaryOn="@string/restrict_to_include_summary_on"

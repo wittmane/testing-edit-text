@@ -17,33 +17,30 @@
     xmlns:app="http://schemas.android.com/apk/res-auto" >
 
     <!--documented variable functionality-->
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_skip_extracting_text"
         android:title="@string/skip_extracting_text_title"
-        android:summaryOn="@string/skip_extracting_text_summary_on"
-        android:summaryOff="@string/skip_extracting_text_summary_off"
+        android:summary="@string/skip_extracting_text_summary"
         android:disableDependentsState="true" />
 
     <!--unclear documentation-->
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_ignore_extracted_text_monitor"
         android:title="@string/ignore_extracted_text_monitor_title"
-        android:summaryOn="@string/ignore_extracted_text_monitor_summary_on"
-        android:summaryOff="@string/ignore_extracted_text_monitor_summary_off"
+        android:summary="@string/ignore_extracted_text_monitor_summary"
         android:disableDependentsState="true" />
 
     <!--unclear documentation-->
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_update_selection_before_extracted_text"
         android:title="@string/update_selection_before_extracted_text_title"
-        android:summaryOn="@string/update_selection_before_extracted_text_summary_on"
-        android:summaryOff="@string/update_selection_before_extracted_text_summary_off" />
+        android:summary="@string/update_selection_before_extracted_text_summary_on" />
 
     <!--unclear documentation-->
     <!--TODO: (EW) only update on net changes-->
 
     <!--documented variable functionality-->
-    <SwitchPreference
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_extract_full_text"
         android:title="@string/extract_full_text_title"
         android:summaryOn="@string/extract_full_text_summary_on"
