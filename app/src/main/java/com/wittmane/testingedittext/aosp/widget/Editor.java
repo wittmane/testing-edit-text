@@ -1715,7 +1715,9 @@ class Editor {
             }
 
             if (updateDelay > 0) {
-                mDelayedUpdater.queueUpdate(new ExtractTextUpdateEntry(req.token, ims.mExtractedText), updateDelay);
+                mDelayedUpdater.queueUpdate(
+                        new ExtractTextUpdateEntry(req.token, ims.mExtractedText),
+                        updateDelay);
             } else {
                 imm.updateExtractedText(mEditText, req.token, ims.mExtractedText);
             }
@@ -1752,10 +1754,12 @@ class Editor {
         }
     }
 
+    // (EW) added for forcing a delay for testing
     private interface UpdateEntry {
         void sendUpdate(InputMethodManager imm, EditText editText);
     }
 
+    // (EW) added for forcing a delay for testing
     private static class ExtractTextUpdateEntry implements UpdateEntry {
         private final int mToken;
         private final ExtractedText mExtractedText;
@@ -1769,6 +1773,7 @@ class Editor {
         }
     }
 
+    // (EW) added for forcing a delay for testing
     private static class SelectionUpdateEntry implements UpdateEntry {
         private final int mSelectionStart;
         private final int mSelectionEnd;
@@ -1788,6 +1793,7 @@ class Editor {
         }
     }
 
+    // (EW) added for forcing a delay for testing
     private class DelayedUpdater {
         private final Queue<UpdateEntry> mUpdateQueue = new LinkedList<>();
         private final LinkedList<Timer> mUpdateQueueTimers = new LinkedList<>();
@@ -1809,15 +1815,6 @@ class Editor {
                     }
                 }
             }, delay);
-        }
-
-        //TODO: (EW) is there any reason we would need to reset state and clear any queued updates?
-        private synchronized void clearUpdateQueue() {
-            mUpdateQueue.clear();
-            for (Timer timer : mUpdateQueueTimers) {
-                timer.cancel();
-            }
-            mUpdateQueueTimers.clear();
         }
     }
 

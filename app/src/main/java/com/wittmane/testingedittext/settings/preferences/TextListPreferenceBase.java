@@ -150,14 +150,14 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         ImageButton removeButton = new ImageButton(getContext());
         removeButton.setImageResource(R.drawable.ic_clear_white_24);
         removeButton.setColorFilter(getColorForIcon(removeButton));
-        TypedArray ta = getContext().getTheme()
+        TypedArray typedArray = getContext().getTheme()
                 .obtainStyledAttributes(new int[] {
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                                 ? android.R.attr.selectableItemBackgroundBorderless
                                 : android.R.attr.selectableItemBackground
                 });
-        int background = ta.getResourceId(0, RESOURCES_ID_NULL);
-        ta.recycle();
+        int background = typedArray.getResourceId(0, RESOURCES_ID_NULL);
+        typedArray.recycle();
         removeButton.setBackgroundResource(background);
         TableRow.LayoutParams removeButtonLayoutParams = new TableRow.LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0f);

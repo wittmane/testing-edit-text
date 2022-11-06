@@ -39,36 +39,36 @@ public class TargetVersionSettingsFragment extends PreferenceFragment {
             // appropriate return value to the IME for a valid test, so since we can't seem to fake
             // it that way, these aren't valid tests, so shouldn't be allowed.
 
-            SwitchPreference skipDeleteSurroundingTextInCodePointsPref
-                    = (SwitchPreference)findPreference(
+            SwitchPreference skipDeleteSurroundingTextInCodePointsPref =
+                    (SwitchPreference)findPreference(
                             Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
             skipDeleteSurroundingTextInCodePointsPref.setEnabled(false);
             skipDeleteSurroundingTextInCodePointsPref.setChecked(false);
 
-            SwitchPreference skipSetComposingRegionPref
-                    = (SwitchPreference)findPreference(Settings.PREF_SKIP_SETCOMPOSINGREGION);
+            SwitchPreference skipSetComposingRegionPref =
+                    (SwitchPreference)findPreference(Settings.PREF_SKIP_SETCOMPOSINGREGION);
             skipSetComposingRegionPref.setEnabled(false);
             skipSetComposingRegionPref.setChecked(false);
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            PreferenceCategory addedInApiLevel31Category
-                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_31");
+            PreferenceCategory addedInApiLevel31Category =
+                    (PreferenceCategory)findPreference("pref_key_added_in_api_level_31");
             getPreferenceScreen().removePreference(addedInApiLevel31Category);
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
-            PreferenceCategory addedInApiLevel25Category
-                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_25");
+            PreferenceCategory addedInApiLevel25Category =
+                    (PreferenceCategory)findPreference("pref_key_added_in_api_level_25");
             getPreferenceScreen().removePreference(addedInApiLevel25Category);
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            PreferenceCategory addedInApiLevel24Category
-                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_24");
+            PreferenceCategory addedInApiLevel24Category =
+                    (PreferenceCategory)findPreference("pref_key_added_in_api_level_24");
             getPreferenceScreen().removePreference(addedInApiLevel24Category);
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            PreferenceCategory addedInApiLevel21Category
-                    = (PreferenceCategory)findPreference("pref_key_added_in_api_level_21");
+            PreferenceCategory addedInApiLevel21Category =
+                    (PreferenceCategory)findPreference("pref_key_added_in_api_level_21");
             getPreferenceScreen().removePreference(addedInApiLevel21Category);
         }
     }

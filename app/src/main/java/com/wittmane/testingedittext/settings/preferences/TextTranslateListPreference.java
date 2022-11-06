@@ -149,7 +149,6 @@ public class TextTranslateListPreference
             // characters that we could go through, but all of them could be included, so we can't
             // fully fix this, and the extra logic and slightly weird behavior of changing quote
             // types doesn't seem worth it for this minor visual bug.
-            //TODO: (EW) should this change for RTL?
             sb.append("\"").append(dataArray[i].getOriginal()).append("\", -> \"")
                     .append(dataArray[i].getTranslation()).append("\"");
         }

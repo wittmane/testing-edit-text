@@ -41,17 +41,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_RESTRICT_TO_INCLUDE = "pref_key_restrict_to_include";
     public static final String PREF_RESTRICT_SPECIFIC = "pref_key_restrict_specific";
     public static final String PREF_RESTRICT_RANGE = "pref_key_restrict_range";
-    public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
     public static final String PREF_TRANSLATE_SPECIFIC = "pref_key_translate_specific";
-    public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
+    public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
     public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
     public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR =
             "pref_key_ignore_extracted_text_monitor";
+    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
+            "pref_key_update_selection_before_extracted_text";
     public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
     public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
             "pref_key_limit_extract_monitor_text";
-    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
-            "pref_key_update_selection_before_extracted_text";
+    public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
     public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT =
             "pref_key_delete_through_composing_text";
     public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
@@ -77,14 +77,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mRestrictToInclude;
     private String[] mRestrictSpecific;
     private int[] mRestrictRange;
-    private int mShiftCodepoint;
     private TranslateText[] mTranslateSpecific;
-    private int mReturnedTextLimit;
+    private int mShiftCodepoint;
     private boolean mSkipExtractingText;
     private boolean mIgnoreExtractedTextMonitor;
+    private boolean mUpdateSelectionBeforeExtractedText;
     private boolean mExtractFullText;
     private int mExtractMonitorTextLimit;
-    private boolean mUpdateSelectionBeforeExtractedText;
+    private int mReturnedTextLimit;
     private boolean mDeleteThroughComposingText;
     private boolean mKeepEmptyComposingPosition;
     private boolean mSkipGetSurroundingText;
@@ -138,17 +138,18 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mRestrictToInclude = readRestrictToInclude(mPrefs);
         mRestrictSpecific = readRestrictSpecific(mPrefs);
         mRestrictRange = readRestrictRange(mPrefs);
-        mShiftCodepoint = readShiftCodepoint(mPrefs);
         mTranslateSpecific = readTranslateSpecific(mPrefs);
-        mReturnedTextLimit = readReturnedTextLimit(mPrefs);
+        mShiftCodepoint = readShiftCodepoint(mPrefs);
+
         mSkipExtractingText = readSkipExtractingText(mPrefs);
         mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
+        mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
         mExtractFullText = readExtractFullText(mPrefs);
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
+        mReturnedTextLimit = readReturnedTextLimit(mPrefs);
 
         mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
         mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
-        mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
 
         mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
         mSkipPerformSpellCheck = readSkipPerformSpellCheck(mPrefs);
@@ -309,14 +310,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mRestrictRange;
     }
 
-    private static int readShiftCodepoint(final SharedPreferences prefs) {
-        return prefs.getInt(PREF_SHIFT_CODEPOINT, 0);
-    }
-
-    public static int getShiftCodepoint() {
-        return getInstance().mShiftCodepoint;
-    }
-
     private static TranslateText[] readTranslateSpecific(final SharedPreferences prefs) {
         TextList<TranslateText> textList =
                 (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC))
@@ -337,12 +330,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTranslateSpecific;
     }
 
-    private static int readReturnedTextLimit(final SharedPreferences prefs) {
-        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT, -1);
+    private static int readShiftCodepoint(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_SHIFT_CODEPOINT, 0);
     }
 
-    public static int getReturnedTextLimit() {
-        return getInstance().mReturnedTextLimit;
+    public static int getShiftCodepoint() {
+        return getInstance().mShiftCodepoint;
     }
 
     private static boolean readSkipExtractingText(final SharedPreferences prefs) {
@@ -361,6 +354,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mIgnoreExtractedTextMonitor;
     }
 
+    private static boolean readUpdateSelectionBeforeExtractedText(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
+    }
+
+    public static boolean shouldUpdateSelectionBeforeExtractedText() {
+        return getInstance().mUpdateSelectionBeforeExtractedText;
+    }
+
     private static boolean readExtractFullText(final SharedPreferences prefs) {
         return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT, false);
     }
@@ -377,8 +378,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mExtractMonitorTextLimit;
     }
 
-    private static boolean readUpdateSelectionBeforeExtractedText(final SharedPreferences prefs) {
-        return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
+    private static int readReturnedTextLimit(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT, -1);
+    }
+
+    public static int getReturnedTextLimit() {
+        return getInstance().mReturnedTextLimit;
     }
 
     private static boolean readDeleteThroughComposingText(final SharedPreferences prefs) {
@@ -387,10 +392,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldDeleteThroughComposingText() {
         return getInstance().mDeleteThroughComposingText;
-    }
-
-    public static boolean shouldUpdateSelectionBeforeExtractedText() {
-        return getInstance().mUpdateSelectionBeforeExtractedText;
     }
 
     private static boolean readKeepEmptyComposingPosition(final SharedPreferences prefs) {
@@ -441,7 +442,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipCloseConnection;
     }
 
-    private static boolean readSkipDeleteSurroundingTextInCodePoints(final SharedPreferences prefs) {
+    private static boolean readSkipDeleteSurroundingTextInCodePoints(
+            final SharedPreferences prefs) {
         return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS, false);
     }
 

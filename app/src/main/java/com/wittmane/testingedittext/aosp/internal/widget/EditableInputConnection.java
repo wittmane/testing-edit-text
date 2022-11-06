@@ -1813,7 +1813,7 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
-    public InputConnection createWrapper() {
+    public InputConnection createWrapperIfNecessary() {
         if (shouldSkipMethodsForOldVersionTest()
                 && canLieAboutMissingMethods(mEditText.getContext())) {
             return new InputConnectionLyingWrapper(this);

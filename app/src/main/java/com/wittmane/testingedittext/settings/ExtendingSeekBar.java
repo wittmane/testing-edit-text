@@ -82,8 +82,8 @@ public class ExtendingSeekBar extends ViewGroup {
     private float mDensity;
 
     private OnExtendingSeekBarChangeListener mOnExtendingSeekBarChangeListener;
-    private final SeekBar.OnSeekBarChangeListener mOnInternalSeekBarChangeListener
-            = new OnSeekBarChangeListenerProxy();
+    private final SeekBar.OnSeekBarChangeListener mOnInternalSeekBarChangeListener =
+            new OnSeekBarChangeListenerProxy();
     private boolean mIgnoreInternalProgressChanges = false;
 
     private InternalSeekBar mInternalSeekBar;
@@ -169,7 +169,7 @@ public class ExtendingSeekBar extends ViewGroup {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            // (EW) based on ProgressBar
+            // based on ProgressBar
             if (a.hasValue(R.styleable.ExtendingSeekBar_progressTintMode)) {
                 mInternalSeekBar.setProgressTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_progressTintMode, -1), null));
@@ -188,7 +188,7 @@ public class ExtendingSeekBar extends ViewGroup {
                         R.styleable.ExtendingSeekBar_progressBackgroundTint));
             }
 
-            // (EW) based on AbsSeekBar
+            // based on AbsSeekBar
             if (a.hasValue(R.styleable.ExtendingSeekBar_tickMarkTintMode)) {
                 mInternalSeekBar.setTickMarkTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_tickMarkTintMode, -1), null));
@@ -198,7 +198,7 @@ public class ExtendingSeekBar extends ViewGroup {
                         a.getColorStateList(R.styleable.ExtendingSeekBar_tickMarkTint));
             }
 
-            // (EW) based on AbsSeekBar
+            // based on AbsSeekBar
             if (a.hasValue(R.styleable.ExtendingSeekBar_thumbTintMode)) {
                 mInternalSeekBar.setThumbTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_thumbTintMode, -1), null));
@@ -232,7 +232,7 @@ public class ExtendingSeekBar extends ViewGroup {
         return metrics;
     }
 
-    // (EW) from ProgressBar
+    // from ProgressBar
     /**
      * Returns {@code true} if the target drawable needs to be tileified.
      *
@@ -272,10 +272,10 @@ public class ExtendingSeekBar extends ViewGroup {
         return false;
     }
 
-    // (EW) StateListDrawable#getStateCount was made available in Q, but it was actually added with
-    // the current signature at least by Kitkat, so it should be safe to call on these older
-    // versions (it's only marked as "light greylist" on Pie so it can still be called), but to be
-    // extra safe we'll wrap it in a try/catch.
+    // StateListDrawable#getStateCount was made available in Q, but it was actually added with the
+    // current signature at least by Kitkat, so it should be safe to call on these older versions
+    // (it's only marked as "light greylist" on Pie so it can still be called), but to be extra safe
+    // we'll wrap it in a try/catch.
     @SuppressLint("NewApi")
     private static int getStateCount(StateListDrawable d) {
         try {
@@ -287,8 +287,8 @@ public class ExtendingSeekBar extends ViewGroup {
         }
     }
 
-    // (EW) StateListDrawable#getStateDrawable was made available in Q, but it was actually added
-    // with the current signature at least by Kitkat, so it should be safe to call on these older
+    // StateListDrawable#getStateDrawable was made available in Q, but it was actually added with
+    // the current signature at least by Kitkat, so it should be safe to call on these older
     // versions (it's only marked as "light greylist" on Pie so it can still be called), but to be
     // extra safe we'll wrap it in a try/catch.
     @SuppressLint("NewApi")
@@ -303,7 +303,7 @@ public class ExtendingSeekBar extends ViewGroup {
         }
     }
 
-    // (EW) from Drawable
+    // from Drawable
     /**
      * Parses a {@link android.graphics.PorterDuff.Mode} from a tintMode
      * attribute's enum value.
@@ -1143,32 +1143,50 @@ public class ExtendingSeekBar extends ViewGroup {
 
     private class OnSeekBarChangeListenerProxy implements SeekBar.OnSeekBarChangeListener {
         private final Handler mHandler = new Handler();
-        RepeatingTimer mTimer = new RepeatingTimer(new TimerTask() {
-            @Override
-            public void run() {
-                int shift = getShift(mCurrentShiftSteps, mShiftCount);
-                shiftRange(shift, false);
-                mShiftCount++;
-
-                // do work on the UI thread
-                int progress = clipToCurrentRange(getProgress());
-                mHandler.post(new Runnable() {
-                    public void run() {
-                        notifyProgressChanged(progress, true);
-                        mInternalSeekBar.invalidate();
-                    }
-                });
-
-                if (progress == mMinValue || progress == mMaxValue) {
-                    // we've shifted all the way to an edge, so stop shifting
-                    mShiftCount = 0;
-                    mCurrentShiftSteps = 0;
-                    mTimer.stop();
-                }
-            }
-        }, TIMER_TIMEOUT, true);
         private int mCurrentShiftSteps;
         private int mShiftCount;
+        private Timer mTimer;
+
+        private synchronized void startTimer() {
+            if (mTimer != null) {
+                // the timer is already running, so there isn't anything to do
+                return;
+            }
+            mTimer = new Timer();
+            mTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    int shift = getShift(mCurrentShiftSteps, mShiftCount);
+                    shiftRange(shift, false);
+                    mShiftCount++;
+
+                    // do work on the UI thread
+                    int progress = clipToCurrentRange(getProgress());
+                    mHandler.post(new Runnable() {
+                        public void run() {
+                            notifyProgressChanged(progress, true);
+                            mInternalSeekBar.invalidate();
+                        }
+                    });
+
+                    if (progress == mMinValue || progress == mMaxValue) {
+                        // we've shifted all the way to an edge, so stop shifting
+                        mShiftCount = 0;
+                        mCurrentShiftSteps = 0;
+                        stopTimer();
+                    }
+                }
+            }, TIMER_TIMEOUT, TIMER_TIMEOUT);
+        }
+
+        private synchronized void stopTimer() {
+            if (mTimer == null) {
+                // there isn't anything to stop
+                return;
+            }
+            mTimer.cancel();
+            mTimer = null;
+        }
 
         @Override
         public void onProgressChanged(SeekBar seekBar, int internalProgress, boolean fromUser) {
@@ -1186,26 +1204,26 @@ public class ExtendingSeekBar extends ViewGroup {
                     if (mCurrentShiftSteps >= 0) {
                         // changing directions or starting a shift - reset
                         mShiftCount = 1;
-                        mTimer.stop();
+                        stopTimer();
                     }
                 } else if (progress > mCurrentMaxValue) {
                     shift = progress - mCurrentMaxValue;
                     if (mCurrentShiftSteps <= 0) {
                         // changing directions or starting a shift - reset
                         mShiftCount = 1;
-                        mTimer.stop();
+                        stopTimer();
                     }
                 } else {
                     shift = 0;
                     mShiftCount = 0;
                     mCurrentShiftSteps = 0;
-                    mTimer.stop();
+                    stopTimer();
                 }
                 if (shift != 0) {
                     if (mShiftCount == 1) {
                         shiftRange(shift, false);
                         Log.w(TAG, "onProgressChanged: starting timer");
-                        mTimer.start();
+                        startTimer();
                     }
                     mCurrentShiftSteps = shift / mStepValue;
                     if (shift > 1) {
@@ -1243,7 +1261,7 @@ public class ExtendingSeekBar extends ViewGroup {
         public void onStopTrackingTouch(SeekBar seekBar) {
             // reset the shifting state if the touch ended while shifting
             if (mCurrentShiftSteps != 0) {
-                mTimer.stop();
+                stopTimer();
 
                 // the thumb shouldn't be left in the shifting extra space
                 if (mCurrentShiftSteps > 0) {
@@ -1259,72 +1277,6 @@ public class ExtendingSeekBar extends ViewGroup {
             if (mOnExtendingSeekBarChangeListener != null) {
                 mOnExtendingSeekBarChangeListener.onStopTrackingTouch(ExtendingSeekBar.this);
             }
-        }
-    }
-
-    //TODO: (EW) I'm not sure I need this custom class. Timers#scheduleAtFixedRate might be all I
-    // need here. this was added largely for some earlier design needs that ended up changing.
-    private static class RepeatingTimer {
-        Timer mTimer;
-        private long mTimerStartTime;
-        private final int mTimeout;
-        private boolean mIsRunning;
-        private final TimerTask mTask;
-        private final boolean mRepeat;
-
-        public RepeatingTimer(TimerTask task, int timeout, boolean repeat) {
-            mTask = task;
-            mTimeout = timeout;
-            mRepeat = repeat;
-        }
-
-        public synchronized boolean start() {
-            if (mIsRunning) {
-                // don't start if it's already running
-                return false;
-            }
-            mTimerStartTime = Calendar.getInstance().getTimeInMillis();
-            if (mTimer == null) {
-                mTimer = new Timer();
-            }
-            mTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    synchronized (RepeatingTimer.this) {
-                        if (!mIsRunning) {
-                            // stop timer was processed first, so don't do anything
-                            return;
-                        }
-                        mIsRunning = false;
-                        if (mRepeat) {
-                            start();
-                        }
-                    }
-                    mTask.run();
-                }
-            }, mTimeout);
-            mIsRunning = true;
-            return true;
-        }
-
-        public synchronized long stop() {
-            if (!mIsRunning) {
-                // nothing to do
-                return 0;
-            }
-            mIsRunning = false;
-            mTimer.cancel();
-            // we'll need a new timer because at least sometimes Timer#schedule throws an error that
-            // the timer is already canceled
-            mTimer = null;
-            // since the timer didn't run the task yet (and won't now), make sure at least 1ms is
-            // considered as remaining
-            return Math.max(1,
-                    mTimerStartTime + mTimeout - Calendar.getInstance().getTimeInMillis());
-        }
-
-        public synchronized boolean isRunning() {
-            return mIsRunning;
         }
     }
 

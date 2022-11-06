@@ -171,7 +171,6 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             }
         });
 
-
         codepointView.setFilters(new InputFilter[] {new InputFilter() {
             @Override
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
@@ -210,7 +209,6 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
                 }
             }
         });
-
 
         unicodeView.setFilters(new InputFilter[] {new InputFilter() {
             @Override
