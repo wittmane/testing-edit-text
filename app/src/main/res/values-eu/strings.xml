@@ -32,4 +32,5 @@
     <string name="deleteText" msgid="4200807474529938112">"Ezabatu"</string>
     <string name="share" msgid="4157615043345227321">"Partekatu"</string>
     <string name="settings">"Ezarpenak"</string>
+    <string name="button_default" msgid="4824983794085575316">"Lehenetsia"</string>
 </resources>

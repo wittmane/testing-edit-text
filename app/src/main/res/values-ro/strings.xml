@@ -32,4 +32,5 @@
     <string name="deleteText" msgid="4200807474529938112">"Ștergeți"</string>
     <string name="share" msgid="4157615043345227321">"Distribuiți"</string>
     <string name="settings">"Setări"</string>
+    <string name="button_default" msgid="4824983794085575316">"Prestabilit"</string>
 </resources>

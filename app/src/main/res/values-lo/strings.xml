@@ -32,4 +32,5 @@
     <string name="deleteText" msgid="4200807474529938112">"ລຶບ"</string>
     <string name="share" msgid="4157615043345227321">"ແບ່ງປັນ"</string>
     <string name="settings">"ການຕັ້ງຄ່າ"</string>
+    <string name="button_default" msgid="4824983794085575316">"ຄ່າເລີ່ມຕົ້ນ"</string>
 </resources>

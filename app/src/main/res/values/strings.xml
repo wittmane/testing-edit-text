@@ -19,7 +19,6 @@
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
-    <!--TODO: (EW) from simple keyboard - copy translations too-->
     <string name="button_default">Default</string>
 
     <string name="button_clear">Clear</string>

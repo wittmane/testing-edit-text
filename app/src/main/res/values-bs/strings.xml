@@ -32,4 +32,5 @@
     <string name="deleteText" msgid="4200807474529938112">"Izbriši"</string>
     <string name="share" msgid="4157615043345227321">"Dijeli"</string>
     <string name="settings">"Postavke"</string>
+    <string name="button_default" msgid="4824983794085575316">"Zadano"</string>
 </resources>
