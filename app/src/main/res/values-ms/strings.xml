@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Tambahkan pada kamus"</string>
     <string name="deleteText" msgid="4200807474529938112">"Padam"</string>
     <string name="share" msgid="4157615043345227321">"Kongsi"</string>
+    <string name="settings">"Tetapan"</string>
 </resources>

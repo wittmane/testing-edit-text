@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"शब्दकोशमा थप्नुहोस्"</string>
     <string name="deleteText" msgid="4200807474529938112">"मेट्नुहोस्"</string>
     <string name="share" msgid="4157615043345227321">"सेयर गर्नुहोस्"</string>
+    <string name="settings">"सेटिङहरू"</string>
 </resources>

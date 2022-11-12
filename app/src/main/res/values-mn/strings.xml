@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Толь бичигт нэмэх"</string>
     <string name="deleteText" msgid="4200807474529938112">"Устгах"</string>
     <string name="share" msgid="4157615043345227321">"Хуваалцах"</string>
+    <string name="settings">"Тохиргоо"</string>
 </resources>

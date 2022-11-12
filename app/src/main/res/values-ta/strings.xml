@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"அகராதியில் சேர்"</string>
     <string name="deleteText" msgid="4200807474529938112">"நீக்கு"</string>
     <string name="share" msgid="4157615043345227321">"பகிர்"</string>
+    <string name="settings">"அமைப்பு"</string>
 </resources>

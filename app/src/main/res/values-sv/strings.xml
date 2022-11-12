@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Lägg till i ordlista"</string>
     <string name="deleteText" msgid="4200807474529938112">"Ta bort"</string>
     <string name="share" msgid="4157615043345227321">"Dela"</string>
+    <string name="settings">"Inställningar"</string>
 </resources>

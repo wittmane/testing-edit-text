@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Idagdag sa diksyunaryo"</string>
     <string name="deleteText" msgid="4200807474529938112">"I-delete"</string>
     <string name="share" msgid="4157615043345227321">"Ibahagi"</string>
+    <string name="settings">"Mga Setting"</string>
 </resources>

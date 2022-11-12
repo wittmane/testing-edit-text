@@ -15,9 +15,6 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Testing Edit Text</string>
-    <!--TODO: (EW) AOSP has global_action_settings, media_route_chooser_extended_settings, and
-         notification_app_name_settings that are all "Settings" in english, so we can probably copy
-         translations for those if all 3 match-->
     <string name="settings">Settings</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog

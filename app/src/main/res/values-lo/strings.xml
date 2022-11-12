@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"ເພີ່ມໄປທີ່ວັດຈະນານຸກົມ"</string>
     <string name="deleteText" msgid="4200807474529938112">"ລຶບ"</string>
     <string name="share" msgid="4157615043345227321">"ແບ່ງປັນ"</string>
+    <string name="settings">"ການຕັ້ງຄ່າ"</string>
 </resources>

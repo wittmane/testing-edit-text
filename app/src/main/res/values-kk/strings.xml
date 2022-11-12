@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Сөздікке қосу"</string>
     <string name="deleteText" msgid="4200807474529938112">"Жою"</string>
     <string name="share" msgid="4157615043345227321">"Бөлісу"</string>
+    <string name="settings">"Параметрлер"</string>
 </resources>

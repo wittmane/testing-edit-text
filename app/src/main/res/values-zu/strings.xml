@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Engeza kwisichazamazwi"</string>
     <string name="deleteText" msgid="4200807474529938112">"Susa"</string>
     <string name="share" msgid="4157615043345227321">"Yabelana"</string>
+    <string name="settings">"Izilungiselelo"</string>
 </resources>

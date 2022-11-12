@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"အဘိဓာန်ထဲ ထည့်ပါ"</string>
     <string name="deleteText" msgid="4200807474529938112">"ဖျက်ရန်"</string>
     <string name="share" msgid="4157615043345227321">"မျှဝေရန်"</string>
+    <string name="settings">"ဆက်တင်များ"</string>
 </resources>

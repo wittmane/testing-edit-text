@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"加入字典"</string>
     <string name="deleteText" msgid="4200807474529938112">"刪除"</string>
     <string name="share" msgid="4157615043345227321">"分享"</string>
+    <string name="settings">"設定"</string>
 </resources>

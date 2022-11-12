@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Thêm vào từ điển"</string>
     <string name="deleteText" msgid="4200807474529938112">"Xóa"</string>
     <string name="share" msgid="4157615043345227321">"Chia sẻ"</string>
+    <string name="settings">"Cài đặt"</string>
 </resources>

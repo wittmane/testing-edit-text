@@ -31,4 +31,5 @@
     <string name="addToDictionary" msgid="8041821113480950096">"Aggiungi al dizionario"</string>
     <string name="deleteText" msgid="4200807474529938112">"Elimina"</string>
     <string name="share" msgid="4157615043345227321">"Condividi"</string>
+    <string name="settings">"Impostazioni"</string>
 </resources>
