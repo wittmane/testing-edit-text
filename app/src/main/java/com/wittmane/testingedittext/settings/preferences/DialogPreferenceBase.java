@@ -21,7 +21,6 @@ import android.preference.DialogPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 
-//TODO: (EW) name better
 public abstract class DialogPreferenceBase extends DialogPreference {
 
     private CharSequence mBaseSummary;

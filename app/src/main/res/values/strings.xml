@@ -77,11 +77,13 @@
     <string name="ignore_extracted_text_monitor_summary">Ignore the GET_EXTRACTED_TEXT_MONITOR flag passed to InputConnection#getExtractedText and don\'t call InputMethodManager#updateExtractedText when calling InputMethodManager#updateSelection. Although documentation doesn\'t specifically call it out, it may be valid to skip when also returning null (not being able to comply with the request). Other uses to ignore this flag are probably inappropriate.</string>
 
     <string name="update_selection_before_extracted_text_title">Update selection before text extract</string>
-    <string name="update_selection_before_extracted_text_summary_on">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Unlike the framework EditText, call updateSelection before updateExtractedText.</string>
+    <string name="update_selection_before_extracted_text_summary">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Unlike the framework EditText, call updateSelection before updateExtractedText.</string>
+
+    <string name="update_extracted_text_only_on_net_changes_title">Only update extracted text on change</string>
+    <string name="update_extracted_text_only_on_net_changes_summary">Documentation doesn\'t indicate whether InputMethodManager#updateExtractedText should actually be called when there was no net change in the text. Only call updateExtractedText when text actually changes.</string>
 
     <string name="extract_full_text_title">Extract full text</string>
-    <string name="extract_full_text_summary_on">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text for text changes.</string>
-    <string name="extract_full_text_summary_off">ExtractedText can be returned with partialStartOffset and partialEndOffset populated, or they can be set to -1 and use startOffset. Always use the partial offsets when updating extracted text for text changes.</string>
+    <string name="extract_full_text_summary">ExtractedText can be returned with partialStartOffset and partialEndOffset populated (helps indicate what text changed), or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text for text changes.</string>
 
     <string name="limit_extract_monitor_text_title">Limit extract text</string>
     <string name="limit_extract_monitor_text_summary">When updating extracted text with full text or returning text from InputConnection#getExtractedText, limit the length of the text that is sent.</string>

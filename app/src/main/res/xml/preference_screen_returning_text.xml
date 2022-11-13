@@ -34,17 +34,19 @@
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_update_selection_before_extracted_text"
         android:title="@string/update_selection_before_extracted_text_title"
-        android:summary="@string/update_selection_before_extracted_text_summary_on" />
+        android:summary="@string/update_selection_before_extracted_text_summary" />
 
     <!--unclear documentation-->
-    <!--TODO: (EW) only update on net changes-->
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_update_extracted_text_only_on_net_changes"
+        android:title="@string/update_extracted_text_only_on_net_changes_title"
+        android:summary="@string/update_extracted_text_only_on_net_changes_summary" />
 
     <!--documented variable functionality-->
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_extract_full_text"
         android:title="@string/extract_full_text_title"
-        android:summaryOn="@string/extract_full_text_summary_on"
-        android:summaryOff="@string/extract_full_text_summary_off" />
+        android:summary="@string/extract_full_text_summary" />
 
     <!--documented variable functionality-->
     <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference

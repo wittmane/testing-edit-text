@@ -340,6 +340,7 @@ class Editor {
     private CursorAnchorInfo mLastCursorAnchorInfo;
 
     private final DelayedUpdater mDelayedUpdater = new DelayedUpdater();
+    private CharSequence mTextAtLastExtract;
 
     Editor(EditText editText) {
         mEditText = editText;
@@ -1611,6 +1612,9 @@ class Editor {
                     partialEndOffset = 0;
                 }
             }
+            //TODO: (EW) documentation says editor authors should strive to send text with styles if
+            // possible, but it isn't required, so it might be good to have a setting to never
+            // return styles
             if ((request.flags & InputConnection.GET_TEXT_WITH_STYLES) != 0) {
                 outText.text = content.subSequence(partialStartOffset,
                         partialEndOffset);
@@ -1704,6 +1708,37 @@ class Editor {
         if (ims.mChangedStart < 0 && !wasContentChanged) {
             ims.mChangedStart = EXTRACT_NOTHING;
         }
+
+        // (EW) check the setting to see if we should skip the updates if there was no actual
+        // change
+        CharSequence text = mEditText.getText().subSequence(0, mEditText.getText().length());
+        if (Settings.shouldUpdateExtractedTextOnlyOnNetChanges()
+                && mTextAtLastExtract != null
+                && mTextAtLastExtract.toString().equals(mEditText.getText().toString())) {
+            if ((req.flags & InputConnection.GET_TEXT_WITH_STYLES) != 0
+                    && text instanceof Spanned) {
+                // (EW) the text didn't change, but we need to check spans too
+                Object[] currentSpans = ((Spanned)text).getSpans(0, text.length(), Object.class);
+                Object[] previousSpans;
+                if (mTextAtLastExtract instanceof Spanned) {
+                    previousSpans = ((Spanned)mTextAtLastExtract).getSpans(
+                            0, mTextAtLastExtract.length(), Object.class);
+                } else {
+                    previousSpans = new Object[0];
+                }
+                if (currentSpans.length == previousSpans.length
+                        && (currentSpans.length == 0
+                        || spansMatch(previousSpans, (Spanned)mTextAtLastExtract,
+                        currentSpans, (Spanned)text))) {
+                    return false;
+                }
+            } else {
+                // (EW) text didn't change since last extract/update
+                return false;
+            }
+        }
+        mTextAtLastExtract = text;
+
         if (extractTextInternal(req, ims.mChangedStart, ims.mChangedEnd,
                 ims.mChangedDelta, ims.mExtractedText)) {
             if (EditText.DEBUG_EXTRACT) {
@@ -1728,6 +1763,32 @@ class Editor {
             return true;
         }
         return false;
+    }
+
+    // (EW) based on SpannableStringBuilder#equals
+    private boolean spansMatch(Object[] spansA, Spanned spannedA,
+                               Object[] spansB, Spanned spannedB) {
+        if (spansA.length != spansB.length) {
+            return false;
+        }
+        for (int i = 0; i < spansA.length; ++i) {
+            final Object spanA = spansA[i];
+            final Object spanB = spansB[i];
+            if (spanA == spannedA) {
+                if (spannedB != spanB ||
+                        spannedA.getSpanStart(spanA) != spannedB.getSpanStart(spanB) ||
+                        spannedA.getSpanEnd(spanA) != spannedB.getSpanEnd(spanB) ||
+                        spannedA.getSpanFlags(spanA) != spannedB.getSpanFlags(spanB)) {
+                    return false;
+                }
+            } else if (!spanA.equals(spanB) ||
+                    spannedA.getSpanStart(spanA) != spannedB.getSpanStart(spanB) ||
+                    spannedA.getSpanEnd(spanA) != spannedB.getSpanEnd(spanB) ||
+                    spannedA.getSpanFlags(spanA) != spannedB.getSpanFlags(spanB)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void sendUpdateSelection() {

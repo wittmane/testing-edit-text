@@ -48,6 +48,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_ignore_extracted_text_monitor";
     public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
             "pref_key_update_selection_before_extracted_text";
+    public static final String PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES =
+            "pref_key_update_extracted_text_only_on_net_changes";
     public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
     public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
             "pref_key_limit_extract_monitor_text";
@@ -82,6 +84,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mSkipExtractingText;
     private boolean mIgnoreExtractedTextMonitor;
     private boolean mUpdateSelectionBeforeExtractedText;
+    private boolean mUpdateExtractedTextOnlyOnNetChanges;
     private boolean mExtractFullText;
     private int mExtractMonitorTextLimit;
     private int mReturnedTextLimit;
@@ -144,6 +147,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mSkipExtractingText = readSkipExtractingText(mPrefs);
         mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
         mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
+        mUpdateExtractedTextOnlyOnNetChanges = readUpdateExtractedTextOnlyOnNetChanges(mPrefs);
         mExtractFullText = readExtractFullText(mPrefs);
         mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
         mReturnedTextLimit = readReturnedTextLimit(mPrefs);
@@ -360,6 +364,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldUpdateSelectionBeforeExtractedText() {
         return getInstance().mUpdateSelectionBeforeExtractedText;
+    }
+
+    private static boolean readUpdateExtractedTextOnlyOnNetChanges(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES, false);
+    }
+
+    public static boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
+        return getInstance().mUpdateExtractedTextOnlyOnNetChanges;
     }
 
     private static boolean readExtractFullText(final SharedPreferences prefs) {
