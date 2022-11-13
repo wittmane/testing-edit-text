@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
-import android.preference.DialogPreference;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,7 +31,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.ExtendingSeekBar;
 import com.wittmane.testingedittext.settings.ExtendingSeekBar.OnExtendingSeekBarChangeListener;
 
-public class SeekBarDialogPreference extends DialogPreference
+public class SeekBarDialogPreference extends DialogPreferenceBase
         implements OnExtendingSeekBarChangeListener {
 
     private final int mMaxValue;
@@ -44,8 +43,6 @@ public class SeekBarDialogPreference extends DialogPreference
 
     private TextView mValueView;
     private ExtendingSeekBar mSeekBar;
-
-    private final CharSequence mBaseSummary;
 
     public SeekBarDialogPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -66,23 +63,14 @@ public class SeekBarDialogPreference extends DialogPreference
         mDefaultValueText = a.getString(R.styleable.SeekBarDialogPreference_defaultValueText);
         a.recycle();
         setDialogLayoutResource(R.layout.seek_bar_dialog);
-        mBaseSummary = getSummary();
     }
 
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
         final int value = readValue();
-        setSummary(getValueText(value));
+        setValueSummary(getValueText(value));
         return view;
-    }
-
-    @Override
-    public void setSummary(CharSequence summary) {
-        if (mBaseSummary != null && mBaseSummary.length() > 0) {
-            summary = mBaseSummary + "\n" + summary;
-        }
-        super.setSummary(summary);
     }
 
     @Override
@@ -102,6 +90,12 @@ public class SeekBarDialogPreference extends DialogPreference
         final int value = readValue();
         mValueView.setText(getValueText(value));
         mSeekBar.setProgress(value);
+
+        // allow the title to wrap
+        TextView titleTextView = view.findViewById(android.R.id.title);
+        if (titleTextView != null) {
+            titleTextView.setSingleLine(false);
+        }
     }
 
     @Override
@@ -116,11 +110,11 @@ public class SeekBarDialogPreference extends DialogPreference
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
             final int value = readDefaultValue();
-            setSummary(getValueText(value));
+            setValueSummary(getValueText(value));
             writeDefaultValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
             final int value = mSeekBar.getProgress();
-            setSummary(getValueText(value));
+            setValueSummary(getValueText(value));
             writeValue(value);
         }
     }

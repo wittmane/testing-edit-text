@@ -20,6 +20,8 @@ import android.content.Context;
 import android.preference.DialogPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.view.View;
+import android.widget.TextView;
 
 public abstract class DialogPreferenceBase extends DialogPreference {
 
@@ -37,6 +39,11 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         setFullSummary();
     }
 
+    /**
+     * Set the secondary summary for the preference to display the value (as opposed to the regular
+     * summary as a description of the preference)
+     * @param summary the display text for the current value of the preference
+     */
     protected void setValueSummary(CharSequence summary) {
         mValueSummary = summary;
         setFullSummary();
@@ -52,6 +59,17 @@ public abstract class DialogPreferenceBase extends DialogPreference {
                     .append(mBaseSummary)
                     .append('\n')
                     .append(mValueSummary));
+        }
+    }
+
+    @Override
+    protected void onBindView(View view) {
+        super.onBindView(view);
+
+        // allow the title to wrap
+        TextView titleTextView = view.findViewById(android.R.id.title);
+        if (titleTextView != null) {
+            titleTextView.setSingleLine(false);
         }
     }
 }
