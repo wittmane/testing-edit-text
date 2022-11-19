@@ -1,36 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-/* //device/apps/common/assets/res/any/strings.xml
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
- -->
+<!-- Copyright 2006, The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="failed_to_copy_to_clipboard" msgid="725919885138539875">"ສຳເນົາໃສ່ຄລິບບອດບໍ່ສຳເລັດ"</string>
-    <string name="paste_as_plain_text" msgid="7664800665823182587">"ວາງເປັນຂໍ້ຄວາມທຳມະດາ"</string>
-    <string name="replace" msgid="7842675434546657444">"ແທນທີ່…"</string>
-    <string name="delete" msgid="1514113991712129054">"ລຶບ"</string>
-    <string name="undo" msgid="3175318090002654673">"ບໍ່​ເຮັດ"</string>
-    <string name="redo" msgid="7231448494008532233">"ເຮັດໃໝ່"</string>
-    <string name="autofill" msgid="511224882647795296">"ຕື່ມຂໍ້ມູນອັດຕະໂນມັດ"</string>
-    <string name="textSelectionCABTitle" msgid="5151441579532476940">"ການເລືອກຂໍ້ຄວາມ"</string>
-    <string name="addToDictionary" msgid="8041821113480950096">"ເພີ່ມໄປທີ່ວັດຈະນານຸກົມ"</string>
-    <string name="deleteText" msgid="4200807474529938112">"ລຶບ"</string>
-    <string name="share" msgid="4157615043345227321">"ແບ່ງປັນ"</string>
+    <string name="failed_to_copy_to_clipboard">"ສຳເນົາໃສ່ຄລິບບອດບໍ່ສຳເລັດ"</string>
+    <string name="paste_as_plain_text">"ວາງເປັນຂໍ້ຄວາມທຳມະດາ"</string>
+    <string name="replace">"ແທນທີ່…"</string>
+    <string name="delete">"ລຶບ"</string>
+    <string name="undo">"ບໍ່​ເຮັດ"</string>
+    <string name="redo">"ເຮັດໃໝ່"</string>
+    <string name="autofill">"ຕື່ມຂໍ້ມູນອັດຕະໂນມັດ"</string>
+    <string name="textSelectionCABTitle">"ການເລືອກຂໍ້ຄວາມ"</string>
+    <string name="addToDictionary">"ເພີ່ມໄປທີ່ວັດຈະນານຸກົມ"</string>
+    <string name="deleteText">"ລຶບ"</string>
+    <string name="share">"ແບ່ງປັນ"</string>
     <string name="settings">"ການຕັ້ງຄ່າ"</string>
-    <string name="button_default" msgid="4824983794085575316">"ຄ່າເລີ່ມຕົ້ນ"</string>
+    <string name="button_default">"ຄ່າເລີ່ມຕົ້ນ"</string>
 </resources>

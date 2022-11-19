@@ -1,36 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-/* //device/apps/common/assets/res/any/strings.xml
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
- -->
+<!-- Copyright 2006, The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="failed_to_copy_to_clipboard" msgid="725919885138539875">"Mübadilə buferinə kopyalamaq alınmadı"</string>
-    <string name="paste_as_plain_text" msgid="7664800665823182587">"Adi mətn kimi köçürün"</string>
-    <string name="replace" msgid="7842675434546657444">"Əvəz et..."</string>
-    <string name="delete" msgid="1514113991712129054">"Sil"</string>
-    <string name="undo" msgid="3175318090002654673">"Ləğv edin"</string>
-    <string name="redo" msgid="7231448494008532233">"Yenidən edin"</string>
-    <string name="autofill" msgid="511224882647795296">"Avtodoldurma"</string>
-    <string name="textSelectionCABTitle" msgid="5151441579532476940">"Mətn seçimi"</string>
-    <string name="addToDictionary" msgid="8041821113480950096">"Lüğətə əlavə edin"</string>
-    <string name="deleteText" msgid="4200807474529938112">"Sil"</string>
-    <string name="share" msgid="4157615043345227321">"Paylaşın"</string>
+    <string name="failed_to_copy_to_clipboard">"Mübadilə buferinə kopyalamaq alınmadı"</string>
+    <string name="paste_as_plain_text">"Adi mətn kimi köçürün"</string>
+    <string name="replace">"Əvəz et..."</string>
+    <string name="delete">"Sil"</string>
+    <string name="undo">"Ləğv edin"</string>
+    <string name="redo">"Yenidən edin"</string>
+    <string name="autofill">"Avtodoldurma"</string>
+    <string name="textSelectionCABTitle">"Mətn seçimi"</string>
+    <string name="addToDictionary">"Lüğətə əlavə edin"</string>
+    <string name="deleteText">"Sil"</string>
+    <string name="share">"Paylaşın"</string>
     <string name="settings">"Ayarlar"</string>
-    <string name="button_default" msgid="4824983794085575316">"Defolt"</string>
+    <string name="button_default">"Defolt"</string>
 </resources>

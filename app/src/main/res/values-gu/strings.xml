@@ -1,36 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-/* //device/apps/common/assets/res/any/strings.xml
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
- -->
+<!-- Copyright 2006, The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="failed_to_copy_to_clipboard" msgid="725919885138539875">"ક્લિપબોર્ડ પર કૉપિ કરવામાં નિષ્ફળ"</string>
-    <string name="paste_as_plain_text" msgid="7664800665823182587">"સાદી ટેક્સ્ટ તરીકે પેસ્ટ કરો"</string>
-    <string name="replace" msgid="7842675434546657444">"બદલો…"</string>
-    <string name="delete" msgid="1514113991712129054">"ડિલીટ કરો"</string>
-    <string name="undo" msgid="3175318090002654673">"પૂર્વવત્ કરો"</string>
-    <string name="redo" msgid="7231448494008532233">"ફરી કરો"</string>
-    <string name="autofill" msgid="511224882647795296">"સ્વતઃભરણ"</string>
-    <string name="textSelectionCABTitle" msgid="5151441579532476940">"ટેક્સ્ટ પસંદગી"</string>
-    <string name="addToDictionary" msgid="8041821113480950096">"શબ્દકોશમાં ઉમેરો"</string>
-    <string name="deleteText" msgid="4200807474529938112">"ડિલીટ કરો"</string>
-    <string name="share" msgid="4157615043345227321">"શેર કરો"</string>
+    <string name="failed_to_copy_to_clipboard">"ક્લિપબોર્ડ પર કૉપિ કરવામાં નિષ્ફળ"</string>
+    <string name="paste_as_plain_text">"સાદી ટેક્સ્ટ તરીકે પેસ્ટ કરો"</string>
+    <string name="replace">"બદલો…"</string>
+    <string name="delete">"ડિલીટ કરો"</string>
+    <string name="undo">"પૂર્વવત્ કરો"</string>
+    <string name="redo">"ફરી કરો"</string>
+    <string name="autofill">"સ્વતઃભરણ"</string>
+    <string name="textSelectionCABTitle">"ટેક્સ્ટ પસંદગી"</string>
+    <string name="addToDictionary">"શબ્દકોશમાં ઉમેરો"</string>
+    <string name="deleteText">"ડિલીટ કરો"</string>
+    <string name="share">"શેર કરો"</string>
     <string name="settings">"સેટિંગ"</string>
-    <string name="button_default" msgid="4824983794085575316">"ડિફોલ્ટ"</string>
+    <string name="button_default">"ડિફોલ્ટ"</string>
 </resources>
