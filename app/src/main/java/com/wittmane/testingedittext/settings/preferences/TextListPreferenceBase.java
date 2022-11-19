@@ -73,14 +73,6 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     }
 
     @Override
-    protected View onCreateView(ViewGroup parent) {
-        View view = super.onCreateView(parent);
-        final TextList<T> value = getReader().readValue();
-        setValueSummary(getValueText(value.getDataArray()));
-        return view;
-    }
-
-    @Override
     protected View onCreateDialogView() {
         final View view = super.onCreateDialogView();
         mTextTable = view.findViewById(R.id.text_table);
@@ -324,12 +316,12 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
             final TextList<T> value = getReader().readDefaultValue();
-            setValueSummary(getValueText(value.getDataArray()));
+            updateValueSummary(value.getDataArray());
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
             TextList<T> value = new TextList<T>(getData(), mEscapeCharactersCheckBox.isChecked());
 
-            setValueSummary(getValueText(value.getDataArray()));
+            updateValueSummary(value.getDataArray());
             writeValue(value);
         }
     }
@@ -533,6 +525,15 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     }
 
     protected abstract String getValueText(final @NonNull T[] value);
+
+    @Override
+    protected void updateValueSummary() {
+        updateValueSummary(getReader().readValue().getDataArray());
+    }
+
+    private void updateValueSummary(final T[] value) {
+        setValueSummary(getValueText(value));
+    }
 
     protected abstract boolean isRowEmpty(T rowData);
 

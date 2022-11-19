@@ -22,9 +22,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
@@ -66,14 +66,6 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     }
 
     @Override
-    protected View onCreateView(ViewGroup parent) {
-        View view = super.onCreateView(parent);
-        final int value = readValue();
-        setValueSummary(getValueText(value));
-        return view;
-    }
-
-    @Override
     protected View onCreateDialogView() {
         final View view = super.onCreateDialogView();
         mSeekBar = view.findViewById(R.id.seek_bar_dialog_bar);
@@ -88,7 +80,7 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     protected void onBindDialogView(final View view) {
         super.onBindDialogView(view);
         final int value = readValue();
-        mValueView.setText(getValueText(value));
+        mValueView.setText(getValueText(value, true));
         mSeekBar.setProgress(value);
 
         // allow the title to wrap
@@ -110,11 +102,11 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
             final int value = readDefaultValue();
-            setValueSummary(getValueText(value));
+            updateValueSummary(value);
             writeDefaultValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
             final int value = mSeekBar.getProgress();
-            setValueSummary(getValueText(value));
+            updateValueSummary(value);
             writeValue(value);
         }
     }
@@ -122,7 +114,7 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     @Override
     public void onProgressChanged(final ExtendingSeekBar seekBar, final int progress,
                                   final boolean fromUser) {
-        mValueView.setText(getValueText(progress));
+        mValueView.setText(getValueText(progress, true));
     }
 
     @Override
@@ -152,9 +144,27 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     }
 
     public String getValueText(final int value) {
+        return getValueText(value, false);
+    }
+
+    private String getValueText(final int value, final boolean forSeekBarValue) {
         if (value < mMinValue || value > mMaxValue) {
             return mDefaultValueText == null ? "" : mDefaultValueText;
         }
+        // if the default value is within the allowed range, the default text should be used (if it
+        // exists) for it except for the value label for the seek bar
+        if (!forSeekBarValue && value == mDefaultValue && !TextUtils.isEmpty(mDefaultValueText)) {
+            return mDefaultValueText;
+        }
         return String.format(mValueText, value);
+    }
+
+    @Override
+    protected void updateValueSummary() {
+        updateValueSummary(readValue());
+    }
+
+    private void updateValueSummary(final int value) {
+        setValueSummary(getValueText(value));
     }
 }

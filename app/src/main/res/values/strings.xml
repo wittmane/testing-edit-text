@@ -111,10 +111,8 @@
     <string name="added_in_api_level_11">Added in API level 11 (Honeycomb)</string>
     <string name="added_in_api_level_9">Added in API level 9 (Gingerbread)</string>
 
-    <!--TODO: (EW) it might make more sense to have a separate setting for delaying this call to
-         test potentially returning null to the IME-->
     <string name="skip_getsurroundingtext_title">Don\'t implement getSurroundingText</string>
-    <string name="skip_getsurroundingtext_summary">Behave as if InputConnection#getSurroundingText wasn\'t implemented, like some text editors targeting an earlier version, so it will just return null. Also, although not documented, this returns null to the IME if the editor takes too long to respond, so this can simulate that too.</string>
+    <string name="skip_getsurroundingtext_summary">Behave as if InputConnection#getSurroundingText wasn\'t implemented, like some text editors targeting an earlier version, so it will just return null.</string>
 
     <string name="skip_performspellcheck_title">Don\'t implement performSpellCheck</string>
     <string name="skip_performspellcheck_summary">Behave as if InputConnection#performSpellCheck wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
@@ -149,6 +147,29 @@
     <string name="update_delay_summary">Simulate a delay from a slow device. Delay calls to InputMethodManager#updateSelection and InputMethodManager#updateExtractedText.</string>
     <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
     <string name="abbreviation_unit_milliseconds"><xliff:g id="MILLISECONDS">%s</xliff:g>ms</string>
+    <string name="no_delay">No delay</string>
+
+    <string name="finishcomposingtext_delay_title">Delay finishComposingText</string>
+    <string name="finishcomposingtext_delay_summary">Documentation for InputConnection#finishComposingText warns that this call may be expensive with some editors. Force a delay when processing this call.</string>
+
+    <string name="getsurroundingtext_delay_title">Delay getSurroundingText</string>
+    <string name="getsurroundingtext_delay_summary">Documentation for InputConnection#getSurroundingText notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="gettextbeforecursor_delay_title">Delay getTextBeforeCursor</string>
+    <string name="gettextbeforecursor_delay_summary">Documentation for InputConnection#getTextBeforeCursor notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="getselectedtext_delay_title">Delay getSelectedText</string>
+    <string name="getselectedtext_delay_summary">Documentation for InputConnection#getSelectedText notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="gettextaftercursor_delay_title">Delay getTextAfterCursor</string>
+    <string name="gettextaftercursor_delay_summary">Documentation for InputConnection#getTextAfterCursor notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="getcursorcapsmode_delay_title">Delay getCursorCapsMode</string>
+    <string name="getcursorcapsmode_delay_summary">Documentation for InputConnection#getCursorCapsMode mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="getextractedtext_delay_title">Delay getExtractedText</string>
+    <string name="getextractedtext_delay_summary">Documentation for InputConnection#getExtractedText mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
 
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->

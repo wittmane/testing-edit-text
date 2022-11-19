@@ -38,10 +38,10 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.Size;
 
 import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.IntRange;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,14 +75,6 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
         mReader = new Reader(getSharedPreferences(), getKey());
-    }
-
-    @Override
-    protected View onCreateView(ViewGroup parent) {
-        View view = super.onCreateView(parent);
-        final int[] value = mReader.readValue();
-        setValueSummary(getValueText(value));
-        return view;
     }
 
     @Override
@@ -641,12 +633,13 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
 
         mSplitUnicodeCheckbox.setChecked(readSplitUnicodeForSurrogatePairsPref());
 
-        final int[] value = mReader.readValue();
+        final IntRange value = mReader.readValue();
         if (value == null) {
             return;
         }
-        setCodepointFields(mStartCharacterView, mStartCodepointView, mStartUnicodeView, value[0]);
-        setCodepointFields(mEndCharacterView, mEndCodepointView, mEndUnicodeView, value[1]);
+        setCodepointFields(mStartCharacterView, mStartCodepointView, mStartUnicodeView,
+                value.getStart());
+        setCodepointFields(mEndCharacterView, mEndCodepointView, mEndUnicodeView, value.getEnd());
     }
 
     @Override
@@ -667,8 +660,8 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     public void onClick(final DialogInterface dialog, final int which) {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
-            final int[] value = mReader.readDefaultValue();
-            setValueSummary(getValueText(value));
+            final IntRange value = mReader.readDefaultValue();
+            updateValueSummary(value);
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
             int startCodepoint = getCodepointFromFields(
@@ -687,15 +680,15 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
                 endCodepoint = temp;
             }
 
-            int[] value = new int[] { startCodepoint, endCodepoint };
-            setValueSummary(getValueText(value));
+            IntRange value = new IntRange(startCodepoint, endCodepoint);
+            updateValueSummary(value);
             writeValue(value);
         }
     }
 
-    public void writeValue(final @Nullable @Size(2) int[] value) {
+    public void writeValue(final @Nullable IntRange value) {
         getSharedPreferences().edit()
-                .putString(getKey(), value == null ? null : value[0] + "-" + value[1])
+                .putString(getKey(), value == null ? null : value.getStart() + "-" + value.getEnd())
                 .apply();
     }
 
@@ -726,7 +719,8 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             mKey = key;
         }
 
-        public @Nullable @Size(2) int[] readValue() {
+        @Nullable
+        public IntRange readValue() {
             String rawValue = mPrefs.getString(mKey, null);
             if (rawValue == null || rawValue.equals("")) {
                 return null;
@@ -738,26 +732,36 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
                 return null;
             }
             try {
-                return new int[]{Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1])};
+                return new IntRange(Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
             } catch (NumberFormatException e) {
                 Log.e(TAG, "Unexpected codepoint in range preference: " + rawValue);
                 return null;
             }
         }
 
-        private @Nullable @Size(2) int[] readDefaultValue() {
+        @Nullable
+        private IntRange readDefaultValue() {
             return null;
         }
     }
 
-    public String getValueText(final @Nullable @Size(2) int[] value) {
+    public String getValueText(final @Nullable IntRange value) {
         if (value == null) {
             return "";
         }
         return new StringBuilder()
-                .appendCodePoint(value[0])
+                .appendCodePoint(value.getStart())
                 .append(" - ")
-                .appendCodePoint(value[1])
+                .appendCodePoint(value.getEnd())
                 .toString();
+    }
+
+    @Override
+    protected void updateValueSummary() {
+        updateValueSummary(mReader.readValue());
+    }
+
+    private void updateValueSummary(final IntRange value) {
+        setValueSummary(getValueText(value));
     }
 }

@@ -395,7 +395,8 @@ public class EditableInputConnection implements InputConnection {
                                      int startCodePointToSkip, int endCodePointsToSkip) {
         boolean restrictToInclude = Settings.shouldRestrictToInclude();
         String[] specificRestrictions = Settings.getRestrictSpecific();
-        int[] codepointRangeRestriction = Settings.getRestrictRange();
+        com.wittmane.testingedittext.settings.IntRange codepointRangeRestriction =
+                Settings.getRestrictRange();
 
         int codePointIndex = startCodePointToSkip;
         while (codePointIndex < CodePointUtils.codePointCount(text) - endCodePointsToSkip) {
@@ -428,8 +429,8 @@ public class EditableInputConnection implements InputConnection {
                     // this whole text block is allowed. move the position to the end of the block.
                     codePointIndex += specificRestrictionCharLength;
                 } else if (codepointRangeRestriction != null &&
-                        (codePoint >= codepointRangeRestriction[0]
-                                && codePoint <= codepointRangeRestriction[1])) {
+                        (codePoint >= codepointRangeRestriction.getStart()
+                                && codePoint <= codepointRangeRestriction.getEnd())) {
                     // this codepoint is inside of the included range. move to the next codepoint.
                     codePointIndex++;
                 } else {
@@ -456,8 +457,8 @@ public class EditableInputConnection implements InputConnection {
                     }
                     text.delete(charIndex, charIndex + specificRestrictionCharLength);
                 } else if (codepointRangeRestriction != null &&
-                        (codePoint >= codepointRangeRestriction[0]
-                                && codePoint <= codepointRangeRestriction[1])) {
+                        (codePoint >= codepointRangeRestriction.getStart()
+                                && codePoint <= codepointRangeRestriction.getEnd())) {
                     // this codepoint is not allowed, so get rid of it. no need to update the
                     // position since the next codepoint will be in the current position.
                     if (LOG_TEXT_MODIFICATION) {
@@ -824,6 +825,7 @@ public class EditableInputConnection implements InputConnection {
         }
         final Editable content = getEditable();
         beginBatchEdit();
+        delay(Settings.getFinishComposingTextDelay());
         removeComposingSpans(content);
         // (EW) the AOSP version also called sendCurrentText, but that does nothing since
         // mFallbackMode would be false for an EditText
@@ -843,6 +845,9 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "getCursorCapsMode: reqModes=" + reqModes);
         }
+
+        delay(Settings.getGetCursorCapsModeDelay());
+
         final Editable content = getEditable();
 
         int selectionStart = Selection.getSelectionStart(content);
@@ -864,6 +869,8 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest
                     + ", flags=" + flags);
         }
+
+        delay(Settings.getGetExtractedTextDelay());
 
         ExtractedText extractedText = new ExtractedText();
         if (mEditText.extractText(extractedTextRequest, extractedText)) {
@@ -906,6 +913,8 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "getTextBeforeCursor: length=" + length + ", flags=" + flags);
         }
         Preconditions.checkArgumentNonnegative(length);
+
+        delay(Settings.getGetTextBeforeCursorDelay());
 
         CharSequence textBeforeCursor = getTextBeforeCursorInternal(length, flags);
         // (EW) check the setting to force returning less text than requested. BaseInputConnection
@@ -971,6 +980,8 @@ public class EditableInputConnection implements InputConnection {
             return null;
         }
 
+        delay(Settings.getGetSelectedTextDelay());
+
         final Editable content = getEditable();
 
         int selectionStart = Selection.getSelectionStart(content);
@@ -1004,6 +1015,8 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "getTextAfterCursor: length=" + length + ", flags=" + flags);
         }
         Preconditions.checkArgumentNonnegative(length);
+
+        delay(Settings.getGetTextAfterCursorDelay());
 
         CharSequence textAfterCursor = getTextAfterCursorInternal(length, flags);
         // (EW) check the setting to force returning less text than requested. BaseInputConnection
@@ -1067,6 +1080,8 @@ public class EditableInputConnection implements InputConnection {
         if (Settings.shouldSkipGetSurroundingText()) {
             return null;
         }
+
+        delay(Settings.getGetSurroundingTextDelay());
 
         SurroundingText surroundingText =
                 getSurroundingTextInternal(beforeLength, afterLength, flags);
@@ -1982,5 +1997,18 @@ public class EditableInputConnection implements InputConnection {
         new InputConnectionWrapper(new InputConnectionLyingWrapper(testInputConnection), true);
         sHasCheckedCanLieAboutMissingMethods = true;
         return sCanLieAboutMissingMethods;
+    }
+
+    // (EW) force a delay for testing potentially slow methods
+    private void delay(int millisecondDelay) {
+        if (millisecondDelay <= 0) {
+            // no delay needed
+            return;
+        }
+        try {
+            Thread.sleep(millisecondDelay);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Delay was interrupted: " + e.getMessage());
+        }
     }
 }

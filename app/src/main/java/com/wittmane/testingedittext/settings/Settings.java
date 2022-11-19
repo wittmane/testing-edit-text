@@ -71,6 +71,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SKIP_GETSELECTEDTEXT = "pref_key_skip_getselectedtext";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
     public static final String PREF_UPDATE_DELAY = "pref_key_update_delay";
+    public static final String PREF_FINISHCOMPOSINGTEXT_DELAY =
+            "pref_key_finishcomposingtext_delay";
+    public static final String PREF_GETSURROUNDINGTEXT_DELAY = "pref_key_getsurroundingtext_delay";
+    public static final String PREF_GETTEXTBEFORECURSOR_DELAY =
+            "pref_key_gettextbeforecursor_delay";
+    public static final String PREF_GETSELECTEDTEXT_DELAY = "pref_key_getselectedtext_delay";
+    public static final String PREF_GETTEXTAFTERCURSOR_DELAY = "pref_key_gettextaftercursor_delay";
+    public static final String PREF_GETCURSORCAPSMODE_DELAY = "pref_key_getcursorcapsmode_delay";
+    public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -78,7 +87,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mModifyComposedChangesOnly;
     private boolean mRestrictToInclude;
     private String[] mRestrictSpecific;
-    private int[] mRestrictRange;
+    private IntRange mRestrictRange;
     private TranslateText[] mTranslateSpecific;
     private int mShiftCodepoint;
     private boolean mSkipExtractingText;
@@ -101,6 +110,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mSkipGetSelectedText;
     private boolean mSkipSetComposingRegion;
     private int mUpdateDelay;
+    private int mFinishComposingTextDelay;
+    private int mGetSurroundingTextDelay;
+    private int mGetTextBeforeCursorDelay;
+    private int mGetSelectedTextDelay;
+    private int mGetTextAfterCursorDelay;
+    private int mGetCursorCapsModeDelay;
+    private int mGetExtractedTextDelay;
 
     private SharedPreferences mPrefs;
 
@@ -167,6 +183,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
 
         mUpdateDelay = readUpdateDelay(mPrefs);
+        mFinishComposingTextDelay = readFinishComposingTextDelay(mPrefs);
+        mGetSurroundingTextDelay = readGetSurroundingTextDelay(mPrefs);
+        mGetTextBeforeCursorDelay = readGetTextBeforeCursorDelay(mPrefs);
+        mGetSelectedTextDelay = readGetSelectedTextDelay(mPrefs);
+        mGetTextAfterCursorDelay = readGetTextAfterCursorDelay(mPrefs);
+        mGetCursorCapsModeDelay = readGetCursorCapsModeDelay(mPrefs);
+        mGetExtractedTextDelay = readGetExtractedTextDelay(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -306,11 +329,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return sb.toString();
     }
 
-    private static @Nullable @Size(2) int[] readRestrictRange(final SharedPreferences prefs) {
+    @Nullable
+    private static IntRange readRestrictRange(final SharedPreferences prefs) {
         return (new CodepointRangeDialogPreference.Reader(prefs, PREF_RESTRICT_RANGE)).readValue();
     }
 
-    public static @Nullable @Size(2) int[] getRestrictRange() {
+    public static @Nullable IntRange getRestrictRange() {
         return getInstance().mRestrictRange;
     }
 
@@ -501,5 +525,61 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getUpdateDelay() {
         return getInstance().mUpdateDelay;
+    }
+
+    private static int readFinishComposingTextDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY, 0);
+    }
+
+    public static int getFinishComposingTextDelay() {
+        return getInstance().mFinishComposingTextDelay;
+    }
+
+    private static int readGetSurroundingTextDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY, 0);
+    }
+
+    public static int getGetSurroundingTextDelay() {
+        return getInstance().mGetSurroundingTextDelay;
+    }
+
+    private static int readGetTextBeforeCursorDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY, 0);
+    }
+
+    public static int getGetTextBeforeCursorDelay() {
+        return getInstance().mGetTextBeforeCursorDelay;
+    }
+
+    private static int readGetSelectedTextDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY, 0);
+    }
+
+    public static int getGetSelectedTextDelay() {
+        return getInstance().mGetSelectedTextDelay;
+    }
+
+    private static int readGetTextAfterCursorDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY, 0);
+    }
+
+    public static int getGetTextAfterCursorDelay() {
+        return getInstance().mGetTextAfterCursorDelay;
+    }
+
+    private static int readGetCursorCapsModeDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY, 0);
+    }
+
+    public static int getGetCursorCapsModeDelay() {
+        return getInstance().mGetCursorCapsModeDelay;
+    }
+
+    private static int readGetExtractedTextDelay(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY, 0);
+    }
+
+    public static int getGetExtractedTextDelay() {
+        return getInstance().mGetExtractedTextDelay;
     }
 }

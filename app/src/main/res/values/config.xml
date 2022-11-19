@@ -38,6 +38,11 @@
     <integer name="config_update_delay_max">10000</integer>
     <integer name="config_update_delay_step">50</integer>
 
+    <integer name="config_inputconnection_method_delay_default">0</integer>
+    <integer name="config_inputconnection_method_delay_min">0</integer>
+    <integer name="config_inputconnection_method_delay_max">10000</integer>
+    <integer name="config_inputconnection_method_delay_step">50</integer>
+
     <integer name="config_shift_codepoint_default">0</integer>
     <integer name="config_shift_codepoint_min">-1114110</integer>
     <integer name="config_shift_codepoint_max">1114110</integer>

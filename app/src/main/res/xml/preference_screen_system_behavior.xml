@@ -24,6 +24,84 @@
         app:maxValue="@integer/config_update_delay_max"
         app:stepValue="@integer/config_update_delay_step"
         app:defaultValue="@integer/config_update_delay_default"
-        app:valueText="@string/abbreviation_unit_milliseconds" />
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_finishcomposingtext_delay"
+        android:title="@string/finishcomposingtext_delay_title"
+        android:summary="@string/finishcomposingtext_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_getsurroundingtext_delay"
+        android:title="@string/getsurroundingtext_delay_title"
+        android:summary="@string/getsurroundingtext_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_gettextbeforecursor_delay"
+        android:title="@string/gettextbeforecursor_delay_title"
+        android:summary="@string/gettextbeforecursor_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_getselectedtext_delay"
+        android:title="@string/getselectedtext_delay_title"
+        android:summary="@string/getselectedtext_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_gettextaftercursor_delay"
+        android:title="@string/gettextaftercursor_delay_title"
+        android:summary="@string/gettextaftercursor_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_getcursorcapsmode_delay"
+        android:title="@string/getcursorcapsmode_delay_title"
+        android:summary="@string/getcursorcapsmode_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_getextractedtext_delay"
+        android:title="@string/getextractedtext_delay_title"
+        android:summary="@string/getextractedtext_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
 
 </PreferenceScreen>

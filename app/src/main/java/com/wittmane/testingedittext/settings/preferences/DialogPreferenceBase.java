@@ -21,6 +21,7 @@ import android.preference.DialogPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 public abstract class DialogPreferenceBase extends DialogPreference {
@@ -62,9 +63,20 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         }
     }
 
+    protected abstract void updateValueSummary();
+
+    @Override
+    protected View onCreateView(ViewGroup parent) {
+        View view = super.onCreateView(parent);
+        updateValueSummary();
+        return view;
+    }
+
     @Override
     protected void onBindView(View view) {
         super.onBindView(view);
+
+        updateValueSummary();
 
         // allow the title to wrap
         TextView titleTextView = view.findViewById(android.R.id.title);
