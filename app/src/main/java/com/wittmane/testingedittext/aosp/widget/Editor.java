@@ -105,6 +105,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;
@@ -129,8 +130,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
 
@@ -333,6 +338,9 @@ class Editor {
     private final int mLineChangeSlopMin;
 
     private CursorAnchorInfo mLastCursorAnchorInfo;
+
+    private final DelayedUpdater mDelayedUpdater = new DelayedUpdater();
+    private CharSequence mTextAtLastExtract;
 
     Editor(EditText editText) {
         mEditText = editText;
@@ -1418,9 +1426,15 @@ class Editor {
         mEditText.onEndBatchEdit();
         mUndoInputFilter.endBatchEdit();
 
+        boolean needsToReportExtractedText = false;
         if (ims.mContentChanged || ims.mSelectionModeChanged) {
             mEditText.updateAfterEdit();
-            reportExtractedText();
+            // (EW) check the setting to determine which update method should be called first
+            if (Settings.shouldUpdateSelectionBeforeExtractedText()) {
+                needsToReportExtractedText = true;
+            } else {
+                reportExtractedText();
+            }
         } else if (ims.mCursorChanged) {
             // Cheesy way to get us to report the current cursor location.
             mEditText.invalidateCursor();
@@ -1428,6 +1442,9 @@ class Editor {
         // sendUpdateSelection knows to avoid sending if the selection did
         // not actually change.
         sendUpdateSelection();
+        if (needsToReportExtractedText) {
+            reportExtractedText();
+        }
 
         // Show drag handles if they were blocked by batch edit mode.
         if (mTextActionMode != null) {
@@ -1482,20 +1499,94 @@ class Editor {
 
         if (partialStartOffset != EXTRACT_NOTHING) {
             final int N = content.length();
-            if (partialStartOffset < 0) {
+            // (EW) check the setting to force doing a full text extract
+            if (partialStartOffset < 0 || Settings.shouldExtractFullText()) {
                 outText.partialStartOffset = outText.partialEndOffset = -1;
-                partialStartOffset = 0;
-                partialEndOffset = N;
+
+                //TODO: (EW) it might be good to have an option to respect request.hintMaxLines and
+                // request.hintMaxChars, which I assume only applies to full extracts, and it
+                // probably shouldn't limit this from returning the full change when triggered from
+                // a text change
+
+                // (EW) check the setting to see if the full text extract should limit how much text
+                // is returned
+                int textLimit = Settings.getExtractMonitorTextLimit();
+                if (textLimit > 0) {
+                    // (EW) the most important thing to return is text that changed. the
+                    // documentation for InputConnection#getExtractedText doesn't clearly indicate
+                    // what part of the text should be returned when it is limited, the existence of
+                    // startOffset at least seems to imply that selectionStart (and probably
+                    // selectionEnd) should be within the range of the returned text (in most cases
+                    // they should be in or near the changed text), so our next priority will be
+                    // include the selection.
+                    final int[] positionsOfInterest;
+                    if (partialStartOffset < 0) {
+                        // (EW) there is no change to be concerned about, so just focus on the
+                        // selection
+                        positionsOfInterest = new int[] {
+                                mEditText.getSelectionStart(),
+                                mEditText.getSelectionEnd(),
+                        };
+                    } else {
+                        //TODO: (EW) it might be good to have an option to always return the full
+                        // change, even if that's over the text limit
+                        if (partialEndOffset + delta - partialStartOffset > textLimit) {
+                            positionsOfInterest = new int[] {
+                                    Math.max(partialStartOffset,
+                                            Math.min(mEditText.getSelectionStart(),
+                                                    partialEndOffset + delta)),
+                                    Math.max(partialStartOffset,
+                                            Math.min(mEditText.getSelectionEnd(),
+                                                    partialEndOffset + delta)),
+                                    partialStartOffset,
+                                    partialEndOffset + delta
+                            };
+                        } else {
+                            positionsOfInterest = new int[] {
+                                    partialStartOffset,
+                                    partialEndOffset + delta,
+                                    mEditText.getSelectionStart(),
+                                    mEditText.getSelectionEnd(),
+                            };
+                        }
+                    }
+                    // (EW) figure out the range of text that should be used based on a prioritized
+                    // list of positions in the text that should be included, but don't go past the
+                    // text limit
+                    partialStartOffset = partialEndOffset = positionsOfInterest[0];
+                    for (int i = 1; i < positionsOfInterest.length; i++) {
+                        final int position = positionsOfInterest[i];
+                        if (position >= partialStartOffset && position <= partialEndOffset) {
+                            continue;
+                        }
+                        if (position > partialEndOffset) {
+                            partialEndOffset = partialStartOffset
+                                    + Math.min(position - partialStartOffset, textLimit);
+                        } else {
+                            partialStartOffset = partialEndOffset
+                                    - Math.min(partialEndOffset - position, textLimit);
+                        }
+                    }
+                    // (EW) with any extra space in the limit, we'll just add text on both sides
+                    // centered around the changed text and selection, but shift it if it goes past
+                    // either end of the text
+                    if (partialEndOffset - partialStartOffset < textLimit) {
+                        partialStartOffset = Math.max(0, partialStartOffset
+                                - (textLimit - (partialEndOffset - partialStartOffset)) / 2);
+                        partialEndOffset = Math.min(N, partialStartOffset + textLimit);
+                        partialStartOffset = Math.max(0, partialEndOffset - textLimit);
+                    }
+                } else {
+                    partialStartOffset = 0;
+                    partialEndOffset = N;
+                }
+                outText.startOffset = partialStartOffset;
             } else {
                 // Now use the delta to determine the actual amount of text
                 // we need.
                 partialEndOffset += delta;
 
                 // Adjust offsets to ensure we contain full spans.
-                //TODO: (EW) this expands the extracted text to include all of the ParcelableSpans,
-                // and in the case of spellcheck being enabled, this seems to result in a full
-                // extract, so this will need to be handled when adding options to limit extracting
-                // text
                 Object[] spans = getParcelableSpans(content, partialStartOffset, partialEndOffset);
                 int i = spans.length;
                 while (i > 0) {
@@ -1508,6 +1599,7 @@ class Editor {
 
                 outText.partialStartOffset = partialStartOffset;
                 outText.partialEndOffset = partialEndOffset - delta;
+                outText.startOffset = 0;
 
                 if (partialStartOffset > N) {
                     partialStartOffset = N;
@@ -1520,6 +1612,9 @@ class Editor {
                     partialEndOffset = 0;
                 }
             }
+            //TODO: (EW) documentation says editor authors should strive to send text with styles if
+            // possible, but it isn't required, so it might be good to have a setting to never
+            // return styles
             if ((request.flags & InputConnection.GET_TEXT_WITH_STYLES) != 0) {
                 outText.text = content.subSequence(partialStartOffset,
                         partialEndOffset);
@@ -1531,6 +1626,7 @@ class Editor {
             outText.partialStartOffset = 0;
             outText.partialEndOffset = 0;
             outText.text = "";
+            outText.startOffset = 0;
         }
         outText.flags = 0;
         // (EW) the AOSP version also checked MetaKeyKeyListener#getMetaState with
@@ -1544,13 +1640,13 @@ class Editor {
         // getMetaState throughout AOSP code, so skipping it probably won't even cause a real lack
         // of functionality (at least currently) since other apps probably aren't using it either.
         // same basic need to skip this in EditText.ChangeWatcher#afterTextChanged,
-        // ArrowKeyMovementMethod#handleMovementKey, and Touch#onTouchEvent.
+        // ArrowKeyMovementMethod#handleMovementKey, Touch#onTouchEvent, and
+        // EditableInputConnection#setSelection (originally BaseInputConnection).
         if (mEditText.isSingleLine()) {
             outText.flags |= ExtractedText.FLAG_SINGLE_LINE;
         }
-        outText.startOffset = 0;
-        outText.selectionStart = mEditText.getSelectionStart();
-        outText.selectionEnd = mEditText.getSelectionEnd();
+        outText.selectionStart = mEditText.getSelectionStart() - outText.startOffset;
+        outText.selectionEnd = mEditText.getSelectionEnd() - outText.startOffset;
         // (EW) the output hint only exists since Pie
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             outText.hint = mEditText.getHint();
@@ -1599,7 +1695,8 @@ class Editor {
             return false;
         }
         final InputMethodManager imm = getInputMethodManager();
-        if (imm == null) {
+        int updateDelay = Settings.getUpdateDelay();
+        if (updateDelay <= 0 && imm == null) {
             return false;
         }
         if (EditText.DEBUG_EXTRACT) {
@@ -1611,6 +1708,37 @@ class Editor {
         if (ims.mChangedStart < 0 && !wasContentChanged) {
             ims.mChangedStart = EXTRACT_NOTHING;
         }
+
+        // (EW) check the setting to see if we should skip the updates if there was no actual
+        // change
+        CharSequence text = mEditText.getText().subSequence(0, mEditText.getText().length());
+        if (Settings.shouldUpdateExtractedTextOnlyOnNetChanges()
+                && mTextAtLastExtract != null
+                && mTextAtLastExtract.toString().equals(mEditText.getText().toString())) {
+            if ((req.flags & InputConnection.GET_TEXT_WITH_STYLES) != 0
+                    && text instanceof Spanned) {
+                // (EW) the text didn't change, but we need to check spans too
+                Object[] currentSpans = ((Spanned)text).getSpans(0, text.length(), Object.class);
+                Object[] previousSpans;
+                if (mTextAtLastExtract instanceof Spanned) {
+                    previousSpans = ((Spanned)mTextAtLastExtract).getSpans(
+                            0, mTextAtLastExtract.length(), Object.class);
+                } else {
+                    previousSpans = new Object[0];
+                }
+                if (currentSpans.length == previousSpans.length
+                        && (currentSpans.length == 0
+                        || spansMatch(previousSpans, (Spanned)mTextAtLastExtract,
+                        currentSpans, (Spanned)text))) {
+                    return false;
+                }
+            } else {
+                // (EW) text didn't change since last extract/update
+                return false;
+            }
+        }
+        mTextAtLastExtract = text;
+
         if (extractTextInternal(req, ims.mChangedStart, ims.mChangedEnd,
                 ims.mChangedDelta, ims.mExtractedText)) {
             if (EditText.DEBUG_EXTRACT) {
@@ -1621,7 +1749,13 @@ class Editor {
                                 + ": " + ims.mExtractedText.text);
             }
 
-            imm.updateExtractedText(mEditText, req.token, ims.mExtractedText);
+            if (updateDelay > 0) {
+                mDelayedUpdater.queueUpdate(
+                        new ExtractTextUpdateEntry(req.token, ims.mExtractedText),
+                        updateDelay);
+            } else {
+                imm.updateExtractedText(mEditText, req.token, ims.mExtractedText);
+            }
             ims.mChangedStart = EXTRACT_UNKNOWN;
             ims.mChangedEnd = EXTRACT_UNKNOWN;
             ims.mChangedDelta = 0;
@@ -1631,11 +1765,38 @@ class Editor {
         return false;
     }
 
+    // (EW) based on SpannableStringBuilder#equals
+    private boolean spansMatch(Object[] spansA, Spanned spannedA,
+                               Object[] spansB, Spanned spannedB) {
+        if (spansA.length != spansB.length) {
+            return false;
+        }
+        for (int i = 0; i < spansA.length; ++i) {
+            final Object spanA = spansA[i];
+            final Object spanB = spansB[i];
+            if (spanA == spannedA) {
+                if (spannedB != spanB ||
+                        spannedA.getSpanStart(spanA) != spannedB.getSpanStart(spanB) ||
+                        spannedA.getSpanEnd(spanA) != spannedB.getSpanEnd(spanB) ||
+                        spannedA.getSpanFlags(spanA) != spannedB.getSpanFlags(spanB)) {
+                    return false;
+                }
+            } else if (!spanA.equals(spanB) ||
+                    spannedA.getSpanStart(spanA) != spannedB.getSpanStart(spanB) ||
+                    spannedA.getSpanEnd(spanA) != spannedB.getSpanEnd(spanB) ||
+                    spannedA.getSpanFlags(spanA) != spannedB.getSpanFlags(spanB)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void sendUpdateSelection() {
         if (null != mInputMethodState && mInputMethodState.mBatchEditNesting <= 0
                 && !mHasPendingRestartInputForSetText) {
             final InputMethodManager imm = getInputMethodManager();
-            if (null != imm) {
+            int updateDelay = Settings.getUpdateDelay();
+            if (null != imm || updateDelay > 0) {
                 final int selectionStart = mEditText.getSelectionStart();
                 final int selectionEnd = mEditText.getSelectionEnd();
                 final Spannable sp = mEditText.getText();
@@ -1643,9 +1804,78 @@ class Editor {
                 int candEnd = EditableInputConnection.getComposingSpanEnd(sp);
                 // InputMethodManager#updateSelection skips sending the message if
                 // none of the parameters have changed since the last time we called it.
-                imm.updateSelection(mEditText,
-                        selectionStart, selectionEnd, candStart, candEnd);
+                if (updateDelay > 0) {
+                    mDelayedUpdater.queueUpdate(new SelectionUpdateEntry(
+                            selectionStart, selectionEnd, candStart, candEnd), updateDelay);
+                } else {
+                    imm.updateSelection(mEditText,
+                            selectionStart, selectionEnd, candStart, candEnd);
+                }
             }
+        }
+    }
+
+    // (EW) added for forcing a delay for testing
+    private interface UpdateEntry {
+        void sendUpdate(InputMethodManager imm, EditText editText);
+    }
+
+    // (EW) added for forcing a delay for testing
+    private static class ExtractTextUpdateEntry implements UpdateEntry {
+        private final int mToken;
+        private final ExtractedText mExtractedText;
+        public ExtractTextUpdateEntry(int token, ExtractedText extractedText) {
+            mToken = token;
+            mExtractedText = extractedText;
+        }
+
+        public void sendUpdate(InputMethodManager imm, EditText editText) {
+            imm.updateExtractedText(editText, mToken, mExtractedText);
+        }
+    }
+
+    // (EW) added for forcing a delay for testing
+    private static class SelectionUpdateEntry implements UpdateEntry {
+        private final int mSelectionStart;
+        private final int mSelectionEnd;
+        private final int mCandidatesStart;
+        private final int mCandidatesEnd;
+        public SelectionUpdateEntry(int selectionStart, int selectionEnd,
+                                    int candidatesStart, int candidatesEnd) {
+            mSelectionStart = selectionStart;
+            mSelectionEnd = selectionEnd;
+            mCandidatesStart = candidatesStart;
+            mCandidatesEnd = candidatesEnd;
+        }
+
+        public void sendUpdate(InputMethodManager imm, EditText editText) {
+            imm.updateSelection(editText,
+                    mSelectionStart, mSelectionEnd, mCandidatesStart, mCandidatesEnd);
+        }
+    }
+
+    // (EW) added for forcing a delay for testing
+    private class DelayedUpdater {
+        private final Queue<UpdateEntry> mUpdateQueue = new LinkedList<>();
+        private final LinkedList<Timer> mUpdateQueueTimers = new LinkedList<>();
+
+        private synchronized void queueUpdate(UpdateEntry updateEntry, int delay) {
+            final Timer timer = new Timer();
+            mUpdateQueue.add(updateEntry);
+            mUpdateQueueTimers.add(timer);
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    synchronized (DelayedUpdater.this) {
+                        final UpdateEntry update = mUpdateQueue.poll();
+                        final InputMethodManager imm = getInputMethodManager();
+                        if (update != null && imm != null) {
+                            update.sendUpdate(imm, mEditText);
+                        }
+                        mUpdateQueueTimers.remove(timer);
+                    }
+                }
+            }, delay);
         }
     }
 

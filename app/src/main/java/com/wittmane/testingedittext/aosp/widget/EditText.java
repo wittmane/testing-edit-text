@@ -5911,6 +5911,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     outAttrs.hintLocales = null;
                 }
             }
+            if (com.wittmane.testingedittext.settings.Settings.shouldSkipExtractingText()) {
+                // (EW) if InputConnection#getExtractedText returns null, no text is shown in the
+                // full screen text field (landscape) so since we're forcing that to be null, we
+                // should also block the full screen view, since that would just be broken
+                outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+            }
             if (focusSearch(FOCUS_DOWN) != null) {
                 outAttrs.imeOptions |= EditorInfo.IME_FLAG_NAVIGATE_NEXT;
             }
@@ -5968,7 +5974,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
             mInputConnection = ic;
-            return ic;
+            return ic.createWrapperIfNecessary();
         }
         mInputConnection = null;
         return null;
@@ -9785,8 +9791,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // constant used in getMetaState throughout AOSP code, so skipping it probably won't
             // even cause a real lack of functionality (at least currently) since other apps
             // probably aren't using it either. same basic need to skip this in
-            // Editor#extractTextInternal, ArrowKeyMovementMethod#handleMovementKey, and
-            // Touch#onTouchEvent. also MetaKeyKeyListener#stopSelecting is hidden pending API
+            // Editor#extractTextInternal, ArrowKeyMovementMethod#handleMovementKey,
+            // Touch#onTouchEvent, and EditableInputConnection#setSelection (originally
+            // BaseInputConnection). also MetaKeyKeyListener#stopSelecting is hidden pending API
             // review and marked with UnsupportedAppUsage, so there isn't much we could do.
         }
 

@@ -1,34 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-/* //device/apps/common/assets/res/any/strings.xml
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
- -->
+<!-- Copyright 2006, The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="failed_to_copy_to_clipboard" msgid="725919885138539875">"Nepavyko nukopijuoti į iškarpinę"</string>
-    <string name="paste_as_plain_text" msgid="7664800665823182587">"Įklijuoti kaip grynąjį tekstą"</string>
-    <string name="replace" msgid="7842675434546657444">"Pakeisti•"</string>
-    <string name="delete" msgid="1514113991712129054">"Ištrinti"</string>
-    <string name="undo" msgid="3175318090002654673">"Anuliuoti"</string>
-    <string name="redo" msgid="7231448494008532233">"Grąžinti"</string>
-    <string name="autofill" msgid="511224882647795296">"Automatinis pildymas"</string>
-    <string name="textSelectionCABTitle" msgid="5151441579532476940">"Teksto pasirinkimas"</string>
-    <string name="addToDictionary" msgid="8041821113480950096">"Pridėti prie žodyno"</string>
-    <string name="deleteText" msgid="4200807474529938112">"Ištrinti"</string>
-    <string name="share" msgid="4157615043345227321">"Bendrinti"</string>
+    <string name="failed_to_copy_to_clipboard">"Nepavyko nukopijuoti į iškarpinę"</string>
+    <string name="paste_as_plain_text">"Įklijuoti kaip grynąjį tekstą"</string>
+    <string name="replace">"Pakeisti•"</string>
+    <string name="delete">"Ištrinti"</string>
+    <string name="undo">"Anuliuoti"</string>
+    <string name="redo">"Grąžinti"</string>
+    <string name="autofill">"Automatinis pildymas"</string>
+    <string name="textSelectionCABTitle">"Teksto pasirinkimas"</string>
+    <string name="addToDictionary">"Pridėti prie žodyno"</string>
+    <string name="deleteText">"Ištrinti"</string>
+    <string name="share">"Bendrinti"</string>
+    <string name="settings">"Nustatymai"</string>
+    <string name="button_default">"Numatytieji"</string>
 </resources>

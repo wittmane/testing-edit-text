@@ -1,34 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-/* //device/apps/common/assets/res/any/strings.xml
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
- -->
+<!-- Copyright 2006, The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="failed_to_copy_to_clipboard" msgid="725919885138539875">"Η αντιγραφή στο πρόχειρο απέτυχε"</string>
-    <string name="paste_as_plain_text" msgid="7664800665823182587">"Επικόλληση ως απλό κείμενο"</string>
-    <string name="replace" msgid="7842675434546657444">"Αντικατάσταση..."</string>
-    <string name="delete" msgid="1514113991712129054">"Διαγραφή"</string>
-    <string name="undo" msgid="3175318090002654673">"Αναίρεση"</string>
-    <string name="redo" msgid="7231448494008532233">"Επανάληψη"</string>
-    <string name="autofill" msgid="511224882647795296">"Αυτόματη συμπλήρωση"</string>
-    <string name="textSelectionCABTitle" msgid="5151441579532476940">"Επιλογή κειμένου"</string>
-    <string name="addToDictionary" msgid="8041821113480950096">"Προσθήκη στο λεξικό"</string>
-    <string name="deleteText" msgid="4200807474529938112">"Διαγραφή"</string>
-    <string name="share" msgid="4157615043345227321">"Κοινή χρ."</string>
+    <string name="failed_to_copy_to_clipboard">"Η αντιγραφή στο πρόχειρο απέτυχε"</string>
+    <string name="paste_as_plain_text">"Επικόλληση ως απλό κείμενο"</string>
+    <string name="replace">"Αντικατάσταση..."</string>
+    <string name="delete">"Διαγραφή"</string>
+    <string name="undo">"Αναίρεση"</string>
+    <string name="redo">"Επανάληψη"</string>
+    <string name="autofill">"Αυτόματη συμπλήρωση"</string>
+    <string name="textSelectionCABTitle">"Επιλογή κειμένου"</string>
+    <string name="addToDictionary">"Προσθήκη στο λεξικό"</string>
+    <string name="deleteText">"Διαγραφή"</string>
+    <string name="share">"Κοινή χρ."</string>
+    <string name="settings">"Ρυθμίσεις"</string>
+    <string name="button_default">"Προεπιλογή"</string>
 </resources>

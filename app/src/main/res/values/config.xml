@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2009, The Android Open Source Project
+<!-- Copyright (C) 2022 Eli Wittman
+     Copyright 2009, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -23,4 +24,27 @@
          manually by the user. Off by default, since the expected haptic feedback may not be
          available on some devices. -->
     <bool name="config_enableHapticTextHandle">false</bool>
+
+    <integer name="config_returned_text_limit_min">1</integer>
+    <integer name="config_returned_text_limit_max">100</integer>
+    <integer name="config_returned_text_limit_step">1</integer>
+
+    <integer name="config_extract_monitor_text_limit_min">1</integer>
+    <integer name="config_extract_monitor_text_limit_max">200</integer>
+    <integer name="config_extract_monitor_text_limit_step">1</integer>
+
+    <integer name="config_update_delay_default">0</integer>
+    <integer name="config_update_delay_min">0</integer>
+    <integer name="config_update_delay_max">10000</integer>
+    <integer name="config_update_delay_step">50</integer>
+
+    <integer name="config_inputconnection_method_delay_default">0</integer>
+    <integer name="config_inputconnection_method_delay_min">0</integer>
+    <integer name="config_inputconnection_method_delay_max">10000</integer>
+    <integer name="config_inputconnection_method_delay_step">50</integer>
+
+    <integer name="config_shift_codepoint_default">0</integer>
+    <integer name="config_shift_codepoint_min">-1114110</integer>
+    <integer name="config_shift_codepoint_max">1114110</integer>
+    <integer name="config_shift_codepoint_step">1</integer>
 </resources>

@@ -13,8 +13,164 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Testing Edit Text</string>
+    <string name="settings">Settings</string>
+
+    <!-- Title of the button to revert to the default value of the device in the settings dialog
+         [CHAR LIMIT=15] -->
+    <string name="button_default">Default</string>
+
+    <string name="button_clear">Clear</string>
+
+    <string name="modify_text_input_screen">Modify text input</string>
+
+    <string name="modify_committed_text_title">Modify committed text</string>
+    <string name="modify_committed_text_summary">Modify text when it is committed or the composition is finished</string>
+
+    <string name="modify_composed_text_title">Modify composed text</string>
+    <string name="modify_composed_text_summary">Modify text when it is being composed</string>
+
+    <string name="modify_composed_changes_only_title">Modify composed changes</string>
+    <string name="modify_composed_changes_only_summary">Only modify the part of the composition that is different from the previous composition</string>
+
+    <string name="consider_composed_changes_from_end_title">Only consider composed changes from end of text</string>
+    <string name="consider_composed_changes_from_end_summary">For determining the changed portion of the composition, assume the change is always at the end of the composition. This means that if the beginning of the composition was changed, the whole composition would be considered as having changed.</string>
+
+    <string name="restrict_input_text_category">Restrict input text</string>
+
+    <string name="restrict_to_include_title">Only allow certain input</string>
+    <string name="restrict_to_include_summary_on">Only allow the text configured below as valid input and reject anything else</string>
+    <string name="restrict_to_include_summary_off">Block the text configured below and allow everything else</string>
+
+    <string name="restrict_specific_title">Specific text</string>
+    <string name="restrict_specific_summary">Allow/block specific text</string>
+
+    <!-- U+2026: "…" HORIZONTAL ELLIPSIS -->
+    <string name="use_special_characters">Use special characters (\\n, \\r, \\t, \\0, \\u\u2026)</string>
+
+    <string name="restrict_range_title">Codepoint range</string>
+    <string name="restrict_range_summary">Allow/block a range of code points</string>
+
+    <string name="from_range_start">From</string>
+    <string name="to_range_end">To</string>
+    <string name="character">Character</string>
+    <string name="codepoint">Codepoint</string>
+    <string name="unicode">Unicode</string>
+    <string name="use_split_unicode_for_surrogate_pairs">Split unicode for surrogate pairs</string>
+
+    <string name="translate_input_text_category">Translate input text</string>
+
+    <string name="translate_specific_title">Translate specific text</string>
+    <string name="translate_specific_summary">Change text into different text</string>
+
+    <string name="shift_codepoint_title">Shift codepoints</string>
+    <string name="shift_codepoint_summary">Shift all codepoints a fixed amount, wrapping at the ends of the range of codepoints</string>
+    <string name="unit_codepoints"><xliff:g id="CODEPOINTS">%s</xliff:g> codepoints</string>
+
+    <string name="returning_text_screen">Returning text</string>
+
+    <string name="skip_extracting_text_title">Skip extracting text</string>
+    <string name="skip_extracting_text_summary">Documentation for InputConnection#getExtractedText indicates that null could be returned if the editor can\'t comply with the request for some reason. Always return null.</string>
+
+    <string name="ignore_extracted_text_monitor_title">Ignore the extracted text monitor flag</string>
+    <string name="ignore_extracted_text_monitor_summary">Ignore the GET_EXTRACTED_TEXT_MONITOR flag passed to InputConnection#getExtractedText and don\'t call InputMethodManager#updateExtractedText when calling InputMethodManager#updateSelection. Although documentation doesn\'t specifically call it out, it may be valid to skip when also returning null (not being able to comply with the request). Other uses to ignore this flag are probably inappropriate.</string>
+
+    <string name="update_selection_before_extracted_text_title">Update selection before text extract</string>
+    <string name="update_selection_before_extracted_text_summary">Documentation doesn\'t indicate the order of calling InputMethodManager#updateExtractedText and InputMethodManager#updateSelection when both need to be called. Unlike the framework EditText, call updateSelection before updateExtractedText.</string>
+
+    <string name="update_extracted_text_only_on_net_changes_title">Only update extracted text on change</string>
+    <string name="update_extracted_text_only_on_net_changes_summary">Documentation doesn\'t indicate whether InputMethodManager#updateExtractedText should actually be called when there was no net change in the text. Only call updateExtractedText when text actually changes.</string>
+
+    <string name="extract_full_text_title">Extract full text</string>
+    <string name="extract_full_text_summary">ExtractedText can be returned with partialStartOffset and partialEndOffset populated (helps indicate what text changed), or they can be set to -1 and use startOffset. Always skip the partial offsets when updating extracted text for text changes.</string>
+
+    <string name="limit_extract_monitor_text_title">Limit extract text</string>
+    <string name="limit_extract_monitor_text_summary">When updating extracted text with full text or returning text from InputConnection#getExtractedText, limit the length of the text that is sent.</string>
+
+    <string name="limit_returned_text_title">Limit text returned around the cursor</string>
+    <string name="limit_returned_text_summary">InputConnection\'s getTextBeforeCursor, getTextAfterCursor, and getSurroundingText methods specifically mention in their documentation that the returned text may not be as long as what was requested, such as for performance reasons. Set a hard limit of the length of text returned on either before or after the cursor.</string>
+    <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
+    <string name="unit_characters"><xliff:g id="CHARACTERS" example="50">%s</xliff:g> characters</string>
+    <string name="no_character_limit">No limit</string>
+
+    <string name="composing_text_screen">Composing text</string>
+
+    <string name="delete_through_composing_text_title">Delete through composing text</string>
+    <string name="delete_through_composing_text_summary">Documentation for InputConnection\'s deleteSurroundingTextInCodePoints and deleteSurroundingText only says that text around the cursor will be deleted, but the framework EditText (intentionally, based on the code) deletes text before the smaller of the cursor or composition and after the larger of the cursor or composition. Simply match the documentation and don\'t even consider the composition, rather than deleting around both.</string>
+
+    <string name="keep_empty_composing_position_title">Keep empty composing position</string>
+    <string name="keep_empty_composing_position_summary">Documentation doesn\'t clearly indicate if deleting the last character of the composing text should clear the composing position, but the documentation of InputConnection#setComposingText could be interpreted that passing an empty string should keep the composing position. Keep the empty composition (additional composing text will be added in the same place), rather than removing the empty composition like the framework EditText.</string>
+
+    <string name="simulate_old_target_versions_screen">Simulate old target versions</string>
+
+    <string name="added_in_api_level_31">Added in API level 31 (Android 12)</string>
+    <string name="added_in_api_level_25">Added in API level 25 (Nougat MR1)</string>
+    <string name="added_in_api_level_24">Added in API level 24 (Nougat)</string>
+    <string name="added_in_api_level_21">Added in API level 21 (Lollipop)</string>
+    <string name="added_in_api_level_11">Added in API level 11 (Honeycomb)</string>
+    <string name="added_in_api_level_9">Added in API level 9 (Gingerbread)</string>
+
+    <string name="skip_getsurroundingtext_title">Don\'t implement getSurroundingText</string>
+    <string name="skip_getsurroundingtext_summary">Behave as if InputConnection#getSurroundingText wasn\'t implemented, like some text editors targeting an earlier version, so it will just return null.</string>
+
+    <string name="skip_performspellcheck_title">Don\'t implement performSpellCheck</string>
+    <string name="skip_performspellcheck_summary">Behave as if InputConnection#performSpellCheck wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
+
+    <string name="skip_setimeconsumesinput_title">Don\'t implement setImeConsumesInput</string>
+    <string name="skip_setimeconsumesinput_summary">Behave as if InputConnection#setImeConsumesInput wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
+
+    <string name="skip_commitcontent_title">Don\'t implement commitContent</string>
+    <string name="skip_commitcontent_summary">Behave as if InputConnection#commitContent wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false.</string>
+
+    <string name="skip_closeconnection_title">Don\'t implement closeConnection</string>
+    <string name="skip_closeconnection_summary">Behave as if InputConnection#closeConnection wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing.</string>
+
+    <string name="skip_deletesurroundingtextincodepoints_title">Don\'t implement deleteSurroundingTextInCodePoints</string>
+    <string name="skip_deletesurroundingtextincodepoints_summary">Behave as if InputConnection#deleteSurroundingTextInCodePoints wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false.</string>
+
+    <string name="skip_requestcursorupdates_title">Don\'t implement requestCursorUpdates</string>
+    <string name="skip_requestcursorupdates_summary">Behave as if InputConnection#requestCursorUpdates wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false (or crash prior to Nougat).</string>
+
+    <string name="skip_commitcorrection_title">Don\'t implement commitCorrection</string>
+    <string name="skip_commitcorrection_summary">Behave as if InputConnection#commitCorrection wasn\'t implemented, like some text editors targeting an earlier version, so it will just crash (due to a bug in Android, it still crashes on Nougat and later).</string>
+
+    <string name="skip_getselectedtext_title">Don\'t implement getSelectedText</string>
+    <string name="skip_getselectedtext_summary">Behave as if InputConnection#getSelectedText wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing and just return null (documentation doesn\'t clarify this behavior, but this is what happens) (or crash prior to Nougat).</string>
+
+    <string name="skip_setcomposingregion_title">Don\'t implement setComposingRegion</string>
+    <string name="skip_setcomposingregion_summary">Behave as if InputConnection#setComposingRegion wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing and just return false (or crash prior to Nougat).</string>
+
+    <string name="simulate_system_behavior_screen">Simulate system behavior</string>
+
+    <string name="update_delay_title">Delay selection and extracted text updates</string>
+    <string name="update_delay_summary">Simulate a delay from a slow device. Delay calls to InputMethodManager#updateSelection and InputMethodManager#updateExtractedText.</string>
+    <!-- Units abbreviation for the duration (milliseconds) [CHAR LIMIT=10] -->
+    <string name="abbreviation_unit_milliseconds"><xliff:g id="MILLISECONDS">%s</xliff:g>ms</string>
+    <string name="no_delay">No delay</string>
+
+    <string name="finishcomposingtext_delay_title">Delay finishComposingText</string>
+    <string name="finishcomposingtext_delay_summary">Documentation for InputConnection#finishComposingText warns that this call may be expensive with some editors. Force a delay when processing this call.</string>
+
+    <string name="getsurroundingtext_delay_title">Delay getSurroundingText</string>
+    <string name="getsurroundingtext_delay_summary">Documentation for InputConnection#getSurroundingText notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="gettextbeforecursor_delay_title">Delay getTextBeforeCursor</string>
+    <string name="gettextbeforecursor_delay_summary">Documentation for InputConnection#getTextBeforeCursor notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="getselectedtext_delay_title">Delay getSelectedText</string>
+    <string name="getselectedtext_delay_summary">Documentation for InputConnection#getSelectedText notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="gettextaftercursor_delay_title">Delay getTextAfterCursor</string>
+    <string name="gettextaftercursor_delay_summary">Documentation for InputConnection#getTextAfterCursor notes that this triggers an IPC round-trip, so it should be assumed this method consumes a lot of time, and it also mentions that this method may fail and return null if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="getcursorcapsmode_delay_title">Delay getCursorCapsMode</string>
+    <string name="getcursorcapsmode_delay_summary">Documentation for InputConnection#getCursorCapsMode mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+    <string name="getextractedtext_delay_title">Delay getExtractedText</string>
+    <string name="getextractedtext_delay_summary">Documentation for InputConnection#getExtractedText mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
+
+
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>

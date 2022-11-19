@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2022 Eli Wittman
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
+
+    <!--documented variable functionality-->
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_skip_extracting_text"
+        android:title="@string/skip_extracting_text_title"
+        android:summary="@string/skip_extracting_text_summary"
+        android:disableDependentsState="true" />
+
+    <!--unclear documentation-->
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_ignore_extracted_text_monitor"
+        android:title="@string/ignore_extracted_text_monitor_title"
+        android:summary="@string/ignore_extracted_text_monitor_summary"
+        android:disableDependentsState="true" />
+
+    <!--unclear documentation-->
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_update_selection_before_extracted_text"
+        android:title="@string/update_selection_before_extracted_text_title"
+        android:summary="@string/update_selection_before_extracted_text_summary" />
+
+    <!--unclear documentation-->
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_update_extracted_text_only_on_net_changes"
+        android:title="@string/update_extracted_text_only_on_net_changes_title"
+        android:summary="@string/update_extracted_text_only_on_net_changes_summary" />
+
+    <!--documented variable functionality-->
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_extract_full_text"
+        android:title="@string/extract_full_text_title"
+        android:summary="@string/extract_full_text_summary" />
+
+    <!--documented variable functionality-->
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_limit_extract_monitor_text"
+        android:title="@string/limit_extract_monitor_text_title"
+        android:summary="@string/limit_extract_monitor_text_summary"
+        app:minValue="@integer/config_extract_monitor_text_limit_min"
+        app:maxValue="@integer/config_extract_monitor_text_limit_max"
+        app:stepValue="@integer/config_extract_monitor_text_limit_step"
+        app:valueText="@string/unit_characters"
+        app:defaultValueText="@string/no_character_limit" />
+
+    <!--documented variable functionality-->
+    <!--TODO: (EW) option for getExtractedText to comply with the fields in request for how many
+         chars to return-->
+
+    <!--documented variable functionality-->
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_limit_returned_text"
+        android:title="@string/limit_returned_text_title"
+        android:summary="@string/limit_returned_text_summary"
+        app:minValue="@integer/config_returned_text_limit_min"
+        app:maxValue="@integer/config_returned_text_limit_max"
+        app:stepValue="@integer/config_returned_text_limit_step"
+        app:valueText="@string/unit_characters"
+        app:defaultValueText="@string/no_character_limit" />
+
+</PreferenceScreen>

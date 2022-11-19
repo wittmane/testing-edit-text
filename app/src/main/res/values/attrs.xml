@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (C) 2022 Eli Wittman
+     Copyright 2015, The Android Open Source Project
      Copyright (C) 2006 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +37,102 @@
              prior to Android 10. -->
         <!-- Specifies that a theme has a light background with dark text on top. -->
         <attr name="isLightTheme" format="boolean" />
+    </declare-styleable>
+
+    <declare-styleable name="ExtendingSeekBar">
+        <!-- Defines the maximum value. -->
+        <attr name="max" format="integer" />
+        <!-- Defines the minimum value. -->
+        <attr name="min" format="integer" />
+        <!-- Defines the selectable steps in the seek bar. -->
+        <attr name="step" format="integer" />
+        <!-- Defines the max range that should be shown before adding extended ranges. -->
+        <attr name="visibleRange" format="integer" />
+        <!-- Defines the default progress value. -->
+        <attr name="progress" format="integer" />
+        <!-- Show tick marks even when the extended range isn't necessary. -->
+        <attr name="alwaysShowTickMarks" format="boolean" />
+        <!-- Set tick mark intervals based on 0, rather than min. Default is true. -->
+        <attr name="zeroBasedTickMarks" format="boolean" />
+        <!-- Interval of ticks to use medium tick marks. -->
+        <attr name="mediumTickMarkInterval" format="integer" />
+        <!-- Interval of ticks to use large tick markss. -->
+        <attr name="largeTickMarkInterval" format="integer" />
+        <!-- Tint to apply to the progress indicator background. -->
+        <attr name="progressBackgroundTint" format="color" />
+        <!-- Blending mode used to apply the progress indicator background tint. -->
+        <attr name="progressBackgroundTintMode">
+            <!-- The tint is drawn on top of the drawable.
+                 [Sa + (1 - Sa)*Da, Rc = Sc + (1 - Sa)*Dc] -->
+            <enum name="src_over" value="3" />
+            <!-- The tint is masked by the alpha channel of the drawable. The drawable’s
+                 color channels are thrown out. [Sa * Da, Sc * Da] -->
+            <enum name="src_in" value="5" />
+            <!-- The tint is drawn above the drawable, but with the drawable’s alpha
+                 channel masking the result. [Da, Sc * Da + (1 - Sa) * Dc] -->
+            <enum name="src_atop" value="9" />
+            <!-- Multiplies the color and alpha channels of the drawable with those of
+                 the tint. [Sa * Da, Sc * Dc] -->
+            <enum name="multiply" value="14" />
+            <!-- [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc] -->
+            <enum name="screen" value="15" />
+            <!-- Combines the tint and drawable color and alpha channels, clamping the
+                 result to valid color values. Saturate(S + D) -->
+            <enum name="add" value="16" />
+        </attr>
+        <!-- Drawable used for the progress mode. -->
+        <attr name="progressDrawable" format="reference" />
+        <!-- Tint to apply to the progress indicator. -->
+        <attr name="progressTint" format="color" />
+        <!-- Blending mode used to apply the progress indicator tint. -->
+        <attr name="progressTintMode">
+            <!-- The tint is drawn on top of the drawable.
+                 [Sa + (1 - Sa)*Da, Rc = Sc + (1 - Sa)*Dc] -->
+            <enum name="src_over" value="3" />
+            <!-- The tint is masked by the alpha channel of the drawable. The drawable’s
+                 color channels are thrown out. [Sa * Da, Sc * Da] -->
+            <enum name="src_in" value="5" />
+            <!-- The tint is drawn above the drawable, but with the drawable’s alpha
+                 channel masking the result. [Da, Sc * Da + (1 - Sa) * Dc] -->
+            <enum name="src_atop" value="9" />
+            <!-- Multiplies the color and alpha channels of the drawable with those of
+                 the tint. [Sa * Da, Sc * Dc] -->
+            <enum name="multiply" value="14" />
+            <!-- [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc] -->
+            <enum name="screen" value="15" />
+            <!-- Combines the tint and drawable color and alpha channels, clamping the
+                 result to valid color values. Saturate(S + D) -->
+            <enum name="add" value="16" />
+        </attr>
+        <!-- Drawable used for the extend left indicator. -->
+        <attr name="extendLeftArrow" format="reference" />
+        <!-- Drawable used for the extend right indicator. -->
+        <attr name="extendRightArrow" format="reference" />
+        <!-- Drawable used for small tick marks. -->
+        <attr name="smallTickMark" format="reference" />
+        <!-- Drawable used for medium tick marks. -->
+        <attr name="mediumTickMark" format="reference" />
+        <!-- Drawable used for large tick marks. -->
+        <attr name="largeTickMark" format="reference" />
+        <!-- Tint to apply to the tick mark and extend left/right drawables. -->
+        <attr name="tickMarkTint" format="color" />
+        <!-- Blending mode used to apply the tick mark tint. -->
+        <attr name="tickMarkTintMode" />
+        <!-- Draws the thumb on a seekbar. -->
+        <attr name="thumb" format="reference" />
+        <!-- Tint to apply to the thumb drawable. -->
+        <attr name="thumbTint" format="color" />
+        <!-- Blending mode used to apply the thumb tint. -->
+        <attr name="thumbTintMode" />
+    </declare-styleable>
+
+    <declare-styleable name="SeekBarDialogPreference">
+        <attr name="maxValue" format="integer" />
+        <attr name="minValue" format="integer" />
+        <attr name="stepValue" format="integer" />
+        <attr name="defaultValue" format="integer" />
+        <attr name="valueText" format="string|reference" />
+        <attr name="defaultValueText" format="string|reference" />
     </declare-styleable>
 
     <declare-styleable name="TextAppearance">

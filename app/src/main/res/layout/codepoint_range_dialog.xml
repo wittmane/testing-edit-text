@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2022 Eli Wittman
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start">
+
+            <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minWidth="250sp"
+                android:padding="5dp"
+                android:stretchColumns="1,2"
+                android:shrinkColumns="1,2">
+
+                <TableRow>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_column="1"
+                        android:paddingHorizontal="5dp"
+                        android:gravity="center"
+                        android:text="@string/from_range_start" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="5dp"
+                        android:gravity="center"
+                        android:text="@string/to_range_end" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_height="match_parent"
+                    android:baselineAligned="true">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/character" />
+
+                    <EditText
+                        android:id="@+id/codepoint_dialog_start_character"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="text"
+                        android:imeOptions="actionNext"
+                        android:selectAllOnFocus="true" />
+
+                    <EditText
+                        android:id="@+id/codepoint_dialog_end_character"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:gravity="center|bottom"
+                        android:inputType="text"
+                        android:maxLength="2"
+                        android:imeOptions="actionDone"
+                        android:selectAllOnFocus="true" />
+
+                </TableRow>
+
+                <TableRow>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/codepoint" />
+
+                    <EditText
+                        android:id="@+id/codepoint_dialog_start_codepoint"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="text"
+                        android:maxLength="7"
+                        android:imeOptions="actionNext" />
+
+                    <EditText
+                        android:id="@+id/codepoint_dialog_end_codepoint"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="text"
+                        android:maxLength="7"
+                        android:imeOptions="actionDone" />
+
+                </TableRow>
+
+                <TableRow>
+
+                    <!--(EW) for some reason layout_gravity="bottom" on a TextView directly in the
+                        TableRow doesn't actually go to the bottom when a different cell expands the
+                        height, so we need a wrapper to fill the height, but then we lose the
+                        baseline alignment, so we need a dummy EditText to get the TextView's
+                        baseline to align with the other cells in the row-->
+                    <!--TODO: (EW) this dummy EditText seems like bad style. see if there is a
+                         better way to accomplish this.-->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:baselineAligned="true"
+                        android:baselineAlignedChildIndex="0">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="bottom"
+                            android:text="@string/unicode" />
+                        <EditText
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="bottom"
+                            android:gravity="center|bottom"
+                            android:focusable="false"
+                            android:enabled="false"
+                            android:visibility="invisible" />
+
+                    </LinearLayout>
+
+                    <!--(EW) the wrapper layout is necessary so that the row's height will always
+                        expand when text wraps to more lines. without it on a device with a small
+                        height, when a second unicode identifier is added, it may make the first
+                        disappear (scrolled out of view, but that isn't obvious).-->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent">
+
+                        <com.wittmane.testingedittext.settings.SoftWrapEditText
+                            android:id="@+id/codepoint_dialog_start_unicode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="bottom"
+                            android:gravity="center|bottom"
+                            android:inputType="textMultiLine"
+                            android:maxEms="6"
+                            android:imeOptions="actionNext" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent">
+
+                        <com.wittmane.testingedittext.settings.SoftWrapEditText
+                            android:id="@+id/codepoint_dialog_end_unicode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="bottom"
+                            android:gravity="center|bottom"
+                            android:inputType="textMultiLine"
+                            android:maxEms="6"
+                            android:imeOptions="actionDone" />
+
+                    </LinearLayout>
+
+                </TableRow>
+
+            </TableLayout>
+
+            <CheckBox
+                android:id="@+id/split_unicode_for_surrogate_pairs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/use_split_unicode_for_surrogate_pairs" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

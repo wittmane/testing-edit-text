@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2022 Eli Wittman
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_modify_committed_text"
+        android:title="@string/modify_committed_text_title"
+        android:summary="@string/modify_committed_text_summary" />
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_modify_composed_text"
+        android:title="@string/modify_composed_text_title"
+        android:summary="@string/modify_composed_text_summary" />
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_modify_composed_changes_only"
+        android:title="@string/modify_composed_changes_only_title"
+        android:summary="@string/modify_composed_changes_only_summary"
+        android:dependency="pref_key_modify_composed_text" />
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_consider_composed_changes_from_end"
+        android:title="@string/consider_composed_changes_from_end_title"
+        android:summary="@string/consider_composed_changes_from_end_summary"
+        android:dependency="pref_key_modify_composed_changes_only" />
+
+    <PreferenceCategory android:title="@string/restrict_input_text_category">
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_restrict_to_include"
+            android:title="@string/restrict_to_include_title"
+            android:summaryOn="@string/restrict_to_include_summary_on"
+            android:summaryOff="@string/restrict_to_include_summary_off" />
+
+        <com.wittmane.testingedittext.settings.preferences.TextListPreference
+            android:key="pref_key_restrict_specific"
+            android:title="@string/restrict_specific_title"
+            android:summary="@string/restrict_specific_summary" />
+
+        <com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference
+            android:key="pref_key_restrict_range"
+            android:title="@string/restrict_range_title"
+            android:summary="@string/restrict_range_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/translate_input_text_category">
+
+        <com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference
+            android:key="pref_key_translate_specific"
+            android:title="@string/translate_specific_title"
+            android:summary="@string/translate_specific_summary" />
+
+        <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+            android:key="pref_key_shift_codepoint"
+            android:title="@string/shift_codepoint_title"
+            android:summary="@string/shift_codepoint_summary"
+            app:minValue="@integer/config_shift_codepoint_min"
+            app:maxValue="@integer/config_shift_codepoint_max"
+            app:stepValue="@integer/config_shift_codepoint_step"
+            app:defaultValue="@integer/config_shift_codepoint_default"
+            app:valueText="@string/unit_codepoints" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
