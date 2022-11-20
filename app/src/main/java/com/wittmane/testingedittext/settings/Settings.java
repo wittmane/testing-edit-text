@@ -20,11 +20,13 @@ package com.wittmane.testingedittext.settings;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.text.InputType;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.Size;
 
+import com.wittmane.testingedittext.BuildConfig;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
@@ -81,6 +83,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_GETCURSORCAPSMODE_DELAY = "pref_key_getcursorcapsmode_delay";
     public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
 
+    public static final String PREF_USE_DEBUG_SCREEN = "pref_key_use_debug_screen";
+    public static final String PREF_INPUTTYPE_CLASS = "pref_key_inputtype_class";
+
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
     private boolean mConsiderComposedChangesFromEnd;
@@ -117,6 +122,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private int mGetTextAfterCursorDelay;
     private int mGetCursorCapsModeDelay;
     private int mGetExtractedTextDelay;
+    private boolean mUseDebugScreen;
+    private int mInputType;
 
     private SharedPreferences mPrefs;
 
@@ -190,6 +197,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mGetTextAfterCursorDelay = readGetTextAfterCursorDelay(mPrefs);
         mGetCursorCapsModeDelay = readGetCursorCapsModeDelay(mPrefs);
         mGetExtractedTextDelay = readGetExtractedTextDelay(mPrefs);
+
+        mUseDebugScreen = readUseDebugScreen(mPrefs);
+        mInputType = readInputType(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -581,5 +591,44 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getGetExtractedTextDelay() {
         return getInstance().mGetExtractedTextDelay;
+    }
+
+    private static boolean readUseDebugScreen(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_USE_DEBUG_SCREEN, false);
+    }
+
+    public static boolean useDebugScreen() {
+        if (!BuildConfig.DEBUG) {
+            return false;
+        }
+        return getInstance().mUseDebugScreen;
+    }
+
+    private static int readInputType(final SharedPreferences prefs) {
+        String inputTypeClass = prefs.getString(PREF_INPUTTYPE_CLASS, "TYPE_CLASS_TEXT");
+        //TODO: (EW) get flags and variations
+        int inputType;
+        switch (inputTypeClass) {
+            case "TYPE_CLASS_DATETIME":
+                inputType = InputType.TYPE_CLASS_DATETIME;
+                break;
+            case "TYPE_CLASS_NUMBER":
+                inputType = InputType.TYPE_CLASS_NUMBER;
+                break;
+            case "TYPE_CLASS_PHONE":
+                inputType = InputType.TYPE_CLASS_PHONE;
+                break;
+            case "TYPE_CLASS_TEXT":
+                inputType = InputType.TYPE_CLASS_TEXT;
+                break;
+            default:
+                inputType = InputType.TYPE_CLASS_TEXT;
+                break;
+        }
+        return inputType;
+    }
+
+    public static int getInputType() {
+        return getInstance().mInputType;
     }
 }

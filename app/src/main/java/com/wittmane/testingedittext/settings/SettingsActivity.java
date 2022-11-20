@@ -26,6 +26,7 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
 
+import com.wittmane.testingedittext.settings.fragments.FieldTypeSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFragment;
@@ -82,6 +83,7 @@ public class SettingsActivity extends PreferenceActivity {
                 || SystemBehaviorSettingsFragment.class.getName().equals(fragmentName)
                 || TargetVersionSettingsFragment.class.getName().equals(fragmentName)
                 || ComposingTextSettingsFragment.class.getName().equals(fragmentName)
-                || ReturningTextSettingsFragment.class.getName().equals(fragmentName);
+                || ReturningTextSettingsFragment.class.getName().equals(fragmentName)
+                || FieldTypeSettingsFragment.class.getName().equals(fragmentName);
     }
 }

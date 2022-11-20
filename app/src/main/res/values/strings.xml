@@ -170,6 +170,8 @@
     <string name="getextractedtext_delay_title">Delay getExtractedText</string>
     <string name="getextractedtext_delay_summary">Documentation for InputConnection#getExtractedText mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
 
+    <!--TODO: name this better-->
+    <string name="field_type_screen">Field type</string>
 
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->

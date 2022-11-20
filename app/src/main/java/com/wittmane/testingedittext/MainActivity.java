@@ -58,65 +58,110 @@ public class MainActivity extends Activity {
     // didn't look into the hint color much, but it also seems to be coming from the replaced
     // EditText.
 
+    private boolean mUseDebugScreen;
+    private int mInputType;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Settings.init(this);
-        setContentView(R.layout.activity_main);
 
-        InputFilter filter = new InputFilter() {
-            @Override
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < source.length(); i++) {
-                    char c = source.charAt(i);
-                    if (c >= 'A' && c <= 'Z') {
-                        continue;
+        mUseDebugScreen = Settings.useDebugScreen();
+        if (mUseDebugScreen) {
+            setContentView(R.layout.activity_main_debug);
+
+            InputFilter filter = new InputFilter() {
+                @Override
+                public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < source.length(); i++) {
+                        char c = source.charAt(i);
+                        if (c >= 'A' && c <= 'Z') {
+                            continue;
+                        }
+                        sb.append(c);
                     }
-                    sb.append(c);
+                    return sb;
                 }
-                return sb;
-            }
-        };
+            };
 
-        android.widget.EditText nativeEditText1 = findViewById(R.id.nativeEditText1);
-        nativeEditText1.setFilters(new InputFilter[] {filter});
+            android.widget.EditText frameworkEditText1 = findViewById(R.id.frameworkEditTextDebug1);
+            frameworkEditText1.setFilters(new InputFilter[]{filter});
+            com.wittmane.testingedittext.aosp.widget.EditText customEditText1 = findViewById(R.id.customEditTextDebug1);
+            customEditText1.setFilters(new InputFilter[]{filter});
+
+
+            android.widget.EditText doNotScrollFrameworkEditText = findViewById(R.id.ellipsizeFrameworkEditText);
+            doNotScrollFrameworkEditText.setKeyListener(null);
+            com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText = findViewById(R.id.ellipsizeCustomEditText);
+            doNotScrollEditText.setKeyListener(null);
+
+            Button testButton1 = findViewById(R.id.testButton1);
+            testButton1.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        int[] outLocation = new int[2];
+                        frameworkEditText1.getLocationInWindow(outLocation);
+                        frameworkEditText1.showContextMenu(outLocation[0], outLocation[1]);
+                    } else {
+                        frameworkEditText1.showContextMenu();
+                    }
+                }
+            });
+
+            Button testButton2 = findViewById(R.id.testButton2);
+            testButton2.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        int[] outLocation = new int[2];
+                        customEditText1.getLocationInWindow(outLocation);
+                        customEditText1.showContextMenu(outLocation[0], outLocation[1]);
+                    } else {
+                        customEditText1.showContextMenu();
+                    }
+                }
+            });
+        } else {
+            setContentView(R.layout.activity_main);
+
+            updateFields();
+
+        }
+    }
+
+    private void updateFields() {
+        if (mUseDebugScreen) {
+            return;
+        }
+
+        android.widget.EditText frameworkEditText1 = findViewById(R.id.frameworkEditText1);
+        android.widget.EditText frameworkEditText2 = findViewById(R.id.frameworkEditText2);
         com.wittmane.testingedittext.aosp.widget.EditText customEditText1 = findViewById(R.id.customEditText1);
-        customEditText1.setFilters(new InputFilter[] {filter});
+        com.wittmane.testingedittext.aosp.widget.EditText customEditText2 = findViewById(R.id.customEditText2);
 
+        int inputType = Settings.getInputType();
+        if (mInputType != inputType) {
+            mInputType = inputType;
+            frameworkEditText1.setInputType(mInputType);
+            frameworkEditText2.setInputType(mInputType);
+            customEditText1.setInputType(mInputType);
+            customEditText2.setInputType(mInputType);
+        }
+    }
 
-        android.widget.EditText doNotScrollNativeEditText = findViewById(R.id.ellipsizeNativeEditText);
-        doNotScrollNativeEditText.setKeyListener(null);
-        com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText = findViewById(R.id.ellipsizeCustomEditText);
-        doNotScrollEditText.setKeyListener(null);
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        Button testButton1 = findViewById(R.id.testButton1);
-        testButton1.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    int[] outLocation = new int[2];
-                    nativeEditText1.getLocationInWindow(outLocation);
-                    nativeEditText1.showContextMenu(outLocation[0], outLocation[1]);
-                } else {
-                    nativeEditText1.showContextMenu();
-                }
-            }
-        });
-
-        Button testButton2 = findViewById(R.id.testButton2);
-        testButton2.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    int[] outLocation = new int[2];
-                    customEditText1.getLocationInWindow(outLocation);
-                    customEditText1.showContextMenu(outLocation[0],outLocation[1]);
-                } else {
-                    customEditText1.showContextMenu();
-                }
-            }
-        });
+        if (mUseDebugScreen != Settings.useDebugScreen()) {
+            recreate();
+        } else {
+            //TODO: (EW) see if there is a better way to only bother doing this when certain
+            // preferences change
+            updateFields();
+        }
     }
 
     @Override

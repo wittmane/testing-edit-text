@@ -36,4 +36,8 @@
         android:fragment="com.wittmane.testingedittext.settings.fragments.SystemBehaviorSettingsFragment"
         android:title="@string/simulate_system_behavior_screen" />
 
+    <PreferenceScreen
+        android:fragment="com.wittmane.testingedittext.settings.fragments.FieldTypeSettingsFragment"
+        android:title="@string/field_type_screen" />
+
 </PreferenceScreen>
