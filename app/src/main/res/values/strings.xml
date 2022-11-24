@@ -173,6 +173,55 @@
     <!--TODO: name this better-->
     <string name="field_type_screen">Field type</string>
 
+    <string name="input_type_category">Input type</string>
+    <string name="input_type_class">Class</string>
+    <string name="input_type_variation">Variation</string>
+
+    <string name="input_type_class_text">Text</string>
+    <string name="input_type_class_number">Number</string>
+    <string name="input_type_class_datetime">Date/Time</string>
+    <string name="input_type_class_phone">Phone</string>
+
+    <string name="input_type_text_variation_normal">Normal</string>
+    <string name="input_type_text_variation_password">Password</string>
+    <string name="input_type_text_variation_visible_password">Visible password</string>
+    <string name="input_type_text_variation_web_password">Web form password</string>
+    <string name="input_type_text_variation_uri">URI</string>
+    <string name="input_type_text_variation_email_address">E-mail address</string>
+    <string name="input_type_text_variation_web_email_address">Web form e-mail address</string>
+    <string name="input_type_text_variation_postal_address">Mailing address</string>
+    <string name="input_type_text_variation_email_subject">E-mail subject</string>
+    <string name="input_type_text_variation_short_message">Short message</string>
+    <string name="input_type_text_variation_long_message">Long message</string>
+    <string name="input_type_text_variation_person_name">Name of a person</string>
+    <string name="input_type_text_variation_phonetic">Phonetic pronunciation</string>
+    <string name="input_type_text_variation_filter">Filter</string>
+    <string name="input_type_text_variation_web_edit_text">Web form edit text</string>
+
+    <string name="input_type_text_flag_single_line">Single line</string>
+    <string name="input_type_text_flag_multi_line">Multi-line</string>
+    <string name="input_type_text_flag_ime_multi_line">IME multi-line (multi-line only in fullscreen)</string>
+
+    <string name="input_type_text_flag_multi_line_title">Multi-line flag</string>
+    <string name="input_type_text_flag_cap">Capitalization flag</string>
+    <string name="input_type_text_flag_auto_complete">Auto-complete flag</string>
+    <string name="input_type_text_flag_auto_correct">Auto-correct flag</string>
+    <string name="input_type_text_flag_no_suggestions">No dictionary suggestions flag</string>
+
+    <string name="input_type_text_flag_cap_none">None</string>
+    <string name="input_type_text_flag_cap_characters">All characters</string>
+    <string name="input_type_text_flag_cap_words">First character of every word</string>
+    <string name="input_type_text_flag_cap_sentences">First word of each sentence</string>
+
+    <string name="input_type_number_variation_normal">Normal</string>
+    <string name="input_type_number_variation_password">Password</string>
+
+    <string name="input_type_number_flag_signed">Signed flag</string>
+    <string name="input_type_number_flag_decimal">Decimal flag</string>
+
+    <string name="input_type_datetime_variation_normal">Date and time</string>
+    <string name="input_type_datetime_variation_date">Date</string>
+    <string name="input_type_datetime_variation_time">Time</string>
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>

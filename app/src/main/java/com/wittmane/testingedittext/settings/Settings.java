@@ -24,7 +24,6 @@ import android.text.InputType;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.Size;
 
 import com.wittmane.testingedittext.BuildConfig;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
@@ -82,9 +81,28 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_GETTEXTAFTERCURSOR_DELAY = "pref_key_gettextaftercursor_delay";
     public static final String PREF_GETCURSORCAPSMODE_DELAY = "pref_key_getcursorcapsmode_delay";
     public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
-
     public static final String PREF_USE_DEBUG_SCREEN = "pref_key_use_debug_screen";
-    public static final String PREF_INPUTTYPE_CLASS = "pref_key_inputtype_class";
+    public static final String PREF_INPUT_TYPE_CLASS = "pref_key_input_type_class";
+    public static final String PREF_INPUT_TYPE_TEXT_VARIATION =
+            "pref_key_input_type_text_variation";
+    public static final String PREF_INPUT_TYPE_NUMBER_VARIATION =
+            "pref_key_input_type_number_variation";
+    public static final String PREF_INPUT_TYPE_DATETIME_VARIATION =
+            "pref_key_input_type_datetime_variation";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE =
+            "pref_key_input_type_text_flag_multi_line";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_CAP =
+            "pref_key_input_type_text_flag_cap";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE =
+            "pref_key_input_type_text_flag_auto_complete";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT =
+            "pref_key_input_type_text_flag_auto_correct";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS =
+            "pref_key_input_type_text_flag_no_suggestions";
+    public static final String PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED =
+            "pref_key_input_type_number_flag_signed";
+    public static final String PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL =
+            "pref_key_input_type_number_flag_decimal";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -605,23 +623,141 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readInputType(final SharedPreferences prefs) {
-        String inputTypeClass = prefs.getString(PREF_INPUTTYPE_CLASS, "TYPE_CLASS_TEXT");
-        //TODO: (EW) get flags and variations
+        String inputTypeClass = prefs.getString(PREF_INPUT_TYPE_CLASS, "TYPE_CLASS_TEXT");
+        String variation;
         int inputType;
         switch (inputTypeClass) {
             case "TYPE_CLASS_DATETIME":
                 inputType = InputType.TYPE_CLASS_DATETIME;
+                variation = prefs.getString(PREF_INPUT_TYPE_DATETIME_VARIATION,
+                        "TYPE_DATETIME_VARIATION_NORMAL");
+                switch (variation) {
+                    case "TYPE_DATETIME_VARIATION_NORMAL":
+                        inputType |= InputType.TYPE_DATETIME_VARIATION_NORMAL;
+                        break;
+                    case "TYPE_DATETIME_VARIATION_DATE":
+                        inputType |= InputType.TYPE_DATETIME_VARIATION_DATE;
+                        break;
+                    case "TYPE_DATETIME_VARIATION_TIME":
+                        inputType |= InputType.TYPE_DATETIME_VARIATION_TIME;
+                        break;
+                    default:
+                        Log.e(TAG, "Unexpected input type datetime variation: " + variation);
+                        break;
+                }
                 break;
             case "TYPE_CLASS_NUMBER":
                 inputType = InputType.TYPE_CLASS_NUMBER;
+                variation = prefs.getString(PREF_INPUT_TYPE_NUMBER_VARIATION,
+                        "TYPE_NUMBER_VARIATION_NORMAL");
+                switch (variation) {
+                    case "TYPE_NUMBER_VARIATION_NORMAL":
+                        inputType |= InputType.TYPE_NUMBER_VARIATION_NORMAL;
+                        break;
+                    case "TYPE_NUMBER_VARIATION_PASSWORD":
+                        inputType |= InputType.TYPE_NUMBER_VARIATION_PASSWORD;
+                        break;
+                    default:
+                        Log.e(TAG, "Unexpected input type number variation: " + variation);
+                        break;
+                }
+                if (prefs.getBoolean(PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED, false)) {
+                    inputType |= InputType.TYPE_NUMBER_FLAG_SIGNED;
+                }
+                if (prefs.getBoolean(PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL, false)) {
+                    inputType |= InputType.TYPE_NUMBER_FLAG_DECIMAL;
+                }
                 break;
             case "TYPE_CLASS_PHONE":
                 inputType = InputType.TYPE_CLASS_PHONE;
                 break;
             case "TYPE_CLASS_TEXT":
                 inputType = InputType.TYPE_CLASS_TEXT;
+                variation = prefs.getString(PREF_INPUT_TYPE_TEXT_VARIATION,
+                        "TYPE_TEXT_VARIATION_NORMAL");
+                switch (variation) {
+                    case "TYPE_TEXT_VARIATION_NORMAL":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_NORMAL;
+                        break;
+                    case "TYPE_TEXT_VARIATION_URI":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_URI;
+                        break;
+                    case "TYPE_TEXT_VARIATION_EMAIL_ADDRESS":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
+                        break;
+                    case "TYPE_TEXT_VARIATION_EMAIL_SUBJECT":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_EMAIL_SUBJECT;
+                        break;
+                    case "TYPE_TEXT_VARIATION_SHORT_MESSAGE":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE;
+                        break;
+                    case "TYPE_TEXT_VARIATION_LONG_MESSAGE":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_LONG_MESSAGE;
+                        break;
+                    case "TYPE_TEXT_VARIATION_PERSON_NAME":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_PERSON_NAME;
+                        break;
+                    case "TYPE_TEXT_VARIATION_POSTAL_ADDRESS":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_POSTAL_ADDRESS;
+                        break;
+                    case "TYPE_TEXT_VARIATION_PASSWORD":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_PASSWORD;
+                        break;
+                    case "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+                        break;
+                    case "TYPE_TEXT_VARIATION_WEB_EDIT_TEXT":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT;
+                        break;
+                    case "TYPE_TEXT_VARIATION_FILTER":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_FILTER;
+                        break;
+                    case "TYPE_TEXT_VARIATION_PHONETIC":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_PHONETIC;
+                        break;
+                    case "TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS;
+                        break;
+                    case "TYPE_TEXT_VARIATION_WEB_PASSWORD":
+                        inputType |= InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD;
+                        break;
+                    default:
+                        Log.e(TAG, "Unexpected input type text variation: " + variation);
+                        break;
+                }
+                String multiLineFlag = prefs.getString(PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE, "");
+                switch (multiLineFlag) {
+                    case "TYPE_TEXT_FLAG_MULTI_LINE":
+                        inputType |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
+                        break;
+                    case "TYPE_TEXT_FLAG_IME_MULTI_LINE":
+                        inputType |= InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE;
+                        break;
+                }
+                String capFlag = prefs.getString(PREF_INPUT_TYPE_TEXT_FLAG_CAP, "");
+                switch (capFlag) {
+                    case "TYPE_TEXT_FLAG_CAP_CHARACTERS":
+                        inputType |= InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS;
+                        break;
+                    case "TYPE_TEXT_FLAG_CAP_WORDS":
+                        inputType |= InputType.TYPE_TEXT_FLAG_CAP_WORDS;
+                        break;
+                    case "TYPE_TEXT_FLAG_CAP_SENTENCES":
+                        inputType |= InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
+                        break;
+                }
+                if (prefs.getBoolean(PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE, false)) {
+                    inputType |= InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
+                }
+                if (prefs.getBoolean(PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT, false)) {
+                    inputType |= InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
+                }
+                if (prefs.getBoolean(PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS, false)) {
+                    inputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+                }
                 break;
             default:
+                Log.e(TAG, "Unexpected input type class: " + inputTypeClass);
                 inputType = InputType.TYPE_CLASS_TEXT;
                 break;
         }
