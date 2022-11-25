@@ -149,6 +149,14 @@ public class MainActivity extends Activity {
             customEditText1.setInputType(mInputType);
             customEditText2.setInputType(mInputType);
         }
+
+        int imeOptions = Settings.getImeOptions();
+        if (frameworkEditText1.getImeOptions() != imeOptions) {
+            frameworkEditText1.setImeOptions(imeOptions);
+            frameworkEditText2.setImeOptions(imeOptions);
+            customEditText1.setImeOptions(imeOptions);
+            customEditText2.setImeOptions(imeOptions);
+        }
     }
 
     @Override
@@ -158,8 +166,6 @@ public class MainActivity extends Activity {
         if (mUseDebugScreen != Settings.useDebugScreen()) {
             recreate();
         } else {
-            //TODO: (EW) see if there is a better way to only bother doing this when certain
-            // preferences change
             updateFields();
         }
     }

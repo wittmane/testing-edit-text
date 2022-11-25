@@ -81,4 +81,47 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/ime_options_category"
+        android:key="pref_key_ime_options_category">
+
+        <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
+            android:key="pref_key_ime_options_action"
+            android:title="@string/ime_options_action"
+            android:entries="@array/ime_options_actions"
+            android:entryValues="@array/ime_options_action_values"/>
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_force_ascii"
+            android:title="@string/ime_options_flag_force_ascii" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_navigate_next"
+            android:title="@string/ime_options_flag_navigate_next" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_navigate_previous"
+            android:title="@string/ime_options_flag_navigate_previous" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_no_accessory_action"
+            android:title="@string/ime_options_flag_no_accessory_action" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_no_enter_action"
+            android:title="@string/ime_options_flag_no_enter_action" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_no_extract_ui"
+            android:title="@string/ime_options_flag_no_extract_ui" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_no_fullscreen"
+            android:title="@string/ime_options_flag_no_fullscreen" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_ime_options_flag_no_personalized_learning"
+            android:title="@string/ime_options_flag_no_personalized_learning" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

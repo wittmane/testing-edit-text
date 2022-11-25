@@ -107,4 +107,25 @@
         <item>TYPE_DATETIME_VARIATION_TIME</item>
     </string-array>
 
+    <string-array name="ime_options_actions" translatable="false">
+        <item>@string/ime_options_action_unspecified</item>
+        <item>@string/ime_options_action_none</item>
+        <item>@string/ime_options_action_go</item>
+        <item>@string/ime_options_action_search</item>
+        <item>@string/ime_options_action_send</item>
+        <item>@string/ime_options_action_next</item>
+        <item>@string/ime_options_action_done</item>
+        <item>@string/ime_options_action_previous</item>
+    </string-array>
+    <string-array name="ime_options_action_values" translatable="false">
+        <item>IME_ACTION_UNSPECIFIED</item>
+        <item>IME_ACTION_NONE</item>
+        <item>IME_ACTION_GO</item>
+        <item>IME_ACTION_SEARCH</item>
+        <item>IME_ACTION_SEND</item>
+        <item>IME_ACTION_NEXT</item>
+        <item>IME_ACTION_DONE</item>
+        <item>IME_ACTION_PREVIOUS</item>
+    </string-array>
+
 </resources>

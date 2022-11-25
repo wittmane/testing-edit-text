@@ -19,9 +19,11 @@ package com.wittmane.testingedittext.settings;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.text.InputType;
 import android.util.Log;
+import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.Nullable;
 
@@ -103,6 +105,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_input_type_number_flag_signed";
     public static final String PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL =
             "pref_key_input_type_number_flag_decimal";
+    public static final String PREF_IME_OPTIONS_ACTION = "pref_key_ime_options_action";
+    public static final String PREF_IME_OPTIONS_FLAG_FORCE_ASCII =
+            "pref_key_ime_options_flag_force_ascii";
+    public static final String PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT =
+            "pref_key_ime_options_flag_navigate_next";
+    public static final String PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS =
+            "pref_key_ime_options_flag_navigate_previous";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION =
+            "pref_key_ime_options_flag_no_accessory_action";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION =
+            "pref_key_ime_options_flag_no_enter_action";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI =
+            "pref_key_ime_options_flag_no_extract_ui";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN =
+            "pref_key_ime_options_flag_no_fullscreen";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING =
+            "pref_key_ime_options_flag_no_personalized_learning";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -142,6 +161,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private int mGetExtractedTextDelay;
     private boolean mUseDebugScreen;
     private int mInputType;
+    private int mImeOptions;
 
     private SharedPreferences mPrefs;
 
@@ -218,6 +238,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         mUseDebugScreen = readUseDebugScreen(mPrefs);
         mInputType = readInputType(mPrefs);
+        mImeOptions = readImeOptions(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -766,5 +787,71 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getInputType() {
         return getInstance().mInputType;
+    }
+
+    private static int readImeOptions(final SharedPreferences prefs) {
+        String imeOptionsAction = prefs.getString(PREF_IME_OPTIONS_ACTION,
+                "IME_ACTION_UNSPECIFIED");
+        int imeOptions;
+        switch (imeOptionsAction) {
+            case "IME_ACTION_UNSPECIFIED":
+                imeOptions = EditorInfo.IME_NULL;
+                break;
+            case "IME_ACTION_NONE":
+                imeOptions = EditorInfo.IME_ACTION_NONE;
+                break;
+            case "IME_ACTION_GO":
+                imeOptions = EditorInfo.IME_ACTION_GO;
+                break;
+            case "IME_ACTION_SEARCH":
+                imeOptions = EditorInfo.IME_ACTION_SEARCH;
+                break;
+            case "IME_ACTION_SEND":
+                imeOptions = EditorInfo.IME_ACTION_SEND;
+                break;
+            case "IME_ACTION_NEXT":
+                imeOptions = EditorInfo.IME_ACTION_NEXT;
+                break;
+            case "IME_ACTION_DONE":
+                imeOptions = EditorInfo.IME_ACTION_DONE;
+                break;
+            case "IME_ACTION_PREVIOUS":
+                imeOptions = EditorInfo.IME_ACTION_PREVIOUS;
+                break;
+            default:
+                Log.e(TAG, "Unexpected IME options action: " + imeOptionsAction);
+                imeOptions = EditorInfo.IME_NULL;
+                break;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_FORCE_ASCII, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_FORCE_ASCII;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_NEXT;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_NO_ACCESSORY_ACTION;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN, false)) {
+            imeOptions |=  EditorInfo.IME_FLAG_NO_FULLSCREEN;
+        }
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING, false)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            imeOptions |=  EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
+        }
+        return imeOptions;
+    }
+
+    public static int getImeOptions() {
+        return getInstance().mImeOptions;
     }
 }

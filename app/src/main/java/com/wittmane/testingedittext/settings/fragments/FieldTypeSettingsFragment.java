@@ -16,6 +16,7 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -59,6 +60,14 @@ public class FieldTypeSettingsFragment extends PreferenceFragment {
         if (!BuildConfig.DEBUG) {
             useDebugScreenPref.setChecked(false);
             getPreferenceScreen().removePreference(useDebugScreenPref);
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            PreferenceCategory imeOptionsCategory = (PreferenceCategory)findPreference(
+                    "pref_key_ime_options_category");
+            Preference noPersonalizedLearningFlagPref = (PreferenceCategory)findPreference(
+                    Settings.PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING);
+            imeOptionsCategory.removePreference(noPersonalizedLearningFlagPref);
         }
 
         mInputTypeCategory = (PreferenceCategory)findPreference("pref_key_input_type_category");

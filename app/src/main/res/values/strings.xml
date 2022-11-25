@@ -223,6 +223,25 @@
     <string name="input_type_datetime_variation_date">Date</string>
     <string name="input_type_datetime_variation_time">Time</string>
 
+    <string name="ime_options_category">IME options</string>
+    <string name="ime_options_action">Action</string>
+    <string name="ime_options_action_unspecified">Unspecified</string>
+    <string name="ime_options_action_none">None</string>
+    <string name="ime_options_action_go">Go</string>
+    <string name="ime_options_action_search">Search</string>
+    <string name="ime_options_action_send">Send</string>
+    <string name="ime_options_action_next">Next</string>
+    <string name="ime_options_action_done">Done</string>
+    <string name="ime_options_action_previous">Previous</string>
+    <string name="ime_options_flag_force_ascii">Force ascii flag</string>
+    <string name="ime_options_flag_navigate_next">Navigate next flag</string>
+    <string name="ime_options_flag_navigate_previous">Navigate previous flag</string>
+    <string name="ime_options_flag_no_accessory_action">No accessory action</string>
+    <string name="ime_options_flag_no_enter_action">No enter action</string>
+    <string name="ime_options_flag_no_extract_ui">No extract UI</string>
+    <string name="ime_options_flag_no_fullscreen">No fullscreen</string>
+    <string name="ime_options_flag_no_personalized_learning">No personalized learning</string>
+
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>
 
