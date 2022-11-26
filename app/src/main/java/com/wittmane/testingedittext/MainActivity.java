@@ -25,6 +25,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -156,6 +157,18 @@ public class MainActivity extends Activity {
             frameworkEditText2.setImeOptions(imeOptions);
             customEditText1.setImeOptions(imeOptions);
             customEditText2.setImeOptions(imeOptions);
+        }
+
+        int imeActionId = Settings.getImeActionId();
+        String imeActionLabel = Settings.getImeActionLabel();
+        int currentImeActionId = frameworkEditText1.getImeActionId();
+        CharSequence currentImeActionLabel = frameworkEditText1.getImeActionLabel();
+        if (imeActionId != currentImeActionId
+                || !TextUtils.equals(imeActionLabel, currentImeActionLabel)) {
+            frameworkEditText1.setImeActionLabel(imeActionLabel, imeActionId);
+            frameworkEditText2.setImeActionLabel(imeActionLabel, imeActionId);
+            customEditText1.setImeActionLabel(imeActionLabel, imeActionId);
+            customEditText2.setImeActionLabel(imeActionLabel, imeActionId);
         }
     }
 

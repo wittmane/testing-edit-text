@@ -122,6 +122,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_ime_options_flag_no_fullscreen";
     public static final String PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING =
             "pref_key_ime_options_flag_no_personalized_learning";
+    public static final String PREF_IME_ACTION_ID = "pref_key_ime_action_id";
+    public static final String PREF_IME_ACTION_LABEL = "pref_key_ime_action_label";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -162,6 +164,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mUseDebugScreen;
     private int mInputType;
     private int mImeOptions;
+    private int mImeActionId;
+    private String mImeActionLabel;
 
     private SharedPreferences mPrefs;
 
@@ -239,6 +243,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mUseDebugScreen = readUseDebugScreen(mPrefs);
         mInputType = readInputType(mPrefs);
         mImeOptions = readImeOptions(mPrefs);
+        mImeActionId = readImeActionId(mPrefs);
+        mImeActionLabel = readImeActionLabel(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -853,5 +859,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int getImeOptions() {
         return getInstance().mImeOptions;
+    }
+
+    private static int readImeActionId(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_IME_ACTION_ID, 0);
+    }
+
+    public static int getImeActionId() {
+        return getInstance().mImeActionId;
+    }
+
+    private static String readImeActionLabel(final SharedPreferences prefs) {
+        return prefs.getString(PREF_IME_ACTION_LABEL, null);
+    }
+
+    public static String getImeActionLabel() {
+        return getInstance().mImeActionLabel;
     }
 }

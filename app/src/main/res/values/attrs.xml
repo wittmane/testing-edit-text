@@ -135,6 +135,24 @@
         <attr name="defaultValueText" format="string|reference" />
     </declare-styleable>
 
+    <declare-styleable name="TextDialogPreference">
+        <!-- The type of data being placed in a text field, used to help an
+             input method decide how to let the user enter text. -->
+        <attr name="inputType">
+            <!-- Just plain old text. -->
+            <flag name="text" value="0x00000000" />
+            <!-- A numeric only field. -->
+            <flag name="number" value="0x00000001" />
+            <!-- Can be combined with <var>number</var> and its other options to
+                 allow a signed number. -->
+            <flag name="numberSigned" value="0x00000011" />
+            <!-- Can be combined with <var>number</var> and its other options to
+                 allow a decimal (fractional) number. -->
+            <flag name="numberDecimal" value="0x00000021" />
+        </attr>
+        <attr name="defaultText" format="integer|float|string|reference" />
+    </declare-styleable>
+
     <declare-styleable name="TextAppearance">
         <!-- Text color. -->
         <attr name="android:textColor" />

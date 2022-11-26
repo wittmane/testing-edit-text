@@ -65,7 +65,7 @@ public class FieldTypeSettingsFragment extends PreferenceFragment {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             PreferenceCategory imeOptionsCategory = (PreferenceCategory)findPreference(
                     "pref_key_ime_options_category");
-            Preference noPersonalizedLearningFlagPref = (PreferenceCategory)findPreference(
+            SwitchPreference noPersonalizedLearningFlagPref = (SwitchPreference)findPreference(
                     Settings.PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING);
             imeOptionsCategory.removePreference(noPersonalizedLearningFlagPref);
         }

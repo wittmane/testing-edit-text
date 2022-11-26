@@ -242,6 +242,10 @@
     <string name="ime_options_flag_no_fullscreen">No fullscreen</string>
     <string name="ime_options_flag_no_personalized_learning">No personalized learning</string>
 
+    <string name="ime_action_category">IME action</string>
+    <string name="ime_action_id">Action ID</string>
+    <string name="ime_action_label">Action label</string>
+
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>
 

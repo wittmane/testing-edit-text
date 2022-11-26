@@ -123,10 +123,6 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     @Override
     public void onStopTrackingTouch(final ExtendingSeekBar seekBar) {}
 
-    private SharedPreferences getPrefs() {
-        return getPreferenceManager().getSharedPreferences();
-    }
-
     public void writeValue(final int value) {
         getPrefs().edit().putInt(getKey(), value).apply();
     }

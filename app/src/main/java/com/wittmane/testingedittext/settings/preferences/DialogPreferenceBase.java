@@ -17,6 +17,7 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.preference.DialogPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -83,5 +84,9 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         if (titleTextView != null) {
             titleTextView.setSingleLine(false);
         }
+    }
+
+    protected SharedPreferences getPrefs() {
+        return getPreferenceManager().getSharedPreferences();
     }
 }

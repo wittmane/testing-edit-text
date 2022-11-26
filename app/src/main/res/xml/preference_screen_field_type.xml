@@ -13,7 +13,8 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_use_debug_screen"
@@ -121,6 +122,21 @@
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
             android:key="pref_key_ime_options_flag_no_personalized_learning"
             android:title="@string/ime_options_flag_no_personalized_learning" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/ime_action_category"
+        android:key="pref_key_ime_action_category">
+
+        <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+            android:key="pref_key_ime_action_id"
+            android:title="@string/ime_action_id"
+            app:inputType="number|numberSigned" />
+
+        <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+            android:key="pref_key_ime_action_label"
+            android:title="@string/ime_action_label"
+            app:inputType="text" />
 
     </PreferenceCategory>
 
