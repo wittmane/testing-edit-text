@@ -246,6 +246,12 @@
     <string name="ime_action_id">Action ID</string>
     <string name="ime_action_label">Action label</string>
 
+    <string name="private_ime_options">Private IME options</string>
+    <string name="select_all_on_focus">Select all on focus</string>
+    <string name="max_length">Max length</string>
+    <string name="allow_undo">Allow undo</string>
+    <string name="dynamic_set_not_supported_in_framework">Note that the framework EditText doesn\'t support setting this dynamically, so this will only apply to the custom EditText</string>
+
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>
 

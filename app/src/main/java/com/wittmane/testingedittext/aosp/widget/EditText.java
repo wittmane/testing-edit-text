@@ -4876,6 +4876,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEditor.mInputContentType.imeHintLocales;
     }
 
+    public void setAllowUndo(boolean allowUndo) {
+        mEditor.mAllowUndo = allowUndo;
+    }
+
+    public boolean getAllowUndo() {
+        return mEditor.mAllowUndo;
+    }
+
     /**
      * Sets the list of input filters that will be used if the buffer is
      * Editable. Has no effect otherwise.

@@ -140,4 +140,30 @@
 
     </PreferenceCategory>
 
+    <!--TODO: (EW) see if there is a better category for some of these-->
+    <PreferenceCategory android:title="Misc">
+
+        <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+            android:key="pref_key_private_ime_options"
+            android:title="@string/private_ime_options"
+            app:inputType="text" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_select_all_on_focus"
+            android:title="@string/select_all_on_focus" />
+
+        <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+            android:key="pref_key_max_length"
+            android:title="@string/max_length"
+            app:defaultText="-1"
+            app:inputType="number" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_allow_undo"
+            android:title="@string/allow_undo"
+            android:summary="@string/dynamic_set_not_supported_in_framework"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

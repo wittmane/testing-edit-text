@@ -34,10 +34,13 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends Activity {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
@@ -59,8 +62,14 @@ public class MainActivity extends Activity {
     // didn't look into the hint color much, but it also seems to be coming from the replaced
     // EditText.
 
+    private static final String TAG = MainActivity.class.getSimpleName();
+
     private boolean mUseDebugScreen;
-    private int mInputType;
+
+    private EditTextProxy frameworkEditText1;
+    private EditTextProxy frameworkEditText2;
+    private EditTextProxy customEditText1;
+    private EditTextProxy customEditText2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +82,8 @@ public class MainActivity extends Activity {
 
             InputFilter filter = new InputFilter() {
                 @Override
-                public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                public CharSequence filter(CharSequence source, int start, int end,
+                                           Spanned dest, int dstart, int dend) {
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < source.length(); i++) {
                         char c = source.charAt(i);
@@ -88,13 +98,16 @@ public class MainActivity extends Activity {
 
             android.widget.EditText frameworkEditText1 = findViewById(R.id.frameworkEditTextDebug1);
             frameworkEditText1.setFilters(new InputFilter[]{filter});
-            com.wittmane.testingedittext.aosp.widget.EditText customEditText1 = findViewById(R.id.customEditTextDebug1);
+            com.wittmane.testingedittext.aosp.widget.EditText customEditText1 =
+                    findViewById(R.id.customEditTextDebug1);
             customEditText1.setFilters(new InputFilter[]{filter});
 
 
-            android.widget.EditText doNotScrollFrameworkEditText = findViewById(R.id.ellipsizeFrameworkEditText);
+            android.widget.EditText doNotScrollFrameworkEditText =
+                    findViewById(R.id.ellipsizeFrameworkEditText);
             doNotScrollFrameworkEditText.setKeyListener(null);
-            com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText = findViewById(R.id.ellipsizeCustomEditText);
+            com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText =
+                    findViewById(R.id.ellipsizeCustomEditText);
             doNotScrollEditText.setKeyListener(null);
 
             Button testButton1 = findViewById(R.id.testButton1);
@@ -127,6 +140,15 @@ public class MainActivity extends Activity {
         } else {
             setContentView(R.layout.activity_main);
 
+            frameworkEditText1 = new EditTextProxy((android.widget.EditText)
+                    findViewById(R.id.frameworkEditText1));
+            frameworkEditText2 = new EditTextProxy((android.widget.EditText)
+                    findViewById(R.id.frameworkEditText2));
+            customEditText1 = new EditTextProxy((com.wittmane.testingedittext.aosp.widget.EditText)
+                    findViewById(R.id.customEditText1));
+            customEditText2 = new EditTextProxy((com.wittmane.testingedittext.aosp.widget.EditText)
+                    findViewById(R.id.customEditText2));
+
             updateFields();
 
         }
@@ -137,38 +159,82 @@ public class MainActivity extends Activity {
             return;
         }
 
-        android.widget.EditText frameworkEditText1 = findViewById(R.id.frameworkEditText1);
-        android.widget.EditText frameworkEditText2 = findViewById(R.id.frameworkEditText2);
-        com.wittmane.testingedittext.aosp.widget.EditText customEditText1 = findViewById(R.id.customEditText1);
-        com.wittmane.testingedittext.aosp.widget.EditText customEditText2 = findViewById(R.id.customEditText2);
+        updateField(frameworkEditText1);
+        updateField(frameworkEditText2);
+        updateField(customEditText1);
+        updateField(customEditText2);
+    }
 
+    private static void updateField(EditTextProxy editText) {
         int inputType = Settings.getInputType();
-        if (mInputType != inputType) {
-            mInputType = inputType;
-            frameworkEditText1.setInputType(mInputType);
-            frameworkEditText2.setInputType(mInputType);
-            customEditText1.setInputType(mInputType);
-            customEditText2.setInputType(mInputType);
+        if (editText.getInputType() != inputType) {
+            editText.setInputType(inputType);
         }
 
         int imeOptions = Settings.getImeOptions();
-        if (frameworkEditText1.getImeOptions() != imeOptions) {
-            frameworkEditText1.setImeOptions(imeOptions);
-            frameworkEditText2.setImeOptions(imeOptions);
-            customEditText1.setImeOptions(imeOptions);
-            customEditText2.setImeOptions(imeOptions);
+        if (editText.getImeOptions() != imeOptions) {
+            editText.setImeOptions(imeOptions);
         }
 
         int imeActionId = Settings.getImeActionId();
         String imeActionLabel = Settings.getImeActionLabel();
-        int currentImeActionId = frameworkEditText1.getImeActionId();
-        CharSequence currentImeActionLabel = frameworkEditText1.getImeActionLabel();
-        if (imeActionId != currentImeActionId
-                || !TextUtils.equals(imeActionLabel, currentImeActionLabel)) {
-            frameworkEditText1.setImeActionLabel(imeActionLabel, imeActionId);
-            frameworkEditText2.setImeActionLabel(imeActionLabel, imeActionId);
-            customEditText1.setImeActionLabel(imeActionLabel, imeActionId);
-            customEditText2.setImeActionLabel(imeActionLabel, imeActionId);
+        int currentImeActionId = editText.getImeActionId();
+        CharSequence currentImeActionLabel = editText.getImeActionLabel();
+        if (currentImeActionId != imeActionId
+                || !TextUtils.equals(currentImeActionLabel, imeActionLabel)) {
+            editText.setImeActionLabel(imeActionLabel, imeActionId);
+        }
+
+        String privateImeOptions = Settings.getPrivateImeOptions();
+        if (!TextUtils.equals(editText.getPrivateImeOptions(), privateImeOptions)) {
+            editText.setPrivateImeOptions(privateImeOptions);
+        }
+
+        boolean selectAllOnFocus = Settings.shouldSelectAllOnFocus();
+        if (editText.getSelectAllOnFocus() != selectAllOnFocus) {
+            editText.setSelectAllOnFocus(selectAllOnFocus);
+        }
+
+        int maxLength = Settings.getMaxLength();
+        InputFilter[] filters = editText.getFilters();
+        List<InputFilter> newFilters = new ArrayList<>();
+        boolean filtersChanged = false;
+        InputFilter.LengthFilter lengthFilter = null;
+        for (InputFilter filter : filters) {
+            if (filter instanceof InputFilter.LengthFilter) {
+                lengthFilter = (InputFilter.LengthFilter) filter;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    int currentMaxLength = lengthFilter.getMax();
+                    if (currentMaxLength != maxLength) {
+                        if (maxLength >= 0) {
+                            newFilters.add(new InputFilter.LengthFilter(maxLength));
+                        }
+                        filtersChanged = true;
+                        continue;
+                    }
+                } else {
+                    // can't tell if there is a difference, so just force a change
+                    if (maxLength >= 0) {
+                        newFilters.add(new InputFilter.LengthFilter(maxLength));
+                    }
+                    filtersChanged = true;
+                    continue;
+                }
+            }
+            newFilters.add(filter);
+        }
+        if (maxLength >= 0 && lengthFilter == null) {
+            // there wasn't an existing filter to update, so add a new one
+            newFilters.add(new InputFilter.LengthFilter(maxLength));
+            filtersChanged = true;
+        }
+        if (filtersChanged) {
+            editText.setFilters(newFilters.toArray(new InputFilter[0]));
+        }
+
+        boolean allowUndo = Settings.shouldAllowUndo();
+        if (editText.getAllowUndo() != allowUndo) {
+            editText.setAllowUndo(allowUndo);
         }
     }
 
@@ -246,6 +312,141 @@ public class MainActivity extends Activity {
             if (drawable != null) {
                 drawable.mutate();
                 drawable.setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+            }
+        }
+    }
+
+    private static class EditTextProxy {
+        private final android.widget.EditText mFrameworkEditText;
+        private final com.wittmane.testingedittext.aosp.widget.EditText mCustomEditText;
+
+        private int mInputType;
+        private boolean mSelectAllOnFocus;
+
+        public EditTextProxy(@NonNull android.widget.EditText editText) {
+            mFrameworkEditText = editText;
+            mCustomEditText = null;
+        }
+
+        public EditTextProxy(@NonNull com.wittmane.testingedittext.aosp.widget.EditText editText) {
+            mCustomEditText = editText;
+            mFrameworkEditText = null;
+        }
+
+        public void setInputType(int type) {
+            mInputType = type;
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setInputType(type);
+            } else {
+                mCustomEditText.setInputType(type);
+            }
+        }
+
+        public int getInputType() {
+            return mInputType;
+        }
+
+        public void setImeOptions(int imeOptions) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setImeOptions(imeOptions);
+            } else {
+                mCustomEditText.setImeOptions(imeOptions);
+            }
+        }
+
+        public int getImeOptions() {
+            if (mFrameworkEditText != null) {
+                return mFrameworkEditText.getImeOptions();
+            } else {
+                return mCustomEditText.getImeOptions();
+            }
+        }
+
+        public void setImeActionLabel(CharSequence label, int actionId) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setImeActionLabel(label, actionId);
+            } else {
+                mCustomEditText.setImeActionLabel(label, actionId);
+            }
+        }
+
+        public CharSequence getImeActionLabel() {
+            if (mFrameworkEditText != null) {
+                return mFrameworkEditText.getImeActionLabel();
+            } else {
+                return mCustomEditText.getImeActionLabel();
+            }
+        }
+
+        public int getImeActionId() {
+            if (mFrameworkEditText != null) {
+                return mFrameworkEditText.getImeActionId();
+            } else {
+                return mCustomEditText.getImeActionId();
+            }
+        }
+
+        public void setPrivateImeOptions(String type) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setPrivateImeOptions(type);
+            } else {
+                mCustomEditText.setPrivateImeOptions(type);
+            }
+        }
+
+        public String getPrivateImeOptions() {
+            if (mFrameworkEditText != null) {
+                return mFrameworkEditText.getPrivateImeOptions();
+            } else {
+                return mCustomEditText.getPrivateImeOptions();
+            }
+        }
+
+        public void setSelectAllOnFocus(boolean selectAllOnFocus) {
+            mSelectAllOnFocus = selectAllOnFocus;
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setSelectAllOnFocus(selectAllOnFocus);
+            } else {
+                mCustomEditText.setSelectAllOnFocus(selectAllOnFocus);
+            }
+        }
+
+        public boolean getSelectAllOnFocus() {
+            return mSelectAllOnFocus;
+        }
+
+        public void setFilters(InputFilter[] filters) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setFilters(filters);
+            } else {
+                mCustomEditText.setFilters(filters);
+            }
+        }
+
+        public InputFilter[] getFilters() {
+            if (mFrameworkEditText != null) {
+                return mFrameworkEditText.getFilters();
+            } else {
+                return mCustomEditText.getFilters();
+            }
+        }
+
+        public void setAllowUndo(boolean allowUndo) {
+            if (mFrameworkEditText != null) {
+                // the framework version doesn't have any method to do this and at least on some
+                // version reflection is blocked from just setting it directly
+                //TODO: (EW) maybe if we create the EditText in code, we could pass an AttributeSet
+                // with it
+            } else {
+                mCustomEditText.setAllowUndo(allowUndo);
+            }
+        }
+
+        public boolean getAllowUndo() {
+            if (mFrameworkEditText != null) {
+                return true;
+            } else {
+                return mCustomEditText.getAllowUndo();
             }
         }
     }

@@ -124,6 +124,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_ime_options_flag_no_personalized_learning";
     public static final String PREF_IME_ACTION_ID = "pref_key_ime_action_id";
     public static final String PREF_IME_ACTION_LABEL = "pref_key_ime_action_label";
+    public static final String PREF_PRIVATE_IME_OPTIONS = "pref_key_private_ime_options";
+    public static final String PREF_SELECT_ALL_ON_FOCUS = "pref_key_select_all_on_focus";
+    public static final String PREF_MAX_LENGTH = "pref_key_max_length";
+    public static final String PREF_ALLOW_UNDO = "pref_key_allow_undo";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -166,6 +170,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private int mImeOptions;
     private int mImeActionId;
     private String mImeActionLabel;
+    private String mPrivateImeOptions;
+    private boolean mSelectAllOnFocus;
+    private int mMaxLength;
+    private boolean mAllowUndo;
 
     private SharedPreferences mPrefs;
 
@@ -245,6 +253,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mImeOptions = readImeOptions(mPrefs);
         mImeActionId = readImeActionId(mPrefs);
         mImeActionLabel = readImeActionLabel(mPrefs);
+        mPrivateImeOptions = readPrivateImeOptions(mPrefs);
+        mSelectAllOnFocus = readSelectAllOnFocus(mPrefs);
+        mMaxLength = readMaxLength(mPrefs);
+        mAllowUndo = readAllowUndo(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -875,5 +887,37 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static String getImeActionLabel() {
         return getInstance().mImeActionLabel;
+    }
+
+    private static String readPrivateImeOptions(final SharedPreferences prefs) {
+        return prefs.getString(PREF_PRIVATE_IME_OPTIONS, null);
+    }
+
+    public static String getPrivateImeOptions() {
+        return getInstance().mPrivateImeOptions;
+    }
+
+    private static boolean readSelectAllOnFocus(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_SELECT_ALL_ON_FOCUS, false);
+    }
+
+    public static boolean shouldSelectAllOnFocus() {
+        return getInstance().mSelectAllOnFocus;
+    }
+
+    private static int readMaxLength(final SharedPreferences prefs) {
+        return prefs.getInt(PREF_MAX_LENGTH, -1);
+    }
+
+    public static int getMaxLength() {
+        return getInstance().mMaxLength;
+    }
+
+    private static boolean readAllowUndo(final SharedPreferences prefs) {
+        return prefs.getBoolean(PREF_ALLOW_UNDO, true);
+    }
+
+    public static boolean shouldAllowUndo() {
+        return getInstance().mAllowUndo;
     }
 }

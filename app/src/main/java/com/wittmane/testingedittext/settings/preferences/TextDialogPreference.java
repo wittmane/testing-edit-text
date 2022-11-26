@@ -158,10 +158,23 @@ public class TextDialogPreference extends DialogPreferenceBase {
 
     @Override
     protected void onPrepareDialogBuilder(final AlertDialog.Builder builder) {
+        boolean allowClear;
+        int flags = INPUT_TYPE_FLAG_MASK & mInputType;
+        switch (getDataType()) {
+            case DATA_TYPE_INT:
+                allowClear = mDefaultIntValue < 0 && (flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) < 1;
+                break;
+            case DATA_TYPE_FLOAT:
+                allowClear = mDefaultFloatValue < 0 && (flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) < 1;
+                break;
+            default:
+                allowClear = mDefaultStringValue == null;
+                break;
+        }
         builder.setPositiveButton(android.R.string.ok, this)
                 .setNegativeButton(android.R.string.cancel, this)
-                .setNeutralButton(getDataType() == DATA_TYPE_STRING && mDefaultStringValue == null
-                                ? R.string.button_clear : R.string.button_default, this);
+                .setNeutralButton(
+                        allowClear ? R.string.button_clear : R.string.button_default, this);
     }
 
     @Override
@@ -232,12 +245,19 @@ public class TextDialogPreference extends DialogPreferenceBase {
     }
 
     public String readValue() {
+        int flags = INPUT_TYPE_FLAG_MASK & mInputType;
         switch (getDataType()) {
             case DATA_TYPE_INT:
                 int intValue = getPrefs().getInt(getKey(), mDefaultIntValue);
+                if (intValue < 0 && (flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) < 1) {
+                    return "";
+                }
                 return Integer.toString(intValue);
             case DATA_TYPE_FLOAT:
                 float floatValue = getPrefs().getFloat(getKey(), mDefaultFloatValue);
+                if (floatValue < 0 && (flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) < 1) {
+                    return "";
+                }
                 return Float.toString(floatValue);
             default:
                 return getPrefs().getString(getKey(), mDefaultStringValue);
