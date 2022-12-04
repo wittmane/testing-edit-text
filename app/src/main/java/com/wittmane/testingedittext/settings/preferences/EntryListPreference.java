@@ -20,11 +20,8 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.content.res.ColorStateList;
-import android.content.res.Resources;
-import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
-import android.os.Build;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -34,13 +31,12 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -49,34 +45,47 @@ import android.widget.TextView.OnEditorActionListener;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.TextList;
+import com.wittmane.testingedittext.settings.IconUtils;
+import com.wittmane.testingedittext.settings.preferences.EntryListPreference.ReaderBase;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
-    private static final String TAG = TextListPreferenceBase.class.getSimpleName();
-
-    private static final int RESOURCES_ID_NULL =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
+public abstract class EntryListPreference<TRowData, TFullData,
+        TReader extends ReaderBase<TFullData>>
+        extends DialogPreferenceBase {
+    private static final String TAG = EntryListPreference.class.getSimpleName();
 
     private TableLayout mTextTable;
-    private CheckBox mEscapeCharactersCheckBox;
 
     protected final List<Row> mRows = new ArrayList<>();
+    private int mMaxEntries;
 
-    public TextListPreferenceBase(final Context context, final AttributeSet attrs) {
+    protected TReader mReader;
+
+    public EntryListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
-        setDialogLayoutResource(R.layout.text_list_dialog);
+
+        final TypedArray a = context.obtainStyledAttributes(
+                attrs, R.styleable.EntryListPreference, 0, 0);
+        setMaxEntries(a.getInt(R.styleable.EntryListPreference_maxEntries, -1));
+        a.recycle();
+
+        setDialogLayoutResource(R.layout.entry_list_dialog);
+    }
+
+    @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        mReader = createReader(getSharedPreferences(), getKey());
     }
 
     @Override
     protected View onCreateDialogView() {
         final View view = super.onCreateDialogView();
         mTextTable = view.findViewById(R.id.text_table);
-        mEscapeCharactersCheckBox = view.findViewById(R.id.escape_characters);
         return view;
     }
 
@@ -84,21 +93,23 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     protected void onBindDialogView(final View view) {
         super.onBindDialogView(view);
 
-        final TextList<T> value = getReader().readValue();
-
+        TFullData fullData = mReader.readValue();
         mRows.clear();
-        for (T data : value.getDataArray()) {
-            if (isRowEmpty(data)) {
+        for (TRowData rowData : getRowData(fullData)) {
+            if (isRowEmpty(rowData)) {
                 continue;
             }
-            addRow(data);
+            addRow(rowData);
         }
         addRow(null);
+        updateLastRowRemoveButtonVisibility();
 
-        mEscapeCharactersCheckBox.setChecked(value.escapeChars());
+        setExtraDataUI(fullData);
     }
 
-    protected abstract View[] createRowContent(T data);
+    protected abstract View[] createRowContent(TRowData data, TableRow tableRow);
+
+    protected abstract void setExtraDataUI(TFullData data);
 
     protected EditText createEditText(CharSequence text) {
         EditText editText = new EditText(getContext());
@@ -113,51 +124,39 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         return editText;
     }
 
-    private int getColorForIcon(View view) {
-        // based on how EditText gets it normal text color
-        Theme theme = getContext().getTheme();
-        TypedArray typedArray = theme.obtainStyledAttributes(R.styleable.TextViewAppearance);
-        TypedArray appearance;
-        int ap = typedArray.getResourceId(
-                R.styleable.TextViewAppearance_android_textAppearance, -1);
-        typedArray.recycle();
-        int color = 0;
-        if (ap != -1) {
-            appearance = theme.obtainStyledAttributes(ap, R.styleable.TextAppearance);
-            if (appearance.hasValue(R.styleable.TextAppearance_android_textColor)) {
-                ColorStateList textColor = appearance.getColorStateList(
-                        R.styleable.TextAppearance_android_textColor);
-                color = textColor.getColorForState(view.getDrawableState(), 0);
-            }
-            appearance.recycle();
+    private void addRow(TRowData data) {
+        if (mMaxEntries > 0 && mRows.size() >= mMaxEntries) {
+            // don't add more rows than the limit
+            return;
         }
-        return color;
-    }
 
-    private void addRow(T data) {
         TableRow tableRow = new TableRow(getContext());
 
-        View[] rowContent = createRowContent(data);
+        View[] rowContent = createRowContent(data, tableRow);
 
-        ImageButton removeButton = new ImageButton(getContext());
-        removeButton.setImageResource(R.drawable.ic_clear_white_24);
-        removeButton.setColorFilter(getColorForIcon(removeButton));
-        TypedArray typedArray = getContext().getTheme()
-                .obtainStyledAttributes(new int[] {
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                ? android.R.attr.selectableItemBackgroundBorderless
-                                : android.R.attr.selectableItemBackground
-                });
-        int background = typedArray.getResourceId(0, RESOURCES_ID_NULL);
-        typedArray.recycle();
-        removeButton.setBackgroundResource(background);
+
+        LinearLayout buttonWrapperLayout = new LinearLayout(getContext());
+        buttonWrapperLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonWrapperLayout.setLayoutParams(new TableRow.LayoutParams(
+                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        // adding a dummy edit text to align the button
+        EditText dummyEditText = new EditText(getContext());
+        dummyEditText.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LayoutParams.WRAP_CONTENT));
+        dummyEditText.setFocusable(false);
+        dummyEditText.setVisibility(View.INVISIBLE);
+        dummyEditText.setEnabled(false);
+        buttonWrapperLayout.addView(dummyEditText);
+
+        ImageButton removeButton = IconUtils.createImageButton(getContext(),
+                R.drawable.ic_clear_white_24);
         TableRow.LayoutParams removeButtonLayoutParams = new TableRow.LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0f);
         removeButtonLayoutParams.gravity = Gravity.CENTER;
         removeButton.setLayoutParams(removeButtonLayoutParams);
-        removeButton.setPadding(0, 0, 0, 0);
         // don't allow removing the last row
         removeButton.setVisibility(View.INVISIBLE);
+        buttonWrapperLayout.addView(removeButton);
 
         Row row = new Row(tableRow, rowContent, removeButton);
 
@@ -170,6 +169,9 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
                 }
                 mTextTable.removeView(tableRow);
                 mRows.remove(row);
+                // see if an extra row should be added in case it was skipped before due to the max
+                // row limit since there is room now
+                addExtraRowIfNecessary();
             }
         });
 
@@ -188,46 +190,33 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
                     @Override
                     public void onTextChanged(CharSequence charSequence, int start, int before,
                                               int count) {
-                        if (charSequence.length() == count && count > 0 && before == 0
-                                && mRows.get(mRows.size() - 1).contains(editText)) {
-                            // this event is adding text from blank in the last row. now that there
-                            // is text in the row, we might want to add a new empty row and allow
-                            // this row to be removed since it won't be the last row anymore.
-                            if (shouldHaveExtraRow(mRows.get(mRows.size() - 1).mContent)) {
-                                removeButton.setVisibility(View.VISIBLE);
-                                addRow(null);
+                        if (charSequence.length() == count && count > 0 && before == 0) {
+                            // this event is for adding text from blank
+                            Row lastRow = mRows.get(mRows.size() - 1);
+                            if (lastRow.contains(editText)) {
+                                // now that there is text in the last row, we might need to add a
+                                // new empty row
+                                addExtraRowIfNecessary();
+                                // if the extra row wasn't added due to a max row limit, it still
+                                // may be relevant to add the remove button
+                                updateLastRowRemoveButtonVisibility();
                             }
-
-                        } else if (charSequence.length() == 0 && before > 0 && mRows.size() > 1
-                                && mRows.get(mRows.size() - 2).contains(editText)) {
-                            // this event is clearing text in the second last row. the last row
-                            // should be blank or only partially filled out (if all fields are
-                            // required), but we don't need multiple blank rows at the end (or a
-                            // blank row after a incomplete row), so remove the last row if it's
-                            // blank, making this the new last row, which means that the button to
-                            // remove the row should be hidden too.
-
-                            // verify the last row is blank to allow removing it
-                            for (View view : mRows.get(mRows.size() - 1).mContent) {
-                                if (!(view instanceof EditText)) {
-                                    continue;
+                        } else if (charSequence.length() == 0 && before > 0) {
+                            // this event is for clearing text
+                            Row lastRow = mRows.get(mRows.size() - 1);
+                            if (lastRow.contains(editText)) {
+                                // a populate row may be at the end if there is a row limit, and
+                                // since content was cleared, it may no longer be relevant to show
+                                // the remove button
+                                updateLastRowRemoveButtonVisibility();
+                            } else if (mRows.size() > 1) {
+                                Row secondLastRow = mRows.get(mRows.size() - 2);
+                                if (secondLastRow.contains(editText)) {
+                                    // we don't need multiple blank rows at the end (or a blank row
+                                    // after a incomplete row), so remove the last row if that's the
+                                    // case
+                                    removeDuplicateExtraRowIfNecessary();
                                 }
-                                EditText rowEditText = (EditText)view;
-                                if (!TextUtils.isEmpty(rowEditText.getText())) {
-                                    // the last row isn't empty, so it shouldn't be removed
-                                    return;
-                                }
-                            }
-
-                            boolean shouldHaveExtraRow =
-                                    shouldHaveExtraRow(mRows.get(mRows.size() - 2).mContent);
-
-                            if (!shouldHaveExtraRow) {
-                                removeButton.setVisibility(View.INVISIBLE);
-
-                                Row lastRow = mRows.get(mRows.size() - 1);
-                                mTextTable.removeView(lastRow.mTableRow);
-                                mRows.remove(lastRow);
                             }
                         }
                     }
@@ -276,10 +265,8 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
                     }
                 });
             }
-
-            tableRow.addView(view);
         }
-        tableRow.addView(removeButton);
+        tableRow.addView(buttonWrapperLayout);
         mTextTable.addView(tableRow);
         mRows.add(row);
     }
@@ -315,42 +302,39 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
     public void onClick(final DialogInterface dialog, final int which) {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
-            final TextList<T> value = getReader().readDefaultValue();
-            updateValueSummary(value.getDataArray());
             clearValue();
+            updateValueSummary();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
-            TextList<T> value = new TextList<T>(getData(), mEscapeCharactersCheckBox.isChecked());
-
-            updateValueSummary(value.getDataArray());
-            writeValue(value);
+            writeValue(getUIData());
+            updateValueSummary();
         }
     }
 
-    protected abstract T[] getData();
+    protected abstract TFullData getUIData();
 
     @Override
     public void setKey(String key) {
         super.setKey(key);
-        Reader reader = getReader();
-        if (reader != null) {
-            reader.mKey = key;
+        if (mReader != null) {
+            mReader.mKey = key;
         }
     }
 
-    @NonNull
-    protected abstract Reader<T> getReader();
+    protected abstract TReader createReader(SharedPreferences prefs, String key);
 
-    protected static abstract class Reader<T> {
-        private final SharedPreferences mPrefs;
-        private String mKey;
+    protected static abstract class ReaderBase<T> {
+        protected final SharedPreferences mPrefs;
+        protected String mKey;
 
-        protected Reader(SharedPreferences prefs, String key) {
+        protected ReaderBase(SharedPreferences prefs, String key) {
             mPrefs = prefs;
             mKey = key;
         }
 
+        protected abstract int getExtraDataLength();
+
         @NonNull
-        public TextList<T> readValue() {
+        public T readValue() {
             String rawValue = mPrefs.getString(mKey, null);
             if (TextUtils.isEmpty(rawValue)) {
                 return readDefaultValue();
@@ -382,43 +366,32 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
             String[] pieces = rawValue.split(Pattern.quote(
                     rawValue.substring(delimiterStart, delimiterStart + delimiterLength)));
 
-            boolean escapeChars;
-            if (pieces[1].equals("1")) {
-                escapeChars = true;
-            } else if (pieces[1].equals("0")) {
-                escapeChars = false;
-            } else {
-                Log.e(TAG, "Invalid escape character flag (" + pieces[1] + ") from preference "
-                        + mKey + ": " + rawValue);
-                escapeChars = false;
+            String[] extraData = new String[getExtraDataLength()];
+            if (getExtraDataLength() > 0) {
+                System.arraycopy(pieces, 1, extraData, 0, extraData.length);
             }
 
-            // create a new array excluding pieces 0 (delimiter length) and 1 (special characters
-            // flag)
-            String[] data = new String[pieces.length - 2];
-            if (pieces.length > 2) {
-                System.arraycopy(pieces, 2, data, 0, pieces.length - 2);
+            // create a new array excluding pieces 0 (delimiter length) and any extra data
+            int offset = 1 + getExtraDataLength();
+            String[] rowData = new String[pieces.length - offset];
+            if (pieces.length > offset) {
+                System.arraycopy(pieces, offset, rowData, 0, pieces.length - offset);
             }
-            return new TextList<T>(buildDataArray(data), escapeChars);
+            return buildFullData(rowData, extraData);
         }
 
-        @NonNull
-        private TextList<T> readDefaultValue() {
-            return new TextList<T>(getDefaultDataArray(), false);
-        }
+        protected abstract T buildFullData(String[] rowData, String[] extraData);
 
         @NonNull
-        protected abstract T[] buildDataArray(final @NonNull String[] data);
-
-        @NonNull
-        protected abstract T[] getDefaultDataArray();
+        protected abstract T readDefaultValue();
     }
 
-    private void writeValue(final @NonNull TextList<T> value) {
-        String[] rowData = flattenDataArray(value.getDataArray());
-        String[] dataForSave = new String[rowData.length + 1];
-        dataForSave[0] = value.escapeChars() ? "1" : "0";
-        System.arraycopy(rowData, 0, dataForSave, 1, rowData.length);
+    private void writeValue(final @NonNull TFullData value) {
+        String[] rowData = flattenDataArray(getRowData(value));
+        String[] extraData = getFlattenedExtraData(value);
+        String[] dataForSave = new String[rowData.length + extraData.length];
+        System.arraycopy(extraData, 0, dataForSave, 0, extraData.length);
+        System.arraycopy(rowData, 0, dataForSave, extraData.length, rowData.length);
 
         String delimiter = determineDelimiter(dataForSave);
         StringBuilder sb = new StringBuilder().append(delimiter.length());
@@ -518,24 +491,30 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
         return true;
     }
 
-    protected abstract String[] flattenDataArray(final @NonNull T[] data);
+    @NonNull
+    protected abstract String[] flattenDataArray(final @NonNull TRowData[] data);
+
+    @NonNull
+    protected abstract String[] getFlattenedExtraData(final TFullData fullData);
 
     public void clearValue() {
         getSharedPreferences().edit().remove(getKey()).apply();
     }
 
-    protected abstract String getValueText(final @NonNull T[] value);
+    protected abstract String getValueText(final @NonNull TRowData[] value);
 
     @Override
     protected void updateValueSummary() {
-        updateValueSummary(getReader().readValue().getDataArray());
+        updateValueSummary(getRowData(mReader.readValue()));
     }
 
-    private void updateValueSummary(final T[] value) {
+    protected abstract TRowData[] getRowData(final TFullData fullData);
+
+    private void updateValueSummary(final TRowData[] value) {
         setValueSummary(getValueText(value));
     }
 
-    protected abstract boolean isRowEmpty(T rowData);
+    protected abstract boolean isRowEmpty(TRowData rowData);
 
     protected boolean shouldHaveExtraRow(View[] rowContent) {
         // default implementation just needs any of the text fields to have content
@@ -549,5 +528,90 @@ public abstract class TextListPreferenceBase<T> extends DialogPreferenceBase {
             }
         }
         return false;
+    }
+
+    protected boolean canRemoveAsExtraLine(View[] rowContent) {
+        // default implementation just makes sure no populated text fields are thrown away
+        for (View view : rowContent) {
+            if (!(view instanceof EditText)) {
+                continue;
+            }
+            EditText rowEditText = (EditText)view;
+            if (!TextUtils.isEmpty(rowEditText.getText())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public int getMaxEntries() {
+        return mMaxEntries;
+    }
+
+    public void setMaxEntries(int maxEntries) {
+        mMaxEntries = maxEntries;
+        if (mRows.size() < 1) {
+            // UI isn't built yet, so there isn't anything else to do
+            return;
+        }
+        if (mMaxEntries > 0) {
+            while (mRows.size() > mMaxEntries) {
+                mTextTable.removeView(mRows.get(mRows.size() - 1).mTableRow);
+                mRows.remove(mRows.size() - 1);
+            }
+        }
+        addExtraRowIfNecessary();
+        updateLastRowRemoveButtonVisibility();
+    }
+
+    protected void addExtraRowIfNecessary() {
+        if (mRows.size() < 1) {
+            // UI isn't built yet, so there isn't anything else to do
+            return;
+        }
+        if (mMaxEntries > 0 &&  mRows.size() >= mMaxEntries) {
+            // no room for another row
+            return;
+        }
+        Row lastRow = mRows.get(mRows.size() - 1);
+        if (shouldHaveExtraRow(lastRow.mContent)) {
+            // since this row isn't functioning as the extra row anymore, it can be removed
+            lastRow.mRemoveButton.setVisibility(View.VISIBLE);
+
+            addRow(null);
+        }
+    }
+
+    protected void updateLastRowRemoveButtonVisibility() {
+        if (mRows.size() < 1) {
+            // UI isn't built yet, so there isn't anything else to do
+            return;
+        }
+        Row lastRow = mRows.get(mRows.size() - 1);
+        lastRow.mRemoveButton.setVisibility(
+                shouldHaveExtraRow(lastRow.mContent) && mRows.size() > 1
+                        ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    protected void removeDuplicateExtraRowIfNecessary() {
+        if (mRows.size() < 2) {
+            // no duplicate extra row if there aren't multiple rows
+            return;
+        }
+        Row secondLastRow = mRows.get(mRows.size() - 2);
+        if (shouldHaveExtraRow(secondLastRow.mContent)) {
+            // content from second last row expects an extra row, so that can't be used as the extra
+            // row
+            return;
+        }
+        Row lastRow = mRows.get(mRows.size() - 1);
+        // make sure the current extra row doesn't have anything relevant to need to keep it
+        if (canRemoveAsExtraLine(lastRow.mContent)) {
+            mTextTable.removeView(lastRow.mTableRow);
+            mRows.remove(lastRow);
+
+            // this is the new extra row, so it shouldn't be able to be removed
+            secondLastRow.mRemoveButton.setVisibility(View.INVISIBLE);
+        }
     }
 }

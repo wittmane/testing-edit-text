@@ -141,7 +141,8 @@
     </PreferenceCategory>
 
     <!--TODO: (EW) see if there is a better category for some of these-->
-    <PreferenceCategory android:title="Misc">
+    <PreferenceCategory android:title="Misc"
+        android:key="pref_key_misc_category">
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
             android:key="pref_key_private_ime_options"
@@ -163,6 +164,15 @@
             android:title="@string/allow_undo"
             android:summary="@string/dynamic_set_not_supported_in_framework"
             android:defaultValue="true" />
+
+        <com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference
+            android:key="pref_key_text_locales"
+            android:title="@string/text_locales" />
+
+        <com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference
+            android:key="pref_key_ime_hint_locales"
+            android:title="@string/ime_hint_locales"
+            app:maxEntries="3"/>
 
     </PreferenceCategory>
 

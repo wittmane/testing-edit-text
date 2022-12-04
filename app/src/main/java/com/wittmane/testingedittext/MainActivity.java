@@ -16,16 +16,15 @@
 
 package com.wittmane.testingedittext;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.LocaleList;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -35,12 +34,17 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
+import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends Activity {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
@@ -236,6 +240,39 @@ public class MainActivity extends Activity {
         if (editText.getAllowUndo() != allowUndo) {
             editText.setAllowUndo(allowUndo);
         }
+
+        Locale[] textLocales = Settings.getTextLocales();
+        Locale[] currentTextLocales = editText.getTextLocales();
+        if (textLocales.length > 0) {
+            if (!equals(currentTextLocales, textLocales)) {
+                editText.setTextLocales(textLocales);
+            }
+        } else {
+            Locale[] defaultTextLocales = editText.getDefaultTextLocales();
+            if (!equals(currentTextLocales, defaultTextLocales)) {
+                editText.setTextLocales(defaultTextLocales);
+            }
+        }
+
+        Locale[] imeHintLocales = Settings.getImeHintLocales();
+        Locale[] currentImeHintLocales = editText.getImeHintLocales();
+        if (!equals(currentImeHintLocales, imeHintLocales)) {
+            editText.setImeHintLocales(imeHintLocales);
+        }
+    }
+
+    private static boolean equals(Locale[] a, Locale[] b) {
+        int aLength = a == null ? 0 : a.length;
+        int bLength = b == null ? 0 : b.length;
+        if (aLength != bLength) {
+            return false;
+        }
+        for (int i = 0; i < aLength; i++) {
+            if (!a[i].equals(b[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -263,7 +300,7 @@ public class MainActivity extends Activity {
         if (view != null && menu != null) {
             for (int i = 0; i < menu.size(); i++) {
                 MenuItem item = menu.getItem(i);
-                matchMenuIconColor(view, item, getActionBar());
+                IconUtils.matchMenuIconColor(view, item, getActionBar());
             }
         }
         return super.onCreateOptionsMenu(menu);
@@ -283,39 +320,6 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Set a menu item's icon to matching text color.
-     * @param view the view to use to look up the root view to find the action bar text.
-     * @param menuItem the menu item that should change colors.
-     * @param actionBar target ActionBar.
-     */
-    private static void matchMenuIconColor(final View view, final MenuItem menuItem,
-                                          final ActionBar actionBar) {
-        ArrayList<View> views = new ArrayList<>();
-
-        view.getRootView().findViewsWithText(views, actionBar.getTitle(),
-                View.FIND_VIEWS_WITH_TEXT);
-        if (views.size() == 1 && views.get(0) instanceof TextView) {
-            int color = ((TextView) views.get(0)).getCurrentTextColor();
-            setIconColor(menuItem, color);
-        }
-    }
-
-    /**
-     * Set a menu item's icon to specific color.
-     * @param menuItem the menu item that should change colors.
-     * @param color the color that the icon should be changed to.
-     */
-    private static void setIconColor(final MenuItem menuItem, final int color) {
-        if (menuItem != null) {
-            Drawable drawable = menuItem.getIcon();
-            if (drawable != null) {
-                drawable.mutate();
-                drawable.setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
-            }
-        }
-    }
-
     private static class EditTextProxy {
         private final android.widget.EditText mFrameworkEditText;
         private final com.wittmane.testingedittext.aosp.widget.EditText mCustomEditText;
@@ -323,14 +327,18 @@ public class MainActivity extends Activity {
         private int mInputType;
         private boolean mSelectAllOnFocus;
 
+        private final Locale[] mDefaultTextLocales;
+
         public EditTextProxy(@NonNull android.widget.EditText editText) {
             mFrameworkEditText = editText;
             mCustomEditText = null;
+            mDefaultTextLocales = getTextLocales();
         }
 
         public EditTextProxy(@NonNull com.wittmane.testingedittext.aosp.widget.EditText editText) {
             mCustomEditText = editText;
             mFrameworkEditText = null;
+            mDefaultTextLocales = getTextLocales();
         }
 
         public void setInputType(int type) {
@@ -448,6 +456,86 @@ public class MainActivity extends Activity {
             } else {
                 return mCustomEditText.getAllowUndo();
             }
+        }
+
+        public void setTextLocales(@NonNull Locale[] locales) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                LocaleList localeList = new LocaleList(locales);
+                if (mFrameworkEditText != null) {
+                    mFrameworkEditText.setTextLocales(localeList);
+                } else {
+                    mCustomEditText.setTextLocales(localeList);
+                }
+            } else {
+                Locale locale = locales.length > 0 ? locales[0] : null;
+                if (mFrameworkEditText != null) {
+                    mFrameworkEditText.setTextLocale(locale);
+                } else {
+                    mCustomEditText.setTextLocale(locale);
+                }
+            }
+        }
+
+        public Locale[] getTextLocales() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                LocaleList localeList;
+                if (mFrameworkEditText != null) {
+                    localeList = mFrameworkEditText.getTextLocales();
+                } else {
+                    localeList = mCustomEditText.getTextLocales();
+                }
+                return getLocaleArray(localeList);
+            } else {
+                Locale locale;
+                if (mFrameworkEditText != null) {
+                    locale = mFrameworkEditText.getTextLocale();
+                } else {
+                    locale = mCustomEditText.getTextLocale();
+                }
+                return new Locale[] { locale };
+            }
+        }
+
+        public Locale[] getDefaultTextLocales() {
+            return mDefaultTextLocales;
+        }
+
+        public void setImeHintLocales(@Nullable Locale[] locales) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                return;
+            }
+            LocaleList localeList = new LocaleList(locales);
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setImeHintLocales(localeList);
+            } else {
+                mCustomEditText.setImeHintLocales(localeList);
+            }
+        }
+
+        @Nullable
+        public Locale[] getImeHintLocales() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                return null;
+            }
+            LocaleList localeList;
+            if (mFrameworkEditText != null) {
+                localeList = mFrameworkEditText.getImeHintLocales();
+            } else {
+                localeList = mCustomEditText.getImeHintLocales();
+            }
+            return getLocaleArray(localeList);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        private static Locale[] getLocaleArray(LocaleList localeList) {
+            if (localeList == null) {
+                return null;
+            }
+            Locale[] locales = new Locale[localeList.size()];
+            for (int i = 0; i < localeList.size(); i++) {
+                locales[i] = localeList.get(i);
+            }
+            return locales;
         }
     }
 }

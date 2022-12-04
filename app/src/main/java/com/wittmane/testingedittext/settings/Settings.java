@@ -28,9 +28,12 @@ import android.view.inputmethod.EditorInfo;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.BuildConfig;
+import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
+
+import java.util.Locale;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = Settings.class.getSimpleName();
@@ -128,6 +131,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SELECT_ALL_ON_FOCUS = "pref_key_select_all_on_focus";
     public static final String PREF_MAX_LENGTH = "pref_key_max_length";
     public static final String PREF_ALLOW_UNDO = "pref_key_allow_undo";
+    public static final String PREF_TEXT_LOCALES = "pref_key_text_locales";
+    public static final String PREF_IME_HINT_LOCALES = "pref_key_ime_hint_locales";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -174,6 +179,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mSelectAllOnFocus;
     private int mMaxLength;
     private boolean mAllowUndo;
+    private Locale[] mTextLocales;
+    private Locale[] mImeHintLocales;
 
     private SharedPreferences mPrefs;
 
@@ -257,6 +264,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mSelectAllOnFocus = readSelectAllOnFocus(mPrefs);
         mMaxLength = readMaxLength(mPrefs);
         mAllowUndo = readAllowUndo(mPrefs);
+        mTextLocales = readTextLocales(mPrefs);
+        mImeHintLocales = readImeHintLocales(mPrefs);
     }
 
     private static boolean readModifyCommittedText(final SharedPreferences prefs) {
@@ -919,5 +928,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldAllowUndo() {
         return getInstance().mAllowUndo;
+    }
+
+    private static Locale[] readTextLocales(final SharedPreferences prefs) {
+        return (new LocaleEntryListPreference.Reader(prefs, PREF_TEXT_LOCALES)).readValue();
+    }
+
+    public static Locale[] getTextLocales() {
+        return getInstance().mTextLocales;
+    }
+
+    private static Locale[] readImeHintLocales(final SharedPreferences prefs) {
+        return (new LocaleEntryListPreference.Reader(prefs, PREF_IME_HINT_LOCALES)).readValue();
+    }
+
+    public static Locale[] getImeHintLocales() {
+        return getInstance().mImeHintLocales;
     }
 }

@@ -42,6 +42,7 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IntRange;
+import com.wittmane.testingedittext.settings.NumericFilter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -163,24 +164,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             }
         });
 
-        codepointView.setFilters(new InputFilter[] {new InputFilter() {
-            @Override
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
-                                       int dstart, int dend) {
-                if (source == null || CodePointUtils.codePointCount(source) == 0) {
-                    return null;
-                }
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < source.length(); i++) {
-                    char c = source.charAt(i);
-                    if (c < '0' || c > '9') {
-                        continue;
-                    }
-                    sb.append(c);
-                }
-                return sb;
-            }
-        }});
+        codepointView.setFilters(new InputFilter[] { new NumericFilter() });
         codepointView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int start, int count,

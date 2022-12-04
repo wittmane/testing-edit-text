@@ -153,6 +153,11 @@
         <attr name="defaultText" format="integer|float|string|reference" />
     </declare-styleable>
 
+    <declare-styleable name="EntryListPreference">
+        <!-- Set the maximum number of entries. Use -1 for no limit. -->
+        <attr name="maxEntries" format="integer" />
+    </declare-styleable>
+
     <declare-styleable name="TextAppearance">
         <!-- Text color. -->
         <attr name="android:textColor" />

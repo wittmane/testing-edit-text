@@ -31,6 +31,7 @@ import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager.OnPreferencesChangedListener;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.preferences.EnhancedListPreference;
+import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference;
 
 public class FieldTypeSettingsFragment extends PreferenceFragment {
@@ -68,6 +69,17 @@ public class FieldTypeSettingsFragment extends PreferenceFragment {
             SwitchPreference noPersonalizedLearningFlagPref = (SwitchPreference)findPreference(
                     Settings.PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING);
             imeOptionsCategory.removePreference(noPersonalizedLearningFlagPref);
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            PreferenceCategory imeOptionsCategory = (PreferenceCategory)findPreference(
+                    "pref_key_misc_category");
+            Preference imeHintLocalesPref = findPreference(Settings.PREF_IME_HINT_LOCALES);
+            imeOptionsCategory.removePreference(imeHintLocalesPref);
+
+            LocaleEntryListPreference textLocalesPref =
+                    (LocaleEntryListPreference)findPreference(Settings.PREF_TEXT_LOCALES);
+            textLocalesPref.setMaxEntries(1);
         }
 
         mInputTypeCategory = (PreferenceCategory)findPreference("pref_key_input_type_category");
