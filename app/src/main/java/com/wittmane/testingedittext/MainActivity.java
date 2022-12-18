@@ -24,14 +24,12 @@ import android.os.LocaleList;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,7 +38,6 @@ import androidx.annotation.RequiresApi;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
-import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -259,6 +256,16 @@ public class MainActivity extends Activity {
         if (!equals(currentImeHintLocales, imeHintLocales)) {
             editText.setImeHintLocales(imeHintLocales);
         }
+
+        CharSequence defaultText = Settings.getDefaultText();
+        if (!editText.wasTextSet(defaultText)) {
+            editText.setText(defaultText);
+        }
+
+        CharSequence hint = Settings.getHintText();
+        if (!editText.wasHintSet(hint)) {
+            editText.setHint(hint);
+        }
     }
 
     private static boolean equals(Locale[] a, Locale[] b) {
@@ -326,6 +333,8 @@ public class MainActivity extends Activity {
 
         private int mInputType;
         private boolean mSelectAllOnFocus;
+        private CharSequence mSetText;
+        private CharSequence mSetHint;
 
         private final Locale[] mDefaultTextLocales;
 
@@ -536,6 +545,41 @@ public class MainActivity extends Activity {
                 locales[i] = localeList.get(i);
             }
             return locales;
+        }
+
+        public void setText(CharSequence text) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setText(text);
+            } else {
+                mCustomEditText.setText(text);
+            }
+            mSetText = text;
+        }
+
+        public boolean wasTextSet(CharSequence text) {
+            if (TextUtils.isEmpty(mSetText) && TextUtils.isEmpty(text)) {
+                // null and empty are functionally equivalent since the edit text's text can't
+                // actually be null
+                return true;
+            }
+            return SpanUtils.textAndSpansMatch(mSetText, text);
+        }
+
+        public void setHint(CharSequence hint) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setHint(hint);
+            } else {
+                mCustomEditText.setHint(hint);
+            }
+            mSetHint = hint;
+        }
+
+        public boolean wasHintSet(CharSequence hint) {
+            if (TextUtils.isEmpty(mSetHint) && TextUtils.isEmpty(hint)) {
+                // null and empty are functionally equivalent for the edit text's hint
+                return true;
+            }
+            return SpanUtils.textAndSpansMatch(mSetHint, hint);
         }
     }
 }

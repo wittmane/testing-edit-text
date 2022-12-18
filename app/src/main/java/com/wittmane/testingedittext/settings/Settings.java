@@ -133,6 +133,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_ALLOW_UNDO = "pref_key_allow_undo";
     public static final String PREF_TEXT_LOCALES = "pref_key_text_locales";
     public static final String PREF_IME_HINT_LOCALES = "pref_key_ime_hint_locales";
+    public static final String PREF_IME_DEFAULT_TEXT = "pref_key_default_text";
+    public static final String PREF_IME_HINT_TEXT = "pref_key_hint_text";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -181,8 +183,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private boolean mAllowUndo;
     private Locale[] mTextLocales;
     private Locale[] mImeHintLocales;
+    private CharSequence mDefaultText;
+    private CharSequence mHintText;
 
-    private SharedPreferences mPrefs;
+    private SharedPreferenceManager mPrefs;
 
     private static final Settings sInstance = new Settings();
 
@@ -199,7 +203,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private void onCreate(final Context context) {
-        mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+        mPrefs = new SharedPreferenceManager(
+                PreferenceManager.getDefaultSharedPreferences(context));
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
     }
@@ -210,6 +215,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+        //TODO: (EW) this really shouldn't load all of the setting again when a single preference
+        // changes
         loadSettings();
     }
 
@@ -266,9 +273,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mAllowUndo = readAllowUndo(mPrefs);
         mTextLocales = readTextLocales(mPrefs);
         mImeHintLocales = readImeHintLocales(mPrefs);
+        mDefaultText = readDefaultText(mPrefs);
+        mHintText = readHintText(mPrefs);
     }
 
-    private static boolean readModifyCommittedText(final SharedPreferences prefs) {
+    private static boolean readModifyCommittedText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT, false);
     }
 
@@ -276,7 +285,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mModifyCommittedText;
     }
 
-    private static boolean readModifyComposedText(final SharedPreferences prefs) {
+    private static boolean readModifyComposedText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT, false);
     }
 
@@ -284,7 +293,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mModifyComposedText;
     }
 
-    private static boolean readModifyComposedChangesOnly(final SharedPreferences prefs) {
+    private static boolean readModifyComposedChangesOnly(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY, false);
     }
 
@@ -292,7 +301,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mModifyComposedChangesOnly;
     }
 
-    private static boolean readConsiderComposedChangesFromEnd(final SharedPreferences prefs) {
+    private static boolean readConsiderComposedChangesFromEnd(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END, false);
     }
 
@@ -300,7 +309,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mConsiderComposedChangesFromEnd;
     }
 
-    private static boolean readRestrictToInclude(final SharedPreferences prefs) {
+    private static boolean readRestrictToInclude(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE, false);
     }
 
@@ -308,7 +317,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mRestrictToInclude;
     }
 
-    private static String[] readRestrictSpecific(final SharedPreferences prefs) {
+    private static String[] readRestrictSpecific(final SharedPreferenceManager prefs) {
         TextList<String> textList =
                 (new TextListPreference.Reader(prefs, PREF_RESTRICT_SPECIFIC)).readValue();
         String[] result = new String[textList.getDataArray().length];
@@ -406,7 +415,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     @Nullable
-    private static IntRange readRestrictRange(final SharedPreferences prefs) {
+    private static IntRange readRestrictRange(final SharedPreferenceManager prefs) {
         return (new CodepointRangeDialogPreference.Reader(prefs, PREF_RESTRICT_RANGE)).readValue();
     }
 
@@ -414,7 +423,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mRestrictRange;
     }
 
-    private static TranslateText[] readTranslateSpecific(final SharedPreferences prefs) {
+    private static TranslateText[] readTranslateSpecific(final SharedPreferenceManager prefs) {
         TextList<TranslateText> textList =
                 (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC))
                         .readValue();
@@ -434,7 +443,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTranslateSpecific;
     }
 
-    private static int readShiftCodepoint(final SharedPreferences prefs) {
+    private static int readShiftCodepoint(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_SHIFT_CODEPOINT, 0);
     }
 
@@ -442,7 +451,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mShiftCodepoint;
     }
 
-    private static boolean readSkipExtractingText(final SharedPreferences prefs) {
+    private static boolean readSkipExtractingText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT, false);
     }
 
@@ -450,7 +459,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipExtractingText;
     }
 
-    private static boolean readIgnoreExtractedTextMonitor(final SharedPreferences prefs) {
+    private static boolean readIgnoreExtractedTextMonitor(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR, false);
     }
 
@@ -458,7 +467,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mIgnoreExtractedTextMonitor;
     }
 
-    private static boolean readUpdateSelectionBeforeExtractedText(final SharedPreferences prefs) {
+    private static boolean readUpdateSelectionBeforeExtractedText(
+            final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
     }
 
@@ -466,7 +476,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mUpdateSelectionBeforeExtractedText;
     }
 
-    private static boolean readUpdateExtractedTextOnlyOnNetChanges(final SharedPreferences prefs) {
+    private static boolean readUpdateExtractedTextOnlyOnNetChanges(
+            final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES, false);
     }
 
@@ -474,7 +485,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mUpdateExtractedTextOnlyOnNetChanges;
     }
 
-    private static boolean readExtractFullText(final SharedPreferences prefs) {
+    private static boolean readExtractFullText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT, false);
     }
 
@@ -482,7 +493,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mExtractFullText;
     }
 
-    private static int readExtractMonitorTextLimit(final SharedPreferences prefs) {
+    private static int readExtractMonitorTextLimit(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT, -1);
     }
 
@@ -490,7 +501,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mExtractMonitorTextLimit;
     }
 
-    private static int readReturnedTextLimit(final SharedPreferences prefs) {
+    private static int readReturnedTextLimit(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_LIMIT_RETURNED_TEXT, -1);
     }
 
@@ -498,7 +509,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mReturnedTextLimit;
     }
 
-    private static boolean readDeleteThroughComposingText(final SharedPreferences prefs) {
+    private static boolean readDeleteThroughComposingText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT, false);
     }
 
@@ -506,7 +517,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mDeleteThroughComposingText;
     }
 
-    private static boolean readKeepEmptyComposingPosition(final SharedPreferences prefs) {
+    private static boolean readKeepEmptyComposingPosition(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION, false);
     }
 
@@ -514,7 +525,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mKeepEmptyComposingPosition;
     }
 
-    private static boolean readSkipGetSurroundingText(final SharedPreferences prefs) {
+    private static boolean readSkipGetSurroundingText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT, false);
     }
 
@@ -522,7 +533,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipGetSurroundingText;
     }
 
-    private static boolean readSkipPerformSpellCheck(final SharedPreferences prefs) {
+    private static boolean readSkipPerformSpellCheck(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK, false);
     }
 
@@ -530,7 +541,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipPerformSpellCheck;
     }
 
-    private static boolean readSkipSetImeConsumesInput(final SharedPreferences prefs) {
+    private static boolean readSkipSetImeConsumesInput(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT, false);
     }
 
@@ -538,7 +549,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipSetImeConsumesInput;
     }
 
-    private static boolean readSkipCommitContent(final SharedPreferences prefs) {
+    private static boolean readSkipCommitContent(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_COMMITCONTENT, false);
     }
 
@@ -546,7 +557,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipCommitContent;
     }
 
-    private static boolean readSkipCloseConnection(final SharedPreferences prefs) {
+    private static boolean readSkipCloseConnection(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION, false);
     }
 
@@ -555,7 +566,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipDeleteSurroundingTextInCodePoints(
-            final SharedPreferences prefs) {
+            final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS, false);
     }
 
@@ -563,7 +574,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipDeleteSurroundingTextInCodePoints;
     }
 
-    private static boolean readSkipRequestCursorUpdates(final SharedPreferences prefs) {
+    private static boolean readSkipRequestCursorUpdates(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES, false);
     }
 
@@ -571,7 +582,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipRequestCursorUpdates;
     }
 
-    private static boolean readSkipCommitCorrection(final SharedPreferences prefs) {
+    private static boolean readSkipCommitCorrection(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION, false);
     }
 
@@ -579,7 +590,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipCommitCorrection;
     }
 
-    private static boolean readSkipGetSelectedText(final SharedPreferences prefs) {
+    private static boolean readSkipGetSelectedText(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT, false);
     }
 
@@ -587,7 +598,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipGetSelectedText;
     }
 
-    private static boolean readSkipSetComposingRegion(final SharedPreferences prefs) {
+    private static boolean readSkipSetComposingRegion(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION, false);
     }
 
@@ -595,7 +606,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSkipSetComposingRegion;
     }
 
-    private static int readUpdateDelay(final SharedPreferences prefs) {
+    private static int readUpdateDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_UPDATE_DELAY, 0);
     }
 
@@ -603,7 +614,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mUpdateDelay;
     }
 
-    private static int readFinishComposingTextDelay(final SharedPreferences prefs) {
+    private static int readFinishComposingTextDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY, 0);
     }
 
@@ -611,7 +622,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mFinishComposingTextDelay;
     }
 
-    private static int readGetSurroundingTextDelay(final SharedPreferences prefs) {
+    private static int readGetSurroundingTextDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY, 0);
     }
 
@@ -619,7 +630,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mGetSurroundingTextDelay;
     }
 
-    private static int readGetTextBeforeCursorDelay(final SharedPreferences prefs) {
+    private static int readGetTextBeforeCursorDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY, 0);
     }
 
@@ -627,7 +638,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mGetTextBeforeCursorDelay;
     }
 
-    private static int readGetSelectedTextDelay(final SharedPreferences prefs) {
+    private static int readGetSelectedTextDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY, 0);
     }
 
@@ -635,7 +646,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mGetSelectedTextDelay;
     }
 
-    private static int readGetTextAfterCursorDelay(final SharedPreferences prefs) {
+    private static int readGetTextAfterCursorDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY, 0);
     }
 
@@ -643,7 +654,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mGetTextAfterCursorDelay;
     }
 
-    private static int readGetCursorCapsModeDelay(final SharedPreferences prefs) {
+    private static int readGetCursorCapsModeDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY, 0);
     }
 
@@ -651,7 +662,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mGetCursorCapsModeDelay;
     }
 
-    private static int readGetExtractedTextDelay(final SharedPreferences prefs) {
+    private static int readGetExtractedTextDelay(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY, 0);
     }
 
@@ -659,7 +670,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mGetExtractedTextDelay;
     }
 
-    private static boolean readUseDebugScreen(final SharedPreferences prefs) {
+    private static boolean readUseDebugScreen(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_USE_DEBUG_SCREEN, false);
     }
 
@@ -670,7 +681,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mUseDebugScreen;
     }
 
-    private static int readInputType(final SharedPreferences prefs) {
+    private static int readInputType(final SharedPreferenceManager prefs) {
         String inputTypeClass = prefs.getString(PREF_INPUT_TYPE_CLASS, "TYPE_CLASS_TEXT");
         String variation;
         int inputType;
@@ -816,7 +827,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mInputType;
     }
 
-    private static int readImeOptions(final SharedPreferences prefs) {
+    private static int readImeOptions(final SharedPreferenceManager prefs) {
         String imeOptionsAction = prefs.getString(PREF_IME_OPTIONS_ACTION,
                 "IME_ACTION_UNSPECIFIED");
         int imeOptions;
@@ -882,7 +893,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mImeOptions;
     }
 
-    private static int readImeActionId(final SharedPreferences prefs) {
+    private static int readImeActionId(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_IME_ACTION_ID, 0);
     }
 
@@ -890,7 +901,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mImeActionId;
     }
 
-    private static String readImeActionLabel(final SharedPreferences prefs) {
+    private static String readImeActionLabel(final SharedPreferenceManager prefs) {
         return prefs.getString(PREF_IME_ACTION_LABEL, null);
     }
 
@@ -898,7 +909,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mImeActionLabel;
     }
 
-    private static String readPrivateImeOptions(final SharedPreferences prefs) {
+    private static String readPrivateImeOptions(final SharedPreferenceManager prefs) {
         return prefs.getString(PREF_PRIVATE_IME_OPTIONS, null);
     }
 
@@ -906,7 +917,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mPrivateImeOptions;
     }
 
-    private static boolean readSelectAllOnFocus(final SharedPreferences prefs) {
+    private static boolean readSelectAllOnFocus(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_SELECT_ALL_ON_FOCUS, false);
     }
 
@@ -914,7 +925,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mSelectAllOnFocus;
     }
 
-    private static int readMaxLength(final SharedPreferences prefs) {
+    private static int readMaxLength(final SharedPreferenceManager prefs) {
         return prefs.getInt(PREF_MAX_LENGTH, -1);
     }
 
@@ -922,7 +933,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mMaxLength;
     }
 
-    private static boolean readAllowUndo(final SharedPreferences prefs) {
+    private static boolean readAllowUndo(final SharedPreferenceManager prefs) {
         return prefs.getBoolean(PREF_ALLOW_UNDO, true);
     }
 
@@ -930,7 +941,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mAllowUndo;
     }
 
-    private static Locale[] readTextLocales(final SharedPreferences prefs) {
+    private static Locale[] readTextLocales(final SharedPreferenceManager prefs) {
         return (new LocaleEntryListPreference.Reader(prefs, PREF_TEXT_LOCALES)).readValue();
     }
 
@@ -938,11 +949,27 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTextLocales;
     }
 
-    private static Locale[] readImeHintLocales(final SharedPreferences prefs) {
+    private static Locale[] readImeHintLocales(final SharedPreferenceManager prefs) {
         return (new LocaleEntryListPreference.Reader(prefs, PREF_IME_HINT_LOCALES)).readValue();
     }
 
     public static Locale[] getImeHintLocales() {
         return getInstance().mImeHintLocales;
+    }
+
+    private static CharSequence readDefaultText(final SharedPreferenceManager prefs) {
+        return prefs.getCharSequence(PREF_IME_DEFAULT_TEXT, null);
+    }
+
+    public static CharSequence getDefaultText() {
+        return getInstance().mDefaultText;
+    }
+
+    private static CharSequence readHintText(final SharedPreferenceManager prefs) {
+        return prefs.getCharSequence(PREF_IME_HINT_TEXT, null);
+    }
+
+    public static CharSequence getHintText() {
+        return getInstance().mHintText;
     }
 }

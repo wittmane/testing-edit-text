@@ -105,6 +105,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.SpanUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
@@ -1717,19 +1718,7 @@ class Editor {
                 && mTextAtLastExtract.toString().equals(mEditText.getText().toString())) {
             if ((req.flags & InputConnection.GET_TEXT_WITH_STYLES) != 0
                     && text instanceof Spanned) {
-                // (EW) the text didn't change, but we need to check spans too
-                Object[] currentSpans = ((Spanned)text).getSpans(0, text.length(), Object.class);
-                Object[] previousSpans;
-                if (mTextAtLastExtract instanceof Spanned) {
-                    previousSpans = ((Spanned)mTextAtLastExtract).getSpans(
-                            0, mTextAtLastExtract.length(), Object.class);
-                } else {
-                    previousSpans = new Object[0];
-                }
-                if (currentSpans.length == previousSpans.length
-                        && (currentSpans.length == 0
-                        || spansMatch(previousSpans, (Spanned)mTextAtLastExtract,
-                        currentSpans, (Spanned)text))) {
+                if (SpanUtils.textAndSpansMatch(text, mTextAtLastExtract)) {
                     return false;
                 }
             } else {
@@ -1763,32 +1752,6 @@ class Editor {
             return true;
         }
         return false;
-    }
-
-    // (EW) based on SpannableStringBuilder#equals
-    private boolean spansMatch(Object[] spansA, Spanned spannedA,
-                               Object[] spansB, Spanned spannedB) {
-        if (spansA.length != spansB.length) {
-            return false;
-        }
-        for (int i = 0; i < spansA.length; ++i) {
-            final Object spanA = spansA[i];
-            final Object spanB = spansB[i];
-            if (spanA == spannedA) {
-                if (spannedB != spanB ||
-                        spannedA.getSpanStart(spanA) != spannedB.getSpanStart(spanB) ||
-                        spannedA.getSpanEnd(spanA) != spannedB.getSpanEnd(spanB) ||
-                        spannedA.getSpanFlags(spanA) != spannedB.getSpanFlags(spanB)) {
-                    return false;
-                }
-            } else if (!spanA.equals(spanB) ||
-                    spannedA.getSpanStart(spanA) != spannedB.getSpanStart(spanB) ||
-                    spannedA.getSpanEnd(spanA) != spannedB.getSpanEnd(spanB) ||
-                    spannedA.getSpanFlags(spanA) != spannedB.getSpanFlags(spanB)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private void sendUpdateSelection() {

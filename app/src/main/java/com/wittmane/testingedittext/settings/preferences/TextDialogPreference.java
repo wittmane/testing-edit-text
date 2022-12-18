@@ -22,7 +22,10 @@ import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.Spanned;
+import android.text.SpannedString;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -31,6 +34,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.PlainTextFilter;
 
 public class TextDialogPreference extends DialogPreferenceBase {
     private static final String TAG = TextDialogPreference.class.getSimpleName();
@@ -39,18 +43,22 @@ public class TextDialogPreference extends DialogPreferenceBase {
     private static final int INPUT_TYPE_FLAG_MASK = 0x000000F0;
     private static final int INPUT_TYPE_CLASS_TEXT = 0x00000000;
     private static final int INPUT_TYPE_CLASS_NUMBER = 0x00000001;
+    private static final int INPUT_TYPE_TEXT_FLAG_MULTI_LINE = 0x00000010;
+    private static final int INPUT_TYPE_TEXT_FLAG_STYLED = 0x00000020;
     private static final int INPUT_TYPE_NUMBER_FLAG_SIGNED = 0x00000011;
     private static final int INPUT_TYPE_NUMBER_FLAG_DECIMAL = 0x00000021;
 
     private static final int DATA_TYPE_STRING = 0;
-    private static final int DATA_TYPE_INT = 1;
-    private static final int DATA_TYPE_FLOAT = 2;
+    private static final int DATA_TYPE_SPANNED = 1;
+    private static final int DATA_TYPE_INT = 2;
+    private static final int DATA_TYPE_FLOAT = 3;
 
     private android.widget.EditText mEditText;
     private final int mInputType;
     private int mDefaultIntValue;
     private float mDefaultFloatValue;
     private String mDefaultStringValue;
+    private Spanned mDefaultSpannedValue;
 
     public TextDialogPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -76,6 +84,10 @@ public class TextDialogPreference extends DialogPreferenceBase {
                         Log.e(TAG, e.getMessage());
                     }
                     break;
+                case DATA_TYPE_SPANNED:
+                    mDefaultSpannedValue = new SpannedString(
+                            a.getString(R.styleable.TextDialogPreference_defaultText));
+                    break;
                 default:
                     mDefaultStringValue =
                             a.getString(R.styleable.TextDialogPreference_defaultText);
@@ -96,6 +108,12 @@ public class TextDialogPreference extends DialogPreferenceBase {
             }
             return DATA_TYPE_INT;
         }
+        if (inputTypeClass == INPUT_TYPE_CLASS_TEXT) {
+            int flags = INPUT_TYPE_FLAG_MASK & mInputType;
+            if ((flags & INPUT_TYPE_TEXT_FLAG_STYLED) > 0) {
+                return DATA_TYPE_SPANNED;
+            }
+        }
         return DATA_TYPE_STRING;
     }
 
@@ -104,10 +122,10 @@ public class TextDialogPreference extends DialogPreferenceBase {
         final View view = super.onCreateDialogView();
         mEditText = view.findViewById(R.id.text_dialog_text);
         int inputTypeClass = INPUT_TYPE_CLASS_MASK & mInputType;
+        int flags = INPUT_TYPE_FLAG_MASK & mInputType;
         int inputType;
         if (inputTypeClass == INPUT_TYPE_CLASS_NUMBER) {
             inputType = InputType.TYPE_CLASS_NUMBER;
-            int flags = INPUT_TYPE_FLAG_MASK & mInputType;
             if ((flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) > 0) {
                 inputType |= InputType.TYPE_NUMBER_FLAG_SIGNED;
             }
@@ -116,8 +134,15 @@ public class TextDialogPreference extends DialogPreferenceBase {
             }
         } else {
             inputType = InputType.TYPE_CLASS_TEXT;
+            if ((flags & INPUT_TYPE_TEXT_FLAG_MULTI_LINE) > 0) {
+                inputType |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
+            }
         }
         mEditText.setInputType(inputType);
+        if (inputTypeClass != INPUT_TYPE_CLASS_TEXT || (flags & INPUT_TYPE_TEXT_FLAG_STYLED) < 1) {
+            // spans won't be saved, so don't allow them to be entered to make that more clear
+            mEditText.setFilters(new InputFilter[] { new PlainTextFilter() });
+        }
 
 
         mEditText.addTextChangedListener(new TextWatcher() {
@@ -158,7 +183,7 @@ public class TextDialogPreference extends DialogPreferenceBase {
                 isValid = tryParseFloat(text) != null;
                 break;
             default:
-                // no validation for strings
+                // no validation for string or spanned
                 return;
         }
 
@@ -182,6 +207,9 @@ public class TextDialogPreference extends DialogPreferenceBase {
                 break;
             case DATA_TYPE_FLOAT:
                 allowClear = mDefaultFloatValue < 0 && (flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) < 1;
+                break;
+            case DATA_TYPE_SPANNED:
+                allowClear = mDefaultSpannedValue == null;
                 break;
             default:
                 allowClear = mDefaultStringValue == null;
@@ -232,35 +260,38 @@ public class TextDialogPreference extends DialogPreferenceBase {
     }
 
     public void writeValue() {
-        String text = mEditText.getText().toString();
+        Spanned text = mEditText.getText();
         switch (getDataType()) {
             case DATA_TYPE_INT:
-                Integer intValue = tryParseInt(text);
+                Integer intValue = tryParseInt(text.toString());
                 if (intValue != null) {
-                    getPrefs().edit().putInt(getKey(), intValue).apply();
+                    getPrefs().setInt(getKey(), intValue);
                 } else {
                     Log.e(TAG, "Failed to write \"" + text + "\" because it isn't an int");
                 }
                 break;
             case DATA_TYPE_FLOAT:
-                Float floatValue = tryParseFloat(text);
+                Float floatValue = tryParseFloat(text.toString());
                 if (floatValue != null) {
-                    getPrefs().edit().putFloat(getKey(), floatValue).apply();
+                    getPrefs().setFloat(getKey(), floatValue);
                 } else {
                     Log.e(TAG, "Failed to write \"" + text + "\" because it isn't a float");
                 }
                 break;
+            case DATA_TYPE_SPANNED:
+                getPrefs().setSpanned(getKey(), text);
+                break;
             default:
-                getPrefs().edit().putString(getKey(), text).apply();
+                getPrefs().setString(getKey(), text.toString());
                 break;
         }
     }
 
     public void writeDefaultValue() {
-        getPrefs().edit().remove(getKey()).apply();
+        getPrefs().remove(getKey());
     }
 
-    public String readValue() {
+    public CharSequence readValue() {
         int flags = INPUT_TYPE_FLAG_MASK & mInputType;
         switch (getDataType()) {
             case DATA_TYPE_INT:
@@ -275,6 +306,9 @@ public class TextDialogPreference extends DialogPreferenceBase {
                     return "";
                 }
                 return Float.toString(floatValue);
+            case DATA_TYPE_SPANNED:
+                // read as a char sequence to allow gracefully upgrading from a string preference
+                return getPrefs().getCharSequence(getKey(), mDefaultSpannedValue);
             default:
                 return getPrefs().getString(getKey(), mDefaultStringValue);
         }
@@ -282,8 +316,11 @@ public class TextDialogPreference extends DialogPreferenceBase {
 
     @Override
     protected void updateValueSummary() {
-        String value = readValue();
-        if (getDataType() == DATA_TYPE_STRING && mDefaultStringValue == null && "".equals(value)) {
+        CharSequence value = readValue();
+        int dataType = getDataType();
+        if (((dataType == DATA_TYPE_STRING && mDefaultStringValue == null)
+                || (dataType == DATA_TYPE_SPANNED && mDefaultSpannedValue == null))
+                && value != null && value.length() == 0) {
             value = "\"\"";
         }
         setValueSummary(value);

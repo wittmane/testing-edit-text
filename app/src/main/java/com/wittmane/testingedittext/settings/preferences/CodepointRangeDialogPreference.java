@@ -75,7 +75,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
-        mReader = new Reader(getSharedPreferences(), getKey());
+        mReader = new Reader(getPrefs(), getKey());
     }
 
     @Override
@@ -671,21 +671,20 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     }
 
     public void writeValue(final @Nullable IntRange value) {
-        getSharedPreferences().edit()
-                .putString(getKey(), value == null ? null : value.getStart() + "-" + value.getEnd())
-                .apply();
+        getPrefs().setString(getKey(),
+                value == null ? null : value.getStart() + "-" + value.getEnd());
     }
 
     public void clearValue() {
-        getSharedPreferences().edit().remove(getKey()).apply();
+        getPrefs().remove(getKey());
     }
 
     private boolean readSplitUnicodeForSurrogatePairsPref() {
-        return getSharedPreferences().getBoolean(PREF_SPLIT_UNICODE, false);
+        return getPrefs().getBoolean(PREF_SPLIT_UNICODE, false);
     }
 
     private void writeSplitUnicodeForSurrogatePairsPref(boolean splitUnicode) {
-        getSharedPreferences().edit().putBoolean(PREF_SPLIT_UNICODE, splitUnicode).apply();
+        getPrefs().setBoolean(PREF_SPLIT_UNICODE, splitUnicode);
     }
 
     @Override

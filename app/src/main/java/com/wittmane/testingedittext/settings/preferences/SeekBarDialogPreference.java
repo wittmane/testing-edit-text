@@ -124,11 +124,11 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     public void onStopTrackingTouch(final ExtendingSeekBar seekBar) {}
 
     public void writeValue(final int value) {
-        getPrefs().edit().putInt(getKey(), value).apply();
+        getPrefs().setInt(getKey(), value);
     }
 
     public void writeDefaultValue() {
-        getPrefs().edit().remove(getKey()).apply();
+        getPrefs().remove(getKey());
     }
 
     public int readValue() {

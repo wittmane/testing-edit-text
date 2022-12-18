@@ -46,12 +46,12 @@ import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
+import com.wittmane.testingedittext.settings.StringArraySerializer;
+import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
 import com.wittmane.testingedittext.settings.preferences.EntryListPreference.ReaderBase;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public abstract class EntryListPreference<TRowData, TFullData,
         TReader extends ReaderBase<TFullData>>
@@ -79,7 +79,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
-        mReader = createReader(getSharedPreferences(), getKey());
+        mReader = createReader(getPrefs(), getKey());
     }
 
     @Override
@@ -336,47 +336,30 @@ public abstract class EntryListPreference<TRowData, TFullData,
         @NonNull
         public T readValue() {
             String rawValue = mPrefs.getString(mKey, null);
-            if (TextUtils.isEmpty(rawValue)) {
-                return readDefaultValue();
-            }
-            StringBuilder sb = new StringBuilder();
-            int delimiterStart = 0;
-            for (int i = 0; i < rawValue.length(); i++) {
-                char c = rawValue.charAt(i);
-                if (c >= '0' && c <= '9') {
-                    sb.append(c);
-                } else {
-                    delimiterStart = i;
-                    break;
-                }
-            }
-            int delimiterLength;
+            String[] pieces;
             try {
-                delimiterLength = Integer.parseInt(sb.toString());
-            } catch (NumberFormatException e) {
-                Log.e(TAG, "Failed to parse delimiter length from preference " + mKey + ": "
-                        + rawValue);
+                pieces = StringArraySerializer.deserialize(rawValue);
+            } catch (InvalidSerializedDataException e) {
+                Log.e(TAG, "Failed to parse preference " + mKey + " (\"" + rawValue + "\"):"
+                        + e.getMessage());
+                pieces = null;
+            }
+            if (pieces == null) {
                 return readDefaultValue();
             }
-            if (delimiterStart + delimiterLength > rawValue.length()) {
-                Log.e(TAG, "Invalid delimiter length length (" + delimiterLength
-                        + ") from preference " + mKey + ": " + rawValue);
-                return readDefaultValue();
-            }
-            String[] pieces = rawValue.split(Pattern.quote(
-                    rawValue.substring(delimiterStart, delimiterStart + delimiterLength)));
 
             String[] extraData = new String[getExtraDataLength()];
-            if (getExtraDataLength() > 0) {
-                System.arraycopy(pieces, 1, extraData, 0, extraData.length);
+            if (extraData.length > 0) {
+                System.arraycopy(pieces, 0, extraData, 0, extraData.length);
             }
 
-            // create a new array excluding pieces 0 (delimiter length) and any extra data
-            int offset = 1 + getExtraDataLength();
-            String[] rowData = new String[pieces.length - offset];
-            if (pieces.length > offset) {
-                System.arraycopy(pieces, offset, rowData, 0, pieces.length - offset);
+            // create a new array excluding any extra data
+            String[] rowData = new String[pieces.length - extraData.length];
+            if (pieces.length > extraData.length) {
+                System.arraycopy(pieces, extraData.length, rowData, 0,
+                        pieces.length - extraData.length);
             }
+
             return buildFullData(rowData, extraData);
         }
 
@@ -393,102 +376,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
         System.arraycopy(extraData, 0, dataForSave, 0, extraData.length);
         System.arraycopy(rowData, 0, dataForSave, extraData.length, rowData.length);
 
-        String delimiter = determineDelimiter(dataForSave);
-        StringBuilder sb = new StringBuilder().append(delimiter.length());
-        for (String s : dataForSave) {
-            sb.append(delimiter).append(s);
-        }
-        getSharedPreferences().edit().putString(getKey(), sb.toString()).apply();
-    }
-
-    private String determineDelimiter(final String[] pieces) {
-        int delimiterLength = 1;
-        String delimiter = "\0";
-        char[] delimiterCharArray;
-        HashSet<String> usedText = new HashSet<>();
-        while (true) {
-            // get a list of all of the text combinations that need to be delimited with a length of
-            // the delimiter to be able to exclude them as the delimiter
-            for (String piece : pieces) {
-                for (int i = 0; i + delimiterLength <= piece.length(); i++) {
-                    usedText.add(piece.substring(i, i + delimiterLength));
-                }
-            }
-
-            // find a delimiter with the current length that isn't in the text that needs to be
-            // delimited
-            while (true) {
-                if (!usedText.contains(delimiter)) {
-                    return delimiter;
-                }
-                delimiterCharArray = delimiter.toCharArray();
-
-                if (!incrementDelimiter(delimiterCharArray)) {
-                    // ran out of options - need to increase the length of the delimiter
-                    break;
-                }
-                delimiter = new String(delimiterCharArray);
-            }
-
-            // all valid delimiters were found in the text to delimit - try a longer delimiter
-            usedText.clear();
-            delimiterLength++;
-            delimiterCharArray = new char[delimiterLength];
-            // all \0 isn't a valid delimiter, so we need to get the next valid delimiter to start
-            // with
-            incrementDelimiter(delimiterCharArray);
-            delimiter = new String(delimiterCharArray);
-        }
-    }
-
-    private static boolean incrementDelimiter(char[] delimiterCharArray) {
-        boolean incremented = false;
-        while (true) {
-            for (int i = delimiterCharArray.length - 1; i >= 0; i--) {
-                if (delimiterCharArray[i] < Character.MAX_VALUE) {
-                    delimiterCharArray[i]++;
-                    incremented = true;
-                    break;
-                } else {
-                    // overflow - move to next char
-                    delimiterCharArray[i] = '\0';
-                }
-            }
-            if (!incremented) {
-                // ran out of options - need to increase the length of the delimiter
-                return false;
-            }
-            if (!isValidDelimiter(new String(delimiterCharArray))) {
-                // the new delimiter can't be used, so try incrementing more
-                incremented = false;
-            } else {
-                // found the next valid delimiter
-                return true;
-            }
-        }
-    }
-
-    private static boolean isValidDelimiter(@NonNull String delimiter) {
-        // the first character can't be a number because the first piece will be a number to
-        // determine the length of the delimiter when parsing the saved preference
-        char firstChar = delimiter.charAt(0);
-        if (firstChar >= '0' && firstChar <= '9') {
-            return false;
-        }
-
-        // a delimiter is invalid if any sequence of characters at the beginning matches a sequence
-        // at the end. for example:
-        // 111: foo11 111 bar == foo1 111 1bar == foo 111 11bar
-        // 12321: foo1232 1231 bar == foo 12321 231bar
-        // 12312: foo1232 12321 bar == foo 12321 2321bar
-        for (int sequenceLength = 1; sequenceLength < delimiter.length(); sequenceLength++) {
-            String start = delimiter.substring(0, sequenceLength);
-            String end = delimiter.substring(delimiter.length() - sequenceLength);
-            if (start.equals(end)) {
-                return false;
-            }
-        }
-        return true;
+        getPrefs().setString(getKey(), StringArraySerializer.serialize(dataForSave));
     }
 
     @NonNull
@@ -498,7 +386,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     protected abstract String[] getFlattenedExtraData(final TFullData fullData);
 
     public void clearValue() {
-        getSharedPreferences().edit().remove(getKey()).apply();
+        getPrefs().remove(getKey());
     }
 
     protected abstract String getValueText(final @NonNull TRowData[] value);

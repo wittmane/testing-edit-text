@@ -25,10 +25,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
+
 public abstract class DialogPreferenceBase extends DialogPreference {
 
     private CharSequence mBaseSummary;
     private CharSequence mValueSummary;
+
+    /** SharedPreference wrapper */
+    private SharedPreferenceManager mSharedPrefManager;
+    /** The wrapped SharedPreference to track if the wrapper needs to be replaced */
+    private SharedPreferences mSharedPrefs;
 
     public DialogPreferenceBase(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -86,7 +93,12 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         }
     }
 
-    protected SharedPreferences getPrefs() {
-        return getPreferenceManager().getSharedPreferences();
+    protected SharedPreferenceManager getPrefs() {
+        SharedPreferences sharedPrefs = getSharedPreferences();
+        if (sharedPrefs != null && (mSharedPrefs == null || sharedPrefs != mSharedPrefs)) {
+            mSharedPrefManager = new SharedPreferenceManager(sharedPrefs);
+            mSharedPrefs = sharedPrefs;
+        }
+        return mSharedPrefManager;
     }
 }

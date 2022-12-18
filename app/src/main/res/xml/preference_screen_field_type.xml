@@ -174,6 +174,18 @@
             android:title="@string/ime_hint_locales"
             app:maxEntries="3"/>
 
+        <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+            android:key="pref_key_default_text"
+            android:title="@string/default_text"
+            app:defaultText=""
+            app:inputType="textMultiLine|textStyled" />
+
+        <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+            android:key="pref_key_hint_text"
+            android:title="@string/hint_text"
+            app:defaultText=""
+            app:inputType="textMultiLine|textStyled" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>
