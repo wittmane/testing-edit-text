@@ -214,67 +214,229 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
-        //TODO: (EW) this really shouldn't load all of the setting again when a single preference
-        // changes
-        loadSettings();
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key == null) {
+            loadSettings();
+        } else {
+            loadSetting(key);
+        }
     }
 
     private void loadSettings() {
-        mModifyCommittedText = readModifyCommittedText(mPrefs);
-        mModifyComposedText = readModifyComposedText(mPrefs);
-        mModifyComposedChangesOnly = readModifyComposedChangesOnly(mPrefs);
-        mConsiderComposedChangesFromEnd = readConsiderComposedChangesFromEnd(mPrefs);
-        mRestrictToInclude = readRestrictToInclude(mPrefs);
-        mRestrictSpecific = readRestrictSpecific(mPrefs);
-        mRestrictRange = readRestrictRange(mPrefs);
-        mTranslateSpecific = readTranslateSpecific(mPrefs);
-        mShiftCodepoint = readShiftCodepoint(mPrefs);
+        final String[] prefKeys = new String[] {
+                PREF_MODIFY_COMMITTED_TEXT,
+                PREF_MODIFY_COMPOSED_TEXT,
+                PREF_MODIFY_COMPOSED_CHANGES_ONLY,
+                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END,
+                PREF_RESTRICT_TO_INCLUDE,
+                PREF_RESTRICT_SPECIFIC,
+                PREF_RESTRICT_RANGE,
+                PREF_TRANSLATE_SPECIFIC,
+                PREF_SHIFT_CODEPOINT,
+                PREF_SKIP_EXTRACTING_TEXT,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
+                PREF_EXTRACT_FULL_TEXT,
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT,
+                PREF_LIMIT_RETURNED_TEXT,
+                PREF_DELETE_THROUGH_COMPOSING_TEXT,
+                PREF_KEEP_EMPTY_COMPOSING_POSITION,
+                PREF_SKIP_GETSURROUNDINGTEXT,
+                PREF_SKIP_PERFORMSPELLCHECK,
+                PREF_SKIP_SETIMECONSUMESINPUT,
+                PREF_SKIP_COMMITCONTENT,
+                PREF_SKIP_CLOSECONNECTION,
+                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS,
+                PREF_SKIP_REQUESTCURSORUPDATES,
+                PREF_SKIP_COMMITCORRECTION,
+                PREF_SKIP_GETSELECTEDTEXT,
+                PREF_SKIP_SETCOMPOSINGREGION,
+                PREF_UPDATE_DELAY,
+                PREF_FINISHCOMPOSINGTEXT_DELAY,
+                PREF_GETSURROUNDINGTEXT_DELAY,
+                PREF_GETTEXTBEFORECURSOR_DELAY,
+                PREF_GETSELECTEDTEXT_DELAY,
+                PREF_GETTEXTAFTERCURSOR_DELAY,
+                PREF_GETCURSORCAPSMODE_DELAY,
+                PREF_GETEXTRACTEDTEXT_DELAY,
+                PREF_USE_DEBUG_SCREEN,
+                PREF_INPUT_TYPE_CLASS,
+                PREF_IME_OPTIONS_ACTION,
+                PREF_IME_ACTION_ID,
+                PREF_IME_ACTION_LABEL,
+                PREF_PRIVATE_IME_OPTIONS,
+                PREF_SELECT_ALL_ON_FOCUS,
+                PREF_MAX_LENGTH,
+                PREF_ALLOW_UNDO,
+                PREF_TEXT_LOCALES,
+                PREF_IME_HINT_LOCALES,
+                PREF_IME_DEFAULT_TEXT,
+                PREF_IME_HINT_TEXT
+        };
+        for (String prefKey : prefKeys) {
+            loadSetting(prefKey);
+        }
+    }
 
-        mSkipExtractingText = readSkipExtractingText(mPrefs);
-        mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
-        mUpdateSelectionBeforeExtractedText = readUpdateSelectionBeforeExtractedText(mPrefs);
-        mUpdateExtractedTextOnlyOnNetChanges = readUpdateExtractedTextOnlyOnNetChanges(mPrefs);
-        mExtractFullText = readExtractFullText(mPrefs);
-        mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
-        mReturnedTextLimit = readReturnedTextLimit(mPrefs);
+    private void loadSetting(String prefKey) {
+        switch (prefKey) {
+            case PREF_MODIFY_COMMITTED_TEXT:
+                mModifyCommittedText = readModifyCommittedText(mPrefs);
+                break;
+            case PREF_MODIFY_COMPOSED_TEXT:
+                mModifyComposedText = readModifyComposedText(mPrefs);
+                break;
+            case PREF_MODIFY_COMPOSED_CHANGES_ONLY:
+                mModifyComposedChangesOnly = readModifyComposedChangesOnly(mPrefs);
+                break;
+            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END:
+                mConsiderComposedChangesFromEnd = readConsiderComposedChangesFromEnd(mPrefs);
+                break;
+            case PREF_RESTRICT_TO_INCLUDE:
+                mRestrictToInclude = readRestrictToInclude(mPrefs);
+                break;
+            case PREF_RESTRICT_SPECIFIC:
+                mRestrictSpecific = readRestrictSpecific(mPrefs);
+                break;
+            case PREF_RESTRICT_RANGE:
+                mRestrictRange = readRestrictRange(mPrefs);
+                break;
+            case PREF_TRANSLATE_SPECIFIC:
+                mTranslateSpecific = readTranslateSpecific(mPrefs);
+                break;
+            case PREF_SHIFT_CODEPOINT:
+                mShiftCodepoint = readShiftCodepoint(mPrefs);
+                break;
 
-        mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
-        mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
+            case PREF_SKIP_EXTRACTING_TEXT:
+                mSkipExtractingText = readSkipExtractingText(mPrefs);
+                break;
+            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR:
+                mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
+                break;
+            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT:
+                mUpdateSelectionBeforeExtractedText =
+                        readUpdateSelectionBeforeExtractedText(mPrefs);
+                break;
+            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES:
+                mUpdateExtractedTextOnlyOnNetChanges =
+                        readUpdateExtractedTextOnlyOnNetChanges(mPrefs);
+                break;
+            case PREF_EXTRACT_FULL_TEXT:
+                mExtractFullText = readExtractFullText(mPrefs);
+                break;
+            case PREF_LIMIT_EXTRACT_MONITOR_TEXT:
+                mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
+                break;
+            case PREF_LIMIT_RETURNED_TEXT:
+                mReturnedTextLimit = readReturnedTextLimit(mPrefs);
+                break;
 
-        mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
-        mSkipPerformSpellCheck = readSkipPerformSpellCheck(mPrefs);
-        mSkipSetImeConsumesInput = readSkipSetImeConsumesInput(mPrefs);
-        mSkipCommitContent = readSkipCommitContent(mPrefs);
-        mSkipCloseConnection = readSkipCloseConnection(mPrefs);
-        mSkipDeleteSurroundingTextInCodePoints = readSkipDeleteSurroundingTextInCodePoints(mPrefs);
-        mSkipRequestCursorUpdates = readSkipRequestCursorUpdates(mPrefs);
-        mSkipCommitCorrection = readSkipCommitCorrection(mPrefs);
-        mSkipGetSelectedText = readSkipGetSelectedText(mPrefs);
-        mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
+            case PREF_DELETE_THROUGH_COMPOSING_TEXT:
+                mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
+                break;
+            case PREF_KEEP_EMPTY_COMPOSING_POSITION:
+                mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
+                break;
 
-        mUpdateDelay = readUpdateDelay(mPrefs);
-        mFinishComposingTextDelay = readFinishComposingTextDelay(mPrefs);
-        mGetSurroundingTextDelay = readGetSurroundingTextDelay(mPrefs);
-        mGetTextBeforeCursorDelay = readGetTextBeforeCursorDelay(mPrefs);
-        mGetSelectedTextDelay = readGetSelectedTextDelay(mPrefs);
-        mGetTextAfterCursorDelay = readGetTextAfterCursorDelay(mPrefs);
-        mGetCursorCapsModeDelay = readGetCursorCapsModeDelay(mPrefs);
-        mGetExtractedTextDelay = readGetExtractedTextDelay(mPrefs);
+            case PREF_SKIP_GETSURROUNDINGTEXT:
+                mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
+                break;
+            case PREF_SKIP_PERFORMSPELLCHECK:
+                mSkipPerformSpellCheck = readSkipPerformSpellCheck(mPrefs);
+                break;
+            case PREF_SKIP_SETIMECONSUMESINPUT:
+                mSkipSetImeConsumesInput = readSkipSetImeConsumesInput(mPrefs);
+                break;
+            case PREF_SKIP_COMMITCONTENT:
+                mSkipCommitContent = readSkipCommitContent(mPrefs);
+                break;
+            case PREF_SKIP_CLOSECONNECTION:
+                mSkipCloseConnection = readSkipCloseConnection(mPrefs);
+                break;
+            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS:
+                mSkipDeleteSurroundingTextInCodePoints =
+                        readSkipDeleteSurroundingTextInCodePoints(mPrefs);
+                break;
+            case PREF_SKIP_REQUESTCURSORUPDATES:
+                mSkipRequestCursorUpdates = readSkipRequestCursorUpdates(mPrefs);
+                break;
+            case PREF_SKIP_COMMITCORRECTION:
+                mSkipCommitCorrection = readSkipCommitCorrection(mPrefs);
+                break;
+            case PREF_SKIP_GETSELECTEDTEXT:
+                mSkipGetSelectedText = readSkipGetSelectedText(mPrefs);
+                break;
+            case PREF_SKIP_SETCOMPOSINGREGION:
+                mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
+                break;
 
-        mUseDebugScreen = readUseDebugScreen(mPrefs);
-        mInputType = readInputType(mPrefs);
-        mImeOptions = readImeOptions(mPrefs);
-        mImeActionId = readImeActionId(mPrefs);
-        mImeActionLabel = readImeActionLabel(mPrefs);
-        mPrivateImeOptions = readPrivateImeOptions(mPrefs);
-        mSelectAllOnFocus = readSelectAllOnFocus(mPrefs);
-        mMaxLength = readMaxLength(mPrefs);
-        mAllowUndo = readAllowUndo(mPrefs);
-        mTextLocales = readTextLocales(mPrefs);
-        mImeHintLocales = readImeHintLocales(mPrefs);
-        mDefaultText = readDefaultText(mPrefs);
-        mHintText = readHintText(mPrefs);
+            case PREF_UPDATE_DELAY:
+                mUpdateDelay = readUpdateDelay(mPrefs);
+                break;
+            case PREF_FINISHCOMPOSINGTEXT_DELAY:
+                mFinishComposingTextDelay = readFinishComposingTextDelay(mPrefs);
+                break;
+            case PREF_GETSURROUNDINGTEXT_DELAY:
+                mGetSurroundingTextDelay = readGetSurroundingTextDelay(mPrefs);
+                break;
+            case PREF_GETTEXTBEFORECURSOR_DELAY:
+                mGetTextBeforeCursorDelay = readGetTextBeforeCursorDelay(mPrefs);
+                break;
+            case PREF_GETSELECTEDTEXT_DELAY:
+                mGetSelectedTextDelay = readGetSelectedTextDelay(mPrefs);
+                break;
+            case PREF_GETTEXTAFTERCURSOR_DELAY:
+                mGetTextAfterCursorDelay = readGetTextAfterCursorDelay(mPrefs);
+                break;
+            case PREF_GETCURSORCAPSMODE_DELAY:
+                mGetCursorCapsModeDelay = readGetCursorCapsModeDelay(mPrefs);
+                break;
+            case PREF_GETEXTRACTEDTEXT_DELAY:
+                mGetExtractedTextDelay = readGetExtractedTextDelay(mPrefs);
+                break;
+
+            case PREF_USE_DEBUG_SCREEN:
+                mUseDebugScreen = readUseDebugScreen(mPrefs);
+                break;
+            case PREF_INPUT_TYPE_CLASS:
+                mInputType = readInputType(mPrefs);
+                break;
+            case PREF_IME_OPTIONS_ACTION:
+                mImeOptions = readImeOptions(mPrefs);
+                break;
+            case PREF_IME_ACTION_ID:
+                mImeActionId = readImeActionId(mPrefs);
+                break;
+            case PREF_IME_ACTION_LABEL:
+                mImeActionLabel = readImeActionLabel(mPrefs);
+                break;
+            case PREF_PRIVATE_IME_OPTIONS:
+                mPrivateImeOptions = readPrivateImeOptions(mPrefs);
+                break;
+            case PREF_SELECT_ALL_ON_FOCUS:
+                mSelectAllOnFocus = readSelectAllOnFocus(mPrefs);
+                break;
+            case PREF_MAX_LENGTH:
+                mMaxLength = readMaxLength(mPrefs);
+                break;
+            case PREF_ALLOW_UNDO:
+                mAllowUndo = readAllowUndo(mPrefs);
+                break;
+            case PREF_TEXT_LOCALES:
+                mTextLocales = readTextLocales(mPrefs);
+                break;
+            case PREF_IME_HINT_LOCALES:
+                mImeHintLocales = readImeHintLocales(mPrefs);
+                break;
+            case PREF_IME_DEFAULT_TEXT:
+                mDefaultText = readDefaultText(mPrefs);
+                break;
+            case PREF_IME_HINT_TEXT:
+                mHintText = readHintText(mPrefs);
+                break;
+        }
     }
 
     private static boolean readModifyCommittedText(final SharedPreferenceManager prefs) {
