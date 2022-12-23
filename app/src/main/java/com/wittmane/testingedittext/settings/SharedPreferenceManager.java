@@ -28,6 +28,8 @@ import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,6 +41,10 @@ public class SharedPreferenceManager implements SharedPreferences {
 
     private static final String SPANNED_STRING_PREF_PREFIX =
             createTypePrefix("ca64cdf7e8164fd2ac8d6be6c23785e2");
+    private static final String STRING_ARRAY_STRING_PREF_PREFIX =
+            createTypePrefix("8ef6104ff54e4f0699a74a8e5b181ace");
+    private static final String INT_ARRAY_STRING_PREF_PREFIX =
+            createTypePrefix("99cc955a57ba4fc08ea6237afd4ba0b9");
 
     private final SharedPreferences mPrefs;
 
@@ -89,6 +95,12 @@ public class SharedPreferenceManager implements SharedPreferences {
         }
         if (prefValue.startsWith(SPANNED_STRING_PREF_PREFIX)) {
             return "Spanned";
+        }
+        if (prefValue.startsWith(STRING_ARRAY_STRING_PREF_PREFIX)) {
+            return "String[]";
+        }
+        if (prefValue.startsWith(INT_ARRAY_STRING_PREF_PREFIX)) {
+            return "int[]";
         }
         return null;
     }
@@ -219,6 +231,106 @@ public class SharedPreferenceManager implements SharedPreferences {
     }
 
     /**
+     * Retrieve a String array value from the preferences.
+     * See {@link #setStringArray}.
+     * @param key The name of the preference to retrieve.
+     * @param defaultValue Value to return if this preference does not exist.
+     * @return Returns the preference value if it exists, or defaultValue. Throws ClassCastException
+     *         if there is a preference with this name that is not a String array (technically
+     *         stored as String).
+     */
+    @Nullable
+    public String[] getStringArray(String key, @Nullable String[] defaultValue) {
+        if (!contains(key)) {
+            return defaultValue;
+        }
+        String rawValue = mPrefs.getString(key, null);
+        if (rawValue == null || !rawValue.startsWith(STRING_ARRAY_STRING_PREF_PREFIX)) {
+            throw new ClassCastException(key + " does not contain a String[]");
+        }
+        String serializedArrayInfo = rawValue.substring(STRING_ARRAY_STRING_PREF_PREFIX.length());
+        if (TextUtils.isEmpty(serializedArrayInfo)) {
+            // this shouldn't be null due to needing to prefix it, but if it's an empty string, that
+            // means that no info for the array was included, which means it was set to null
+            return null;
+        }
+        String[] stringArray;
+        try {
+            String[] arrayInfo = StringArraySerializer.deserialize(serializedArrayInfo);
+            if (arrayInfo == null) {
+                stringArray = null;
+            } else {
+                // array info should have an odd length since the first item is the length and the
+                // rest come in pairs
+                if (arrayInfo.length % 2 == 0) {
+                    throw new InvalidSerializedDataException(
+                            "Invalid array info length: " + arrayInfo.length);
+                }
+                int length = Integer.parseInt(arrayInfo[0]);
+                if (length < 0) {
+                    throw new InvalidSerializedDataException("Invalid array length: " + length);
+                }
+                stringArray = new String[length];
+                for (int i = 1; i < arrayInfo.length; i += 2) {
+                    int index = Integer.parseInt(arrayInfo[i]);
+                    if (index < 0 || index >= stringArray.length) {
+                        throw new InvalidSerializedDataException("Invalid index: " + index);
+                    }
+                    stringArray[index] = arrayInfo[i + 1];
+                }
+            }
+        } catch (InvalidSerializedDataException | NumberFormatException e) {
+            Log.e(TAG, "Failed to read String[] from " + key + ": " + e.getMessage());
+            // preference data is corrupt somehow. treat as if it was empty.
+            return defaultValue;
+        }
+        return stringArray;
+    }
+
+    /**
+     * Retrieve a int array value from the preferences.
+     * See {@link #setIntArray}.
+     * @param key The name of the preference to retrieve.
+     * @param defaultValue Value to return if this preference does not exist.
+     * @return Returns the preference value if it exists, or defaultValue. Throws ClassCastException
+     *         if there is a preference with this name that is not a int array (technically stored
+     *         as String).
+     */
+    @Nullable
+    public int[] getIntArray(String key, @Nullable int[] defaultValue) {
+        if (!contains(key)) {
+            return defaultValue;
+        }
+        String rawValue = mPrefs.getString(key, null);
+        if (rawValue == null || !rawValue.startsWith(INT_ARRAY_STRING_PREF_PREFIX)) {
+            throw new ClassCastException(key + " does not contain an int[]");
+        }
+        String serializedArrayInfo = rawValue.substring(INT_ARRAY_STRING_PREF_PREFIX.length());
+        if (TextUtils.isEmpty(serializedArrayInfo)) {
+            // this shouldn't be null due to needing to prefix it, but if it's an empty string, that
+            // means that no info for the array was included, which means it was set to null
+            return null;
+        }
+        int[] intArray;
+        try {
+            String[] stringArray = StringArraySerializer.deserialize(serializedArrayInfo);
+            if (stringArray == null) {
+                intArray = null;
+            } else {
+                intArray = new int[stringArray.length];
+                for (int i = 0; i < stringArray.length; i++) {
+                    intArray[i] = Integer.parseInt(stringArray[i]);
+                }
+            }
+        } catch (InvalidSerializedDataException | NumberFormatException e) {
+            Log.e(TAG, "Failed to read int[] from " + key + ": " + e.getMessage());
+            // preference data is corrupt somehow. treat as if it was empty.
+            return defaultValue;
+        }
+        return intArray;
+    }
+
+    /**
      * Retrieve a CharSequence value from the preferences. Currently this only supports a String or
      * Spanned.
      * This is safe to use to read a preference set with {@link #setCharSequence},
@@ -259,141 +371,117 @@ public class SharedPreferenceManager implements SharedPreferences {
 
     @Override
     public Editor edit() {
-        return mPrefs.edit();
+        return new Editor(mPrefs.edit());
     }
 
     /**
      * Set a String value in the preferences.
-     * Convenience for {@link SharedPreferences.Editor#putString} and applying the changes
-     * immediately.
+     * Convenience for {@link Editor#putString} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setString(String key, @Nullable String value) {
-        String specialTypeName = getSpecialTypeName(value);
-        if (specialTypeName != null) {
-            // it's technically possible (although extremely unlikely) for this to be an appropriate
-            // string value, so it's probably not worth hard crashing the application
-            Log.e(TAG, "The value for " + key + " appears to be a " + specialTypeName
-                    + " but is being set as a String, which may cause issues");
-        }
-        mPrefs.edit().putString(key, value).apply();
+        edit().putString(key, value).apply();
     }
 
     /**
      * Set a set of String values in the preferences.
-     * Convenience for {@link SharedPreferences.Editor#putStringSet} and applying the changes
-     * immediately.
+     * Convenience for {@link Editor#putStringSet} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setStringSet(String key, @Nullable Set<String> value) {
-        mPrefs.edit().putStringSet(key, value).apply();
+        edit().putStringSet(key, value).apply();
     }
 
     /**
      * Set a float value in the preferences.
-     * Convenience for {@link SharedPreferences.Editor#putInt} and applying the changes immediately.
+     * Convenience for {@link Editor#putInt} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setInt(String key, int value) {
-        mPrefs.edit().putInt(key, value).apply();
+        edit().putInt(key, value).apply();
     }
 
     /**
      * Set a float value in the preferences.
-     * Convenience for {@link SharedPreferences.Editor#putLong} and applying the changes
-     * immediately.
+     * Convenience for {@link Editor#putLong} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setLong(String key, long value) {
-        mPrefs.edit().putLong(key, value).apply();
+        edit().putLong(key, value).apply();
     }
 
     /**
      * Set a float value in the preferences.
-     * Convenience for {@link SharedPreferences.Editor#putFloat} and applying the changes
-     * immediately.
+     * Convenience for {@link Editor#putFloat} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setFloat(String key, float value) {
-        mPrefs.edit().putFloat(key, value).apply();
+        edit().putFloat(key, value).apply();
     }
 
     /**
      * Set a boolean value in the preferences.
-     * Convenience for {@link SharedPreferences.Editor#putBoolean} and applying the changes
+     * Convenience for {@link Editor#putBoolean} and applying the changes
      * immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setBoolean(String key, boolean value) {
-        mPrefs.edit().putBoolean(key, value).apply();
+        edit().putBoolean(key, value).apply();
     }
 
     /**
-     * Set a Spanned value in the preferences. This currently supports saving a Spanned with
-     * spans that are capable of having an HTML representation. Other spans will be lost.
+     * Set a Spanned value in the preferences.
+     * Convenience for {@link Editor#putSpanned} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setSpanned(String key, @Nullable Spanned value) {
-        String serializedSpannedInfo;
-        if (value == null) {
-            serializedSpannedInfo = "";
-        } else {
-            String[] spannedInfo = null;
-            Object[] spans = value.getSpans(0, value.length(), Object.class);
-            if (spans.length > 0) {
-                // save spans by converting it to html. this isn't guaranteed to save all spans, but
-                // there doesn't seem to be a good way to persistently store and recover random
-                // spans, so this may be the best option for now. we probably could also store a
-                // list of the span types and their positions to try to recover specific ones that
-                // don't get saved with the html if that becomes necessary.
-                spannedInfo = new String[]{
-                        value.toString(),
-                        Html.toHtml(new SpannableStringBuilder(value))
-                };
-            }
-            if (spannedInfo == null) {
-                spannedInfo = new String[]{value.toString()};
-            }
-            serializedSpannedInfo = StringArraySerializer.serialize(spannedInfo);
-        }
-        mPrefs.edit().putString(key,
-                SPANNED_STRING_PREF_PREFIX + serializedSpannedInfo).apply();
+        edit().putSpanned(key, value).apply();
     }
 
     /**
-     * Set a CharSequence value in the preferences. This currently supports saving a Spanned or a
-     * String. Any other type of CharSequence will be converted to a string.
-     * Convenience for {@link #setSpanned} or {@link #setString} (whichever is appropriate) and
-     * applying the changes immediately.
-     * Since this could save in different formats, {@link #getCharSequence} should be used to handle
-     * reading the appropriate type.
+     * Set a CharSequence value in the preferences.
+     * Convenience for {@link Editor#putCharSequence} and applying the changes immediately.
      * @param key The name of the preference to modify.
      * @param value The new value for the preference.
      */
     public void setCharSequence(String key, @Nullable CharSequence value) {
-        if (value instanceof Spanned) {
-            setSpanned(key, (Spanned)value);
-        } else if (value == null || value instanceof String) {
-            setString(key, (String)value);
-        } else {
-            setString(key, value.toString());
-        }
+        edit().putCharSequence(key, value).apply();
+    }
+
+    /**
+     * Set a string array value in the preferences.
+     * Convenience for {@link Editor#putStringArray} and applying the changes immediately.
+     * @param key The name of the preference to modify.
+     * @param value The new value for the preference.
+     */
+    public void setStringArray(String key, @Nullable String[] value) {
+        edit().putStringArray(key, value).apply();
+    }
+
+    /**
+     * Set an int array value in the preferences.
+     * Convenience for {@link Editor#putIntArray} and applying the changes immediately.
+     * @param key The name of the preference to modify.
+     * @param value The new value for the preference.
+     */
+    public void setIntArray(String key, @Nullable int[] value) {
+        edit().putIntArray(key, value).apply();
     }
 
     /**
      * Mark in the editor that a preference value should be removed.
-     * Convenience for {@link SharedPreferences.Editor#remove} and applying the changes immediately.
+     * Convenience for {@link Editor#remove} and applying the changes immediately.
      * @param key The name of the preference to remove.
      */
     public void remove(String key) {
-        mPrefs.edit().remove(key).apply();
+        edit().remove(key).apply();
     }
 
     @Override
@@ -407,5 +495,178 @@ public class SharedPreferenceManager implements SharedPreferences {
             OnSharedPreferenceChangeListener onSharedPreferenceChangeListener) {
         mPrefs.unregisterOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
 
+    }
+
+    public static class Editor implements SharedPreferences.Editor {
+        private final SharedPreferences.Editor mEditor;
+        private Editor(SharedPreferences.Editor editor) {
+            mEditor = editor;
+        }
+
+        @Override
+        public Editor putString(String key, @Nullable String value) {
+            String specialTypeName = getSpecialTypeName(value);
+            if (specialTypeName != null) {
+                // it's technically possible (although extremely unlikely) for this to be an
+                // appropriate string value, so it's probably not worth hard crashing the
+                // application
+                Log.e(TAG, "The value for " + key + " appears to be a " + specialTypeName
+                        + " but is being set as a String, which may cause issues");
+            }
+            mEditor.putString(key, value);
+            return this;
+        }
+
+        @Override
+        public Editor putStringSet(String key, @Nullable Set<String> value) {
+            mEditor.putStringSet(key, value);
+            return this;
+        }
+
+        @Override
+        public Editor putInt(String key, int value) {
+            mEditor.putInt(key, value);
+            return this;
+        }
+
+        @Override
+        public Editor putLong(String key, long value) {
+            mEditor.putLong(key, value);
+            return this;
+        }
+
+        @Override
+        public Editor putFloat(String key, float value) {
+            mEditor.putFloat(key, value);
+            return this;
+        }
+
+        @Override
+        public Editor putBoolean(String key, boolean value) {
+            mEditor.putBoolean(key, value);
+            return this;
+        }
+
+        /**
+         * Set a Spanned value in the preferences. This currently supports saving a Spanned with
+         * spans that are capable of having an HTML representation. Other spans will be lost.
+         * @param key The name of the preference to modify.
+         * @param value The new value for the preference.
+         */
+        public Editor putSpanned(String key, @Nullable Spanned value) {
+            String serializedSpannedInfo;
+            if (value == null) {
+                serializedSpannedInfo = "";
+            } else {
+                String[] spannedInfo = null;
+                Object[] spans = value.getSpans(0, value.length(), Object.class);
+                if (spans.length > 0) {
+                    // save spans by converting it to html. this isn't guaranteed to save all spans,
+                    // but there doesn't seem to be a good way to persistently store and recover
+                    // random spans, so this may be the best option for now. we probably could also
+                    // store a list of the span types and their positions to try to recover specific
+                    // ones that don't get saved with the html if that becomes necessary.
+                    spannedInfo = new String[]{
+                            value.toString(),
+                            Html.toHtml(new SpannableStringBuilder(value))
+                    };
+                }
+                if (spannedInfo == null) {
+                    spannedInfo = new String[]{value.toString()};
+                }
+                serializedSpannedInfo = StringArraySerializer.serialize(spannedInfo);
+            }
+            mEditor.putString(key, SPANNED_STRING_PREF_PREFIX + serializedSpannedInfo);
+            return this;
+        }
+
+        /**
+         * Set a CharSequence value in the preferences. This currently supports saving a Spanned or
+         * a String. Any other type of CharSequence will be converted to a string.
+         * Convenience for {@link #putSpanned} or {@link #putString} (whichever is appropriate) and
+         * applying the changes immediately.
+         * Since this could save in different formats, {@link #getCharSequence} should be used to
+         * handle reading the appropriate type.
+         * @param key The name of the preference to modify.
+         * @param value The new value for the preference.
+         */
+        public Editor putCharSequence(String key, @Nullable CharSequence value) {
+            if (value instanceof Spanned) {
+                return putSpanned(key, (Spanned)value);
+            } else if (value == null || value instanceof String) {
+                return putString(key, (String)value);
+            } else {
+                return putString(key, value.toString());
+            }
+        }
+
+        /**
+         * Set a string array value in the preferences.
+         * @param key The name of the preference to modify.
+         * @param value The new value for the preference.
+         */
+        public Editor putStringArray(String key, @Nullable String[] value) {
+            String serializedArrayInfo;
+            if (value == null) {
+                serializedArrayInfo = "";
+            } else {
+                List<String> arrayInfo = new ArrayList<>();
+                // first element is the array length
+                arrayInfo.add("" + value.length);
+                // all subsequent elements are in pairs of the index and the value (skipping null
+                // indices)
+                for (int i = 0; i < value.length; i++) {
+                    if (value[i] == null) {
+                        continue;
+                    }
+                    arrayInfo.add("" + i);
+                    arrayInfo.add(value[i]);
+                }
+                serializedArrayInfo =
+                        StringArraySerializer.serialize(arrayInfo.toArray(new String[0]));
+            }
+            mEditor.putString(key, STRING_ARRAY_STRING_PREF_PREFIX + serializedArrayInfo);
+            return this;
+        }
+
+        /**
+         * Set an int array value in the preferences.
+         * @param key The name of the preference to modify.
+         * @param value The new value for the preference.
+         */
+        public Editor putIntArray(String key, @Nullable int[] value) {
+            String serializedArrayInfo;
+            if (value == null) {
+                serializedArrayInfo = "";
+            } else {
+                String[] stringArray = new String[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    stringArray[i] = "" + value[i];
+                }
+                serializedArrayInfo = StringArraySerializer.serialize(stringArray);
+            }
+            mEditor.putString(key, INT_ARRAY_STRING_PREF_PREFIX + serializedArrayInfo);
+            return this;
+        }
+
+        @Override
+        public Editor remove(String key) {
+            mEditor.remove(key);
+            return this;
+        }
+
+        @Override
+        public Editor clear() {
+            mEditor.clear();
+            return this;
+        }
+
+        public boolean commit() {
+            return mEditor.commit();
+        }
+
+        public void apply() {
+            mEditor.apply();
+        }
     }
 }

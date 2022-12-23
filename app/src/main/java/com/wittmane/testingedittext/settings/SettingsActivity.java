@@ -26,13 +26,14 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
 
-import com.wittmane.testingedittext.settings.fragments.FieldTypeSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.SystemBehaviorSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TargetVersionSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ComposingTextSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 
 public class SettingsActivity extends PreferenceActivity {
 
@@ -84,6 +85,7 @@ public class SettingsActivity extends PreferenceActivity {
                 || TargetVersionSettingsFragment.class.getName().equals(fragmentName)
                 || ComposingTextSettingsFragment.class.getName().equals(fragmentName)
                 || ReturningTextSettingsFragment.class.getName().equals(fragmentName)
-                || FieldTypeSettingsFragment.class.getName().equals(fragmentName);
+                || TestFieldListSettingsFragment.class.getName().equals(fragmentName)
+                || TestFieldSettingsFragment.class.getName().equals(fragmentName);
     }
 }

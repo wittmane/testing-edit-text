@@ -16,66 +16,61 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-        android:key="pref_key_use_debug_screen"
-        android:title="Use EditText dev debug view"
-        android:summary="Use an ugly view with a bunch of random fields for quickly comparing various standard EditText features. This is helpful when editing core EditText code, such as when copying from AOSP." />
-
     <PreferenceCategory android:title="@string/input_type_category"
         android:key="pref_key_input_type_category">
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_input_type_class"
+            android:key="pref_key_test_field_input_type_class_"
             android:title="@string/input_type_class"
             android:entries="@array/type_classes"
             android:entryValues="@array/type_class_values"/>
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_input_type_text_variation"
+            android:key="pref_key_test_field_input_type_text_variation_"
             android:title="@string/input_type_variation"
             android:entries="@array/type_text_variations"
             android:entryValues="@array/type_text_variation_values"/>
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_input_type_text_flag_multi_line"
+            android:key="pref_key_test_field_input_type_text_flag_multi_line_"
             android:title="@string/input_type_text_flag_multi_line_title"
             android:entries="@array/type_text_multi_line_flags"
             android:entryValues="@array/type_text_multi_line_flag_values"/>
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_input_type_text_flag_cap"
+            android:key="pref_key_test_field_input_type_text_flag_cap_"
             android:title="@string/input_type_text_flag_cap"
             android:entries="@array/type_text_cap_flags"
             android:entryValues="@array/type_text_cap_flag_values"/>
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_input_type_text_flag_auto_complete"
+            android:key="pref_key_test_field_input_type_text_flag_auto_complete_"
             android:title="@string/input_type_text_flag_auto_complete" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_input_type_text_flag_auto_correct"
+            android:key="pref_key_test_field_input_type_text_flag_auto_correct_"
             android:title="@string/input_type_text_flag_auto_correct" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_input_type_text_flag_no_suggestions"
+            android:key="pref_key_test_field_input_type_text_flag_no_suggestions_"
             android:title="@string/input_type_text_flag_no_suggestions" />
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_input_type_number_variation"
+            android:key="pref_key_test_field_input_type_number_variation_"
             android:title="@string/input_type_variation"
             android:entries="@array/type_number_variations"
             android:entryValues="@array/type_number_variation_values"/>
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_input_type_number_flag_signed"
+            android:key="pref_key_test_field_input_type_number_flag_signed_"
             android:title="@string/input_type_number_flag_signed" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_input_type_number_flag_decimal"
+            android:key="pref_key_test_field_input_type_number_flag_decimal_"
             android:title="@string/input_type_number_flag_decimal" />
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_input_type_datetime_variation"
+            android:key="pref_key_test_field_input_type_datetime_variation_"
             android:title="@string/input_type_variation"
             android:entries="@array/type_datetime_variations"
             android:entryValues="@array/type_datetime_variation_values"/>
@@ -86,41 +81,41 @@
         android:key="pref_key_ime_options_category">
 
         <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
-            android:key="pref_key_ime_options_action"
+            android:key="pref_key_test_field_ime_options_action_"
             android:title="@string/ime_options_action"
             android:entries="@array/ime_options_actions"
             android:entryValues="@array/ime_options_action_values"/>
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_force_ascii"
+            android:key="pref_key_test_field_ime_options_flag_force_ascii_"
             android:title="@string/ime_options_flag_force_ascii" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_navigate_next"
+            android:key="pref_key_test_field_ime_options_flag_navigate_next_"
             android:title="@string/ime_options_flag_navigate_next" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_navigate_previous"
+            android:key="pref_key_test_field_ime_options_flag_navigate_previous_"
             android:title="@string/ime_options_flag_navigate_previous" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_no_accessory_action"
+            android:key="pref_key_test_field_ime_options_flag_no_accessory_action_"
             android:title="@string/ime_options_flag_no_accessory_action" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_no_enter_action"
+            android:key="pref_key_test_field_ime_options_flag_no_enter_action_"
             android:title="@string/ime_options_flag_no_enter_action" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_no_extract_ui"
+            android:key="pref_key_test_field_ime_options_flag_no_extract_ui_"
             android:title="@string/ime_options_flag_no_extract_ui" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_no_fullscreen"
+            android:key="pref_key_test_field_ime_options_flag_no_fullscreen_"
             android:title="@string/ime_options_flag_no_fullscreen" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_ime_options_flag_no_personalized_learning"
+            android:key="pref_key_test_field_ime_options_flag_no_personalized_learning_"
             android:title="@string/ime_options_flag_no_personalized_learning" />
 
     </PreferenceCategory>
@@ -129,12 +124,12 @@
         android:key="pref_key_ime_action_category">
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-            android:key="pref_key_ime_action_id"
+            android:key="pref_key_test_field_ime_action_id_"
             android:title="@string/ime_action_id"
             app:inputType="number|numberSigned" />
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-            android:key="pref_key_ime_action_label"
+            android:key="pref_key_test_field_ime_action_label_"
             android:title="@string/ime_action_label"
             app:inputType="text" />
 
@@ -145,43 +140,43 @@
         android:key="pref_key_misc_category">
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-            android:key="pref_key_private_ime_options"
+            android:key="pref_key_test_field_private_ime_options_"
             android:title="@string/private_ime_options"
             app:inputType="text" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_select_all_on_focus"
+            android:key="pref_key_test_field_select_all_on_focus_"
             android:title="@string/select_all_on_focus" />
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-            android:key="pref_key_max_length"
+            android:key="pref_key_test_field_max_length_"
             android:title="@string/max_length"
             app:defaultText="-1"
             app:inputType="number" />
 
         <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-            android:key="pref_key_allow_undo"
+            android:key="pref_key_test_field_allow_undo_"
             android:title="@string/allow_undo"
             android:summary="@string/dynamic_set_not_supported_in_framework"
             android:defaultValue="true" />
 
         <com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference
-            android:key="pref_key_text_locales"
+            android:key="pref_key_test_field_text_locales_"
             android:title="@string/text_locales" />
 
         <com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference
-            android:key="pref_key_ime_hint_locales"
+            android:key="pref_key_test_field_ime_hint_locales_"
             android:title="@string/ime_hint_locales"
             app:maxEntries="3"/>
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-            android:key="pref_key_default_text"
+            android:key="pref_key_test_field_default_text_"
             android:title="@string/default_text"
             app:defaultText=""
             app:inputType="textMultiLine|textStyled" />
 
         <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-            android:key="pref_key_hint_text"
+            android:key="pref_key_test_field_hint_text_"
             android:title="@string/hint_text"
             app:defaultText=""
             app:inputType="textMultiLine|textStyled" />

@@ -17,6 +17,9 @@
     <string name="app_name">Testing Edit Text</string>
     <string name="settings">Settings</string>
 
+    <string name="framework_edittext">Framework EditText</string>
+    <string name="custom_edittext">Custom EditText</string>
+
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
     <string name="button_default">Default</string>
@@ -170,8 +173,12 @@
     <string name="getextractedtext_delay_title">Delay getExtractedText</string>
     <string name="getextractedtext_delay_summary">Documentation for InputConnection#getExtractedText mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
 
-    <!--TODO: name this better-->
-    <string name="field_type_screen">Field type</string>
+    <string name="test_field_list_screen">Test fields</string>
+    <string name="add_field">Add field</string>
+    <string name="test_field_default_name">Field <xliff:g id="INDEX">%d</xliff:g></string>
+    <string name="test_field_property_description"><xliff:g id="TITLE">%s</xliff:g>: <xliff:g id="SUMMARY">%s</xliff:g></string>
+    <string name="test_field_property_detailed_summary"><xliff:g id="BASE">%s</xliff:g> (<xliff:g id="DETAILS">%s</xliff:g>)</string>
+    <string name="test_field_property_details_delimiter">", "</string>
 
     <string name="input_type_category">Input type</string>
     <string name="input_type_class">Class</string>

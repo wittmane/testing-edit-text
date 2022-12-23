@@ -17,6 +17,7 @@
 package com.wittmane.testingedittext;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -29,7 +30,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -65,20 +68,59 @@ public class MainActivity extends Activity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private boolean mUseDebugScreen;
+    // Use the ugly view with a bunch of random fields built in xml for quickly comparing various
+    // standard EditText features. This is helpful when editing core EditText code, such as when
+    // copying from AOSP and making sure the xml generation works right or with other attributes not
+    // supported in the settings.
+    private static final boolean USE_DEBUG_SCREEN = false;
 
-    private EditTextProxy frameworkEditText1;
-    private EditTextProxy frameworkEditText2;
-    private EditTextProxy customEditText1;
-    private EditTextProxy customEditText2;
+    private LinearLayout mTestFieldContainer;
+    private TestField[] mTestFields;
+
+    private static class TestField {
+        private final int mId;
+        private final EditTextProxy mFrameworkEditText;
+        private final EditTextProxy mCustomEditText;
+        private final LinearLayout mLayout;
+        public TestField(int id, Context context) {
+            mId = id;
+
+            mLayout = new LinearLayout(context);
+            mLayout.setOrientation(LinearLayout.HORIZONTAL);
+            mLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
+            LinearLayout frameworkEditTextWrapper = new LinearLayout(context);
+            frameworkEditTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
+            mLayout.addView(frameworkEditTextWrapper);
+
+            android.widget.EditText frameworkEditText = new android.widget.EditText(context);
+            frameworkEditText.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+            mFrameworkEditText = new EditTextProxy(frameworkEditText);
+            frameworkEditTextWrapper.addView(frameworkEditText);
+
+            LinearLayout customEditTextWrapper = new LinearLayout(context);
+            customEditTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
+            mLayout.addView(customEditTextWrapper);
+
+            com.wittmane.testingedittext.aosp.widget.EditText customEditText =
+                    new com.wittmane.testingedittext.aosp.widget.EditText(context);
+            customEditText.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+            mCustomEditText = new EditTextProxy(customEditText);
+            customEditTextWrapper.addView(customEditText);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Settings.init(this);
 
-        mUseDebugScreen = Settings.useDebugScreen();
-        if (mUseDebugScreen) {
+        if (USE_DEBUG_SCREEN) {
             setContentView(R.layout.activity_main_debug);
 
             InputFilter filter = new InputFilter() {
@@ -141,44 +183,77 @@ public class MainActivity extends Activity {
         } else {
             setContentView(R.layout.activity_main);
 
-            frameworkEditText1 = new EditTextProxy((android.widget.EditText)
-                    findViewById(R.id.frameworkEditText1));
-            frameworkEditText2 = new EditTextProxy((android.widget.EditText)
-                    findViewById(R.id.frameworkEditText2));
-            customEditText1 = new EditTextProxy((com.wittmane.testingedittext.aosp.widget.EditText)
-                    findViewById(R.id.customEditText1));
-            customEditText2 = new EditTextProxy((com.wittmane.testingedittext.aosp.widget.EditText)
-                    findViewById(R.id.customEditText2));
+            mTestFieldContainer = findViewById(R.id.testFieldContainer);
 
             updateFields();
-
         }
     }
 
     private void updateFields() {
-        if (mUseDebugScreen) {
+        if (USE_DEBUG_SCREEN) {
             return;
         }
 
-        updateField(frameworkEditText1);
-        updateField(frameworkEditText2);
-        updateField(customEditText1);
-        updateField(customEditText2);
+        // build or rebuild the list of fields in case any were added or removed and update the ui
+        TestField[] testFields = new TestField[Settings.getTestFieldCount()];
+        int firstChangedFieldIndex = -1;
+        for (int curFieldIndex = 0; curFieldIndex < testFields.length; curFieldIndex++) {
+            TestField testField = null;
+            int id = Settings.getTestFieldId(curFieldIndex);
+            // see if the field already existed to be able to keep using it
+            if (mTestFields != null) {
+                for (int oldFieldIndex = 0; oldFieldIndex < mTestFields.length; oldFieldIndex++) {
+                    TestField existingField = mTestFields[oldFieldIndex];
+                    if (existingField.mId == id) {
+                        testField = existingField;
+                        if (firstChangedFieldIndex < 0 && curFieldIndex != oldFieldIndex) {
+                            firstChangedFieldIndex = curFieldIndex;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (testField == null) {
+                testField = new TestField(id, this);
+                if (firstChangedFieldIndex < 0) {
+                    firstChangedFieldIndex = curFieldIndex;
+                }
+            }
+            testFields[curFieldIndex] = testField;
+        }
+        // only add/remove fields starting where there was a change to avoid messing with things
+        // like focus
+        if (firstChangedFieldIndex >= 0) {
+            if (mTestFields != null) {
+                for (int i = firstChangedFieldIndex; i < mTestFields.length; i++) {
+                    mTestFieldContainer.removeView(mTestFields[i].mLayout);
+                }
+            }
+            mTestFields = testFields;
+            for (int i = firstChangedFieldIndex; i < mTestFields.length; i++) {
+                mTestFieldContainer.addView(mTestFields[i].mLayout);
+            }
+        }
+
+        for (int i = 0; i < mTestFields.length; i++) {
+            updateField(mTestFields[i].mFrameworkEditText, i);
+            updateField(mTestFields[i].mCustomEditText, i);
+        }
     }
 
-    private static void updateField(EditTextProxy editText) {
-        int inputType = Settings.getInputType();
+    private static void updateField(EditTextProxy editText, int fieldIndex) {
+        int inputType = Settings.getTestFieldInputType(fieldIndex);
         if (editText.getInputType() != inputType) {
             editText.setInputType(inputType);
         }
 
-        int imeOptions = Settings.getImeOptions();
+        int imeOptions = Settings.getTestFieldImeOptions(fieldIndex);
         if (editText.getImeOptions() != imeOptions) {
             editText.setImeOptions(imeOptions);
         }
 
-        int imeActionId = Settings.getImeActionId();
-        String imeActionLabel = Settings.getImeActionLabel();
+        int imeActionId = Settings.getTestFieldImeActionId(fieldIndex);
+        String imeActionLabel = Settings.getTestFieldImeActionLabel(fieldIndex);
         int currentImeActionId = editText.getImeActionId();
         CharSequence currentImeActionLabel = editText.getImeActionLabel();
         if (currentImeActionId != imeActionId
@@ -186,17 +261,17 @@ public class MainActivity extends Activity {
             editText.setImeActionLabel(imeActionLabel, imeActionId);
         }
 
-        String privateImeOptions = Settings.getPrivateImeOptions();
+        String privateImeOptions = Settings.getTestFieldPrivateImeOptions(fieldIndex);
         if (!TextUtils.equals(editText.getPrivateImeOptions(), privateImeOptions)) {
             editText.setPrivateImeOptions(privateImeOptions);
         }
 
-        boolean selectAllOnFocus = Settings.shouldSelectAllOnFocus();
+        boolean selectAllOnFocus = Settings.shouldTestFieldSelectAllOnFocus(fieldIndex);
         if (editText.getSelectAllOnFocus() != selectAllOnFocus) {
             editText.setSelectAllOnFocus(selectAllOnFocus);
         }
 
-        int maxLength = Settings.getMaxLength();
+        int maxLength = Settings.getTestFieldMaxLength(fieldIndex);
         InputFilter[] filters = editText.getFilters();
         List<InputFilter> newFilters = new ArrayList<>();
         boolean filtersChanged = false;
@@ -233,12 +308,12 @@ public class MainActivity extends Activity {
             editText.setFilters(newFilters.toArray(new InputFilter[0]));
         }
 
-        boolean allowUndo = Settings.shouldAllowUndo();
+        boolean allowUndo = Settings.shouldTestFieldAllowUndo(fieldIndex);
         if (editText.getAllowUndo() != allowUndo) {
             editText.setAllowUndo(allowUndo);
         }
 
-        Locale[] textLocales = Settings.getTextLocales();
+        Locale[] textLocales = Settings.getTestFieldTextLocales(fieldIndex);
         Locale[] currentTextLocales = editText.getTextLocales();
         if (textLocales.length > 0) {
             if (!equals(currentTextLocales, textLocales)) {
@@ -251,18 +326,18 @@ public class MainActivity extends Activity {
             }
         }
 
-        Locale[] imeHintLocales = Settings.getImeHintLocales();
+        Locale[] imeHintLocales = Settings.getTestFieldImeHintLocales(fieldIndex);
         Locale[] currentImeHintLocales = editText.getImeHintLocales();
         if (!equals(currentImeHintLocales, imeHintLocales)) {
             editText.setImeHintLocales(imeHintLocales);
         }
 
-        CharSequence defaultText = Settings.getDefaultText();
+        CharSequence defaultText = Settings.getTestFieldDefaultText(fieldIndex);
         if (!editText.wasTextSet(defaultText)) {
             editText.setText(defaultText);
         }
 
-        CharSequence hint = Settings.getHintText();
+        CharSequence hint = Settings.getTestFieldHintText(fieldIndex);
         if (!editText.wasHintSet(hint)) {
             editText.setHint(hint);
         }
@@ -285,12 +360,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        if (mUseDebugScreen != Settings.useDebugScreen()) {
-            recreate();
-        } else {
-            updateFields();
-        }
+        updateFields();
     }
 
     @Override
