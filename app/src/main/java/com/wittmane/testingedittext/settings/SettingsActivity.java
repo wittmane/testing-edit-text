@@ -32,6 +32,9 @@ import com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFrag
 import com.wittmane.testingedittext.settings.fragments.SystemBehaviorSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TargetVersionSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ComposingTextSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.TestFieldImeActionSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.TestFieldImeOptionsSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.TestFieldInputTypeSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 
@@ -88,6 +91,9 @@ public class SettingsActivity extends PreferenceActivity {
                 || ComposingTextSettingsFragment.class.getName().equals(fragmentName)
                 || ReturningTextSettingsFragment.class.getName().equals(fragmentName)
                 || TestFieldListSettingsFragment.class.getName().equals(fragmentName)
-                || TestFieldSettingsFragment.class.getName().equals(fragmentName);
+                || TestFieldSettingsFragment.class.getName().equals(fragmentName)
+                || TestFieldInputTypeSettingsFragment.class.getName().equals(fragmentName)
+                || TestFieldImeOptionsSettingsFragment.class.getName().equals(fragmentName)
+                || TestFieldImeActionSettingsFragment.class.getName().equals(fragmentName);
     }
 }

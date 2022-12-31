@@ -181,7 +181,7 @@
     <string name="test_field_property_detailed_summary"><xliff:g id="BASE">%s</xliff:g> (<xliff:g id="DETAILS">%s</xliff:g>)</string>
     <string name="test_field_property_details_delimiter">", "</string>
 
-    <string name="input_type_category">Input type</string>
+    <string name="input_type">Input type</string>
     <string name="input_type_class">Class</string>
     <string name="input_type_variation">Variation</string>
 
@@ -231,7 +231,7 @@
     <string name="input_type_datetime_variation_date">Date</string>
     <string name="input_type_datetime_variation_time">Time</string>
 
-    <string name="ime_options_category">IME options</string>
+    <string name="ime_options">IME options</string>
     <string name="ime_options_action">Action</string>
     <string name="ime_options_action_unspecified">Unspecified</string>
     <string name="ime_options_action_none">None</string>
@@ -250,7 +250,7 @@
     <string name="ime_options_flag_no_fullscreen">No fullscreen</string>
     <string name="ime_options_flag_no_personalized_learning">No personalized learning</string>
 
-    <string name="ime_action_category">IME action</string>
+    <string name="ime_action">IME action</string>
     <string name="ime_action_id">Action ID</string>
     <string name="ime_action_label">Action label</string>
 
