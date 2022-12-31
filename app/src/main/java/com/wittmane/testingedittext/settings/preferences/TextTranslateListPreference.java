@@ -17,7 +17,6 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -26,6 +25,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TranslateText;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.Reader;
 
@@ -89,13 +89,13 @@ public class TextTranslateListPreference
     }
 
     @Override
-    protected Reader createReader(SharedPreferences prefs, String key) {
+    protected Reader createReader(SharedPreferenceManager prefs, String key) {
         return new Reader(prefs, key);
     }
 
     public static class Reader
             extends TextEntryListPreferenceBase.TextListReader<TranslateText> {
-        public Reader(SharedPreferences prefs, String key) {
+        public Reader(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 

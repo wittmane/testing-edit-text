@@ -19,7 +19,6 @@ package com.wittmane.testingedittext.settings.preferences;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.Editable;
@@ -30,7 +29,6 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -43,6 +41,7 @@ import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IntRange;
 import com.wittmane.testingedittext.settings.NumericFilter;
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -694,10 +693,10 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     }
 
     public static class Reader {
-        private final SharedPreferences mPrefs;
+        private final SharedPreferenceManager mPrefs;
         private String mKey;
 
-        public Reader(SharedPreferences prefs, String key) {
+        public Reader(SharedPreferenceManager prefs, String key) {
             mPrefs = prefs;
             mKey = key;
         }

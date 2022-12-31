@@ -17,7 +17,6 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -27,6 +26,7 @@ import android.widget.TableRow;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TextList;
 import com.wittmane.testingedittext.settings.preferences.TextEntryListPreferenceBase.TextListReader;
 
@@ -66,7 +66,7 @@ public abstract class TextEntryListPreferenceBase<T, TReader extends TextListRea
 
     protected static abstract class TextListReader<T> extends ReaderBase<TextList<T>> {
 
-        protected TextListReader(SharedPreferences prefs, String key) {
+        protected TextListReader(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 

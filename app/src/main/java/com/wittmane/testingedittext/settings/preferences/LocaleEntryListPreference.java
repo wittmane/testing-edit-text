@@ -17,7 +17,6 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputFilter.AllCaps;
@@ -39,6 +38,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.AlphaFilter;
 import com.wittmane.testingedittext.settings.AlphaNumericFilter;
 import com.wittmane.testingedittext.settings.LowerCaseFilter;
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference.Reader;
 
 import java.util.Locale;
@@ -176,13 +176,13 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
     }
 
     @Override
-    protected Reader createReader(SharedPreferences prefs, String key) {
+    protected Reader createReader(SharedPreferenceManager prefs, String key) {
         return new Reader(prefs, key);
     }
 
     public static class Reader extends SimpleEntryListPreference.SimpleReader<Locale> {
 
-        public Reader(SharedPreferences prefs, String key) {
+        public Reader(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 

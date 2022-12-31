@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Wrapper for SharedPreferences that has options for extra types and convenience methods.
+ * Wrapper for {@link SharedPreferences} that has options for extra types and convenience methods.
  */
 public class SharedPreferenceManager implements SharedPreferences {
     private static final String TAG = SharedPreferenceManager.class.getSimpleName();

@@ -17,11 +17,11 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.AttributeSet;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.SimpleEntryListPreference.SimpleReader;
 
 public abstract class SimpleEntryListPreference<TRowData, TReader extends SimpleReader<TRowData>>
@@ -47,7 +47,7 @@ public abstract class SimpleEntryListPreference<TRowData, TReader extends Simple
     }
 
     public static abstract class SimpleReader<T> extends ReaderBase<T[]> {
-        public SimpleReader(SharedPreferences prefs, String key) {
+        public SimpleReader(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 

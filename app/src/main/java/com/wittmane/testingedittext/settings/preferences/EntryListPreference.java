@@ -19,7 +19,6 @@ package com.wittmane.testingedittext.settings.preferences;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.preference.PreferenceManager;
 import android.text.Editable;
@@ -46,8 +45,7 @@ import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
-import com.wittmane.testingedittext.settings.StringArraySerializer;
-import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.EntryListPreference.ReaderBase;
 
 import java.util.ArrayList;
@@ -320,13 +318,13 @@ public abstract class EntryListPreference<TRowData, TFullData,
         }
     }
 
-    protected abstract TReader createReader(SharedPreferences prefs, String key);
+    protected abstract TReader createReader(SharedPreferenceManager prefs, String key);
 
     protected static abstract class ReaderBase<T> {
-        protected final SharedPreferences mPrefs;
+        protected final SharedPreferenceManager mPrefs;
         protected String mKey;
 
-        protected ReaderBase(SharedPreferences prefs, String key) {
+        protected ReaderBase(SharedPreferenceManager prefs, String key) {
             mPrefs = prefs;
             mKey = key;
         }
@@ -335,15 +333,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
         @NonNull
         public T readValue() {
-            String rawValue = mPrefs.getString(mKey, null);
-            String[] pieces;
-            try {
-                pieces = StringArraySerializer.deserialize(rawValue);
-            } catch (InvalidSerializedDataException e) {
-                Log.e(TAG, "Failed to parse preference " + mKey + " (\"" + rawValue + "\"):"
-                        + e.getMessage());
-                pieces = null;
-            }
+            String[] pieces = mPrefs.getStringArray(mKey, null);
             if (pieces == null) {
                 return readDefaultValue();
             }
@@ -376,7 +366,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
         System.arraycopy(extraData, 0, dataForSave, 0, extraData.length);
         System.arraycopy(rowData, 0, dataForSave, extraData.length, rowData.length);
 
-        getPrefs().setString(getKey(), StringArraySerializer.serialize(dataForSave));
+        getPrefs().setStringArray(getKey(), dataForSave);
     }
 
     @NonNull
