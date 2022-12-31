@@ -16,7 +16,10 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import android.app.ActionBar;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
@@ -30,8 +33,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.DraggableListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 
@@ -68,8 +74,11 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
     public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field_list, menu);
 
+        ActionBar actionBar = getActivity().getActionBar();
         MenuItem addFieldMenuItem = menu.findItem(R.id.action_add_field);
-        IconUtils.matchMenuIconColor(mView, addFieldMenuItem, getActivity().getActionBar());
+        IconUtils.matchMenuIconColor(mView, addFieldMenuItem, actionBar);
+        MenuItem reorderFieldsMenuItem = menu.findItem(R.id.action_reorder_fields);
+        IconUtils.matchMenuIconColor(mView, reorderFieldsMenuItem, actionBar);
     }
 
     @Override
@@ -85,8 +94,66 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
             // launch sub setting screen for the new field preference
             ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
                     this, newPref);
+        } else if (itemId == R.id.action_reorder_fields) {
+            ListView content = new ListView(getActivity());
+            DraggableListAdapter<TestField> adapter = new DraggableListAdapter<>(getActivity(),
+                    new DraggableListAdapter.ListItemBuilder<TestField>() {
+                        @Override
+                        public void populateView(View view, TestField item) {
+                            TextView titleView = view.findViewById(R.id.title);
+                            titleView.setText(item.mTitle);
+                        }
+                    });
+            for (int i = 0; i < Settings.getTestFieldCount(); i++) {
+                adapter.add(new TestField(getActivity(), i));
+            }
+            content.setAdapter(adapter);
+
+            AlertDialog dialog = new AlertDialog.Builder(getActivity())
+                    .setTitle(R.string.reorder_fields)
+                    .setView(content)
+                    .setPositiveButton(android.R.string.ok,
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                    int[] testFields = new int[adapter.getCount()];
+                                    for (int i = 0; i < adapter.getCount(); i++) {
+                                        testFields[i] = adapter.getItem(i).getId();
+                                    }
+                                    Settings.setTestFieldIds(testFields);
+                                    buildContent();
+                                }
+                            })
+                    .setNegativeButton(android.R.string.cancel,
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                }
+                            })
+                    .create();
+            dialog.show();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private static class TestField {
+        private CharSequence mTitle;
+        private int mId;
+
+        public TestField(Context context, int index) {
+            mTitle = getFieldTitle(context, index);
+            mId = Settings.getTestFieldId(index);
+        }
+
+        public int getId() {
+            return mId;
+        }
+
+        public CharSequence getTitle() {
+            return mTitle;
+        }
     }
 
     /**
@@ -99,6 +166,20 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
 
         for (int i = 0; i < Settings.getTestFieldCount(); i++) {
             group.addPreference(new SingleFieldPreference(context, i));
+        }
+    }
+
+    private static CharSequence getFieldTitle(final Context context, final int fieldIndex) {
+        CharSequence defaultText = Settings.getTestFieldDefaultText(fieldIndex);
+        if (!TextUtils.isEmpty(defaultText)) {
+            return defaultText;
+        } else {
+            CharSequence hintText = Settings.getTestFieldHintText(fieldIndex);
+            if (!TextUtils.isEmpty(hintText)) {
+                return hintText;
+            } else {
+                return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
+            }
         }
     }
 
@@ -118,17 +199,7 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
             super(context);
             mFieldIndex = fieldIndex;
 
-            CharSequence defaultText = Settings.getTestFieldDefaultText(fieldIndex);
-            if (!TextUtils.isEmpty(defaultText)) {
-                setTitle(defaultText);
-            } else {
-                CharSequence hintText = Settings.getTestFieldHintText(fieldIndex);
-                if (!TextUtils.isEmpty(hintText)) {
-                    setTitle(hintText);
-                } else {
-                    setTitle(context.getString(R.string.test_field_default_name, (fieldIndex + 1)));
-                }
-            }
+            setTitle(getFieldTitle(context, fieldIndex));
             String[] summaryInfo = new String[] {
                     getInputTypeDescription(Settings.getTestFieldInputType(fieldIndex), context),
                     getImeOptionsDescription(Settings.getTestFieldImeOptions(fieldIndex), context),

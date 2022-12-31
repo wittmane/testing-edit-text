@@ -15,6 +15,11 @@
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/action_reorder_fields"
+        android:icon="@drawable/ic_reorder_white_24"
+        android:title="@string/reorder_fields"
+        android:showAsAction="always" />
+    <item
         android:id="@+id/action_add_field"
         android:icon="@drawable/ic_add_box_white_24"
         android:title="@string/add_field"

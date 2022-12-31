@@ -935,6 +935,50 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return fieldIds;
     }
 
+    public static void setTestFieldIds(int[] testFieldIds) {
+        Settings settings = getInstance();
+
+        Editor editor = settings.mPrefs.edit();
+
+        TestField[] newTestFields = new TestField[testFieldIds.length];
+        // delete any fields that are getting removed
+        for (TestField testField : settings.mTestFields) {
+            boolean isRemovingField = true;
+            for (int i = 0; i < testFieldIds.length; i++) {
+                int testFieldId = testFieldIds[i];
+                if (testField.mId == testFieldId) {
+                    isRemovingField = false;
+                    newTestFields[i] = testField;
+                    break;
+                }
+            }
+            if (isRemovingField) {
+                // clear all of the now orphaned test field preferences to avoid bloat
+                removeTestFieldPrefs(editor, testField.mId);
+            }
+        }
+        settings.mTestFields.clear();
+        // add the new fields (reusing any that already existed and may have just changes positions)
+        List<Integer> newFieldIds = new ArrayList<>();
+        for (int i = 0; i < newTestFields.length; i++) {
+            TestField testField = newTestFields[i];
+            if (testField == null) {
+                testField = new TestField(testFieldIds[i]);
+                newFieldIds.add(testFieldIds[i]);
+            }
+            settings.mTestFields.add(testField);
+        }
+
+        editor.putIntArray(PREF_TEST_FIELD_IDS, testFieldIds);
+
+        editor.apply();
+
+        // load the default values for any new fields
+        for (int newFieldId : newFieldIds) {
+            settings.loadTestFieldSettings(newFieldId);
+        }
+    }
+
     public static int getTestFieldCount() {
         return getInstance().mTestFields.size();
     }
@@ -967,6 +1011,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         editor.putIntArray(PREF_TEST_FIELD_IDS, getTestFieldIds(settings.mTestFields));
 
         // clear all of the now orphaned test field preferences to avoid bloat
+        removeTestFieldPrefs(editor, idToRemove);
+
+        editor.apply();
+    }
+
+    private static void removeTestFieldPrefs(Editor editor, int idToRemove) {
         final String[] testFieldPrefKeyPrefixes = new String[]{
                 PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX,
                 PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX,
@@ -1002,8 +1052,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
             editor.remove(prefKeyPrefix + idToRemove);
         }
-
-        editor.apply();
     }
 
     private static int[] getTestFieldIds(List<TestField> fields) {

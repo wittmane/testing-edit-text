@@ -175,6 +175,7 @@
 
     <string name="test_field_list_screen">Test fields</string>
     <string name="add_field">Add field</string>
+    <string name="reorder_fields">Reorder fields</string>
     <string name="test_field_default_name">Field <xliff:g id="INDEX">%d</xliff:g></string>
     <string name="test_field_property_description"><xliff:g id="TITLE">%s</xliff:g>: <xliff:g id="SUMMARY">%s</xliff:g></string>
     <string name="test_field_property_detailed_summary"><xliff:g id="BASE">%s</xliff:g> (<xliff:g id="DETAILS">%s</xliff:g>)</string>
