@@ -16,6 +16,9 @@
 
 package com.wittmane.testingedittext.settings;
 
+/**
+ * An InputFilter that only allows a-z and A-Z.
+ */
 public class AlphaFilter extends CharFilter {
 
     @Override

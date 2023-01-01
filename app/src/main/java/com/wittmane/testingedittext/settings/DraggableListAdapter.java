@@ -634,6 +634,14 @@ public class DraggableListAdapter<T> extends BaseAdapter {
             }, delay);
         }
 
+        /**
+         * Schedule a specified task for repeated fixed-rate execution, beginning after a specified
+         * delay. Subsequent executions take place at approximately regular intervals, separated by
+         * the specified period.
+         * @param task The task to be scheduled.
+         * @param delay The delay in milliseconds before the task is to be executed.
+         * @param period The time in milliseconds between successive task executions.
+         */
         public synchronized void scheduleAtFixedRate(TimerTask task, long delay, long period) {
             mTimer.scheduleAtFixedRate(new TimerTask() {
                 @Override
@@ -651,6 +659,9 @@ public class DraggableListAdapter<T> extends BaseAdapter {
             }, delay, period);
         }
 
+        /**
+         * Terminates this timer, discarding any currently scheduled tasks.
+         */
         public synchronized void cancel() {
             mTimer.cancel();
             mCanceled = true;

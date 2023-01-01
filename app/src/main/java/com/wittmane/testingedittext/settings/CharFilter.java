@@ -20,6 +20,10 @@ import android.text.InputFilter;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 
+/**
+ * An InputFilter base for only allowing specific characters. This will retain spans from the
+ * original text.
+ */
 public abstract class CharFilter implements InputFilter {
 
     public CharSequence filter(CharSequence source, int sourceStart, int sourceEnd,

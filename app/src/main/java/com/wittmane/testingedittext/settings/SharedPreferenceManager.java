@@ -497,6 +497,9 @@ public class SharedPreferenceManager implements SharedPreferences {
 
     }
 
+    /**
+     * Wrapper for {@link SharedPreferences.Editor} that has options for extra types.
+     */
     public static class Editor implements SharedPreferences.Editor {
         private final SharedPreferences.Editor mEditor;
         private Editor(SharedPreferences.Editor editor) {
@@ -661,10 +664,12 @@ public class SharedPreferenceManager implements SharedPreferences {
             return this;
         }
 
+        @Override
         public boolean commit() {
             return mEditor.commit();
         }
 
+        @Override
         public void apply() {
             mEditor.apply();
         }

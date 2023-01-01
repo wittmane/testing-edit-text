@@ -18,12 +18,21 @@ package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.SimpleEntryListPreference.SimpleReader;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Preference for entering a list of items (all data tied to individual items)
+ * @param <TRowData> Type for the items in the list
+ * @param <TReader> Type for reading the preference data
+ */
 public abstract class SimpleEntryListPreference<TRowData, TReader extends SimpleReader<TRowData>>
         extends EntryListPreference<TRowData, TRowData[], TReader> {
 
@@ -34,6 +43,33 @@ public abstract class SimpleEntryListPreference<TRowData, TReader extends Simple
     @Override
     protected void setExtraDataUI(TRowData[] data) {
     }
+
+    @NonNull
+    @Override
+    protected TRowData[] getUIData() {
+        List<TRowData> locales = new ArrayList<>();
+        for (Row row : mRows) {
+            if (canRemoveAsExtraLine(row.mContent)) {
+                continue;
+            }
+            locales.add(getRowData(row.mContent));
+        }
+        return createArray(locales);
+    }
+
+    /**
+     * Build a data object for the row based on the values entered in the UI.
+     * @param rowContent The views that make up the row.
+     * @return The data that should be saved from the row.
+     */
+    protected abstract TRowData getRowData(View[] rowContent);
+
+    /**
+     * Convert a list to an array.
+     * @param list The list to convert.
+     * @return The array equivalent of the list.
+     */
+    protected abstract TRowData[] createArray(List<TRowData> list);
 
     @Override
     protected TRowData[] getRowData(final TRowData[] fullData) {

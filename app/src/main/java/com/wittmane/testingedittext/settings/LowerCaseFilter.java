@@ -16,6 +16,9 @@
 
 package com.wittmane.testingedittext.settings;
 
+/**
+ * An InputFilter that converts characters to lower case.
+ */
 public class LowerCaseFilter extends CharFilter {
 
     @Override

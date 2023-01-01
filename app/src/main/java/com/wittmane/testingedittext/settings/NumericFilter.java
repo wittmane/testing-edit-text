@@ -16,6 +16,9 @@
 
 package com.wittmane.testingedittext.settings;
 
+/**
+ * An InputFilter that only allows 0-9.
+ */
 public class NumericFilter extends CharFilter {
 
     @Override

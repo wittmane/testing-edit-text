@@ -20,6 +20,7 @@ import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.regex.Pattern;
 
@@ -52,7 +53,7 @@ public class StringArraySerializer {
                     + delimiterLength + ") from " + serializedValue);
         }
         String[] pieces = serializedValue.split(Pattern.quote(
-                serializedValue.substring(delimiterStart, delimiterStart + delimiterLength)));
+                serializedValue.substring(delimiterStart, delimiterStart + delimiterLength)), -1);
 
         String[] deserializedValue = new String[pieces.length - 1];
         if (pieces.length > 1) {
@@ -73,41 +74,47 @@ public class StringArraySerializer {
     }
 
     private static String determineDelimiter(final String[] pieces) {
-        int delimiterLength = 1;
-        String delimiter = "\0";
+        int delimiterLength = 0;
+        String delimiter = "";
         char[] delimiterCharArray;
         HashSet<String> usedText = new HashSet<>();
         while (true) {
-            // get a list of all of the text combinations that need to be delimited with a length of
-            // the delimiter to be able to exclude them as the delimiter
-            for (String piece : pieces) {
-                for (int i = 0; i + delimiterLength <= piece.length(); i++) {
-                    usedText.add(piece.substring(i, i + delimiterLength));
+            if (delimiterLength > 0) {
+                // get a list of all of the text combinations that need to be delimited with a
+                // length of the delimiter to be able to exclude them as the delimiter
+                for (String piece : pieces) {
+                    for (int i = 0; i + delimiterLength <= piece.length(); i++) {
+                        usedText.add(piece.substring(i, i + delimiterLength));
+                    }
                 }
+
+                // find a delimiter with the current length that isn't in the text that needs to be
+                // delimited
+                while (true) {
+                    if (!usedText.contains(delimiter)) {
+                        return delimiter;
+                    }
+                    delimiterCharArray = delimiter.toCharArray();
+
+                    if (!incrementDelimiter(delimiterCharArray)) {
+                        // ran out of options - need to increase the length of the delimiter
+                        break;
+                    }
+                    delimiter = new String(delimiterCharArray);
+                }
+
+                // all valid delimiters were found in the text to delimit - try a longer delimiter
+                usedText.clear();
             }
-
-            // find a delimiter with the current length that isn't in the text that needs to be
-            // delimited
-            while (true) {
-                if (!usedText.contains(delimiter)) {
-                    return delimiter;
-                }
-                delimiterCharArray = delimiter.toCharArray();
-
-                if (!incrementDelimiter(delimiterCharArray)) {
-                    // ran out of options - need to increase the length of the delimiter
-                    break;
-                }
-                delimiter = new String(delimiterCharArray);
-            }
-
-            // all valid delimiters were found in the text to delimit - try a longer delimiter
-            usedText.clear();
             delimiterLength++;
             delimiterCharArray = new char[delimiterLength];
-            // all \0 isn't a valid delimiter, so we need to get the next valid delimiter to start
-            // with
-            incrementDelimiter(delimiterCharArray);
+            // don't use \0 as a delimiter as that might cause issues
+            Arrays.fill(delimiterCharArray, '\u0001');
+            if (delimiterLength > 1) {
+                // a multi-character delimiter with all of the same character isn't a valid, so we
+                // need to get the next valid delimiter to start with
+                incrementDelimiter(delimiterCharArray);
+            }
             delimiter = new String(delimiterCharArray);
         }
     }

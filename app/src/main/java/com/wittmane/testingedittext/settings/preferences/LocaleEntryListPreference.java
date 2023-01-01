@@ -41,6 +41,7 @@ import com.wittmane.testingedittext.settings.LowerCaseFilter;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference.Reader;
 
+import java.util.List;
 import java.util.Locale;
 
 public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale, Reader> {
@@ -97,16 +98,28 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         };
         textWatcher.afterTextChanged(null);
 
+        // documentation for Locale states that the language field should be an ISO 639 alpha-2 or
+        // alpha-3 language code, or it should be a registered language subtags up to 8 alpha
+        // letters, and although the language field is case insensitive, Locale always canonicalizes
+        // to lower case. well-formed values have the form [a-zA-Z]{2,8}
         languageView.setFilters(new InputFilter[] {
                 new AlphaFilter(),
                 new LowerCaseFilter(),
                 new LengthFilter(8)
         });
+        // documentation for Locale states that the country (region) field should be an ISO 3166
+        // alpha-2 country code or UN M.49 numeric-3 area code, and although The country (region)
+        // field is case insensitive, Locale always canonicalizes to upper case. well-formed values
+        // have the form [a-zA-Z]{2} | [0-9]{3}
         countryView.setFilters(new InputFilter[] {
                 new AlphaNumericFilter(),
                 new AllCaps(),
                 new LengthFilter(3)
         });
+        // documentation for Locale states that the variant field should be any arbitrary value
+        // (case sensitive), and multiple variant values should be separated by underscore or
+        // hyphen. well-formed values have the form SUBTAG (('_'|'-') SUBTAG)* where
+        // SUBTAG = [0-9][0-9a-zA-Z]{3} | [0-9a-zA-Z]{5,8}
         variantView.setFilters(new InputFilter[] {
                 new AlphaNumericFilter() {
                     @Override
@@ -149,20 +162,20 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
                 && TextUtils.isEmpty(rowData.getVariant());
     }
 
-    @NonNull
     @Override
-    protected Locale[] getUIData() {
-        Locale[] localeArray = new Locale[mRows.size()];
-        for (int i = 0; i < mRows.size(); i++) {
-            EditText languageView = (EditText)mRows.get(i).mContent[0];
-            EditText countryView = (EditText)mRows.get(i).mContent[1];
-            EditText variantView = (EditText)mRows.get(i).mContent[2];
-            localeArray[i] = new Locale(
-                    languageView.getText().toString(),
-                    countryView.getText().toString(),
-                    variantView.getText().toString());
-        }
-        return localeArray;
+    protected Locale getRowData(View[] rowContent) {
+        EditText languageView = (EditText)rowContent[0];
+        EditText countryView = (EditText)rowContent[1];
+        EditText variantView = (EditText)rowContent[2];
+        return new Locale(
+                languageView.getText().toString(),
+                countryView.getText().toString(),
+                variantView.getText().toString());
+    }
+
+    @Override
+    protected Locale[] createArray(List<Locale> list) {
+        return list.toArray(new Locale[0]);
     }
 
     @NonNull

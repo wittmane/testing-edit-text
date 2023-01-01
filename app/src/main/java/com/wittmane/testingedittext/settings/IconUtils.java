@@ -71,8 +71,14 @@ public class IconUtils {
         }
     }
 
+    /**
+     * Get the color that should be applied for an icon based on how EditText gets it normal text
+     * color.
+     * @param context The current context.
+     * @param view The view for the icon.
+     * @return The appropriate color for the icon
+     */
     public static int getColorForIcon(Context context, View view) {
-        // based on how EditText gets it normal text color
         Theme theme = context.getTheme();
         TypedArray typedArray = theme.obtainStyledAttributes(R.styleable.TextViewAppearance);
         TypedArray appearance;
@@ -92,6 +98,12 @@ public class IconUtils {
         return color;
     }
 
+    /**
+     * Create an icon-only button
+     * @param context The current context.
+     * @param imageResId The resource ID of the drawable.
+     * @return The button that was created.
+     */
     public static ImageButton createImageButton(Context context, int imageResId) {
         ImageButton button = new ImageButton(context);
         button.setImageResource(imageResId);

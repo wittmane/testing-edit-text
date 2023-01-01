@@ -51,6 +51,12 @@ import com.wittmane.testingedittext.settings.preferences.EntryListPreference.Rea
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Preference for entering a list of items and possibly some extra data not tied to individual items
+ * @param <TRowData> Type for the items in the list
+ * @param <TFullData> Type for the full data containing the list of items and any extra data
+ * @param <TReader> Type for reading the preference data
+ */
 public abstract class EntryListPreference<TRowData, TFullData,
         TReader extends ReaderBase<TFullData>>
         extends DialogPreferenceBase {
@@ -308,6 +314,10 @@ public abstract class EntryListPreference<TRowData, TFullData,
         }
     }
 
+    /**
+     * Get all of the data from the UI that needs to be saved.
+     * @return The UI data to save.
+     */
     protected abstract TFullData getUIData();
 
     @Override
@@ -386,6 +396,11 @@ public abstract class EntryListPreference<TRowData, TFullData,
         updateValueSummary(getRowData(mReader.readValue()));
     }
 
+    /**
+     * Get the primary row data from the full data object.
+     * @param fullData The full data object to extract row data.
+     * @return The row data.
+     */
     protected abstract TRowData[] getRowData(final TFullData fullData);
 
     private void updateValueSummary(final TRowData[] value) {
@@ -408,6 +423,12 @@ public abstract class EntryListPreference<TRowData, TFullData,
         return false;
     }
 
+    /**
+     * Determine if any data that may be entered for the row can be discarded either for managing
+     * the extra line or when saving.
+     * @param rowContent The views that make up the row.
+     * @return Whether the row can be discarded.
+     */
     protected boolean canRemoveAsExtraLine(View[] rowContent) {
         // default implementation just makes sure no populated text fields are thrown away
         for (View view : rowContent) {

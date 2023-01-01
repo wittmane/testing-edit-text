@@ -29,6 +29,8 @@ import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TranslateText;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.Reader;
 
+import java.util.List;
+
 public class TextTranslateListPreference
         extends TextEntryListPreferenceBase<TranslateText, Reader> {
 
@@ -64,18 +66,19 @@ public class TextTranslateListPreference
         return !TextUtils.isEmpty(((EditText)rowContent[0]).getText());
     }
 
-    @NonNull
     @Override
-    protected TranslateText[] getRowData() {
-        TranslateText[] translationArray = new TranslateText[mRows.size()];
-        for (int i = 0; i < mRows.size(); i++) {
-            translationArray[i] = new TranslateText();
-            translationArray[i].setOriginal(
-                    ((EditText)mRows.get(i).mContent[0]).getText().toString());
-            translationArray[i].setTranslation(
-                    ((EditText)mRows.get(i).mContent[2]).getText().toString());
-        }
-        return translationArray;
+    protected TranslateText getRowData(View[] rowContent) {
+        TranslateText translation = new TranslateText();
+        translation.setOriginal(
+                ((EditText)rowContent[0]).getText().toString());
+        translation.setTranslation(
+                ((EditText)rowContent[2]).getText().toString());
+        return translation;
+    }
+
+    @Override
+    protected TranslateText[] createArray(List<TranslateText> list) {
+        return list.toArray(new TranslateText[0]);
     }
 
     @Override

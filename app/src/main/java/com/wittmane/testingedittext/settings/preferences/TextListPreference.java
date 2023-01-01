@@ -27,6 +27,8 @@ import androidx.annotation.NonNull;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference.Reader;
 
+import java.util.List;
+
 public class TextListPreference extends TextEntryListPreferenceBase<String, Reader> {
 
     public TextListPreference(Context context, AttributeSet attrs) {
@@ -45,14 +47,14 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Read
         return TextUtils.isEmpty(rowData);
     }
 
-    @NonNull
     @Override
-    protected String[] getRowData() {
-        String[] textArray = new String[mRows.size()];
-        for (int i = 0; i < mRows.size(); i++) {
-            textArray[i] = ((EditText)mRows.get(i).mContent[0]).getText().toString();
-        }
-        return textArray;
+    protected String getRowData(View[] rowContent) {
+        return ((EditText)rowContent[0]).getText().toString();
+    }
+
+    @Override
+    protected String[] createArray(List<String> list) {
+        return list.toArray(new String[0]);
     }
 
     @Override

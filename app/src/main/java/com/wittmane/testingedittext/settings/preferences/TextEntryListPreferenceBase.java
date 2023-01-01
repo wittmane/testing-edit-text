@@ -30,6 +30,14 @@ import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TextList;
 import com.wittmane.testingedittext.settings.preferences.TextEntryListPreferenceBase.TextListReader;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Preference for entering a list of raw text items with a flag for handling of special characters
+ * @param <T> Type for the items in the list
+ * @param <TReader> Type for reading the preference data
+ */
 public abstract class TextEntryListPreferenceBase<T, TReader extends TextListReader<T>>
         extends EntryListPreference<T, TextList<T>, TReader> {
     private static final String TAG = TextEntryListPreferenceBase.class.getSimpleName();
@@ -114,11 +122,30 @@ public abstract class TextEntryListPreferenceBase<T, TReader extends TextListRea
         return textList.getDataArray();
     }
 
-    protected abstract T[] getRowData();
+    /**
+     * Build a data object for the row based on the values entered in the UI.
+     * @param rowContent The views that make up the row.
+     * @return The data that should be saved from the row.
+     */
+    protected abstract T getRowData(View[] rowContent);
+
+    /**
+     * Convert a list to an array.
+     * @param list The list to convert.
+     * @return The array equivalent of the list.
+     */
+    protected abstract T[] createArray(List<T> list);
 
     @NonNull
     @Override
     protected TextList<T> getUIData() {
-        return new TextList<T>(getRowData(), mEscapeCharactersCheckBox.isChecked());
+        List<T> rowData = new ArrayList<>();
+        for (Row row : mRows) {
+            if (canRemoveAsExtraLine(row.mContent)) {
+                continue;
+            }
+            rowData.add(getRowData(row.mContent));
+        }
+        return new TextList<T>(createArray(rowData), mEscapeCharactersCheckBox.isChecked());
     }
 }
