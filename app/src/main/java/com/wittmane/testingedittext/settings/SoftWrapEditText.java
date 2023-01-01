@@ -19,7 +19,7 @@ package com.wittmane.testingedittext.settings;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.Build.VERSION_CODES;
+import android.os.Build;
 import android.text.InputType;
 import android.text.method.SingleLineTransformationMethod;
 import android.util.AttributeSet;
@@ -48,7 +48,7 @@ public class SoftWrapEditText extends EditText {
         init();
     }
 
-    @TargetApi(VERSION_CODES.LOLLIPOP)
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public SoftWrapEditText(Context context, AttributeSet attrs, int defStyleAttr,
                             int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);

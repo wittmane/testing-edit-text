@@ -20,7 +20,6 @@ package com.wittmane.testingedittext.settings.preferences;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -123,16 +122,12 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     @Override
     public void onStopTrackingTouch(final ExtendingSeekBar seekBar) {}
 
-    private SharedPreferences getPrefs() {
-        return getPreferenceManager().getSharedPreferences();
-    }
-
     public void writeValue(final int value) {
-        getPrefs().edit().putInt(getKey(), value).apply();
+        getPrefs().setInt(getKey(), value);
     }
 
     public void writeDefaultValue() {
-        getPrefs().edit().remove(getKey()).apply();
+        getPrefs().remove(getKey());
     }
 
     public int readValue() {

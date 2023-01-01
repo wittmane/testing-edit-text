@@ -17,8 +17,6 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -26,18 +24,15 @@ import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 
-public class TextListPreference extends TextListPreferenceBase<String> {
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
+import com.wittmane.testingedittext.settings.preferences.TextListPreference.Reader;
 
-    private Reader mReader;
+import java.util.List;
+
+public class TextListPreference extends TextEntryListPreferenceBase<String, Reader> {
 
     public TextListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
-    }
-
-    @Override
-    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
-        super.onAttachedToHierarchy(preferenceManager);
-        mReader = new Reader(getSharedPreferences(), getKey());
     }
 
     @Override
@@ -52,14 +47,14 @@ public class TextListPreference extends TextListPreferenceBase<String> {
         return TextUtils.isEmpty(rowData);
     }
 
-    @NonNull
     @Override
-    protected String[] getData() {
-        String[] textArray = new String[mRows.size()];
-        for (int i = 0; i < mRows.size(); i++) {
-            textArray[i] = ((EditText)mRows.get(i).mContent[0]).getText().toString();
-        }
-        return textArray;
+    protected String getRowData(View[] rowContent) {
+        return ((EditText)rowContent[0]).getText().toString();
+    }
+
+    @Override
+    protected String[] createArray(List<String> list) {
+        return list.toArray(new String[0]);
     }
 
     @Override
@@ -68,12 +63,12 @@ public class TextListPreference extends TextListPreferenceBase<String> {
     }
 
     @Override
-    protected Reader getReader() {
-        return mReader;
+    protected Reader createReader(SharedPreferenceManager prefs, String key) {
+        return new Reader(prefs, key);
     }
 
-    public static class Reader extends TextListPreferenceBase.Reader<String> {
-        public Reader(SharedPreferences prefs, String key) {
+    public static class Reader extends TextEntryListPreferenceBase.TextListReader<String> {
+        public Reader(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 

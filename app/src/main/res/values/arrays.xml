@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2022 Eli Wittman
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources>
+
+    <string-array name="type_classes" translatable="false">
+        <item>@string/input_type_class_text</item>
+        <item>@string/input_type_class_number</item>
+        <item>@string/input_type_class_datetime</item>
+        <item>@string/input_type_class_phone</item>
+    </string-array>
+    <string-array name="type_class_values" translatable="false">
+        <item>TYPE_CLASS_TEXT</item>
+        <item>TYPE_CLASS_NUMBER</item>
+        <item>TYPE_CLASS_DATETIME</item>
+        <item>TYPE_CLASS_PHONE</item>
+    </string-array>
+
+    <string-array name="type_text_variations" translatable="false">
+        <item>@string/input_type_text_variation_normal</item>
+        <item>@string/input_type_text_variation_password</item>
+        <item>@string/input_type_text_variation_visible_password</item>
+        <item>@string/input_type_text_variation_web_password</item>
+        <item>@string/input_type_text_variation_uri</item>
+        <item>@string/input_type_text_variation_email_address</item>
+        <item>@string/input_type_text_variation_web_email_address</item>
+        <item>@string/input_type_text_variation_postal_address</item>
+        <item>@string/input_type_text_variation_email_subject</item>
+        <item>@string/input_type_text_variation_short_message</item>
+        <item>@string/input_type_text_variation_long_message</item>
+        <item>@string/input_type_text_variation_person_name</item>
+        <item>@string/input_type_text_variation_phonetic</item>
+        <item>@string/input_type_text_variation_filter</item>
+        <item>@string/input_type_text_variation_web_edit_text</item>
+    </string-array>
+    <string-array name="type_text_variation_values" translatable="false">
+        <item>TYPE_TEXT_VARIATION_NORMAL</item>
+        <item>TYPE_TEXT_VARIATION_PASSWORD</item>
+        <item>TYPE_TEXT_VARIATION_VISIBLE_PASSWORD</item>
+        <item>TYPE_TEXT_VARIATION_WEB_PASSWORD</item>
+        <item>TYPE_TEXT_VARIATION_URI</item>
+        <item>TYPE_TEXT_VARIATION_EMAIL_ADDRESS</item>
+        <item>TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS</item>
+        <item>TYPE_TEXT_VARIATION_POSTAL_ADDRESS</item>
+        <item>TYPE_TEXT_VARIATION_EMAIL_SUBJECT</item>
+        <item>TYPE_TEXT_VARIATION_SHORT_MESSAGE</item>
+        <item>TYPE_TEXT_VARIATION_LONG_MESSAGE</item>
+        <item>TYPE_TEXT_VARIATION_PERSON_NAME</item>
+        <item>TYPE_TEXT_VARIATION_PHONETIC</item>
+        <item>TYPE_TEXT_VARIATION_FILTER</item>
+        <item>TYPE_TEXT_VARIATION_WEB_EDIT_TEXT</item>
+    </string-array>
+
+    <string-array name="type_text_multi_line_flags" translatable="false">
+        <item>@string/input_type_text_flag_single_line</item>
+        <item>@string/input_type_text_flag_multi_line</item>
+        <item>@string/input_type_text_flag_ime_multi_line</item>
+    </string-array>
+    <string-array name="type_text_multi_line_flag_values" translatable="false">
+        <item></item>
+        <item>TYPE_TEXT_FLAG_MULTI_LINE</item>
+        <item>TYPE_TEXT_FLAG_IME_MULTI_LINE</item>
+    </string-array>
+
+    <string-array name="type_text_cap_flags" translatable="false">
+        <item>@string/input_type_text_flag_cap_none</item>
+        <item>@string/input_type_text_flag_cap_characters</item>
+        <item>@string/input_type_text_flag_cap_words</item>
+        <item>@string/input_type_text_flag_cap_sentences</item>
+    </string-array>
+    <string-array name="type_text_cap_flag_values" translatable="false">
+        <item></item>
+        <item>TYPE_TEXT_FLAG_CAP_CHARACTERS</item>
+        <item>TYPE_TEXT_FLAG_CAP_WORDS</item>
+        <item>TYPE_TEXT_FLAG_CAP_SENTENCES</item>
+    </string-array>
+
+    <string-array name="type_number_variations" translatable="false">
+        <item>@string/input_type_number_variation_normal</item>
+        <item>@string/input_type_number_variation_password</item>
+    </string-array>
+    <string-array name="type_number_variation_values" translatable="false">
+        <item>TYPE_NUMBER_VARIATION_NORMAL</item>
+        <item>TYPE_NUMBER_VARIATION_PASSWORD</item>
+    </string-array>
+
+    <string-array name="type_datetime_variations" translatable="false">
+        <item>@string/input_type_datetime_variation_normal</item>
+        <item>@string/input_type_datetime_variation_date</item>
+        <item>@string/input_type_datetime_variation_time</item>
+    </string-array>
+    <string-array name="type_datetime_variation_values" translatable="false">
+        <item>TYPE_DATETIME_VARIATION_NORMAL</item>
+        <item>TYPE_DATETIME_VARIATION_DATE</item>
+        <item>TYPE_DATETIME_VARIATION_TIME</item>
+    </string-array>
+
+    <string-array name="ime_options_actions" translatable="false">
+        <item>@string/ime_options_action_unspecified</item>
+        <item>@string/ime_options_action_none</item>
+        <item>@string/ime_options_action_go</item>
+        <item>@string/ime_options_action_search</item>
+        <item>@string/ime_options_action_send</item>
+        <item>@string/ime_options_action_next</item>
+        <item>@string/ime_options_action_done</item>
+        <item>@string/ime_options_action_previous</item>
+    </string-array>
+    <string-array name="ime_options_action_values" translatable="false">
+        <item>IME_ACTION_UNSPECIFIED</item>
+        <item>IME_ACTION_NONE</item>
+        <item>IME_ACTION_GO</item>
+        <item>IME_ACTION_SEARCH</item>
+        <item>IME_ACTION_SEND</item>
+        <item>IME_ACTION_NEXT</item>
+        <item>IME_ACTION_DONE</item>
+        <item>IME_ACTION_PREVIOUS</item>
+    </string-array>
+
+</resources>

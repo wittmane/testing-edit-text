@@ -17,29 +17,54 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.DialogPreference;
+import android.content.res.TypedArray;
+import android.preference.ListPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-
-public abstract class DialogPreferenceBase extends DialogPreference {
+//TODO: (EW) see if there is a way to reduce duplicate code with DialogPreferenceBase
+/**
+ * A ListPreference with a few minor enhancements.
+ * - shows its value in the summary
+ * - forces a default value when one isn't specified
+ * - allows the title to wrap
+ */
+public class EnhancedListPreference extends ListPreference {
 
     private CharSequence mBaseSummary;
     private CharSequence mValueSummary;
+    private CharSequence mDefaultValue;
 
-    /** SharedPreference wrapper */
-    private SharedPreferenceManager mSharedPrefManager;
-    /** The wrapped SharedPreference to track if the wrapper needs to be replaced */
-    private SharedPreferences mSharedPrefs;
-
-    public DialogPreferenceBase(final Context context, final AttributeSet attrs) {
+    public EnhancedListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
         mBaseSummary = getSummary();
+        // if a default hasn't already been defined, use the first entry
+        if (TextUtils.isEmpty(mDefaultValue)) {
+            CharSequence[] entryValues = getEntryValues();
+            if (entryValues != null && entryValues.length > 0) {
+                setDefaultValue(entryValues[0]);
+            }
+        }
+    }
+
+    @Override
+    public void setDefaultValue(Object defaultValue) {
+        super.setDefaultValue(defaultValue);
+        if (defaultValue instanceof CharSequence) {
+            mDefaultValue = (CharSequence)defaultValue;
+        }
+    }
+
+    @Override
+    protected Object onGetDefaultValue(TypedArray a, int index) {
+        Object defaultValue = super.onGetDefaultValue(a, index);
+        if (defaultValue instanceof CharSequence) {
+            mDefaultValue = (CharSequence)defaultValue;
+        }
+        return defaultValue;
     }
 
     @Override
@@ -71,7 +96,9 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         }
     }
 
-    protected abstract void updateValueSummary();
+    protected void updateValueSummary() {
+        setValueSummary(getEntry());
+    }
 
     @Override
     protected View onCreateView(ViewGroup parent) {
@@ -93,12 +120,15 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         }
     }
 
-    protected SharedPreferenceManager getPrefs() {
-        SharedPreferences sharedPrefs = getSharedPreferences();
-        if (sharedPrefs != null && (mSharedPrefs == null || sharedPrefs != mSharedPrefs)) {
-            mSharedPrefManager = new SharedPreferenceManager(sharedPrefs);
-            mSharedPrefs = sharedPrefs;
-        }
-        return mSharedPrefManager;
+    @Override
+    protected void onAttachedToActivity() {
+        super.onAttachedToActivity();
+        updateValueSummary();
+    }
+
+    @Override
+    protected void onDialogClosed(boolean positiveResult) {
+        super.onDialogClosed(positiveResult);
+        updateValueSummary();
     }
 }

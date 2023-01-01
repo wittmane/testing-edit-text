@@ -19,7 +19,6 @@ package com.wittmane.testingedittext.settings.preferences;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.Editable;
@@ -30,7 +29,6 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -42,6 +40,8 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IntRange;
+import com.wittmane.testingedittext.settings.NumericFilter;
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +74,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
-        mReader = new Reader(getSharedPreferences(), getKey());
+        mReader = new Reader(getPrefs(), getKey());
     }
 
     @Override
@@ -163,24 +163,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
             }
         });
 
-        codepointView.setFilters(new InputFilter[] {new InputFilter() {
-            @Override
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
-                                       int dstart, int dend) {
-                if (source == null || CodePointUtils.codePointCount(source) == 0) {
-                    return null;
-                }
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < source.length(); i++) {
-                    char c = source.charAt(i);
-                    if (c < '0' || c > '9') {
-                        continue;
-                    }
-                    sb.append(c);
-                }
-                return sb;
-            }
-        }});
+        codepointView.setFilters(new InputFilter[] { new NumericFilter() });
         codepointView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int start, int count,
@@ -687,21 +670,20 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     }
 
     public void writeValue(final @Nullable IntRange value) {
-        getSharedPreferences().edit()
-                .putString(getKey(), value == null ? null : value.getStart() + "-" + value.getEnd())
-                .apply();
+        getPrefs().setString(getKey(),
+                value == null ? null : value.getStart() + "-" + value.getEnd());
     }
 
     public void clearValue() {
-        getSharedPreferences().edit().remove(getKey()).apply();
+        getPrefs().remove(getKey());
     }
 
     private boolean readSplitUnicodeForSurrogatePairsPref() {
-        return getSharedPreferences().getBoolean(PREF_SPLIT_UNICODE, false);
+        return getPrefs().getBoolean(PREF_SPLIT_UNICODE, false);
     }
 
     private void writeSplitUnicodeForSurrogatePairsPref(boolean splitUnicode) {
-        getSharedPreferences().edit().putBoolean(PREF_SPLIT_UNICODE, splitUnicode).apply();
+        getPrefs().setBoolean(PREF_SPLIT_UNICODE, splitUnicode);
     }
 
     @Override
@@ -711,10 +693,10 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     }
 
     public static class Reader {
-        private final SharedPreferences mPrefs;
+        private final SharedPreferenceManager mPrefs;
         private String mKey;
 
-        public Reader(SharedPreferences prefs, String key) {
+        public Reader(SharedPreferenceManager prefs, String key) {
             mPrefs = prefs;
             mKey = key;
         }

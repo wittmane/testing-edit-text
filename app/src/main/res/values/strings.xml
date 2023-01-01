@@ -17,6 +17,9 @@
     <string name="app_name">Testing Edit Text</string>
     <string name="settings">Settings</string>
 
+    <string name="framework_edittext">Framework EditText</string>
+    <string name="custom_edittext">Custom EditText</string>
+
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
     <string name="button_default">Default</string>
@@ -170,7 +173,100 @@
     <string name="getextractedtext_delay_title">Delay getExtractedText</string>
     <string name="getextractedtext_delay_summary">Documentation for InputConnection#getExtractedText mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
 
+    <string name="test_field_list_screen">Test fields</string>
+    <string name="add_field">Add field</string>
+    <string name="reorder_fields">Reorder fields</string>
+    <string name="test_field_default_name">Field <xliff:g id="INDEX">%d</xliff:g></string>
+    <string name="test_field_property_description"><xliff:g id="TITLE">%s</xliff:g>: <xliff:g id="SUMMARY">%s</xliff:g></string>
+    <string name="test_field_property_detailed_summary"><xliff:g id="BASE">%s</xliff:g> (<xliff:g id="DETAILS">%s</xliff:g>)</string>
+    <string name="test_field_property_details_delimiter">", "</string>
 
+    <string name="input_type">Input type</string>
+    <string name="input_type_class">Class</string>
+    <string name="input_type_variation">Variation</string>
+
+    <string name="input_type_class_text">Text</string>
+    <string name="input_type_class_number">Number</string>
+    <string name="input_type_class_datetime">Date/Time</string>
+    <string name="input_type_class_phone">Phone</string>
+
+    <string name="input_type_text_variation_normal">Normal</string>
+    <string name="input_type_text_variation_password">Password</string>
+    <string name="input_type_text_variation_visible_password">Visible password</string>
+    <string name="input_type_text_variation_web_password">Web form password</string>
+    <string name="input_type_text_variation_uri">URI</string>
+    <string name="input_type_text_variation_email_address">E-mail address</string>
+    <string name="input_type_text_variation_web_email_address">Web form e-mail address</string>
+    <string name="input_type_text_variation_postal_address">Mailing address</string>
+    <string name="input_type_text_variation_email_subject">E-mail subject</string>
+    <string name="input_type_text_variation_short_message">Short message</string>
+    <string name="input_type_text_variation_long_message">Long message</string>
+    <string name="input_type_text_variation_person_name">Name of a person</string>
+    <string name="input_type_text_variation_phonetic">Phonetic pronunciation</string>
+    <string name="input_type_text_variation_filter">Filter</string>
+    <string name="input_type_text_variation_web_edit_text">Web form edit text</string>
+
+    <string name="input_type_text_flag_single_line">Single line</string>
+    <string name="input_type_text_flag_multi_line">Multi-line</string>
+    <string name="input_type_text_flag_ime_multi_line">IME multi-line (multi-line only in fullscreen)</string>
+
+    <string name="input_type_text_flag_multi_line_title">Multi-line flag</string>
+    <string name="input_type_text_flag_cap">Capitalization flag</string>
+    <string name="input_type_text_flag_auto_complete">Auto-complete flag</string>
+    <string name="input_type_text_flag_auto_correct">Auto-correct flag</string>
+    <string name="input_type_text_flag_no_suggestions">No dictionary suggestions flag</string>
+
+    <string name="input_type_text_flag_cap_none">None</string>
+    <string name="input_type_text_flag_cap_characters">All characters</string>
+    <string name="input_type_text_flag_cap_words">First character of every word</string>
+    <string name="input_type_text_flag_cap_sentences">First word of each sentence</string>
+
+    <string name="input_type_number_variation_normal">Normal</string>
+    <string name="input_type_number_variation_password">Password</string>
+
+    <string name="input_type_number_flag_signed">Signed flag</string>
+    <string name="input_type_number_flag_decimal">Decimal flag</string>
+
+    <string name="input_type_datetime_variation_normal">Date and time</string>
+    <string name="input_type_datetime_variation_date">Date</string>
+    <string name="input_type_datetime_variation_time">Time</string>
+
+    <string name="ime_options">IME options</string>
+    <string name="ime_options_action">Action</string>
+    <string name="ime_options_action_unspecified">Unspecified</string>
+    <string name="ime_options_action_none">None</string>
+    <string name="ime_options_action_go">Go</string>
+    <string name="ime_options_action_search">Search</string>
+    <string name="ime_options_action_send">Send</string>
+    <string name="ime_options_action_next">Next</string>
+    <string name="ime_options_action_done">Done</string>
+    <string name="ime_options_action_previous">Previous</string>
+    <string name="ime_options_flag_force_ascii">Force ascii flag</string>
+    <string name="ime_options_flag_navigate_next">Navigate next flag</string>
+    <string name="ime_options_flag_navigate_previous">Navigate previous flag</string>
+    <string name="ime_options_flag_no_accessory_action">No accessory action</string>
+    <string name="ime_options_flag_no_enter_action">No enter action</string>
+    <string name="ime_options_flag_no_extract_ui">No extract UI</string>
+    <string name="ime_options_flag_no_fullscreen">No fullscreen</string>
+    <string name="ime_options_flag_no_personalized_learning">No personalized learning</string>
+
+    <string name="ime_action">IME action</string>
+    <string name="ime_action_id">Action ID</string>
+    <string name="ime_action_label">Action label</string>
+
+    <string name="private_ime_options">Private IME options</string>
+    <string name="select_all_on_focus">Select all on focus</string>
+    <string name="max_length">Max length</string>
+    <string name="allow_undo">Allow undo</string>
+    <string name="dynamic_set_not_supported_in_framework">Note that the framework EditText doesn\'t support setting this dynamically, so this will only apply to the custom EditText</string>
+    <string name="text_locales">Text locales</string>
+    <string name="ime_hint_locales">IME hint locales</string>
+    <string name="locale_language">Language</string>
+    <string name="locale_country">Country</string>
+    <string name="locale_variant">Variant</string>
+
+    <string name="default_text">Default text</string>
+    <string name="hint_text">Hint text</string>
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>

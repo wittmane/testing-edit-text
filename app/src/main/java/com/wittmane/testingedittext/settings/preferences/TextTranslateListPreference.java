@@ -17,8 +17,6 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -27,21 +25,17 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TranslateText;
+import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.Reader;
+
+import java.util.List;
 
 public class TextTranslateListPreference
-        extends TextListPreferenceBase<TranslateText> {
-
-    private Reader mReader;
+        extends TextEntryListPreferenceBase<TranslateText, Reader> {
 
     public TextTranslateListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
-    }
-
-    @Override
-    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
-        super.onAttachedToHierarchy(preferenceManager);
-        mReader = new Reader(getSharedPreferences(), getKey());
     }
 
     @Override
@@ -72,18 +66,19 @@ public class TextTranslateListPreference
         return !TextUtils.isEmpty(((EditText)rowContent[0]).getText());
     }
 
-    @NonNull
     @Override
-    protected TranslateText[] getData() {
-        TranslateText[] translationArray = new TranslateText[mRows.size()];
-        for (int i = 0; i < mRows.size(); i++) {
-            translationArray[i] = new TranslateText();
-            translationArray[i].setOriginal(
-                    ((EditText)mRows.get(i).mContent[0]).getText().toString());
-            translationArray[i].setTranslation(
-                    ((EditText)mRows.get(i).mContent[2]).getText().toString());
-        }
-        return translationArray;
+    protected TranslateText getRowData(View[] rowContent) {
+        TranslateText translation = new TranslateText();
+        translation.setOriginal(
+                ((EditText)rowContent[0]).getText().toString());
+        translation.setTranslation(
+                ((EditText)rowContent[2]).getText().toString());
+        return translation;
+    }
+
+    @Override
+    protected TranslateText[] createArray(List<TranslateText> list) {
+        return list.toArray(new TranslateText[0]);
     }
 
     @Override
@@ -97,12 +92,13 @@ public class TextTranslateListPreference
     }
 
     @Override
-    protected Reader getReader() {
-        return mReader;
+    protected Reader createReader(SharedPreferenceManager prefs, String key) {
+        return new Reader(prefs, key);
     }
 
-    public static class Reader extends TextListPreferenceBase.Reader<TranslateText> {
-        public Reader(SharedPreferences prefs, String key) {
+    public static class Reader
+            extends TextEntryListPreferenceBase.TextListReader<TranslateText> {
+        public Reader(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 

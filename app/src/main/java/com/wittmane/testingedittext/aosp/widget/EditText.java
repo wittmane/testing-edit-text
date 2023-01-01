@@ -4258,6 +4258,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
+     * Removes the suggestion spans.
+     */
+    private void removeSuggestionSpans(@NonNull Spannable text) {
+        SuggestionSpan[] spans = text.getSpans(0, text.length(), SuggestionSpan.class);
+        for (int i = 0; i < spans.length; i++) {
+            text.removeSpan(spans[i]);
+        }
+    }
+
+    /**
      * Set the type of the content with a constant as defined for {@link EditorInfo#inputType}. This
      * will take care of changing the key listener, by calling {@link #setKeyListener(KeyListener)},
      * to match the given content type.  If the given content type is {@link EditorInfo#TYPE_NULL}
@@ -4322,7 +4332,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         if (!isSuggestionsEnabled()) {
-            setTextInternal(removeSuggestionSpans(mText));
+            removeSuggestionSpans(mText);
         }
 
         InputMethodManager imm = getInputMethodManager();
@@ -4864,6 +4874,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return null;
         }
         return mEditor.mInputContentType.imeHintLocales;
+    }
+
+    public void setAllowUndo(boolean allowUndo) {
+        mEditor.mAllowUndo = allowUndo;
+    }
+
+    public boolean getAllowUndo() {
+        return mEditor.mAllowUndo;
     }
 
     /**
