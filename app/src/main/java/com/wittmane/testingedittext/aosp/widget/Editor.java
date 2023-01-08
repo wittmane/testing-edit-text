@@ -116,7 +116,7 @@ import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
-import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;

@@ -158,7 +158,7 @@ import androidx.annotation.StyleRes;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat.FocusDirection;
 
-import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;

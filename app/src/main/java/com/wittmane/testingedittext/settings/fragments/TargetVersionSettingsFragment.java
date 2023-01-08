@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2023 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,7 +23,7 @@ import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.aosp.internal.widget.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.settings.Settings;
 
 public class TargetVersionSettingsFragment extends PreferenceFragment {
@@ -34,7 +34,7 @@ public class TargetVersionSettingsFragment extends PreferenceFragment {
         addPreferencesFromResource(R.xml.preference_screen_target_version);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
-                && !EditableInputConnection.canLieAboutMissingMethods(getContext())) {
+                && !EditableInputConnection.canSimulateMissingMethods(getContext())) {
             // these methods require lying to the framework about not implementing them to get the
             // appropriate return value to the IME for a valid test, so since we can't seem to fake
             // it that way, these aren't valid tests, so shouldn't be allowed.
@@ -51,6 +51,11 @@ public class TargetVersionSettingsFragment extends PreferenceFragment {
             skipSetComposingRegionPref.setChecked(false);
         }
 
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            PreferenceCategory addedInApiLevel33Category =
+                    (PreferenceCategory)findPreference("pref_key_added_in_api_level_33");
+            getPreferenceScreen().removePreference(addedInApiLevel33Category);
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             PreferenceCategory addedInApiLevel31Category =
                     (PreferenceCategory)findPreference("pref_key_added_in_api_level_31");

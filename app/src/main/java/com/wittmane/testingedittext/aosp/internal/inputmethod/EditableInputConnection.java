@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2023 Eli Wittman
  * Copyright (C) 2007-2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,7 +15,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.aosp.internal.widget;
+package com.wittmane.testingedittext.aosp.internal.inputmethod;
 
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -48,8 +48,11 @@ import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputContentInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.SurroundingText;
+import android.view.inputmethod.TextAttribute;
+import android.view.inputmethod.TextSnapshot;
 
 import androidx.annotation.CallSuper;
+import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -61,10 +64,14 @@ import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 import com.wittmane.testingedittext.settings.TranslateText;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
 import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 
 // (EW) this is a merge of EditableInputConnection and BaseInputConnection to be able to insert
 // custom behavior
+// note that prior to Tiramisu, EditableInputConnection was in com.android.internal.widget
 /**
  * Base class for an editable InputConnection instance. This is created by {@link EditText}.
  */
@@ -87,6 +94,14 @@ public class EditableInputConnection implements InputConnection {
 
     // (EW) from InputMethodManager
     private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
+
+    // (EW) from EditorInfo
+    /**
+     * The maximum length of initialSurroundingText. When the input text from
+     * {@code setInitialSurroundingText(CharSequence)} is longer than this, trimming shall be
+     * performed to keep memory efficiency.
+     */
+    static final int MEMORY_EFFICIENT_TEXT_LENGTH = 2048;
 
     // (EW) from InputMethodManager. InputMethodManager.Handler#handleMessage (I think ultimately
     // triggered from IInputMethodClient.Stub#onBindMethod) also resets this in the AOSP version,
@@ -225,7 +240,7 @@ public class EditableInputConnection implements InputConnection {
                 // contribution to mEditText's nested batch edit count is zero.
                 mEditText.endBatchEdit();
                 mBatchEditNesting--;
-                return true;
+                return mBatchEditNesting > 0;
             }
         }
         return false;
@@ -255,9 +270,17 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version. the lying wrapper should prevent this from getting called, but as a
-        // fallback, we can still just ignore the call.
+        // older version. for Nougat through S, the lying wrapper should prevent this from getting
+        // called, but as a fallback, we can still just ignore the call. starting in Tiramisu, the
+        // call to this method is actually wrapped in a try/catch rather than tracking what methods
+        // are implemented, so we can just throw the matching error to replicate behavior of an app
+        // that doesn't implement this method, rather than lie to the tracker about what methods are
+        // implemented.
         if (Settings.shouldSkipCloseConnection()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                throw new AbstractMethodError(
+                        "void android.view.inputmethod.InputConnection.closeConnection()");
+            }
             return;
         }
 
@@ -267,7 +290,7 @@ public class EditableInputConnection implements InputConnection {
             setImeConsumesInput(false);
         }
 
-        synchronized(this) {
+        synchronized (this) {
             while (mBatchEditNesting > 0) {
                 endBatchEdit();
             }
@@ -318,19 +341,23 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version. the lying wrapper theoretically should prevent this from getting called,
-        // and although documentation states "Since Android Build.VERSION_CODES.N until
-        // Build.VERSION_CODES.TIRAMISU, this API returned false when the target application does
-        // not implement this method.", what I've seen in testing is that this does the exact same
-        // thing as prior to Nougat, that is, crash the app. I would have expected it to only crash
-        // prior to Nougat, like getSelectedText, requestCursorUpdates, and setComposingRegion.
+        // older version. for Nougat through S, the lying wrapper theoretically should prevent this
+        // from getting called, and although documentation states "Since Android
+        // Build.VERSION_CODES.N until Build.VERSION_CODES.TIRAMISU, this API returned false when
+        // the target application does not implement this method.", what I've seen in testing is
+        // that this does the exact same thing on Nougat through S as prior to Nougat, that is,
+        // crash the app. I would have expected it to only crash prior to Nougat, like
+        // getSelectedText, requestCursorUpdates, and setComposingRegion.
         // com.android.internal.view.InputConnectionWrapper#commitCorrection doesn't actually check
-        // isMethodMissing like the others, so this just seems like a bug there. until android fixes
-        // the bug, we'll just crash to match that behavior on all versions, rather than only on
-        // versions prior to Nougat.
-        // also, note that the return value sent here isn't actually sent to the IME, so even if
-        // this was to return false, the IME still sees a return of true, so we can only mimic the
-        // behavior as long as the lying wrapper still works.
+        // isMethodMissing like the others, so this just seems like a bug there. we'll just crash to
+        // match that behavior on all versions prior to Tiramisu, rather than only on versions prior
+        // to Nougat. starting in Tiramisu, the call to this method is actually wrapped in a
+        // try/catch rather than tracking what methods are implemented (not that the tracking for
+        // this method was actually used), so we can continue to just throw the matching error to
+        // replicate behavior of an app that doesn't implement this method.
+        // also, note that the return value sent here isn't actually sent to the IME, and starting
+        // in Tiramisu, the IME will receive true even when the editor didn't implement the method
+        // (documented in InputConnection).
         if (Settings.shouldSkipCommitCorrection()) {
             throw new AbstractMethodError(
                     "boolean android.view.inputmethod.InputConnection.commitCorrection(android.view.inputmethod.CorrectionInfo)");
@@ -364,6 +391,21 @@ public class EditableInputConnection implements InputConnection {
         // (EW) the AOSP version also called sendCurrentText, but that does nothing since
         // mFallbackMode would be false for an EditText
         return true;
+    }
+
+    // (EW) there are some additional overloads to functions with default implementations in
+    // InputConnection, such as this. based on my testing, even when an app targets an older
+    // version, the default implementation from the interface still gets used, so there is no need
+    // to have settings to simulate not implementing those methods.
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public boolean commitText(@NonNull CharSequence text, int newCursorPosition,
+                       @Nullable TextAttribute textAttribute) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "commitText: text=" + text + ", newCursorPosition=" + newCursorPosition
+                    + ", textAttribute=" + textAttribute);
+        }
+        return InputConnection.super.commitText(text, newCursorPosition, textAttribute);
     }
 
     // (EW) added for modifying input text
@@ -741,14 +783,24 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version. the lying wrapper should prevent this from getting called, but if that
-        // fails, and this does get called, we can't actually mimic the behavior because the return
-        // value sent here isn't actually sent to the IME, which is specifically why we need the
-        // lying wrapper. simply ignoring the request and returning false wouldn't be a valid test
-        // case because the IME would have no indication that we don't implement this method, so it
-        // would behave unexpectedly because technically the editor would be misbehaving. we'll just
-        // log an error and behave as if this setting was disabled.
+        // older version. for Nougat through S, the lying wrapper should prevent this from getting
+        // called, but if that fails, and this does get called, we can't actually mimic the behavior
+        // because the return value sent here isn't actually sent to the IME, which is specifically
+        // why we need the lying wrapper. simply ignoring the request and returning false wouldn't
+        // be a valid test case because the IME would have no indication that we don't implement
+        // this method, so it would behave unexpectedly because technically the editor would be
+        // misbehaving. we'll just log an error and behave as if this setting was disabled. starting
+        // in Tiramisu, the call to this method is actually wrapped in a try/catch rather than
+        // tracking what methods are implemented, so we can just throw the matching error to
+        // replicate behavior of an app that doesn't implement this method, rather than lie to the
+        // tracker about what methods are implemented.
+        // note that also starting in Tiramisu, the IME will receive true even when the editor
+        // didn't implement the method (documented in InputConnection).
         if (Settings.shouldSkipDeleteSurroundingTextInCodePoints()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                throw new AbstractMethodError(
+                        "boolean android.view.inputmethod.InputConnection.deleteSurroundingTextInCodePoints(int, int)");
+            }
             Log.e(TAG, "couldn't fake not implementing deleteSurroundingTextInCodePoints");
         }
 
@@ -969,11 +1021,15 @@ public class EditableInputConnection implements InputConnection {
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
         // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
-        // stack being one level off since this method did get called). the lying wrapper should
-        // prevent this from getting called starting in Nougat, but if that fails we can still just
-        // return null to mimic the behavior.
+        // stack being one level off since this method did get called). for Nougat through S, the
+        // lying wrapper should prevent this from getting called, but if that fails we can still
+        // just return null to mimic the behavior. starting in Tiramisu, the call to this method is
+        // actually wrapped in a try/catch rather than tracking what methods are implemented, so we
+        // can just throw the matching error to replicate behavior of an app that doesn't implement
+        // this method, rather than lie to the tracker about what methods are implemented.
         if (Settings.shouldSkipGetSelectedText()) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N
+                    || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 throw new AbstractMethodError(
                         "java.lang.CharSequence android.view.inputmethod.InputConnection.getSelectedText(int)");
             }
@@ -1075,9 +1131,19 @@ public class EditableInputConnection implements InputConnection {
         Preconditions.checkArgumentNonnegative(beforeLength);
         Preconditions.checkArgumentNonnegative(afterLength);
 
-        // (EW) check the setting to skip implementing this method to simulate either an app
-        // targeting an older version or an app that takes too long to process this method.
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. for S, the lying wrapper should prevent this from getting called, but as a
+        // fallback, we can still just return null. starting in Tiramisu, the framework no longer
+        // internally tracks what methods aren't implemented, and since a default implementation for
+        // this is provided, it can safely just call the method (assuming that default method
+        // doesn't call any methods that don't have a default implementation, which they seem to
+        // have overlooked, since it does call #getSelectedText, which can cause a crash). we'll
+        // just call that default implementation to replicate behavior of an app that doesn't
+        // explicitly implement this method.
         if (Settings.shouldSkipGetSurroundingText()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                return InputConnection.super.getSurroundingText(beforeLength, afterLength, flags);
+            }
             return null;
         }
 
@@ -1176,6 +1242,28 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(value = {CURSOR_UPDATE_IMMEDIATE, CURSOR_UPDATE_MONITOR}, flag = true)
+    @interface CursorUpdateMode{}
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(value = {CURSOR_UPDATE_FILTER_EDITOR_BOUNDS, CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS,
+            CURSOR_UPDATE_FILTER_INSERTION_MARKER}, flag = true)
+    @interface CursorUpdateFilter{}
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public boolean requestCursorUpdates(
+            @CursorUpdateMode int cursorUpdateMode, @CursorUpdateFilter int cursorUpdateFilter) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "requestCursorUpdates: cursorUpdateMode=" + cursorUpdateMode
+                    + ", cursorUpdateFilter=" + cursorUpdateFilter);
+        }
+        // TODO(b/210039666): use separate attrs for updateMode and updateFilter.
+        return requestCursorUpdates(cursorUpdateMode | cursorUpdateFilter);
+    }
+
+    //TODO: (EW) there may be new options for settings for this with the extra flags
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public boolean requestCursorUpdates(int cursorUpdateMode) {
@@ -1185,11 +1273,18 @@ public class EditableInputConnection implements InputConnection {
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
         // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
-        // stack being one level off since this method did get called). the lying wrapper should
-        // prevent this from getting called starting in Nougat, but if that fails we can still just
-        // return false to mimic the behavior.
+        // stack being one level off since this method did get called). for Nougat through S, the
+        // lying wrapper should prevent this from getting called, but if that fails we can still
+        // just return false to mimic the behavior. starting in Tiramisu, the call to this method is
+        // actually wrapped in a try/catch rather than tracking what methods are implemented, so we
+        // can just throw the matching error to replicate behavior of an app that doesn't implement
+        // this method, rather than lie to the tracker about what methods are implemented.
+        // note that InputConnection documentation seems to say that starting in Tiramisu, the IME
+        // will receive true even when the editor didn't implement the method, but from testing, the
+        // IME still receives false, so it seems that documentation is incorrect.
         if (Settings.shouldSkipRequestCursorUpdates()) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N
+                    || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 throw new AbstractMethodError(
                         "boolean android.view.inputmethod.InputConnection.requestCursorUpdates(int)");
             }
@@ -1198,16 +1293,24 @@ public class EditableInputConnection implements InputConnection {
 
         // It is possible that any other bit is used as a valid flag in a future release.
         // We should reject the entire request in such a case.
-        final int KNOWN_FLAGS_MASK = InputConnection.CURSOR_UPDATE_IMMEDIATE |
-                InputConnection.CURSOR_UPDATE_MONITOR;
-        final int unknownFlags = cursorUpdateMode & ~KNOWN_FLAGS_MASK;
+        final int knownFlagMask;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            knownFlagMask = InputConnection.CURSOR_UPDATE_IMMEDIATE
+                    | InputConnection.CURSOR_UPDATE_MONITOR
+                    | InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS
+                    | InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER
+                    | InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS;
+        } else {
+            knownFlagMask = InputConnection.CURSOR_UPDATE_IMMEDIATE
+                    | InputConnection.CURSOR_UPDATE_MONITOR;
+        }
+        final int unknownFlags = cursorUpdateMode & ~knownFlagMask;
         if (unknownFlags != 0) {
             //TODO: (EW) failing because of an unknown flag seems weird, but the documentation does
             // call this out. still might be a decent thing for configurable handling.
             if (DEBUG) {
-                Log.d(TAG, "Rejecting requestUpdateCursorAnchorInfo due to unknown flags." +
-                        " cursorUpdateMode=" + cursorUpdateMode +
-                        " unknownFlags=" + unknownFlags);
+                Log.d(TAG, "Rejecting requestUpdateCursorAnchorInfo due to unknown flags. "
+                        + "cursorUpdateMode=" + cursorUpdateMode + " unknownFlags=" + unknownFlags);
             }
             return false;
         }
@@ -1289,6 +1392,7 @@ public class EditableInputConnection implements InputConnection {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
+    @Nullable
     @Override
     public Handler getHandler() {
         if (LOG_CALLS) {
@@ -1336,6 +1440,18 @@ public class EditableInputConnection implements InputConnection {
         }
         replaceText(text, newCursorPosition, true);
         return true;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public boolean setComposingText(@NonNull CharSequence text, int newCursorPosition,
+                             @Nullable TextAttribute textAttribute) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "setComposingText: text=" + text
+                    + ", newCursorPosition=" + newCursorPosition
+                    + ", textAttribute=" + textAttribute);
+        }
+        return InputConnection.super.setComposingText(text, newCursorPosition, textAttribute);
     }
 
     // (EW) added for modifying input text
@@ -1484,16 +1600,22 @@ public class EditableInputConnection implements InputConnection {
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
         // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
-        // stack being one level off since this method did get called). the lying wrapper should
-        // prevent this from getting called starting in Nougat, but if that fails, and this does get
-        // called, we can't actually mimic the behavior because the return value sent here isn't
+        // stack being one level off since this method did get called). for Nougat through S, the
+        // lying wrapper should prevent this from getting called, but if that fails, and this does
+        // get called, we can't actually mimic the behavior because the return value sent here isn't
         // actually sent to the IME, which is specifically why we need the lying wrapper. simply
         // ignoring the request and returning false wouldn't be a valid test case because the IME
         // would have no indication that we don't implement this method, so it would behave
         // unexpectedly because technically the editor would be misbehaving. we'll just log an error
-        // and behave as if this setting was disabled.
+        // and behave as if this setting was disabled. starting in Tiramisu, the call to this method
+        // is actually wrapped in a try/catch rather than tracking what methods are implemented, so
+        // we can just throw the matching error to replicate behavior of an app that doesn't
+        // implement this method, rather than lie to the tracker about what methods are implemented.
+        // note that also starting in Tiramisu, the IME will receive true even when the editor
+        // didn't implement the method (documented in InputConnection).
         if (Settings.shouldSkipSetComposingRegion()) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N
+                    || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 throw new AbstractMethodError(
                         "boolean android.view.inputmethod.InputConnection.setComposingRegion(int, int)");
             }
@@ -1543,6 +1665,16 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public boolean setComposingRegion(int start, int end, @Nullable TextAttribute textAttribute) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "setComposingRegion: start=" + start + ", end=" + end
+                    + ", textAttribute=" + textAttribute);
+        }
+        return InputConnection.super.setComposingRegion(start, end, textAttribute);
+    }
+
     /**
      * The default implementation changes the selection position in the
      * current editable text.
@@ -1567,7 +1699,7 @@ public class EditableInputConnection implements InputConnection {
         // Selection#extendSelection on the edit text.
         // MetaKeyKeyListener.META_SELECTING = KeyEvent.META_SELECTING = 0x800 has been defined at
         // least since Kitkat, but it has been hidden with a comment saying it's pending API review,
-        // and at least as of S, KeyEvent.META_SELECTING has been marked UnsupportedAppUsage
+        // and at least as of Tiramisu, KeyEvent.META_SELECTING has been marked UnsupportedAppUsage
         // (maxTargetSdk R). after this long it seems unlikely for this to be released for apps to
         // use, and this could theoretically get changed in a future version, so it wouldn't be
         // completely safe to just hard-code 0x800. I only found this constant used in getMetaState
@@ -1747,9 +1879,17 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version. the lying wrapper should prevent this from getting called, but if that
-        // fails we can still just return false to mimic the behavior.
+        // older version. for Nougat through S, the lying wrapper should prevent this from getting
+        // called, but if that fails we can still just return false to mimic the behavior. starting
+        // in Tiramisu, the call to this method is actually wrapped in a try/catch rather than
+        // tracking what methods are implemented, so we can just throw the matching error to
+        // replicate behavior of an app that doesn't implement this method, rather than lie to the
+        // tracker about what methods are implemented.
         if (Settings.shouldSkipCommitContent()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                throw new AbstractMethodError(
+                        "boolean android.view.inputmethod.InputConnection.commitContent(android.view.inputmethod.InputContentInfo, int, android.os.Bundle)");
+            }
             return false;
         }
 
@@ -1792,9 +1932,16 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version. the lying wrapper should prevent this from getting called, but as a
-        // fallback, we can still just ignore the call.
+        // older version. for S, the lying wrapper should prevent this from getting called, but as a
+        // fallback, we can still just ignore the call. starting in Tiramisu, the framework no
+        // longer internally tracks what methods aren't implemented, and since a default
+        // implementation for this is provided, it can safely just call the method. we'll just call
+        // that default implementation to replicate behavior of an app that doesn't explicitly
+        // implement this method.
         if (Settings.shouldSkipPerformSpellCheck()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                return InputConnection.super.performSpellCheck();
+            }
             // (EW) documentation notes that the return value will always be ignored from the
             // editor, and the return to the IME is whether the input connection is valid, and this
             // is the behavior I've seen in testing, so we'll just return true to match what the IME
@@ -1814,9 +1961,16 @@ public class EditableInputConnection implements InputConnection {
         }
 
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
-        // older version. the lying wrapper should prevent this from getting called, but as a
-        // fallback, we can still just ignore the call.
+        // older version. for S, the lying wrapper should prevent this from getting called, but as a
+        // fallback, we can still just ignore the call. starting in Tiramisu, the framework no
+        // longer internally tracks what methods aren't implemented, and since a default
+        // implementation for this is provided, it can safely just call the method. we'll just call
+        // that default implementation to replicate behavior of an app that doesn't explicitly
+        // implement this method.
         if (Settings.shouldSkipSetImeConsumesInput()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                return InputConnection.super.setImeConsumesInput(imeConsumesInput);
+            }
             // (EW) documentation notes that the return value will always be ignored from the
             // editor, and the return to the IME is whether the input connection is valid, and this
             // is the behavior I've seen in testing, so we'll just return true to match what the IME
@@ -1828,9 +1982,52 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    /**
+     * Default implementation that constructs {@link TextSnapshot} with information extracted from
+     * {@link EditableInputConnection}.
+     *
+     * @return {@code null} when {@link TextSnapshot} cannot be fully taken.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Nullable
+    @Override
+    public TextSnapshot takeSnapshot() {
+        if (LOG_CALLS) {
+            Log.d(TAG, "takeSnapshot");
+        }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. we'll just call the default implementation to replicate behavior of an app
+        // that doesn't explicitly implement this method.
+        if (Settings.shouldSkipTakeSnapshot()) {
+            return InputConnection.super.takeSnapshot();
+        }
+
+        final Editable content = getEditable();
+        int composingStart = getComposingSpanStart(content);
+        int composingEnd = getComposingSpanEnd(content);
+        if (composingEnd < composingStart) {
+            final int tmp = composingStart;
+            composingStart = composingEnd;
+            composingEnd = tmp;
+        }
+
+        final SurroundingText surroundingText = getSurroundingText(
+                MEMORY_EFFICIENT_TEXT_LENGTH / 2,
+                MEMORY_EFFICIENT_TEXT_LENGTH / 2, GET_TEXT_WITH_STYLES);
+        if (surroundingText == null) {
+            return null;
+        }
+
+        final int cursorCapsMode = getCursorCapsMode(TextUtils.CAP_MODE_CHARACTERS
+                | TextUtils.CAP_MODE_WORDS | TextUtils.CAP_MODE_SENTENCES);
+
+        return new TextSnapshot(surroundingText, composingStart, composingEnd, cursorCapsMode);
+    }
+
     public InputConnection createWrapperIfNecessary() {
         if (shouldSkipMethodsForOldVersionTest()
-                && canLieAboutMissingMethods(mEditText.getContext())) {
+                && canWrapperLieAboutMissingMethods(mEditText.getContext())) {
             return new InputConnectionLyingWrapper(this);
         }
         // (EW) we know the wrapper won't work or isn't necessary, so don't bother with it
@@ -1839,14 +2036,17 @@ public class EditableInputConnection implements InputConnection {
 
     /**
      * (EW) Wrapper class to lie about what methods are missing in order to mimic functionality of
-     * an old app.
+     * an old app. This should only be used on Nougat through S.
      *
      * The IME doesn't actually directly interact with the InputConnection that is returned from
-     * View#onCreateInputConnection. Instead, InputMethodService#getCurrentInputConnection returns a
-     * com.android.internal.view.InputConnectionWrapper that the IME actually interacts with.
-     * That, by some means involving some sort of message dispatcher, calls
-     * com.android.internal.view.IInputConnectionWrapper#executeMessage, which is what actually
-     * calls the methods on the InputConnection returned from View#onCreateInputConnection.
+     * View#onCreateInputConnection. Instead, InputMethodService#getCurrentInputConnection returns
+     * some wrapper (android.inputmethodservice.RemoteInputConnection, or
+     * com.android.internal.view.InputConnectionWrapper prior to Tiramisu) that the IME actually
+     * interacts with. That, by some means involving some sort of message dispatcher, calls one of
+     * the @Dispatching methods in com.android.internal.inputmethod.RemoteInputConnectionImpl (or
+     * com.android.internal.view.IInputConnectionWrapper#executeMessage prior to Tiramisu), which is
+     * what actually calls the methods on the InputConnection returned from
+     * View#onCreateInputConnection.
      *
      * This is relevant because the values we return in InputConnection methods are sometimes
      * ignored, notably in #setComposingRegion and #deleteSurroundingTextInCodePoints, which we want
@@ -1863,17 +2063,22 @@ public class EditableInputConnection implements InputConnection {
      * method). This was fixed by having com.android.internal.view.InputConnectionWrapper check if
      * the method was missing prior to dispatching the message to call it. That class determines if
      * methods are missing with a bit flag of missing methods, which are passed to it's constructor.
+     * This changed again in Tiramisu, where it stopped tracking missing methods, and instead
+     * com.android.internal.inputmethod.RemoteInputConnectionImpl just has a try/catch for an
+     * AbstractMethodError around the relevant methods.
      *
      * View#onCreateInputConnection is called by InputMethodManager#startInputInner, which
-     * determines the missing methods with InputConnectionInspector#getMissingMethodFlags and passes
-     * them to com.android.internal.view.IInputMethodManager#startInputOrWindowGainedFocus. That
-     * somehow gets to the com.android.internal.view.InputConnectionWrapper based on reviewing some
-     * stack traces in testing, but I'm not sure how to follow the code flow from the aidl to be
-     * sure of how. InputConnectionInspector#getMissingMethodFlags has an optimization for the known
-     * InputConnectionWrapper class, which just checks InputConnectionWrapper.getMissingMethodFlags
-     * (done starting in Nougat, where the class was added, through at least S).
+     * determined the missing methods with InputConnectionInspector#getMissingMethodFlags and passed
+     * them to com.android.internal.view.IInputMethodManager#startInputOrWindowGainedFocus on Nougat
+     * through S. That somehow got to the com.android.internal.view.InputConnectionWrapper based on
+     * reviewing some stack traces in testing, but I'm not sure how to follow the code flow from the
+     * aidl to be sure of how. InputConnectionInspector#getMissingMethodFlags had an optimization
+     * for the known InputConnectionWrapper class, which just checked
+     * InputConnectionWrapper.getMissingMethodFlags (done starting in Nougat, where the class was
+     * added, through S).
+     *
      * InputConnectionWrapper is an available class we can extend, and although
-     * #getMissingMethodFlags is marked as hidden, we can still implement that method, which will
+     * #getMissingMethodFlags was marked as hidden, we can still implement that method, which will
      * have our version called instead, where we can tell it that we don't implement methods even if
      * we technically do. Without the optimization it would just use reflection to check if the
      * method exists and isn't abstract, and I don't think there is a way to hide a method from
@@ -1881,8 +2086,9 @@ public class EditableInputConnection implements InputConnection {
      *
      * This is a slightly fragile hack relying on that hidden method and general understanding of
      * how this internally works, but this is just for a test setting to mimic an old app, so worst
-     * case scenario, it makes this test case invalid, but we can do some defensive things to guard
-     * against it if the test stops working with a newer version.
+     * case scenario, it makes this test case invalid. This is only relevant for a few older
+     * versions, so I don't expect it to not work on the versions we're relying on it for, but we
+     * can do some defensive things to guard against it if doesn't work for some reason.
      */
     private static class InputConnectionLyingWrapper extends InputConnectionWrapper {
 
@@ -1901,7 +2107,7 @@ public class EditableInputConnection implements InputConnection {
 
         // InputConnectionWrapper#getMissingMethodFlags was added in Nougat to handle when some of
         // the InputConnection methods aren't implemented, and its signature has remained unchanged
-        // through at least S.
+        // through S.
         public int getMissingMethodFlags() {
             // since this got called, that should mean that what we return will be used, so we
             // should be able to lie about what methods were implemented
@@ -1958,6 +2164,8 @@ public class EditableInputConnection implements InputConnection {
     }
 
     private boolean shouldSkipMethodsForOldVersionTest() {
+        // (EW) this should only check methods added prior to Tiramisu because this is only relevant
+        // for the lying wrapper
         return Settings.shouldSkipGetSelectedText()
                 || Settings.shouldSkipSetComposingRegion()
                 || Settings.shouldSkipCommitCorrection()
@@ -1968,13 +2176,30 @@ public class EditableInputConnection implements InputConnection {
                 || Settings.shouldSkipGetSurroundingText();
     }
 
-    public static boolean canLieAboutMissingMethods(Context context) {
+    public static boolean canSimulateMissingMethods(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // (EW) note that android.internal.inputmethod.RemoteInputConnectionImpl has to-do
+            // comments (with some id 199934664) for trying to provide a default implementation to
+            // avoid handling missing methods, so at some point in the future, there may be nothing
+            // to simulate other that just falling back to the default implementation, but I'm not
+            // sure if that will be valuable for a setting.
+            return true;
+        }
+        return canWrapperLieAboutMissingMethods(context);
+    }
+
+    private static boolean canWrapperLieAboutMissingMethods(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            // tracking missing methods was added in Nougat, so it won't work before that
+            // (EW) tracking missing methods was added in Nougat, so it won't work before that
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // (EW) in Tiramisu, InputConnectionWrapper stopped reporting missing methods, so we
+            // can't use that to lie about the methods we implement
             return false;
         }
 
-        // avoid checking this multiple times since it shouldn't be changing
+        // (EW) avoid checking this multiple times since it shouldn't be changing
         if (sHasCheckedCanLieAboutMissingMethods) {
             return sCanLieAboutMissingMethods;
         }
@@ -1982,9 +2207,9 @@ public class EditableInputConnection implements InputConnection {
         EditText testEditText = new EditText(context);
         EditableInputConnection testInputConnection = new EditableInputConnection(testEditText);
 
-        // InputConnectionWrapper's constructor should call
+        // (EW) InputConnectionWrapper's constructor should call
         // InputConnectionInspector#getMissingMethodFlags on the InputConnection it wraps (it has
-        // done this from Nougat through at least S), and that should use the optimization and check
+        // done this from Nougat through S), and that should use the optimization and check
         // InputConnectionWrapper#getMissingMethodFlags, which should call our replacement, which
         // will set sCanLieAboutMissingMethods, and if that doesn't happen, that probably means our
         // lying wrapper doesn't work anymore. we're not actually checking the full code path, which
