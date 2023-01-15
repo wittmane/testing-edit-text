@@ -51,6 +51,7 @@ import android.text.SpanWatcher;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.method.KeyListener;
 import android.text.style.EasyEditSpan;
@@ -87,6 +88,7 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.CursorAnchorInfo;
+import android.view.inputmethod.EditorBoundsInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -99,6 +101,8 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -112,11 +116,11 @@ import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;
 import com.wittmane.testingedittext.aosp.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.content.UndoOwner;
+import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
-import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
@@ -201,6 +205,10 @@ class Editor {
     private boolean mSelectionControllerEnabled;
 
     private final boolean mHapticTextHandleEnabled;
+    /** Handles OnBackInvokedCallback back dispatch */
+    private final OnBackInvokedCallback mBackCallback =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ? this::stopTextActionMode : null;
+    private boolean mBackCallbackRegistered;
 
     // Used to highlight a word when it is corrected by the IME
     private CorrectionHighlighter mCorrectionHighlighter;
@@ -556,6 +564,46 @@ class Editor {
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             mDefaultOnReceiveContentListener.clearInputConnectionInfo();
         }
+        unregisterOnBackInvokedCallback();
+    }
+
+    private void unregisterOnBackInvokedCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // (EW) predictive back gesture APIs were added in Tiramisu, so there isn't anything to
+            // do on previous versions
+            return;
+        }
+        if (!mBackCallbackRegistered) {
+            return;
+        }
+        // (EW) the AOSP version unregistered using ViewRootImpl, which is hidden, so we have to use
+        // a different method to unregister the callback
+        Activity activity = mEditText.getActivity();
+        if (activity == null) {
+            return;
+        }
+        activity.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mBackCallback);
+        mBackCallbackRegistered = false;
+    }
+
+    private void registerOnBackInvokedCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // (EW) predictive back gesture APIs were added in Tiramisu, so there isn't anything to
+            // do on previous versions
+            return;
+        }
+        if (mBackCallbackRegistered) {
+            return;
+        }
+        // (EW) the AOSP version registered using ViewRootImpl, which is hidden, so we have to use a
+        // different method to register the callback
+        Activity activity = mEditText.getActivity();
+        if (activity == null) {
+            return;
+        }
+        activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT, mBackCallback);
+        mBackCallbackRegistered = true;
     }
 
     void createInputContentTypeIfNeeded() {
@@ -1475,7 +1523,11 @@ class Editor {
         if (mHasPendingRestartInputForSetText) {
             final InputMethodManager imm = getInputMethodManager();
             if (imm != null) {
-                imm.restartInput(mEditText);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    imm.invalidateInput(mEditText);
+                } else {
+                    imm.restartInput(mEditText);
+                }
             }
             mHasPendingRestartInputForSetText = false;
         }
@@ -2012,6 +2064,7 @@ class Editor {
                     new TextActionModeFixedCallback(TextActionMode.INSERTION);
             mTextActionMode = mEditText.startActionMode(actionModeCallback);
         }
+        registerOnBackInvokedCallback();
         if (mTextActionMode != null && getInsertionController() != null) {
             getInsertionController().show();
         }
@@ -2123,6 +2176,7 @@ class Editor {
             ActionMode.Callback actionModeCallback = new TextActionModeFixedCallback(actionMode);
             mTextActionMode = mEditText.startActionMode(actionModeCallback);
         }
+        registerOnBackInvokedCallback();
 
         final boolean selectionStarted = mTextActionMode != null;
         if (selectionStarted && mEditText.isTextEditable() && mShowSoftInputOnFocus) {
@@ -2160,7 +2214,7 @@ class Editor {
      * the current cursor position or selection range. This method is consistent with the
      * method to show suggestions {@link SuggestionsPopupWindow#updateSuggestions}.
      */
-    private boolean shouldOfferToShowSuggestions() {
+    boolean shouldOfferToShowSuggestions() {
         final Spannable spannable = mEditText.getText();
         final int selectionStart = mEditText.getSelectionStart();
         final int selectionEnd = mEditText.getSelectionEnd();
@@ -2278,6 +2332,7 @@ class Editor {
             // This will hide the mSelectionModifierCursorController
             mTextActionMode.finish();
         }
+        unregisterOnBackInvokedCallback();
     }
 
     private void stopTextActionModeWithPreservingSelection() {
@@ -3899,8 +3954,19 @@ class Editor {
                 mSuggestionRangeSpan.setBackgroundColor(
                         (underlineColor & 0x00FFFFFF) + (newAlpha << 24));
             }
+            boolean sendAccessibilityEvent = mEditText.isVisibleToAccessibility();
+            // (EW) the AOSP version called SpannedString with ignoreNoCopySpan set to true, but
+            // that is hidden. I'm not sure if that's necessary for an accessibility event, but I'm
+            // not sure there is much we can do about it, so we'll just use the other constructor
+            // until there is a specific known bug from this.
+            CharSequence beforeText = sendAccessibilityEvent
+                    ? new SpannedString(spannable) : null;
             spannable.setSpan(mSuggestionRangeSpan, spanUnionStart, spanUnionEnd,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (sendAccessibilityEvent) {
+                mEditText.sendAccessibilityEventTypeViewTextChanged(
+                        beforeText, spanUnionStart, spanUnionEnd);
+            }
 
             mSuggestionsAdapter.notifyDataSetChanged();
             return true;
@@ -4204,6 +4270,36 @@ class Editor {
             if (layout == null) {
                 return;
             }
+            boolean includeEditorBounds;
+            boolean includeCharacterBounds;
+            boolean includeInsertionMarker;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // (EW) AOSP version calls InputMethodManager#getUpdateCursorAnchorInfoMode, but
+                // that is hidden, and we couldn't call
+                // InputMethodManager#setUpdateCursorAnchorInfoMode in EditableInputConnection, also
+                // due to it being hidden and restricted, so we have to manage the mode separately.
+                int mode = inputConnection.getUpdateCursorAnchorInfoMode();
+                includeEditorBounds =
+                        (mode & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
+                includeCharacterBounds =
+                        (mode & InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS) != 0;
+                includeInsertionMarker =
+                        (mode & InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER) != 0;
+                boolean includeAll =
+                        !includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker;
+                includeEditorBounds |= includeAll;
+                includeCharacterBounds |= includeAll;
+                includeInsertionMarker |= includeAll;
+            } else {
+                // (EW) prior to Tiramisu includeCharacterBounds and includeInsertionMarker were not
+                // checked (those flags also didn't exist yet), and the code always just ran, so
+                // setting those to true to match previous functionality. nothing was previously
+                // done for the includeEditorBounds, and it currently needs methods from Tiramisu to
+                // work, so leaving that false.
+                includeEditorBounds = false;
+                includeCharacterBounds = true;
+                includeInsertionMarker = true;
+            }
 
             final CursorAnchorInfo.Builder builder = mSelectionInfoBuilder;
             builder.reset();
@@ -4217,59 +4313,76 @@ class Editor {
             mViewToScreenMatrix.postTranslate(mTmpIntOffset[0], mTmpIntOffset[1]);
             builder.setMatrix(mViewToScreenMatrix);
 
-            final float viewportToContentHorizontalOffset =
-                    mEditText.viewportToContentHorizontalOffset();
-            final float viewportToContentVerticalOffset =
-                    mEditText.viewportToContentVerticalOffset();
-
-            final Spannable text = mEditText.getText();
-            int composingTextStart = EditableInputConnection.getComposingSpanStart(text);
-            int composingTextEnd = EditableInputConnection.getComposingSpanEnd(text);
-            if (composingTextEnd < composingTextStart) {
-                final int temp = composingTextEnd;
-                composingTextEnd = composingTextStart;
-                composingTextStart = temp;
-            }
-            final boolean hasComposingText =
-                    (0 <= composingTextStart) && (composingTextStart < composingTextEnd);
-            if (hasComposingText) {
-                final CharSequence composingText = text.subSequence(composingTextStart,
-                        composingTextEnd);
-                builder.setComposingText(composingTextStart, composingText);
-                mEditText.populateCharacterBounds(builder, composingTextStart,
-                        composingTextEnd, viewportToContentHorizontalOffset,
-                        viewportToContentVerticalOffset);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && includeEditorBounds) {
+                final RectF bounds = new RectF();
+                bounds.set(0 /* left */, 0 /* top */, mEditText.getWidth(), mEditText.getHeight());
+                EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
+                //TODO(b/210039666): add Handwriting bounds once they're available.
+                builder.setEditorBoundsInfo(
+                        boundsBuilder.setEditorBounds(bounds).build());
             }
 
-            // Treat selectionStart as the insertion point.
-            if (0 <= selectionStart) {
-                final int offset = selectionStart;
-                final int line = layout.getLineForOffset(offset);
-                final float insertionMarkerX = layout.getPrimaryHorizontal(offset)
-                        + viewportToContentHorizontalOffset;
-                final float insertionMarkerTop = layout.getLineTop(line)
-                        + viewportToContentVerticalOffset;
-                final float insertionMarkerBaseline = layout.getLineBaseline(line)
-                        + viewportToContentVerticalOffset;
-                final float insertionMarkerBottom = HiddenLayout.getLineBottomWithoutSpacing(layout, line)
-                        + viewportToContentVerticalOffset;
-                final boolean isTopVisible = mEditText
-                        .isPositionVisible(insertionMarkerX, insertionMarkerTop);
-                final boolean isBottomVisible = mEditText
-                        .isPositionVisible(insertionMarkerX, insertionMarkerBottom);
-                int insertionMarkerFlags = 0;
+            if (includeCharacterBounds || includeInsertionMarker) {
+                final float viewportToContentHorizontalOffset =
+                        mEditText.viewportToContentHorizontalOffset();
+                final float viewportToContentVerticalOffset =
+                        mEditText.viewportToContentVerticalOffset();
 
-                if (isTopVisible || isBottomVisible) {
-                    insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
+                if (includeCharacterBounds) {
+                    final Spannable text = mEditText.getText();
+                    int composingTextStart = EditableInputConnection.getComposingSpanStart(text);
+                    int composingTextEnd = EditableInputConnection.getComposingSpanEnd(text);
+                    if (composingTextEnd < composingTextStart) {
+                        final int temp = composingTextEnd;
+                        composingTextEnd = composingTextStart;
+                        composingTextStart = temp;
+                    }
+                    final boolean hasComposingText =
+                            (0 <= composingTextStart) && (composingTextStart < composingTextEnd);
+                    if (hasComposingText) {
+                        final CharSequence composingText = text.subSequence(composingTextStart,
+                                composingTextEnd);
+                        builder.setComposingText(composingTextStart, composingText);
+                        mEditText.populateCharacterBounds(builder, composingTextStart,
+                                composingTextEnd, viewportToContentHorizontalOffset,
+                                viewportToContentVerticalOffset);
+                    }
                 }
-                if (!isTopVisible || !isBottomVisible) {
-                    insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
+
+                if (includeInsertionMarker) {
+                    // Treat selectionStart as the insertion point.
+                    if (0 <= selectionStart) {
+                        final int offset = selectionStart;
+                        final int line = layout.getLineForOffset(offset);
+                        final float insertionMarkerX = layout.getPrimaryHorizontal(offset)
+                                + viewportToContentHorizontalOffset;
+                        final float insertionMarkerTop = layout.getLineTop(line)
+                                + viewportToContentVerticalOffset;
+                        final float insertionMarkerBaseline = layout.getLineBaseline(line)
+                                + viewportToContentVerticalOffset;
+                        final float insertionMarkerBottom =
+                                HiddenLayout.getLineBottomWithoutSpacing(layout, line)
+                                        + viewportToContentVerticalOffset;
+                        final boolean isTopVisible = mEditText
+                                .isPositionVisible(insertionMarkerX, insertionMarkerTop);
+                        final boolean isBottomVisible = mEditText
+                                .isPositionVisible(insertionMarkerX, insertionMarkerBottom);
+                        int insertionMarkerFlags = 0;
+
+                        if (isTopVisible || isBottomVisible) {
+                            insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
+                        }
+                        if (!isTopVisible || !isBottomVisible) {
+                            insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
+                        }
+                        if (layout.isRtlCharAt(offset)) {
+                            insertionMarkerFlags |= CursorAnchorInfo.FLAG_IS_RTL;
+                        }
+                        builder.setInsertionMarkerLocation(insertionMarkerX, insertionMarkerTop,
+                                insertionMarkerBaseline, insertionMarkerBottom,
+                                insertionMarkerFlags);
+                    }
                 }
-                if (layout.isRtlCharAt(offset)) {
-                    insertionMarkerFlags |= CursorAnchorInfo.FLAG_IS_RTL;
-                }
-                builder.setInsertionMarkerLocation(insertionMarkerX, insertionMarkerTop,
-                        insertionMarkerBaseline, insertionMarkerBottom, insertionMarkerFlags);
             }
 
             CursorAnchorInfo cursorAnchorInfo = builder.build();
@@ -5914,7 +6027,10 @@ class Editor {
             }
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_MOVE:
-                    if (event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+                    if (event.isFromSource(InputDevice.SOURCE_MOUSE)
+                            || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                                    && mEditText.isAutoHandwritingEnabled()
+                                    && isFromStylus(event))) {
                         break;
                     }
                     if (mIsDraggingCursor) {
@@ -5935,6 +6051,11 @@ class Editor {
                     }
                     break;
             }
+        }
+
+        private boolean isFromStylus(MotionEvent motionEvent) {
+            final int pointerIndex = motionEvent.getActionIndex();
+            return motionEvent.getToolType(pointerIndex) == MotionEvent.TOOL_TYPE_STYLUS;
         }
 
         private void positionCursorDuringDrag(MotionEvent event) {

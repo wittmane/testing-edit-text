@@ -1391,6 +1391,17 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
+    // (EW) from InputMethodManager
+    /**
+     * Get the requested mode for
+     * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
+     */
+    public int getUpdateCursorAnchorInfoMode() {
+        synchronized (mH) {
+            return mRequestUpdateCursorAnchorInfoMonitorMode;
+        }
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Nullable
     @Override

@@ -36,6 +36,9 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 
 import com.wittmane.testingedittext.aosp.graphics.HiddenMatrix;
+import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig;
+import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakStyle;
+import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 import com.wittmane.testingedittext.wrapper.Insets;
@@ -50,6 +53,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.text.LineBreakConfig;
 import android.icu.text.DecimalFormatSymbols;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -135,6 +139,7 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
+import android.view.translation.TranslationRequestValue;
 import android.view.translation.TranslationSpec;
 import android.view.translation.ViewTranslationRequest;
 import android.widget.Scroller;
@@ -157,17 +162,18 @@ import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat.FocusDirection;
+import androidx.core.view.ViewCompat.FocusRealDirection;
 
 import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
+import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
 import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
-import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.aosp.os.ParcelableParcel;
-import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
+import com.wittmane.testingedittext.R;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -246,6 +252,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private static final int FLOATING_TOOLBAR_SELECT_ALL_REFRESH_DELAY = 500;
 
+    // The default value of the line break style.
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private static final int DEFAULT_LINE_BREAK_STYLE = LineBreakConfig.LINE_BREAK_STYLE_NONE;
+
+    // The default value of the line break word style.
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private static final int DEFAULT_LINE_BREAK_WORD_STYLE =
+            LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE;
+
     // System wide time for last cut, copy or text changed action.
     static long sLastCutCopyOrTextChangedTime;
 
@@ -319,6 +334,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private DynamicLayout mLayout;
     private boolean mLocalesChanged = false;
     private int mTextSizeUnit = -1;
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private int mLineBreakStyle = DEFAULT_LINE_BREAK_STYLE;
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private int mLineBreakWordStyle = DEFAULT_LINE_BREAK_WORD_STYLE;
 
     // This is used to reflect the current user preference for changing font weight and making text
     // more bold.
@@ -330,8 +349,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // True if internationalized input should be used for numbers and date and time.
     // (EW) this should be final but can't since it's set in #init to avoid duplicate code
     private boolean mUseInternationalizedInput;
-    // True if fallback fonts that end up getting used should be allowed to affect line spacing.
-    /* package */ boolean mUseFallbackLineSpacing;
+    // Fallback fonts that end up getting used should be allowed to affect line spacing.
+    private static final int FALLBACK_LINE_SPACING_NONE = 0;
+    private static final int FALLBACK_LINE_SPACING_STATIC_LAYOUT_ONLY = 1;
+    private static final int FALLBACK_LINE_SPACING_ALL = 2;
+
+    private int mUseFallbackLineSpacing;
 
     @ViewDebug.ExportedProperty(category = "text")
     private int mGravity = Gravity.TOP | Gravity.START;
@@ -824,6 +847,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             Layout.HYPHENATION_FREQUENCY_NONE);
                 }
 
+            } else if (attr == R.styleable.EditText_android_lineBreakStyle) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    // (EW) the layout only started supporting line break config in Tiramisu
+                    mLineBreakStyle = typedArray.getInt(attr,
+                            LineBreakConfig.LINE_BREAK_STYLE_NONE);
+                }
+
+            } else if (attr == R.styleable.EditText_android_lineBreakWordStyle) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    // (EW) the layout only started supporting line break config in Tiramisu
+                    mLineBreakWordStyle = typedArray.getInt(attr,
+                            LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE);
+                }
+
             } else if (attr == R.styleable.EditText_android_firstBaselineToTopHeight) {
                 // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
                 // still work as early as 22 (Lollipop MR1). I'm not sure what allows it to work on
@@ -883,7 +920,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         //TODO: (EW) I think this is only necessary if this is moved to a library
         final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
         mUseInternationalizedInput = targetSdkVersion >= Build.VERSION_CODES.O;
-        mUseFallbackLineSpacing = targetSdkVersion >= Build.VERSION_CODES.P;
+        // (EW) the AOSP version checked CompatChanges#isChangeEnabled for some change ID. I'm not
+        // sure how that works, but it replaced a target version check from a previous version. I'm
+        // not certain if that's equivalent (or if any of this is really even relevant), but at
+        // least for now this can just do basic version checks.
+        if (targetSdkVersion >= Build.VERSION_CODES.TIRAMISU) {
+            mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_ALL;
+        } else if (targetSdkVersion >= Build.VERSION_CODES.P) {
+            mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_STATIC_LAYOUT_ONLY;
+        } else {
+            mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_NONE;
+        }
 
         if (digits != null) {
             mEditor.mKeyListener = DigitsKeyListener.getInstance(digits.toString());
@@ -2050,6 +2097,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         float mLetterSpacing = 0;
         String mFontFeatureSettings = null;
         String mFontVariationSettings = null;
+        boolean mHasLineBreakStyle = false;
+        boolean mHasLineBreakWordStyle = false;
+        @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+        int mLineBreakStyle = DEFAULT_LINE_BREAK_STYLE;
+        @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+        int mLineBreakWordStyle = DEFAULT_LINE_BREAK_WORD_STYLE;
 
         @Override
         public String toString() {
@@ -2077,6 +2130,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     + "    mHasLetterSpacing:" + mHasLetterSpacing + "\n"
                     + "    mLetterSpacing:" + mLetterSpacing + "\n"
                     + "    mFontFeatureSettings:" + mFontFeatureSettings + "\n"
+                    + "    mHasLineBreakStyle:" + mHasLineBreakStyle + "\n"
+                    + "    mHasLineBreakWordStyle:" + mHasLineBreakWordStyle + "\n"
+                    + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                            ? "    mLineBreakStyle:" + mLineBreakStyle + "\n"
+                            + "    mLineBreakWordStyle:" + mLineBreakWordStyle + "\n"
+                    : "")
                     + "}";
         }
     }
@@ -2124,6 +2183,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 R.styleable.TextAppearance_android_fontFeatureSettings);
         sAppearanceValues.put(R.styleable.TextAppearance_android_fontVariationSettings,
                 R.styleable.TextAppearance_fontVariationSettings);
+        sAppearanceValues.put(R.styleable.EditText_android_lineBreakStyle,
+                R.styleable.TextAppearance_android_lineBreakStyle);
+        sAppearanceValues.put(R.styleable.EditText_android_lineBreakWordStyle,
+                R.styleable.TextAppearance_android_lineBreakWordStyle);
     }
 
     /**
@@ -2260,6 +2323,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // (EW) attribute android:fontVariationSettings is only used in API level 28 (Pie)
                 // and higher
                 attributes.mFontVariationSettings = appearance.getString(attr);
+            } else if (index == R.styleable.TextAppearance_android_lineBreakStyle
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                attributes.mHasLineBreakStyle = true;
+                attributes.mLineBreakStyle =
+                        appearance.getInt(attr, attributes.mLineBreakStyle);
+            } else if (index == R.styleable.TextAppearance_android_lineBreakWordStyle
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                attributes.mHasLineBreakWordStyle = true;
+                attributes.mLineBreakWordStyle =
+                        appearance.getInt(attr, attributes.mLineBreakWordStyle);
             }
         }
     }
@@ -2322,6 +2395,45 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (attributes.mFontVariationSettings != null
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             setFontVariationSettings(attributes.mFontVariationSettings);
+        }
+
+        if ((attributes.mHasLineBreakStyle || attributes.mHasLineBreakWordStyle)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            updateLineBreakConfigFromTextAppearance(attributes.mHasLineBreakStyle,
+                    attributes.mHasLineBreakWordStyle, attributes.mLineBreakStyle,
+                    attributes.mLineBreakWordStyle);
+        }
+    }
+
+    /**
+     * Updates the LineBreakConfig from the TextAppearance.
+     *
+     * This method updates the given line configuration from the TextAppearance. This method will
+     * request new layout if line break config has been changed.
+     *
+     * @param isLineBreakStyleSpecified true if the line break style is specified.
+     * @param isLineBreakWordStyleSpecified true if the line break word style is specified.
+     * @param lineBreakStyle the value of the line break style in the TextAppearance.
+     * @param lineBreakWordStyle the value of the line break word style in the TextAppearance.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private void updateLineBreakConfigFromTextAppearance(boolean isLineBreakStyleSpecified,
+            boolean isLineBreakWordStyleSpecified,
+            @LineBreakStyle int lineBreakStyle,
+            @LineBreakWordStyle int lineBreakWordStyle) {
+        boolean updated = false;
+        if (isLineBreakStyleSpecified && mLineBreakStyle != lineBreakStyle) {
+            mLineBreakStyle = lineBreakStyle;
+            updated = true;
+        }
+        if (isLineBreakWordStyleSpecified && mLineBreakWordStyle != lineBreakWordStyle) {
+            mLineBreakWordStyle = lineBreakWordStyle;
+            updated = true;
+        }
+        if (updated && mLayout != null) {
+            nullLayouts();
+            requestLayout();
+            invalidate();
         }
     }
 
@@ -2692,8 +2804,20 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @attr ref android.R.styleable#TextView_fallbackLineSpacing
      */
     public void setFallbackLineSpacing(boolean enabled) {
-        if (mUseFallbackLineSpacing != enabled) {
-            mUseFallbackLineSpacing = enabled;
+        int fallbackStrategy;
+        if (enabled) {
+            // (EW) the AOSP version checked CompatChanges#isChangeEnabled (see comment in #init)
+            final int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
+            if (targetSdkVersion >= Build.VERSION_CODES.TIRAMISU) {
+                fallbackStrategy = FALLBACK_LINE_SPACING_ALL;
+            } else {
+                fallbackStrategy = FALLBACK_LINE_SPACING_STATIC_LAYOUT_ONLY;
+            }
+        } else {
+            fallbackStrategy = FALLBACK_LINE_SPACING_NONE;
+        }
+        if (mUseFallbackLineSpacing != fallbackStrategy) {
+            mUseFallbackLineSpacing = fallbackStrategy;
             if (mLayout != null) {
                 nullLayouts();
                 requestLayout();
@@ -2711,7 +2835,17 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     @InspectableProperty
     public boolean isFallbackLineSpacing() {
-        return mUseFallbackLineSpacing;
+        return mUseFallbackLineSpacing != FALLBACK_LINE_SPACING_NONE;
+    }
+
+    private boolean isFallbackLineSpacingForBoringLayout() {
+        return mUseFallbackLineSpacing == FALLBACK_LINE_SPACING_ALL;
+    }
+
+    // Package private for accessing from Editor.java
+    /* package */ boolean isFallbackLineSpacingForStaticLayout() {
+        return mUseFallbackLineSpacing == FALLBACK_LINE_SPACING_ALL
+                || mUseFallbackLineSpacing == FALLBACK_LINE_SPACING_STATIC_LAYOUT_ONLY;
     }
 
     /**
@@ -2802,12 +2936,19 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Sets the break strategy for breaking paragraphs into lines. The default value for EditText
      * is {@link Layout#BREAK_STRATEGY_SIMPLE} to avoid the text "dancing" when being edited.
-     * <p/>
+     * <p>
      * Enabling hyphenation with either using {@link Layout#HYPHENATION_FREQUENCY_NORMAL} or
      * {@link Layout#HYPHENATION_FREQUENCY_FULL} while line breaking is set to one of
      * {@link Layout#BREAK_STRATEGY_BALANCED}, {@link Layout#BREAK_STRATEGY_HIGH_QUALITY}
      * improves the structure of text layout however has performance impact and requires more time
-     * to do the text layout.
+     * to do the text layout.</p>
+     * <p>
+     * Compared with {@link #setLineBreakStyle(int)}, line break style with different strictness is
+     * evaluated in the ICU to identify the potential breakpoints. In
+     * {@link #setBreakStrategy(int)}, line break strategy handles the post processing of ICU's line
+     * break result. It aims to evaluate ICU's breakpoints and break the lines based on the
+     * constraint.
+     * </p>
      *
      * @attr ref android.R.styleable#TextView_breakStrategy
      * @see #getBreakStrategy()
@@ -2889,6 +3030,79 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     })
     public int getHyphenationFrequency() {
         return mHyphenationFrequency;
+    }
+
+    /**
+     * Set the line break style for text wrapping.
+     *
+     * The line break style to indicates the line break strategies can be used when
+     * calculating the text wrapping. The line break style affects rule-based breaking. It
+     * specifies the strictness of line-breaking rules.
+     * There are several types for the line break style:
+     * {@link LineBreakConfig#LINE_BREAK_STYLE_LOOSE},
+     * {@link LineBreakConfig#LINE_BREAK_STYLE_NORMAL} and
+     * {@link LineBreakConfig#LINE_BREAK_STYLE_STRICT}. The default values of the line break style
+     * is {@link LineBreakConfig#LINE_BREAK_STYLE_NONE}, indicating no breaking rule is specified.
+     * See <a href="https://www.w3.org/TR/css-text-3/#line-break-property">
+     *         the line-break property</a>
+     *
+     * @param lineBreakStyle the line break style for the text.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    public void setLineBreakStyle(@LineBreakStyle int lineBreakStyle) {
+        if (mLineBreakStyle != lineBreakStyle) {
+            mLineBreakStyle = lineBreakStyle;
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Set the line break word style for text wrapping.
+     *
+     * The line break word style affects dictionary-based breaking and provide phrase-based
+     * breaking opportunities. The type for the line break word style is
+     * {@link LineBreakConfig#LINE_BREAK_WORD_STYLE_PHRASE}. The default values of the line break
+     * word style is {@link LineBreakConfig#LINE_BREAK_WORD_STYLE_NONE}, indicating no breaking rule
+     * is specified.
+     * See <a href="https://www.w3.org/TR/css-text-3/#word-break-property">
+     *         the word-break property</a>
+     *
+     * @param lineBreakWordStyle the line break word style for the tet
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    public void setLineBreakWordStyle(@LineBreakWordStyle int lineBreakWordStyle) {
+        if (mLineBreakWordStyle != lineBreakWordStyle) {
+            mLineBreakWordStyle = lineBreakWordStyle;
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Get the current line break style for text wrapping.
+     *
+     * @return the current line break style to be used for text wrapping.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    public @LineBreakStyle int getLineBreakStyle() {
+        return mLineBreakStyle;
+    }
+
+    /**
+     * Get the current line word break style for text wrapping.
+     *
+     * @return the current line break word style to be used for text wrapping.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    public @LineBreakWordStyle int getLineBreakWordStyle() {
+        return mLineBreakWordStyle;
     }
 
     /**
@@ -4358,6 +4572,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mTransformation instanceof PasswordTransformationMethod;
     }
 
+    /**
+     * Returns true if the current inputType is any type of password.
+     *
+     * @hide
+     */
+    public boolean isAnyPasswordInputType() {
+        final int inputType = getInputType();
+        return isPasswordInputType(inputType) || isVisiblePasswordInputType(inputType);
+    }
+
     static boolean isPasswordInputType(int inputType) {
         final int variation =
                 inputType & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION);
@@ -4385,6 +4609,29 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      */
     public void setRawInputType(int type) {
         mEditor.mInputType = type;
+    }
+
+    // (EW) from View
+    /**
+     * A hint indicating that this view can be autofilled with a password.
+     *
+     * This is a heuristic-based hint that is meant to be used by UI Toolkit developers when a
+     * view is a password field but doesn't specify a
+     * <code>{@value View#AUTOFILL_HINT_PASSWORD}</code>.
+     */
+    // TODO(229765029): unhide this for UI toolkit
+    public static final String AUTOFILL_HINT_PASSWORD_AUTO = "passwordAuto";
+
+    @Override
+    public String[] getAutofillHints() {
+        String[] hints = super.getAutofillHints();
+        if (isAnyPasswordInputType()) {
+            if (!ArrayUtils.contains(hints, AUTOFILL_HINT_PASSWORD_AUTO)) {
+                hints = ArrayUtils.appendElement(String.class, hints,
+                        AUTOFILL_HINT_PASSWORD_AUTO);
+            }
+        }
+        return hints;
     }
 
     /**
@@ -5909,6 +6156,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEditor.mInputType != EditorInfo.TYPE_NULL;
     }
 
+    private boolean hasEditorInFocusSearchDirection(@FocusRealDirection int direction) {
+        final View nextView = focusSearch(direction);
+        return nextView != null && nextView.onCheckIsTextEditor();
+    }
+
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
         if (onCheckIsTextEditor() && isEnabled()) {
@@ -5935,10 +6187,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // should also block the full screen view, since that would just be broken
                 outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI;
             }
-            if (focusSearch(FOCUS_DOWN) != null) {
+            if (hasEditorInFocusSearchDirection(FOCUS_DOWN)) {
                 outAttrs.imeOptions |= EditorInfo.IME_FLAG_NAVIGATE_NEXT;
             }
-            if (focusSearch(FOCUS_UP) != null) {
+            if (hasEditorInFocusSearchDirection(FOCUS_UP)) {
                 outAttrs.imeOptions |= EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
             }
             if ((outAttrs.imeOptions & EditorInfo.IME_MASK_ACTION)
@@ -6317,8 +6569,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             if (shouldEllipsize) hintWidth = wantWidth;
 
             if (hintBoring == UNKNOWN_BORING) {
-                hintBoring = isBoring(mHint, mTextPaint, mTextDir,
-                        mHintBoring);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    hintBoring = BoringLayout.isBoring(mHint, mTextPaint, mTextDir,
+                            isFallbackLineSpacingForBoringLayout(), mHintBoring);
+                } else {
+                    hintBoring = isBoring(mHint, mTextPaint, mTextDir,
+                            mHintBoring);
+                }
                 if (hintBoring != null) {
                     mHintBoring = hintBoring;
                 }
@@ -6364,7 +6621,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                             .setHyphenationFrequency(mHyphenationFrequency)
                             .setMaxLines(mMaxMode == LINES ? mMaximum : Integer.MAX_VALUE);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        builder.setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing);
+                        builder.setUseLineSpacingFromFallbacks(
+                                isFallbackLineSpacingForStaticLayout());
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        builder.setLineBreakConfig(HiddenLineBreakConfig.getLineBreakConfig(
+                                mLineBreakStyle, mLineBreakWordStyle));
                     }
                     if (shouldEllipsize) {
                         builder.setEllipsize(mEllipsize)
@@ -6398,7 +6660,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     .setTextDirection(mTextDir)
                     .setLineSpacing(mSpacingAdd, mSpacingMultiplier)
                     .setIncludePad(mIncludePad)
-                    .setUseLineSpacingFromFallbacks(mUseFallbackLineSpacing)
+                    .setUseLineSpacingFromFallbacks(isFallbackLineSpacingForStaticLayout())
                     .setBreakStrategy(mBreakStrategy)
                     .setHyphenationFrequency(mHyphenationFrequency)
                     .setEllipsize(getKeyListener() == null ? effectiveEllipsize : null)
@@ -6565,7 +6827,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 }
 
                 if (hintDes < 0) {
-                    hintBoring = isBoring(mHint, mTextPaint, mTextDir, mHintBoring);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        hintBoring = BoringLayout.isBoring(mHint, mTextPaint, mTextDir,
+                                isFallbackLineSpacingForBoringLayout(), mHintBoring);
+                    } else {
+                        hintBoring = isBoring(mHint, mTextPaint, mTextDir, mHintBoring);
+                    }
                     if (hintBoring != null) {
                         mHintBoring = hintBoring;
                     }
@@ -7398,6 +7665,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEllipsize;
     }
 
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        //TODO: (EW) the AOSP version called View#setHandwritingArea, which is hidden. I'm not sure
+        // if there is there anything we can do here. note that this was from EditText, so it is
+        // more likely to be relevant. I'm not sure how Android 13's handwriting feature works or if
+        // there are other things we would need to do to support it.
+    }
+
     /**
      * Set the EditText so that when it takes focus, all the text is
      * selected.
@@ -8027,7 +8303,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // Show the IME, except when selecting in read-only text.
                 final InputMethodManager imm = getInputMethodManager();
                 viewClicked(imm);
-                if (mEditor.mShowSoftInputOnFocus && imm != null) {
+                if (mEditor.mShowSoftInputOnFocus && imm != null
+                        && (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                                || !showAutofillDialog())) {
                     imm.showSoftInput(this, 0);
                 }
 
@@ -8043,6 +8321,23 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         return superResult;
+    }
+
+    /**
+     * The fill dialog UI is a more conspicuous and efficient interface than dropdown UI.
+     * If autofill suggestions are available when the user clicks on a field that supports filling
+     * the dialog UI, Autofill will pop up a fill dialog. The dialog will take up a larger area
+     * to display the datasets, so it is easy for users to pay attention to the datasets and
+     * selecting a dataset. The autofill dialog is shown as the bottom sheet, the better
+     * experience is not to show the IME if there is a fill dialog.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private boolean showAutofillDialog() {
+        final AutofillManager afm = getContext().getSystemService(AutofillManager.class);
+        if (afm != null) {
+            return afm.showAutofillDialog(this);
+        }
+        return false;
     }
 
     @Override
@@ -8928,6 +9223,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         super.sendAccessibilityEventUnchecked(event);
     }
 
+    boolean isVisibleToAccessibility() {
+        AccessibilityManager accessibilityManager = getAccessibilityManager();
+        return accessibilityManager != null && accessibilityManager.isEnabled()
+                && (isFocused() || (isSelected() && isShown()));
+    }
+
     void sendAccessibilityEventTypeViewTextChanged(CharSequence beforeText, int fromIndex,
                                                    int removedCount, int addedCount) {
         AccessibilityEvent event =
@@ -8935,6 +9236,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         event.setFromIndex(fromIndex);
         event.setRemovedCount(removedCount);
         event.setAddedCount(addedCount);
+        event.setBeforeText(beforeText);
+        sendAccessibilityEventUnchecked(event);
+    }
+
+    void sendAccessibilityEventTypeViewTextChanged(CharSequence beforeText,
+                                                   int fromIndex, int toIndex) {
+        AccessibilityEvent event =
+                AccessibilityEvent.obtain(AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED);
+        event.setFromIndex(fromIndex);
+        event.setToIndex(toIndex);
         event.setBeforeText(beforeText);
         sendAccessibilityEventUnchecked(event);
     }
@@ -8990,7 +9301,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Called when a context menu option for the text view is selected.  Currently
      * this will be one of {@link android.R.id#selectAll}, {@link android.R.id#cut},
-     * {@link android.R.id#copy}, {@link android.R.id#paste} or {@link android.R.id#shareText}.
+     * {@link android.R.id#copy}, {@link android.R.id#paste},
+     * {@link android.R.id#pasteAsPlainText} (starting at API level 23), or
+     * {@link android.R.id#shareText}.
      *
      * @return true if the context menu item action was performed.
      */
@@ -9169,7 +9482,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * method. The default actions can also be removed from the menu using
      * {@link android.view.Menu#removeItem(int)} and passing {@link android.R.id#selectAll},
      * {@link android.R.id#cut}, {@link android.R.id#copy}, {@link android.R.id#paste},
-     * {@link android.R.id#replaceText} or {@link android.R.id#shareText} ids as parameters.
+     * {@link android.R.id#pasteAsPlainText} (starting at API level 23),
+     * {@link android.R.id#replaceText}, or {@link android.R.id#shareText} ids as parameters.
      *
      * <p>Returning false from
      * {@link android.view.ActionMode.Callback#onCreateActionMode(ActionMode, android.view.Menu)}
@@ -9206,7 +9520,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * {@link android.view.ActionMode.Callback#onPrepareActionMode(android.view.ActionMode,
      * android.view.Menu)} method. The default actions can also be removed from the menu using
      * {@link android.view.Menu#removeItem(int)} and passing {@link android.R.id#selectAll},
-     * {@link android.R.id#paste} or {@link android.R.id#replaceText} ids as parameters.</p>
+     * {@link android.R.id#paste}, {@link android.R.id#pasteAsPlainText} (starting at API
+     * level 23), or {@link android.R.id#replaceText} ids as parameters.</p>
      *
      * <p>Returning false from
      * {@link android.view.ActionMode.Callback#onCreateActionMode(android.view.ActionMode,
@@ -9271,6 +9586,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         return false;
+    }
+
+    boolean canReplace() {
+        if (hasPasswordTransformationMethod()) {
+            return false;
+        }
+
+        return (mText.length() > 0) && (mEditor != null)
+                && isSuggestionsEnabled() && mEditor.shouldOfferToShowSuggestions();
     }
 
     boolean canShare() {
@@ -9783,9 +10107,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             EditText.this.handleTextChanged(buffer, start, before, after);
 
-            AccessibilityManager accessibilityManager = getAccessibilityManager();
-            if (accessibilityManager != null && accessibilityManager.isEnabled()
-                    && (isFocused() || isSelected() && isShown())) {
+            if (isVisibleToAccessibility()) {
                 sendAccessibilityEventTypeViewTextChanged(mBeforeText, start, before, after);
                 mBeforeText = null;
             }
@@ -9863,13 +10185,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * Collects a {@link ViewTranslationRequest} which represents the content to be translated in
      * the view.
      *
-     * <p>NOTE: When overriding the method, it should not translate the password. If the subclass
-     * uses {@link TransformationMethod} to display the translated result, it's also not recommend
-     * to translate text is selectable or editable.
+     * <p>NOTE: When overriding the method, it should not collect a request to translate this
+     * TextView if it is displaying a password.
      *
      * @param supportedFormats the supported translation format. The value could be {@link
      *                         android.view.translation.TranslationSpec#DATA_FORMAT_TEXT}.
-     * @return the {@link ViewTranslationRequest} which contains the information to be translated.
+     * @param requestsCollector {@link Consumer} to receiver the {@link ViewTranslationRequest}
+     *                                          which contains the information to be translated.
      */
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
@@ -9887,18 +10209,40 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 // Cannot create translation request for the empty text
                 return;
             }
-            // TODO(b/177214256): support selectable text translation.
-            //  We use the TransformationMethod to implement showing the translated text. The
-            //  EditText does not support the text length change for TransformationMethod. If the
-            //  text is selectable or editable, it will crash while selecting the text. To support
-            //  it, it needs broader changes to text APIs, we only allow to translate non selectable
-            //  and editable text in S.
-            // Cannot create translation request
-            // (EW) because EditText content is always considered selectable
-            return;
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                // selectable text translation not supported.
+                // We use the TransformationMethod to implement showing the translated text. The
+                // EditText does not support the text length change for TransformationMethod. If the
+                // text is selectable or editable, it will crash while selecting the text. To
+                // support it, it needs broader changes to text APIs, we only allow to translate non
+                // selectable and editable text in S.
+                // Cannot create translation request
+                // (EW) because EditText content is always considered selectable
+                return;
+            }
+            boolean isPassword = isAnyPasswordInputType() || hasPasswordTransformationMethod();
+            if (isTextEditable() || isPassword) {
+                Log.w(LOG_TAG, "Cannot create translation request. editable = "
+                        + isTextEditable() + ", isPassword = " + isPassword);
+                return;
+            }
+            // TODO(b/176488462): apply the view's important for translation
+            requestBuilder.setValue(ViewTranslationRequest.ID_TEXT,
+                    TranslationRequestValue.forText(mText));
+            if (!TextUtils.isEmpty(getContentDescription())) {
+                requestBuilder.setValue(ID_CONTENT_DESCRIPTION,
+                        TranslationRequestValue.forText(getContentDescription()));
+            }
         }
         requestsCollector.accept(requestBuilder.build());
     }
+
+    // (EW) from ViewTranslationRequest
+    /**
+     * Constant id for the default view content description to be translated. This is used by
+     * {@link ViewTranslationRequest.Builder#setValue(String, TranslationRequestValue)}.
+     */
+    public static final String ID_CONTENT_DESCRIPTION = "android:content_description";
 
     // (EW) wrapper to get a drawable on any version
     @SuppressLint("UseCompatLoadingForDrawables")
