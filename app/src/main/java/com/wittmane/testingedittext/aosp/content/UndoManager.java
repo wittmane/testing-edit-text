@@ -16,6 +16,7 @@
 
 package com.wittmane.testingedittext.aosp.content;
 
+import android.os.Build;
 import android.os.Parcel;
 import android.text.TextUtils;
 import android.util.ArrayMap;
@@ -755,7 +756,9 @@ public class UndoManager {
             final int N = p.readInt();
             for (int i = 0; i < N; i++) {
                 UndoOwner owner = mManager.restoreOwner(p);
-                UndoOperation op = (UndoOperation)p.readParcelable(loader);
+                UndoOperation op = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        ? p.readParcelable(loader, UndoOperation.class)
+                        : (UndoOperation)p.readParcelable(loader);
                 op.mOwner = owner;
                 mOperations.add(op);
             }
