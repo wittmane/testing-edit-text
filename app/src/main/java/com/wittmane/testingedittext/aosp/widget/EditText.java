@@ -40,7 +40,6 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakStyle;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
-import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Matrix;
@@ -8121,14 +8120,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
-    // (EW) to match AOSP functionality, we need to create instances of SpellCheckSpan and
-    // SuggestionRangeSpan, but those are hidden, so those had to be copied to be used. those
-    // implement ParcelableSpan, which isn't intended for apps to implement, so our version just
-    // implements Parcelable, but there is some handling from AOSP for ParcelableSpan, so this is a
-    // wrapper to include those to match that same functionality.
+    // (EW) to match AOSP functionality, we need to create instances of SpellCheckSpan, but that is
+    // hidden, so that had to be copied to be used. that implements ParcelableSpan, which isn't
+    // intended for apps to implement, so our version just implements Parcelable, but there is some
+    // handling from AOSP for ParcelableSpan, so this is a wrapper to include those to match that
+    // same functionality.
     private static boolean isParcelableSpan(Object o) {
-        return o instanceof ParcelableSpan || o instanceof SpellCheckSpan
-                || o instanceof SuggestionRangeSpan;
+        return o instanceof ParcelableSpan || o instanceof SpellCheckSpan;
     }
 
     // (EW) only relevant in versions prior to Nougat

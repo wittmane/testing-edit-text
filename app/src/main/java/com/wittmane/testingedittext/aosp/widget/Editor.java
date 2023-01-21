@@ -17,6 +17,7 @@
 
 package com.wittmane.testingedittext.aosp.widget;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
@@ -55,6 +56,7 @@ import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.method.KeyListener;
 import android.text.style.EasyEditSpan;
+import android.text.style.SuggestionRangeSpan;
 import android.text.style.SuggestionSpan;
 import android.text.style.TextAppearanceSpan;
 import android.text.style.URLSpan;
@@ -123,7 +125,6 @@ import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.aosp.text.style.SuggestionRangeSpan;
 import com.wittmane.testingedittext.aosp.widget.EditText.OnEditorActionListener;
 
 import java.lang.annotation.Retention;
@@ -1712,7 +1713,7 @@ class Editor {
     static Object[] getParcelableSpans(Spanned spanned, int start, int end) {
         Object[] actualParcelableSpans = spanned.getSpans(start, end, ParcelableSpan.class);
         Class<?>[] pseudoParcelableSpanTypes = new Class<?>[] {
-                SpellCheckSpan.class, SuggestionRangeSpan.class
+                SpellCheckSpan.class
         };
         int totalSpans = actualParcelableSpans.length;
         Object[][] pseudoParcelableSpansArrays = new Object[pseudoParcelableSpanTypes.length][];
@@ -3936,7 +3937,17 @@ class Editor {
             }
             mAddToDictionaryButton.setVisibility(addToDictionaryButtonVisibility);
 
-            if (mSuggestionRangeSpan == null) mSuggestionRangeSpan = new SuggestionRangeSpan();
+            if (mSuggestionRangeSpan == null) {
+                mSuggestionRangeSpan = createSuggestionRangeSpan();
+                if (mSuggestionRangeSpan == null) {
+                    // (EW) the SuggestionRangeSpan wasn't able to be created on an older version
+                    // when it was hidden, which theoretically shouldn't happen. there isn't much we
+                    // can do if this happens. we could keep the custom version of the span, but
+                    // that would create a bunch of branching logic, so until it's known that it is
+                    // necessary, we'll just fail out here.
+                    return false;
+                }
+            }
             final int underlineColor;
             if (mNumberOfSuggestions != 0) {
                 underlineColor =
@@ -3947,11 +3958,11 @@ class Editor {
 
             if (underlineColor == 0) {
                 // Fallback on the default highlight color when the first span does not provide one
-                mSuggestionRangeSpan.setBackgroundColor(mEditText.mHighlightColor);
+                setBackgroundColor(mSuggestionRangeSpan, mEditText.mHighlightColor);
             } else {
                 final float BACKGROUND_TRANSPARENCY = 0.4f;
                 final int newAlpha = (int) (Color.alpha(underlineColor) * BACKGROUND_TRANSPARENCY);
-                mSuggestionRangeSpan.setBackgroundColor(
+                setBackgroundColor(mSuggestionRangeSpan,
                         (underlineColor & 0x00FFFFFF) + (newAlpha << 24));
             }
             boolean sendAccessibilityEvent = mEditText.isVisibleToAccessibility();
@@ -3997,6 +4008,35 @@ class Editor {
             SuggestionInfo suggestionInfo = mSuggestionInfos[position];
             replaceWithSuggestion(suggestionInfo);
             hideWithCleanUp();
+        }
+    }
+
+    // (EW) SuggestionRangeSpan was made available in Tiramisu, but it was actually added at least
+    // since Kitkat, so it should be safe to instantiate on these older versions, but to be extra
+    // safe we'll wrap it in a try/catch. although starting in Pie it was marked as light greylist,
+    // it's still allowed to be instantiated.
+    @SuppressLint("NewApi")
+    private static SuggestionRangeSpan createSuggestionRangeSpan() {
+        try {
+            return new SuggestionRangeSpan();
+        } catch (Exception e) {
+            Log.w(TAG, "SuggestionRangeSpan couldn't be instantiated: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    // (EW) SuggestionRangeSpan#setBackgroundColor was made available along with the whole class in
+    // Tiramisu, but it was actually added at least since Kitkat, so it should be safe to call on
+    // these older versions, but to be extra safe we'll wrap it in a try/catch. although starting in
+    // Pie it was marked as light greylist, it's still allowed to be called.
+    @SuppressLint("NewApi")
+    private static void setBackgroundColor(SuggestionRangeSpan span, int backgroundColor) {
+        try {
+            span.setBackgroundColor(backgroundColor);
+        } catch (Exception e) {
+            Log.w(TAG, "SuggestionRangeSpan#setBackgroundColor couldn't be called: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
