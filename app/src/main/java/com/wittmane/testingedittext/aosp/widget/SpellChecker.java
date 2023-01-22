@@ -25,6 +25,7 @@ import android.text.Editable;
 import android.text.Selection;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.SpannedString;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 import android.text.style.SuggestionSpan;
@@ -448,7 +449,15 @@ public class SpellChecker implements SpellCheckerSessionListener {
                     }
                     if (spellCheckSpanStart >= 0 && spellCheckSpanEnd > spellCheckSpanStart
                             && end > start) {
-                        removeErrorSuggestionSpan(editable, start, end, RemoveReason.OBSOLETE);
+                        boolean visibleToAccessibility = mEditText.isVisibleToAccessibility();
+                        CharSequence beforeText =
+                                visibleToAccessibility ? new SpannedString(editable) : null;
+                        boolean spanRemoved = removeErrorSuggestionSpan(
+                                editable, start, end, RemoveReason.OBSOLETE);
+                        if (visibleToAccessibility && spanRemoved) {
+                            mEditText.sendAccessibilityEventTypeViewTextChanged(
+                                    beforeText, start, end);
+                        }
                     }
                 }
                 return spellCheckSpan;
@@ -469,8 +478,9 @@ public class SpellChecker implements SpellCheckerSessionListener {
         OBSOLETE,
     }
 
-    private static void removeErrorSuggestionSpan(
+    private static boolean removeErrorSuggestionSpan(
             Editable editable, int start, int end, RemoveReason reason) {
+        boolean spanRemoved = false;
         SuggestionSpan[] spans = editable.getSpans(start, end, SuggestionSpan.class);
         for (SuggestionSpan span : spans) {
             int errorFlags = SuggestionSpan.FLAG_MISSPELLED;
@@ -485,8 +495,10 @@ public class SpellChecker implements SpellCheckerSessionListener {
                             + editable.subSequence(start, end) + ", reason: " + reason);
                 }
                 editable.removeSpan(span);
+                spanRemoved = true;
             }
         }
+        return spanRemoved;
     }
 
     @Override
@@ -606,8 +618,13 @@ public class SpellChecker implements SpellCheckerSessionListener {
         }
         SuggestionSpan suggestionSpan =
                 new SuggestionSpan(mEditText.getContext(), suggestions, flags);
-        removeErrorSuggestionSpan(editable, start, end, RemoveReason.REPLACE);
+        boolean spanRemoved = removeErrorSuggestionSpan(editable, start, end, RemoveReason.REPLACE);
+        boolean sendAccessibilityEvent = !spanRemoved && mEditText.isVisibleToAccessibility();
+        CharSequence beforeText = sendAccessibilityEvent ? new SpannedString(editable) : null;
         editable.setSpan(suggestionSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (sendAccessibilityEvent) {
+            mEditText.sendAccessibilityEventTypeViewTextChanged(beforeText, start, end);
+        }
 
         mEditText.invalidateRegion(start, end, false /* No cursor involved */);
     }

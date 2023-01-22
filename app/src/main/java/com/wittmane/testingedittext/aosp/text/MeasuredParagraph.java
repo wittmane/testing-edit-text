@@ -236,6 +236,9 @@ public class MeasuredParagraph {
         return mFontMetrics;
     }
 
+    // (EW) skipping #getMeasuredText, #getWidth, #getBounds, #getFontMetricsInt, and
+    // #getCharWidthAt
+
     /**
      * Generates new MeasuredParagraph for Bidi computation.
      *

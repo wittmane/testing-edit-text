@@ -134,12 +134,12 @@ public final class SelectionActionModeHelper {
     // (EW) skipped SelectionResult parameter since it was just used for text classification or
     // handling smart or link selections
     private void startActionMode(@Editor.TextActionMode int actionMode) {
-        final SelectionModifierCursorController controller = mEditor.getSelectionController();
-        if (controller != null && mEditText.isTextEditable()) {
-            controller.show();
+        if (mEditor.startActionModeInternal(actionMode)) {
+            final SelectionModifierCursorController controller = mEditor.getSelectionController();
+            if (controller != null && mEditText.isTextEditable()) {
+                controller.show();
+            }
         }
-        mEditor.startActionModeInternal(actionMode);
-
         mEditor.setRestartActionModeOnNextRefresh(false);
     }
 
