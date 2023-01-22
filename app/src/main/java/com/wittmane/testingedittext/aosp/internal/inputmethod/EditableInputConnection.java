@@ -124,6 +124,9 @@ public class EditableInputConnection implements InputConnection {
 
     private Object[] mDefaultComposingSpans;
 
+    private final MinimalInputConnectionProxy mProxyForDefaultMethods =
+            new MinimalInputConnectionProxy();
+
     public EditableInputConnection(@NonNull EditText targetView) {
         mIMM = (InputMethodManager)targetView.getContext().getSystemService(
                 Context.INPUT_METHOD_SERVICE);
@@ -405,7 +408,7 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "commitText: text=" + text + ", newCursorPosition=" + newCursorPosition
                     + ", textAttribute=" + textAttribute);
         }
-        return InputConnection.super.commitText(text, newCursorPosition, textAttribute);
+        return mProxyForDefaultMethods.commitText(text, newCursorPosition, textAttribute);
     }
 
     // (EW) added for modifying input text
@@ -1142,7 +1145,7 @@ public class EditableInputConnection implements InputConnection {
         // explicitly implement this method.
         if (Settings.shouldSkipGetSurroundingText()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                return InputConnection.super.getSurroundingText(beforeLength, afterLength, flags);
+                return mProxyForDefaultMethods.getSurroundingText(beforeLength, afterLength, flags);
             }
             return null;
         }
@@ -1462,7 +1465,7 @@ public class EditableInputConnection implements InputConnection {
                     + ", newCursorPosition=" + newCursorPosition
                     + ", textAttribute=" + textAttribute);
         }
-        return InputConnection.super.setComposingText(text, newCursorPosition, textAttribute);
+        return mProxyForDefaultMethods.setComposingText(text, newCursorPosition, textAttribute);
     }
 
     // (EW) added for modifying input text
@@ -1683,7 +1686,7 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "setComposingRegion: start=" + start + ", end=" + end
                     + ", textAttribute=" + textAttribute);
         }
-        return InputConnection.super.setComposingRegion(start, end, textAttribute);
+        return mProxyForDefaultMethods.setComposingRegion(start, end, textAttribute);
     }
 
     /**
@@ -1951,7 +1954,7 @@ public class EditableInputConnection implements InputConnection {
         // implement this method.
         if (Settings.shouldSkipPerformSpellCheck()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                return InputConnection.super.performSpellCheck();
+                return mProxyForDefaultMethods.performSpellCheck();
             }
             // (EW) documentation notes that the return value will always be ignored from the
             // editor, and the return to the IME is whether the input connection is valid, and this
@@ -1980,7 +1983,7 @@ public class EditableInputConnection implements InputConnection {
         // implement this method.
         if (Settings.shouldSkipSetImeConsumesInput()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                return InputConnection.super.setImeConsumesInput(imeConsumesInput);
+                return mProxyForDefaultMethods.setImeConsumesInput(imeConsumesInput);
             }
             // (EW) documentation notes that the return value will always be ignored from the
             // editor, and the return to the IME is whether the input connection is valid, and this
@@ -2011,7 +2014,7 @@ public class EditableInputConnection implements InputConnection {
         // older version. we'll just call the default implementation to replicate behavior of an app
         // that doesn't explicitly implement this method.
         if (Settings.shouldSkipTakeSnapshot()) {
-            return InputConnection.super.takeSnapshot();
+            return mProxyForDefaultMethods.takeSnapshot();
         }
 
         final Editable content = getEditable();
@@ -2034,6 +2037,167 @@ public class EditableInputConnection implements InputConnection {
                 | TextUtils.CAP_MODE_WORDS | TextUtils.CAP_MODE_SENTENCES);
 
         return new TextSnapshot(surroundingText, composingStart, composingEnd, cursorCapsMode);
+    }
+
+    //TODO: (EW) for some reason Kitkat throws a VerifyError when instantiating
+    // EditableInputConnection if anywhere in the class there is code calling the default method
+    // explicitly (eg: InputConnection.super.takeSnapshot()). this dummy implementation of
+    // InputConnection only implements the required methods (and reroutes calls to the main
+    // EditableInputConnection) so that calling the others will call into the default implementation
+    // to allow calling those methods less explicitly to prevent the errors on Kitkat. this is a bad
+    // solution because if a default method calls another method that has a default implementation,
+    // it will just call that default method, rather than going to our standard method to determine
+    // if the default method should actually be called. find something better.
+    private class MinimalInputConnectionProxy implements InputConnection {
+        // default methods not overriding:
+        //   SurroundingText getSurroundingText(int beforeLength, int afterLength, int flags)
+        //   boolean setComposingText(CharSequence text, int newCursorPosition, TextAttribute textAttribute)
+        //   boolean setComposingRegion(int start, int end, TextAttribute textAttribute)
+        //   boolean commitText(CharSequence text, int newCursorPosition, TextAttribute textAttribute)
+        //   boolean performSpellCheck()
+        //   boolean requestCursorUpdates(int cursorUpdateMode, int cursorUpdateFilter)
+        //   boolean setImeConsumesInput(boolean imeConsumesInput)
+        //   TextSnapshot takeSnapshot()
+
+        @Nullable
+        @Override
+        public CharSequence getTextBeforeCursor(int length, int flags) {
+            return EditableInputConnection.this.getTextBeforeCursor(length, flags);
+        }
+
+        @Nullable
+        @Override
+        public CharSequence getTextAfterCursor(int length, int flags) {
+            return EditableInputConnection.this.getTextAfterCursor(length, flags);
+        }
+
+        @Override
+        public CharSequence getSelectedText(int flags) {
+            return EditableInputConnection.this.getSelectedText(flags);
+        }
+
+        @Override
+        public int getCursorCapsMode(int reqModes) {
+            return EditableInputConnection.this.getCursorCapsMode(reqModes);
+        }
+
+        @Override
+        public ExtractedText getExtractedText(ExtractedTextRequest request, int flags) {
+            return EditableInputConnection.this.getExtractedText(request, flags);
+        }
+
+        @Override
+        public boolean deleteSurroundingText(int beforeLength, int afterLength) {
+            return EditableInputConnection.this.deleteSurroundingText(beforeLength, afterLength);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        @Override
+        public boolean deleteSurroundingTextInCodePoints(int beforeLength, int afterLength) {
+            return EditableInputConnection.this.deleteSurroundingTextInCodePoints(
+                    beforeLength, afterLength);
+        }
+
+        @Override
+        public boolean setComposingText(CharSequence text, int newCursorPosition) {
+            return EditableInputConnection.this.setComposingText(text, newCursorPosition);
+        }
+
+        @Override
+        public boolean setComposingRegion(int start, int end) {
+            return EditableInputConnection.this.setComposingRegion(start, end);
+        }
+
+        @Override
+        public boolean finishComposingText() {
+            return EditableInputConnection.this.finishComposingText();
+        }
+
+        @Override
+        public boolean commitText(CharSequence text, int newCursorPosition) {
+            return EditableInputConnection.this.commitText(text, newCursorPosition);
+        }
+
+        @Override
+        public boolean commitCompletion(CompletionInfo text) {
+            return EditableInputConnection.this.commitCompletion(text);
+        }
+
+        @Override
+        public boolean commitCorrection(CorrectionInfo correctionInfo) {
+            return EditableInputConnection.this.commitCorrection(correctionInfo);
+        }
+
+        @Override
+        public boolean setSelection(int start, int end) {
+            return EditableInputConnection.this.setSelection(start, end);
+        }
+
+        @Override
+        public boolean performEditorAction(int editorAction) {
+            return EditableInputConnection.this.performEditorAction(editorAction);
+        }
+
+        @Override
+        public boolean performContextMenuAction(int id) {
+            return EditableInputConnection.this.performContextMenuAction(id);
+        }
+
+        @Override
+        public boolean beginBatchEdit() {
+            return EditableInputConnection.this.beginBatchEdit();
+        }
+
+        @Override
+        public boolean endBatchEdit() {
+            return EditableInputConnection.this.endBatchEdit();
+        }
+
+        @Override
+        public boolean sendKeyEvent(KeyEvent event) {
+            return EditableInputConnection.this.sendKeyEvent(event);
+        }
+
+        @Override
+        public boolean clearMetaKeyStates(int states) {
+            return EditableInputConnection.this.clearMetaKeyStates(states);
+        }
+
+        @Override
+        public boolean reportFullscreenMode(boolean enabled) {
+            return EditableInputConnection.this.reportFullscreenMode(enabled);
+        }
+
+        @Override
+        public boolean performPrivateCommand(String action, Bundle data) {
+            return EditableInputConnection.this.performPrivateCommand(action, data);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        @Override
+        public boolean requestCursorUpdates(int cursorUpdateMode) {
+            return EditableInputConnection.this.requestCursorUpdates(cursorUpdateMode);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        @Nullable
+        @Override
+        public Handler getHandler() {
+            return EditableInputConnection.this.getHandler();
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        @Override
+        public void closeConnection() {
+            EditableInputConnection.this.closeConnection();
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.N_MR1)
+        @Override
+        public boolean commitContent(@NonNull InputContentInfo inputContentInfo, int flags,
+                                     @Nullable Bundle opts) {
+            return EditableInputConnection.this.commitContent(inputContentInfo, flags, opts);
+        }
     }
 
     public InputConnection createWrapperIfNecessary() {
