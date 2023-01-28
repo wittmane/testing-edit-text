@@ -75,6 +75,7 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 /**
  * Base class for an editable InputConnection instance. This is created by {@link EditText}.
  */
+@RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
 public class EditableInputConnection implements InputConnection {
     private static final boolean DEBUG = false;
     private static final boolean LOG_CALLS = true;
@@ -524,10 +525,12 @@ public class EditableInputConnection implements InputConnection {
     private static void translateText(Editable text,
                                       int startCodePointToSkip, int endCodePointsToSkip) {
         TranslateText[] specificTranslations = Settings.getTranslateSpecific();
+        boolean translateFullMatchOnly = Settings.shouldTranslateFullMatchOnly();
         int codepointShift = Settings.getShiftCodepoint();
 
         int codePointIndex = startCodePointToSkip;
-        while (codePointIndex < CodePointUtils.codePointCount(text) - endCodePointsToSkip) {
+        while (codePointIndex < CodePointUtils.codePointCount(text) - endCodePointsToSkip
+                && (!translateFullMatchOnly || codePointIndex == startCodePointToSkip)) {
             int charIndex = CodePointUtils.codePointIndexToCharIndex(text, codePointIndex);
             int codePoint = Character.codePointAt(text, codePointIndex);
             int codePointCharLength = CodePointUtils.codePointLength(text, codePointIndex);
@@ -542,7 +545,9 @@ public class EditableInputConnection implements InputConnection {
                 int originalLength = CodePointUtils.codePointCount(original);
                 int remainingTextLength =
                         CodePointUtils.codePointCount(text) - endCodePointsToSkip - codePointIndex;
-                if (remainingTextLength >= originalLength
+                if ((translateFullMatchOnly
+                        ? remainingTextLength == originalLength
+                        : remainingTextLength >= originalLength)
                         && TextUtils.equals(original,
                                 CodePointUtils.codePointSubsequence(text, codePointIndex,
                                         codePointIndex + originalLength))) {
@@ -1832,6 +1837,11 @@ public class EditableInputConnection implements InputConnection {
                 ensureDefaultComposingSpans();
                 if (mDefaultComposingSpans != null) {
                     for (int i = 0; i < mDefaultComposingSpans.length; ++i) {
+                        //TODO: (EW) this can log an error in SpannableStringBuilder (such as when
+                        // deleting the last character in the composition):
+                        // SPAN_EXCLUSIVE_EXCLUSIVE spans cannot have a zero length
+                        // since this doesn't actually break anything and is what the AOSP version
+                        // does, I'm going to leave this alone
                         spannable.setSpan(mDefaultComposingSpans[i], 0, spannable.length(),
                                 getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
                     }

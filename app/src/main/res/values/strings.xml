@@ -67,6 +67,9 @@
     <string name="translate_specific_title">Translate specific text</string>
     <string name="translate_specific_summary">Change text into different text</string>
 
+    <string name="translate_full_match_only_title">Use full match for translation</string>
+    <string name="translate_full_match_only_summary">Require the whole text that is being considered for modification to match the translations. If only a portion of the entered text matches a translation option, it won\'t cause the text to change.</string>
+
     <string name="shift_codepoint_title">Shift codepoints</string>
     <string name="shift_codepoint_summary">Shift all codepoints a fixed amount, wrapping at the ends of the range of codepoints</string>
     <string name="unit_codepoints"><xliff:g id="CODEPOINTS">%s</xliff:g> codepoints</string>

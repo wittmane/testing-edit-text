@@ -50,6 +50,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_RESTRICT_SPECIFIC = "pref_key_restrict_specific";
     public static final String PREF_RESTRICT_RANGE = "pref_key_restrict_range";
     public static final String PREF_TRANSLATE_SPECIFIC = "pref_key_translate_specific";
+    public static final String PREF_TRANSLATE_FULL_MATCH_ONLY =
+            "pref_key_translate_full_match_only";
     public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
     public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
     public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR =
@@ -159,6 +161,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private String[] mRestrictSpecific;
     private IntRange mRestrictRange;
     private TranslateText[] mTranslateSpecific;
+    private boolean mTranslateFullMatchOnly;
     private int mShiftCodepoint;
     private boolean mSkipExtractingText;
     private boolean mIgnoreExtractedTextMonitor;
@@ -236,6 +239,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_RESTRICT_SPECIFIC,
                 PREF_RESTRICT_RANGE,
                 PREF_TRANSLATE_SPECIFIC,
+                PREF_TRANSLATE_FULL_MATCH_ONLY,
                 PREF_SHIFT_CODEPOINT,
                 PREF_SKIP_EXTRACTING_TEXT,
                 PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
@@ -343,6 +347,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case PREF_TRANSLATE_SPECIFIC:
                 mTranslateSpecific = readTranslateSpecific(mPrefs);
+                break;
+            case PREF_TRANSLATE_FULL_MATCH_ONLY:
+                mTranslateFullMatchOnly = readTranslateFullMatchOnly(mPrefs);
                 break;
             case PREF_SHIFT_CODEPOINT:
                 mShiftCodepoint = readShiftCodepoint(mPrefs);
@@ -702,6 +709,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static TranslateText[] getTranslateSpecific() {
         return getInstance().mTranslateSpecific;
+    }
+
+    private static boolean readTranslateFullMatchOnly(final SharedPreferenceManager prefs) {
+        return prefs.getBoolean(PREF_TRANSLATE_FULL_MATCH_ONLY, false);
+    }
+
+    public static boolean shouldTranslateFullMatchOnly() {
+        return getInstance().mTranslateFullMatchOnly;
     }
 
     private static int readShiftCodepoint(final SharedPreferenceManager prefs) {
