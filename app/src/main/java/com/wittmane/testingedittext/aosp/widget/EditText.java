@@ -5131,8 +5131,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     }
 
     /**
-     * Sets the list of input filters that will be used if the buffer is
-     * Editable. Has no effect otherwise.
+     * Sets the list of input filters that will be used.
      *
      * @attr ref android.R.styleable#TextView_maxLength
      */

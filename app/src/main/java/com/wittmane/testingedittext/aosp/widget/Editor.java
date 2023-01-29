@@ -152,6 +152,7 @@ class Editor {
     private static final String TAG = Editor.class.getSimpleName();
     private static final boolean DEBUG_UNDO = false;
     private static final boolean DEBUG_CURSOR_ANCHOR_INFO = false;
+    private static final boolean LOG_SENDING_UPDATES = true;
 
     private static final int DELAY_BEFORE_HANDLE_FADES_OUT = 4000;
     private static final int RECENT_CUT_COPY_DURATION_MS = 15 * 1000; // 15 seconds in millis
@@ -1791,6 +1792,10 @@ class Editor {
                                 + ": " + ims.mExtractedText.text);
             }
 
+            if (LOG_SENDING_UPDATES) {
+                Log.d(TAG, "calling updateExtractedText: extractedText="
+                        + EditableInputConnection.getDebugExtractedTextInfo(ims.mExtractedText));
+            }
             if (updateDelay > 0) {
                 mDelayedUpdater.queueUpdate(
                         new ExtractTextUpdateEntry(req.token, ims.mExtractedText),
@@ -1820,6 +1825,12 @@ class Editor {
                 int candEnd = EditableInputConnection.getComposingSpanEnd(sp);
                 // InputMethodManager#updateSelection skips sending the message if
                 // none of the parameters have changed since the last time we called it.
+                if (LOG_SENDING_UPDATES) {
+                    Log.d(TAG, "calling updateSelection: selectionStart=" + selectionStart
+                            + ", selectionEnd=" + selectionEnd
+                            + ", candidatesStart=" + candStart
+                            + ", candidatesEnd=" + candEnd);
+                }
                 if (updateDelay > 0) {
                     mDelayedUpdater.queueUpdate(new SelectionUpdateEntry(
                             selectionStart, selectionEnd, candStart, candEnd), updateDelay);

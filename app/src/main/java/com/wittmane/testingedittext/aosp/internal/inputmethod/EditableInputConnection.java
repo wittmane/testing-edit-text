@@ -919,19 +919,33 @@ public class EditableInputConnection implements InputConnection {
             selectionEnd = temp;
         }
 
-        return TextUtils.getCapsMode(content, selectionStart, reqModes);
+        int cursorCapsMode = TextUtils.getCapsMode(content, selectionStart, reqModes);
+        if (LOG_CALLS) {
+            Log.d(TAG, "getCursorCapsMode: return=" + cursorCapsMode);
+        }
+        return cursorCapsMode;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
     public ExtractedText getExtractedText(ExtractedTextRequest extractedTextRequest, int flags) {
         if (LOG_CALLS) {
-            Log.d(TAG, "getExtractedText: extractedTextRequest=" + extractedTextRequest
+            Log.d(TAG, "getExtractedText: extractedTextRequest="
+                    + getDebugExtractedTextRequestInfo(extractedTextRequest)
                     + ", flags=" + flags);
         }
 
         delay(Settings.getGetExtractedTextDelay());
 
+        ExtractedText extractedText = getExtractedTextInternal(extractedTextRequest, flags);
+        if (LOG_CALLS) {
+            Log.d(TAG, "getExtractedText: return=" + getDebugExtractedTextInfo(extractedText));
+        }
+        return extractedText;
+    }
+
+    private ExtractedText getExtractedTextInternal(ExtractedTextRequest extractedTextRequest,
+                                                  int flags) {
         ExtractedText extractedText = new ExtractedText();
         if (mEditText.extractText(extractedTextRequest, extractedText)) {
             // (EW) documentation states "This method may fail either if the input connection has
@@ -961,6 +975,29 @@ public class EditableInputConnection implements InputConnection {
         return null;
     }
 
+    private static String getDebugExtractedTextRequestInfo(final ExtractedTextRequest request) {
+        if (request == null) {
+            return "null";
+        }
+        return "{ flags=" + request.flags +
+                ", token=" + request.token +
+                ", hintMaxChars=" + request.hintMaxChars +
+                ", hintMaxLines=" + request.hintMaxLines + " }";
+    }
+
+    public static String getDebugExtractedTextInfo(final ExtractedText extractedText) {
+        if (extractedText == null) {
+            return "null";
+        }
+        return "{ text=\"" + extractedText.text +
+                "\", flags=" + extractedText.flags +
+                ", partialStartOffset=" + extractedText.partialStartOffset +
+                ", partialEndOffset=" + extractedText.partialEndOffset +
+                ", selectionStart=" + extractedText.selectionStart +
+                ", selectionEnd=" + extractedText.selectionEnd +
+                ", startOffset=" + extractedText.startOffset + " }";
+    }
+
     /**
      * The default implementation returns the given amount of text from the
      * current cursor position in the buffer.
@@ -983,8 +1020,13 @@ public class EditableInputConnection implements InputConnection {
         int returnedTextLimit = Settings.getReturnedTextLimit();
         if (returnedTextLimit > 0 && textBeforeCursor != null
                 && textBeforeCursor.length() > returnedTextLimit) {
-            return textBeforeCursor.subSequence(textBeforeCursor.length() - returnedTextLimit,
+            textBeforeCursor = textBeforeCursor.subSequence(
+                    textBeforeCursor.length() - returnedTextLimit,
                     textBeforeCursor.length());
+        }
+        if (LOG_CALLS) {
+            Log.d(TAG, "getTextBeforeCursor: return="
+                    + (textBeforeCursor == null ? "null" : "\"" + textBeforeCursor + "\""));
         }
         return textBeforeCursor;
     }
@@ -1041,11 +1083,23 @@ public class EditableInputConnection implements InputConnection {
                 throw new AbstractMethodError(
                         "java.lang.CharSequence android.view.inputmethod.InputConnection.getSelectedText(int)");
             }
+            if (LOG_CALLS) {
+                Log.d(TAG, "getSelectedText: return=null");
+            }
             return null;
         }
 
         delay(Settings.getGetSelectedTextDelay());
 
+        CharSequence selectedText = getSelectedTextInternal(flags);
+        if (LOG_CALLS) {
+            Log.d(TAG, "getSelectedText: return="
+                    + (selectedText == null ? "null" : "\"" + selectedText + "\""));
+        }
+        return selectedText;
+    }
+
+    private CharSequence getSelectedTextInternal(int flags) {
         final Editable content = getEditable();
 
         int selectionStart = Selection.getSelectionStart(content);
@@ -1089,7 +1143,11 @@ public class EditableInputConnection implements InputConnection {
         int returnedTextLimit = Settings.getReturnedTextLimit();
         if (returnedTextLimit > 0 && textAfterCursor != null
                 && textAfterCursor.length() > returnedTextLimit) {
-            return textAfterCursor.subSequence(0, returnedTextLimit);
+            textAfterCursor = textAfterCursor.subSequence(0, returnedTextLimit);
+        }
+        if (LOG_CALLS) {
+            Log.d(TAG, "getTextAfterCursor: return="
+                    + (textAfterCursor == null ? "null" : "\"" + textAfterCursor + "\""));
         }
         return textAfterCursor;
     }
@@ -1133,7 +1191,7 @@ public class EditableInputConnection implements InputConnection {
     public SurroundingText getSurroundingText(
             @IntRange(from = 0) int beforeLength, @IntRange(from = 0)  int afterLength, int flags) {
         if (LOG_CALLS) {
-            Log.d(TAG, "getTextAfterCursor: beforeLength=" + beforeLength
+            Log.d(TAG, "getSurroundingText: beforeLength=" + beforeLength
                     + ", afterLength=" + afterLength + ", flags=" + flags);
         }
         Preconditions.checkArgumentNonnegative(beforeLength);
@@ -1168,7 +1226,7 @@ public class EditableInputConnection implements InputConnection {
                     surroundingText.getText().length() - surroundingText.getSelectionEnd()
                             - returnedTextLimit);
             if (extraBefore > 0 || extraAfter > 0) {
-                return new SurroundingText(
+                surroundingText = new SurroundingText(
                         surroundingText.getText().subSequence(
                                 extraBefore, surroundingText.getText().length() - extraAfter),
                         surroundingText.getSelectionStart() - extraBefore,
@@ -1177,6 +1235,10 @@ public class EditableInputConnection implements InputConnection {
             }
         }
 
+        if (LOG_CALLS) {
+            Log.d(TAG, "getSurroundingText: return="
+                    + getDebugSurroundingTextInfo(surroundingText));
+        }
         return surroundingText;
     }
 
@@ -1216,6 +1278,17 @@ public class EditableInputConnection implements InputConnection {
         }
         return new SurroundingText(
                 surroundingText, selStart - startPos, selEnd - startPos, startPos);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private static String getDebugSurroundingTextInfo(final SurroundingText surroundingText) {
+        if (surroundingText == null) {
+            return "null";
+        }
+        return "{ text=\"" + surroundingText.getText()
+                + "\", offset=" + surroundingText.getOffset()
+                + "\", selectionStart=" + surroundingText.getSelectionStart()
+                + "\", selectionEnd=" + surroundingText.getSelectionEnd() + " }";
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
@@ -2020,12 +2093,26 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "takeSnapshot");
         }
 
+        TextSnapshot snapshot;
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
         // older version. we'll just call the default implementation to replicate behavior of an app
         // that doesn't explicitly implement this method.
         if (Settings.shouldSkipTakeSnapshot()) {
-            return mProxyForDefaultMethods.takeSnapshot();
+            snapshot = mProxyForDefaultMethods.takeSnapshot();
+            return snapshot;
+        } else {
+            snapshot = takeSnapshotInternal();
         }
+
+        if (LOG_CALLS) {
+            Log.d(TAG, "takeSnapshot: return=" + getDebugTextSnapshotInfo(snapshot));
+        }
+        return snapshot;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Nullable
+    public TextSnapshot takeSnapshotInternal() {
 
         final Editable content = getEditable();
         int composingStart = getComposingSpanStart(content);
@@ -2047,6 +2134,17 @@ public class EditableInputConnection implements InputConnection {
                 | TextUtils.CAP_MODE_WORDS | TextUtils.CAP_MODE_SENTENCES);
 
         return new TextSnapshot(surroundingText, composingStart, composingEnd, cursorCapsMode);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private static String getDebugTextSnapshotInfo(final TextSnapshot snapshot) {
+        if (snapshot == null) {
+            return "null";
+        }
+        return "{ surroundingText=\"" + snapshot.getSurroundingText()
+                    + "\", compositionStart=" + snapshot.getCompositionStart()
+                    + ", compositionEnd=" + snapshot.getCompositionEnd()
+                    + ", cursorCapsMode=" + snapshot.getCursorCapsMode() + " }";
     }
 
     //TODO: (EW) for some reason Kitkat throws a VerifyError when instantiating
