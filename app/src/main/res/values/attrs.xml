@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2023 Eli Wittman
      Copyright 2015, The Android Open Source Project
      Copyright (C) 2006 The Android Open Source Project
 
@@ -217,6 +217,10 @@
         <attr name="android:fontFeatureSettings" />
         <!-- Font variation settings. -->
         <attr name="android:fontVariationSettings" />
+        <!-- Indicates the line break strategies can be used when calculating the text wrapping. -->
+        <attr name="android:lineBreakStyle" />
+        <!-- Specify the phrase-based line break can be used when calculating the text wrapping.-->
+        <attr name="android:lineBreakWordStyle" />
     </declare-styleable>
     <declare-styleable name="EditText">
         <!-- Text to display. -->
@@ -477,6 +481,10 @@
         <attr name="android:breakStrategy" />
         <!-- Frequency of automatic hyphenation. -->
         <attr name="android:hyphenationFrequency" />
+        <!-- Indicates the line break strategies can be used when calculating the text wrapping. -->
+        <attr name="android:lineBreakStyle" />
+        <!-- Specify the phrase-based line break can be used when calculating the text wrapping.-->
+        <attr name="android:lineBreakWordStyle" />
     </declare-styleable>
     <declare-styleable name="TextViewAppearance">
         <!-- Base text color, typeface, size, and style. -->

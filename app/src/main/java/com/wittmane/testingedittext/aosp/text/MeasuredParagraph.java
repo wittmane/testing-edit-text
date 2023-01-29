@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2023 Eli Wittman
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -235,6 +235,9 @@ public class MeasuredParagraph {
     public @NonNull IntArray getFontMetrics() {
         return mFontMetrics;
     }
+
+    // (EW) skipping #getMeasuredText, #getWidth, #getBounds, #getFontMetricsInt, and
+    // #getCharWidthAt
 
     /**
      * Generates new MeasuredParagraph for Bidi computation.

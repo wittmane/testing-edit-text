@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2023 Eli Wittman
      Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -107,6 +107,7 @@
 
     <string name="simulate_old_target_versions_screen">Simulate old target versions</string>
 
+    <string name="added_in_api_level_33">Added in API level 33 (Android 13)</string>
     <string name="added_in_api_level_31">Added in API level 31 (Android 12)</string>
     <string name="added_in_api_level_25">Added in API level 25 (Nougat MR1)</string>
     <string name="added_in_api_level_24">Added in API level 24 (Nougat)</string>
@@ -114,14 +115,17 @@
     <string name="added_in_api_level_11">Added in API level 11 (Honeycomb)</string>
     <string name="added_in_api_level_9">Added in API level 9 (Gingerbread)</string>
 
+    <string name="skip_takesnapshot_title">Don\'t implement takeSnapshot</string>
+    <string name="skip_takesnapshot_summary">Behave as if InputConnection#takeSnapshot wasn\'t implemented, like some text editors targeting an earlier version, so it will just call the default implementation (which currently just returns null).</string>
+
     <string name="skip_getsurroundingtext_title">Don\'t implement getSurroundingText</string>
-    <string name="skip_getsurroundingtext_summary">Behave as if InputConnection#getSurroundingText wasn\'t implemented, like some text editors targeting an earlier version, so it will just return null.</string>
+    <string name="skip_getsurroundingtext_summary">Behave as if InputConnection#getSurroundingText wasn\'t implemented, like some text editors targeting an earlier version. Prior to Android 13, it will just return null, and starting in Android 13, it will call the default implementation (which currently calls getSelectedText, which could cause a crash if that isn\'t implemented).</string>
 
     <string name="skip_performspellcheck_title">Don\'t implement performSpellCheck</string>
-    <string name="skip_performspellcheck_summary">Behave as if InputConnection#performSpellCheck wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
+    <string name="skip_performspellcheck_summary">Behave as if InputConnection#performSpellCheck wasn\'t implemented, like some text editors targeting an earlier version. Prior to Android 13, it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter), and starting in Android 13, it will call the default implementation (which currently also does nothing).</string>
 
     <string name="skip_setimeconsumesinput_title">Don\'t implement setImeConsumesInput</string>
-    <string name="skip_setimeconsumesinput_summary">Behave as if InputConnection#setImeConsumesInput wasn\'t implemented, like some text editors targeting an earlier version, so it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter).</string>
+    <string name="skip_setimeconsumesinput_summary">Behave as if InputConnection#setImeConsumesInput wasn\'t implemented, like some text editors targeting an earlier version. Prior to Android 13, it will just do nothing (the return value from the editor isn\'t actually sent to the IME, so that doesn\'t matter), and starting in Android 13, it will call the default implementation (which currently also does nothing).</string>
 
     <string name="skip_commitcontent_title">Don\'t implement commitContent</string>
     <string name="skip_commitcontent_summary">Behave as if InputConnection#commitContent wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false.</string>
@@ -130,19 +134,19 @@
     <string name="skip_closeconnection_summary">Behave as if InputConnection#closeConnection wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing.</string>
 
     <string name="skip_deletesurroundingtextincodepoints_title">Don\'t implement deleteSurroundingTextInCodePoints</string>
-    <string name="skip_deletesurroundingtextincodepoints_summary">Behave as if InputConnection#deleteSurroundingTextInCodePoints wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false.</string>
+    <string name="skip_deletesurroundingtextincodepoints_summary">Behave as if InputConnection#deleteSurroundingTextInCodePoints wasn\'t implemented, like some text editors targeting an earlier version. Prior to Android 13, it will will do nothing and just return false, and starting in Android 13, it will do nothing and return true (controlled by the system).</string>
 
     <string name="skip_requestcursorupdates_title">Don\'t implement requestCursorUpdates</string>
     <string name="skip_requestcursorupdates_summary">Behave as if InputConnection#requestCursorUpdates wasn\'t implemented, like some text editors targeting an earlier version, so it will just return false (or crash prior to Nougat).</string>
 
     <string name="skip_commitcorrection_title">Don\'t implement commitCorrection</string>
-    <string name="skip_commitcorrection_summary">Behave as if InputConnection#commitCorrection wasn\'t implemented, like some text editors targeting an earlier version, so it will just crash (due to a bug in Android, it still crashes on Nougat and later).</string>
+    <string name="skip_commitcorrection_summary">Behave as if InputConnection#commitCorrection wasn\'t implemented, like some text editors targeting an earlier version. Prior to Android 13, it will just crash (due to a bug in Android, it still crashes on Nougat through Android 12). Starting in Android 13, it will do nothing and return true (controlled by the system).</string>
 
     <string name="skip_getselectedtext_title">Don\'t implement getSelectedText</string>
     <string name="skip_getselectedtext_summary">Behave as if InputConnection#getSelectedText wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing and just return null (documentation doesn\'t clarify this behavior, but this is what happens) (or crash prior to Nougat).</string>
 
     <string name="skip_setcomposingregion_title">Don\'t implement setComposingRegion</string>
-    <string name="skip_setcomposingregion_summary">Behave as if InputConnection#setComposingRegion wasn\'t implemented, like some text editors targeting an earlier version, so it will do nothing and just return false (or crash prior to Nougat).</string>
+    <string name="skip_setcomposingregion_summary">Behave as if InputConnection#setComposingRegion wasn\'t implemented, like some text editors targeting an earlier version. Prior to Nougat, it will crash. On Nougat through Android 12, it will do nothing and just return false, and on Android 13 and later, it will do nothing and return true (controlled by the system).</string>
 
     <string name="simulate_system_behavior_screen">Simulate system behavior</string>
 

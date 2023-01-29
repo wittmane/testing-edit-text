@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2023 Eli Wittman
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,6 +66,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_delete_through_composing_text";
     public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
             "pref_key_keep_empty_composing_position";
+    public static final String PREF_SKIP_TAKESNAPSHOT = "pref_key_skip_takesnapshot";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
     public static final String PREF_SKIP_PERFORMSPELLCHECK = "pref_key_skip_performspellcheck";
     public static final String PREF_SKIP_SETIMECONSUMESINPUT = "pref_key_skip_setimeconsumesinput";
@@ -168,6 +169,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private int mReturnedTextLimit;
     private boolean mDeleteThroughComposingText;
     private boolean mKeepEmptyComposingPosition;
+    private boolean mSkipTakeSnapshot;
     private boolean mSkipGetSurroundingText;
     private boolean mSkipPerformSpellCheck;
     private boolean mSkipSetImeConsumesInput;
@@ -244,6 +246,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_LIMIT_RETURNED_TEXT,
                 PREF_DELETE_THROUGH_COMPOSING_TEXT,
                 PREF_KEEP_EMPTY_COMPOSING_POSITION,
+                PREF_SKIP_TAKESNAPSHOT,
                 PREF_SKIP_GETSURROUNDINGTEXT,
                 PREF_SKIP_PERFORMSPELLCHECK,
                 PREF_SKIP_SETIMECONSUMESINPUT,
@@ -376,6 +379,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
                 break;
 
+            case PREF_SKIP_TAKESNAPSHOT:
+                mSkipTakeSnapshot = readSkipTakeSnapshot(mPrefs);
+                break;
             case PREF_SKIP_GETSURROUNDINGTEXT:
                 mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
                 break;
@@ -778,6 +784,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean shouldKeepEmptyComposingPosition() {
         return getInstance().mKeepEmptyComposingPosition;
+    }
+
+    private static boolean readSkipTakeSnapshot(final SharedPreferenceManager prefs) {
+        return prefs.getBoolean(PREF_SKIP_TAKESNAPSHOT, false);
+    }
+
+    public static boolean shouldSkipTakeSnapshot() {
+        return getInstance().mSkipTakeSnapshot;
     }
 
     private static boolean readSkipGetSurroundingText(final SharedPreferenceManager prefs) {

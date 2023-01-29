@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2023 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,9 @@ public class HiddenLayout {
     @RequiresApi(api = Build.VERSION_CODES.M)
     @IntDef(value = {
             Layout.HYPHENATION_FREQUENCY_NORMAL,
+            Layout.HYPHENATION_FREQUENCY_NORMAL_FAST,
             Layout.HYPHENATION_FREQUENCY_FULL,
+            Layout.HYPHENATION_FREQUENCY_FULL_FAST,
             Layout.HYPHENATION_FREQUENCY_NONE
     })
     @Retention(RetentionPolicy.SOURCE)
@@ -337,7 +339,9 @@ public class HiddenLayout {
             TextLine tl = TextLine.obtain();
             tl.set(layout.getPaint(), layout.getText(), start, end, dir, directions, hasTab,
                     tabStops, layout.getEllipsisStart(line),
-                    layout.getEllipsisStart(line) + layout.getEllipsisCount(line));
+                    layout.getEllipsisStart(line) + layout.getEllipsisCount(line),
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                            && layout.isFallbackLineSpacingEnabled());
             float wid = tl.measure(offset - start, trailing, null);
             TextLine.recycle(tl);
 
@@ -463,7 +467,8 @@ public class HiddenLayout {
                 }
             }
             tl.set(paint, text, start, end, dir, directions, hasTabs, tabStops,
-                    0 /* ellipsisStart */, 0 /* ellipsisEnd */);
+                    0 /* ellipsisStart */, 0 /* ellipsisEnd */,
+                    false /* use fallback line spacing. unused */);
             return margin + Math.abs(tl.metrics(null));
         } finally {
             TextLine.recycle(tl);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2023 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -171,6 +171,36 @@ public class ArrayUtils {
             }
         }
         return true;
+    }
+
+    /**
+     * Adds value to given array if not already present, providing set-like
+     * behavior.
+     */
+    @SuppressWarnings("unchecked")
+    public static @NonNull <T> T[] appendElement(Class<T> kind, @Nullable T[] array, T element) {
+        return appendElement(kind, array, element, false);
+    }
+
+    /**
+     * Adds value to given array.
+     */
+    @SuppressWarnings("unchecked")
+    public static @NonNull <T> T[] appendElement(Class<T> kind, @Nullable T[] array, T element,
+                                                 boolean allowDuplicates) {
+        final T[] result;
+        final int end;
+        if (array != null) {
+            if (!allowDuplicates && contains(array, element)) return array;
+            end = array.length;
+            result = (T[])Array.newInstance(kind, end + 1);
+            System.arraycopy(array, 0, result, 0, end);
+        } else {
+            end = 0;
+            result = (T[])Array.newInstance(kind, 1);
+        }
+        result[end] = element;
+        return result;
     }
 
     // (EW) from libcore.util
