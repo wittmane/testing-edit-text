@@ -214,6 +214,8 @@ public class EditableInputConnection implements InputConnection {
         return mEditText.getEditableText();
     }
 
+    //TODO: (EW) make private version that we call internally to avoid logging calls. same with any
+    // other public method we call internally
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
     public boolean beginBatchEdit() {

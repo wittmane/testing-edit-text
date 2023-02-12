@@ -30,6 +30,7 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 
@@ -260,6 +261,8 @@ public class TextDialogPreference extends DialogPreferenceBase {
     }
 
     public void writeValue() {
+        // make sure there isn't a composition so we don't keep that span
+        mEditText.onCreateInputConnection(new EditorInfo()).finishComposingText();
         Spanned text = mEditText.getText();
         switch (getDataType()) {
             case DATA_TYPE_INT:
