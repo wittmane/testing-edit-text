@@ -14,8 +14,7 @@
      limitations under the License.
 -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.wittmane.testingedittext">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <queries>
         <intent>
