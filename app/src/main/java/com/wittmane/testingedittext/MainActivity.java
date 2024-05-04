@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -25,6 +25,7 @@ import android.os.LocaleList;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -401,6 +402,9 @@ public class MainActivity extends Activity {
         private final android.widget.EditText mFrameworkEditText;
         private final com.wittmane.testingedittext.aosp.widget.EditText mCustomEditText;
 
+        //TODO: (EW) why did I add this? can't we just load it from the EditText? I think setting it
+        // doesn't necessarily set it to exactly what we requested, so this caches what we set, but
+        // I don't remember if this was meant to fix some issue. presumably I had a reason for this.
         private int mInputType;
         private boolean mSelectAllOnFocus;
         private CharSequence mSetText;
@@ -411,12 +415,14 @@ public class MainActivity extends Activity {
         public EditTextProxy(@NonNull android.widget.EditText editText) {
             mFrameworkEditText = editText;
             mCustomEditText = null;
+            mInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
         }
 
         public EditTextProxy(@NonNull com.wittmane.testingedittext.aosp.widget.EditText editText) {
             mCustomEditText = editText;
             mFrameworkEditText = null;
+            mInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
         }
 
@@ -430,6 +436,15 @@ public class MainActivity extends Activity {
         }
 
         public int getInputType() {
+            int inputType;
+            if (mFrameworkEditText != null) {
+                inputType = mFrameworkEditText.getInputType();
+            } else {
+                inputType = mCustomEditText.getInputType();
+            }
+            if (inputType != mInputType) {
+                Log.w(TAG, "getInputType: " + inputType + " != " + mInputType);
+            }
             return mInputType;
         }
 

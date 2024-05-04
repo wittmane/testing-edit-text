@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -776,6 +776,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 mSpacingMultiplier = typedArray.getFloat(attr, mSpacingMultiplier);
 
             } else if (attr == R.styleable.EditText_android_inputType) {
+                //TODO: (EW) the default probably should be EditorInfo.TYPE_CLASS_TEXT (since that
+                // seems to be what it already functionally changes it to (see comment below for
+                // actually setting the input type), and it makes more sense for default normal
+                // functionality)?
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
 
             } else if (attr == R.styleable.EditText_android_allowUndo) {
@@ -943,6 +947,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // If set, the input type overrides what was set using the deprecated singleLine flag.
             singleLine = !isMultilineInputType(inputType);
         } else {
+            //TODO: (EW) this seems stupid. if the xml explicitly set inputType="none", this gets
+            // changed to the equivalent of inputType="text" (as far as I can tell, this code is
+            // equivalent to just calling setInputType(EditorInfo.TYPE_CLASS_TEXT, true)). updating
+            // the default from EditorInfo.TYPE_NULL to EditorInfo.TYPE_CLASS_TEXT seems reasonable,
+            // but simply not making the xml not do what it is explicitly set to do seems completely
+            // inappropriate. the documentation for the flag states "There is no content type. The
+            // text is not editable." I'm not completely sure what "no content type" is meant to
+            // mean other than maybe simply "unspecified", which conceptually doesn't seem different
+            // from "text". EditorInfo.TYPE_NULL does clearly have different functionality from
+            // EditorInfo.TYPE_CLASS_TEXT, but that documentation doesn't really help clarify what
+            // that is intended to be or why it works that way. also, if the value of the flag
+            // (EditorInfo.TYPE_NULL) was actually used, it wouldn't actually not be editable (it
+            // just wouldn't automatically open the soft keyboard). essentially, setting that value
+            // in xml neither does what the documentation says it will do nor what the value the
+            // flag represents ought to do (as if it was done by calling setInputType). see
+            // https://stackoverflow.com/q/10200950 for others having issue with this, although they
+            // seem to want it to make the field not editable (which they may not recognize is still
+            // editable, just without the soft keyboard automatically showing up). based on some
+            // comments there, this may be a bug introduced at some point, potentially related to
+            // deprecating android:editable="false".
             mEditor.mKeyListener = TextKeyListener.getInstance();
             mEditor.mInputType = EditorInfo.TYPE_CLASS_TEXT;
         }
@@ -1370,6 +1394,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEditor.mKeyListener;
     }
 
+    //TODO: (EW) it might be good to add settings to mess with this given the note about how this
+    // can have a significant impact on the soft keyboard
     /**
      * Sets the key listener to be used with this EditText.  This can be null
      * to disallow user input.  Note that this method has significant and
@@ -4480,6 +4506,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
     }
 
+    //TODO: (EW) see what makes the keyboard not pop up and not allow moving the cursor (outside of
+    // the IME key events) and either always allow those in the custom edit text or add a setting
+    // (maybe apply to other types to allow doing the opposite of what they do normally, although
+    // not showing the keyboard seems unhelpful (maybe fine for hardware keyboards), and I'm not
+    // sure if there would actually be any benefit to hide the cursor (I'm not sure why it's hidden
+    // for TYPE_NULL, especially since arrow keys still can move the cursor))
     /**
      * Set the type of the content with a constant as defined for {@link EditorInfo#inputType}. This
      * will take care of changing the key listener, by calling {@link #setKeyListener(KeyListener)},
@@ -4746,6 +4778,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see android.text.InputType
      */
     @InspectableProperty(flagMapping = {
+            //TODO: (EW) should this name be "null"? I think this is meant to match the flags from
+            // android:inputType, but as the comment in init mentions, android:inputType="none" is
+            // messed up, and although we can't change that attribute since we're using the same
+            // system one that the framework EditText uses for consistency (unless we changed to a
+            // custom type for that), if we fix how it works, we could just update this to reflect
+            // how our version deviates to work more appropriately, but changing this still may be
+            // weird.
             @FlagEntry(name = "none", mask = 0xffffffff, target = InputType.TYPE_NULL),
             @FlagEntry(
                     name = "text",
@@ -6151,6 +6190,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // that handling automatically when disabling the view and remove the option to specify the
         // input type as TYPE_NULL (probably use TYPE_CLASS_TEXT as the new default, which is
         // already done normally).
+        // especially with adding support InputType.TYPE_NULL, this should still be considered an
+        // editor since that still is editable (even in the framework version), even if the soft
+        // keyboard doesn't pop up automatically.
         return mEditor.mInputType != EditorInfo.TYPE_NULL;
     }
 

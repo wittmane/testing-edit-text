@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022-2023 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
      Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,6 +196,7 @@
     <string name="input_type_class_number">Number</string>
     <string name="input_type_class_datetime">Date/Time</string>
     <string name="input_type_class_phone">Phone</string>
+    <string name="input_type_null">Null</string>
 
     <string name="input_type_text_variation_normal">Normal</string>
     <string name="input_type_text_variation_password">Password</string>

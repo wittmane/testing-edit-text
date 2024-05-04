@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import android.content.Context;
 import android.os.Build;
 import android.text.InputType;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TestFieldInputTypePreference extends SingleFieldPreference {
+    private static final String TAG = TestFieldInputTypePreference.class.getSimpleName();
 
     public TestFieldInputTypePreference(Context context) {
         super(context);
@@ -69,6 +71,10 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
     }
 
     public static String getInputTypeDescription(int inputType, Context context) {
+        if (inputType == InputType.TYPE_NULL) {
+            return context.getString(R.string.input_type_null);
+        }
+
         int inputTypeClass = inputType & InputType.TYPE_MASK_CLASS;
         int inputTypeFlags = inputType & InputType.TYPE_MASK_FLAGS;
         int inputTypeVariation = inputType & InputType.TYPE_MASK_VARIATION;
@@ -210,6 +216,7 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
                 break;
             default:
                 // this shouldn't happen
+                Log.e(TAG, "Unknown InputType class. InputType: " + inputType);
                 return "";
         }
 

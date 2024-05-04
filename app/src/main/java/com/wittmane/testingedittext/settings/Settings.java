@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1107,6 +1107,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         String variation;
         int inputType;
         switch (inputTypeClass) {
+            case "TYPE_NULL":
+                inputType = InputType.TYPE_NULL;
+                break;
             case "TYPE_CLASS_DATETIME":
                 inputType = InputType.TYPE_CLASS_DATETIME;
                 variation = prefs.getString(
