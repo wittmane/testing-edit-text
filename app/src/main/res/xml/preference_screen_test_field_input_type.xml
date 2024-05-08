@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -70,5 +70,15 @@
         android:title="@string/input_type_variation"
         android:entries="@array/type_datetime_variations"
         android:entryValues="@array/type_datetime_variation_values"/>
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_test_field_create_input_connection_"
+        android:title="@string/create_input_connection_title"
+        android:summary="@string/create_input_connection_summary" />
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_test_field_send_selection_info_connection_"
+        android:title="@string/create_send_selection_info_title"
+        android:summary="@string/create_send_selection_info_summary" />
 
 </PreferenceScreen>

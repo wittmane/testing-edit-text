@@ -152,6 +152,14 @@ public class MainActivity extends Activity {
             doNotScrollFrameworkEditText.setKeyListener(null);
             com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText =
                     findViewById(R.id.ellipsizeCustomEditText);
+            //TODO: (EW) it seems that the key listener shouldn't matter if the field is already
+            // disabled (I can't focus or scroll the field). figure out why this is actually
+            // necessary to allow ellipsize to work and see if that can be handled better without
+            // needing to null out the key listener. it doesn't really make sense for an edit test
+            // to have no key listener unless the view was disabled, so it probably makes more sense
+            // to do some of that handling automatically when disabling the view (possibly not
+            // actually clearing the key listener, but just adding checks for the view being
+            // disabled), rather than forcing this manual call.
             doNotScrollEditText.setKeyListener(null);
 
             Button testButton1 = findViewById(R.id.testButton1);
@@ -243,6 +251,12 @@ public class MainActivity extends Activity {
     }
 
     private static void updateField(EditTextProxy editText, int fieldIndex) {
+        //TODO: (EW) manage the settings better. set it once when creating the field and let it
+        // automatically use any updates
+        if (editText.mCustomEditText != null) {
+            editText.mCustomEditText.setSettings(Settings.getTestFieldSettings(fieldIndex));
+        }
+
         int inputType = Settings.getTestFieldInputType(fieldIndex);
         if (editText.getInputType() != inputType) {
             editText.setInputType(inputType);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -41,6 +41,9 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     private ListPreference mInputTypeDateTimeVariationPref;
 
+    private SwitchPreference mCreateInputConnectionPref;
+    private SwitchPreference mSendSelectionInfoPref;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,6 +71,11 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
         mInputTypeDateTimeVariationPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX);
+
+        mCreateInputConnectionPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX);
+        mSendSelectionInfoPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
     }
 
     @Override
@@ -88,6 +96,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             case "TYPE_CLASS_TEXT":
                 removeDateTimeFields();
                 removeNumberFields();
+                removeTypeNullFields();
                 preferenceScreen.addPreference(mInputTypeTextVariationPref);
                 preferenceScreen.addPreference(mInputTypeTextMultiLineFlagPref);
                 preferenceScreen.addPreference(mInputTypeTextCapFlagPref);
@@ -98,6 +107,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             case "TYPE_CLASS_NUMBER":
                 removeTextFields();
                 removeDateTimeFields();
+                removeTypeNullFields();
                 preferenceScreen.addPreference(mInputTypeNumberVariationPref);
                 preferenceScreen.addPreference(mInputTypeNumberSignedFlagPref);
                 preferenceScreen.addPreference(mInputTypeNumberDecimalFlagPref);
@@ -105,13 +115,22 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             case "TYPE_CLASS_DATETIME":
                 removeTextFields();
                 removeNumberFields();
+                removeTypeNullFields();
                 preferenceScreen.addPreference(mInputTypeDateTimeVariationPref);
+                break;
+            case "TYPE_NULL":
+                removeTextFields();
+                removeNumberFields();
+                removeDateTimeFields();
+                preferenceScreen.addPreference(mCreateInputConnectionPref);
+                preferenceScreen.addPreference(mSendSelectionInfoPref);
                 break;
             case "TYPE_CLASS_PHONE":
             default:
                 removeTextFields();
                 removeNumberFields();
                 removeDateTimeFields();
+                removeTypeNullFields();
                 break;
         }
     }
@@ -136,5 +155,11 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     private void removeDateTimeFields() {
         PreferenceScreen preferenceScreen = getPreferenceScreen();
         preferenceScreen.removePreference(mInputTypeDateTimeVariationPref);
+    }
+
+    private void removeTypeNullFields() {
+        PreferenceScreen preferenceScreen = getPreferenceScreen();
+        preferenceScreen.removePreference(mCreateInputConnectionPref);
+        preferenceScreen.removePreference(mSendSelectionInfoPref);
     }
 }

@@ -114,6 +114,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_test_field_input_type_number_flag_signed_";
     public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX =
             "pref_key_test_field_input_type_number_flag_decimal_";
+    public static final String PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX =
+            "pref_key_test_field_create_input_connection_";
+    public static final String PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX =
+            "pref_key_test_field_send_selection_info_connection_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
             "pref_key_test_field_ime_options_action_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
@@ -488,7 +492,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
             case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
             case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
+            case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
+            case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
+                if (testField.mInputType == InputType.TYPE_NULL) {
+                    testField.mCreateInputConnection =
+                            readTestFieldCreateInputConnection(mPrefs, fieldId);
+                    testField.mSendSelectionInfo = readTestFieldSendSelectionInfo(mPrefs, fieldId);
+                } else {
+                    testField.mCreateInputConnection = true;
+                    testField.mSendSelectionInfo = true;
+                }
                 break;
             case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
             case PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
@@ -1058,6 +1072,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
                 PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
                 PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
+                PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -1268,6 +1284,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mInputType;
     }
 
+    private static boolean readTestFieldCreateInputConnection(final SharedPreferenceManager prefs,
+                                                              int fieldId) {
+        return prefs.getBoolean(PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX + fieldId,false);
+    }
+
+    public static boolean getTestFieldCreateInputConnection(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mCreateInputConnection;
+    }
+
+    private static boolean readTestFieldSendSelectionInfo(final SharedPreferenceManager prefs,
+                                                          int fieldId) {
+        return prefs.getBoolean(PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX + fieldId,false);
+    }
+
+    public static boolean getTestFieldSendSelectionInfo(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mSendSelectionInfo;
+    }
+
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
         String imeOptionsAction = prefs.getString(
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX + fieldId,
@@ -1439,6 +1473,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private final int mId;
 
         private int mInputType;
+        private boolean mCreateInputConnection;
+        private boolean mSendSelectionInfo;
         private int mImeOptions;
         private int mImeActionId;
         private String mImeActionLabel;
@@ -1453,6 +1489,37 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         public TestField(int id) {
             mId = id;
+        }
+    }
+
+    public static EditorSettings getTestFieldSettings(int fieldIndex) {
+        return new FieldPrefEditorSettings(fieldIndex);
+    }
+
+    public interface EditorSettings {
+        boolean shouldCreateInputConnection();
+        boolean shouldSendSelectionInfo();
+        //TODO: (EW) consider adding a setting for allowing sending text to the IME (only possible
+        // if creating an InputConnection)
+        //TODO: (EW) consider adding a setting for allowing composing text (only possible if
+        // creating an InputConnection)
+    }
+
+    public static class FieldPrefEditorSettings implements EditorSettings {
+        private final int mIndex;
+
+        private FieldPrefEditorSettings(int fieldIndex) {
+            mIndex = fieldIndex;
+        }
+
+        @Override
+        public boolean shouldCreateInputConnection() {
+            return Settings.getTestFieldCreateInputConnection(mIndex);
+        }
+
+        @Override
+        public boolean shouldSendSelectionInfo() {
+            return Settings.getTestFieldSendSelectionInfo(mIndex);
         }
     }
 }

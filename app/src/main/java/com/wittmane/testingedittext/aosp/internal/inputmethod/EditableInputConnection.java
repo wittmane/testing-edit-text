@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2007-2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -78,7 +78,7 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
 public class EditableInputConnection implements InputConnection {
     private static final boolean DEBUG = false;
-    private static final boolean LOG_CALLS = true;
+    public static final boolean LOG_CALLS = true;
     private static final boolean LOG_TEXT_MODIFICATION = false;
     private static final String TAG = EditableInputConnection.class.getSimpleName();
     private static final Object COMPOSING = new ComposingText();

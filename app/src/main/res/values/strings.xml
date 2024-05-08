@@ -239,6 +239,12 @@
     <string name="input_type_datetime_variation_date">Date</string>
     <string name="input_type_datetime_variation_time">Time</string>
 
+    <string name="create_input_connection_title">Rich input connection</string>
+    <string name="create_input_connection_summary">Documentation for InputType#TYPE_NULL states that it should be interpreted that the input connection isn\'t rich (can\'t support things like composing text and retrieving text), but instead of using the system\'s default  limited \"generate key events\" mode, manage a normal input connection to still allow rich functionality. It\'s not clear if this should be considered an inappropriate implementation.</string>
+
+    <string name="create_send_selection_info_title">Send selection info</string>
+    <string name="create_send_selection_info_summary">Although documentation seems to indicate that editors should always specify the initial selection position and send updates when the selection position moves, the framework EditText doesn\'t send this info when set to InputType#TYPE_NULL. Instead of matching the framework\'s functionality, actually send the this info to the IME like the other input types.</string>
+
     <string name="ime_options">IME options</string>
     <string name="ime_options_action">Action</string>
     <string name="ime_options_action_unspecified">Unspecified</string>

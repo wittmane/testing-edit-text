@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2012 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1745,6 +1745,11 @@ class Editor {
         }
         ims.mContentChanged = false;
         ims.mSelectionModeChanged = false;
+        if (!mEditText.mSettings.shouldSendSelectionInfo()) {
+            // (EW) skipping extracting text due to the input type not sending any selection
+            // position info since this would include that
+            return false;
+        }
         final ExtractedTextRequest req = ims.mExtractedTextRequest;
         if (req == null) {
             return false;
@@ -1813,6 +1818,11 @@ class Editor {
     }
 
     private void sendUpdateSelection() {
+        if (!mEditText.mSettings.shouldSendSelectionInfo()) {
+            // (EW) skipping sending a selection update due to the input type set to not send any
+            // selection position info
+            return;
+        }
         if (null != mInputMethodState && mInputMethodState.mBatchEditNesting <= 0
                 && !mHasPendingRestartInputForSetText) {
             final InputMethodManager imm = getInputMethodManager();
