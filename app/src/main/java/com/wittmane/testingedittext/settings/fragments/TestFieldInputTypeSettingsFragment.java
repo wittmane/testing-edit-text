@@ -43,6 +43,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     private SwitchPreference mCreateInputConnectionPref;
     private SwitchPreference mSendSelectionInfoPref;
+    private SwitchPreference mMultilinePref;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -76,6 +77,8 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 Settings.PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX);
         mSendSelectionInfoPref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
+        mMultilinePref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
     }
 
     @Override
@@ -124,6 +127,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 removeDateTimeFields();
                 preferenceScreen.addPreference(mCreateInputConnectionPref);
                 preferenceScreen.addPreference(mSendSelectionInfoPref);
+                preferenceScreen.addPreference(mMultilinePref);
                 break;
             case "TYPE_CLASS_PHONE":
             default:
@@ -161,5 +165,6 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
         PreferenceScreen preferenceScreen = getPreferenceScreen();
         preferenceScreen.removePreference(mCreateInputConnectionPref);
         preferenceScreen.removePreference(mSendSelectionInfoPref);
+        preferenceScreen.removePreference(mMultilinePref);
     }
 }

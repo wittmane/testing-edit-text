@@ -258,9 +258,11 @@ public class MainActivity extends Activity {
         }
 
         int inputType = Settings.getTestFieldInputType(fieldIndex);
-        if (editText.getInputType() != inputType) {
-            editText.setInputType(inputType);
-        }
+        // setting the input type every time because the null input type multiline setting changing
+        // won't automatically apply
+        //TODO: (EW) see if there is a better way to manage this to only set this when the actual
+        // input type changes to be similar to the others
+        editText.setInputType(inputType);
 
         int imeOptions = Settings.getTestFieldImeOptions(fieldIndex);
         if (editText.getImeOptions() != imeOptions) {

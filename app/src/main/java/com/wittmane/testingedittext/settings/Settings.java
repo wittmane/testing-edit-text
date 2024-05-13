@@ -118,6 +118,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_test_field_create_input_connection_";
     public static final String PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX =
             "pref_key_test_field_send_selection_info_connection_";
+    public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
+            "pref_key_test_field_null_input_type_multiline_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
             "pref_key_test_field_ime_options_action_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
@@ -301,6 +303,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
                 //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
                 //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                //PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
+                //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
+                //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -494,14 +499,18 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
             case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
             case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
+            case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
                 if (testField.mInputType == InputType.TYPE_NULL) {
                     testField.mCreateInputConnection =
                             readTestFieldCreateInputConnection(mPrefs, fieldId);
                     testField.mSendSelectionInfo = readTestFieldSendSelectionInfo(mPrefs, fieldId);
+                    testField.mNullInputTypeMultiline =
+                            readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
                 } else {
                     testField.mCreateInputConnection = true;
                     testField.mSendSelectionInfo = true;
+                    testField.mNullInputTypeMultiline = false;
                 }
                 break;
             case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
@@ -1074,6 +1083,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
                 PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
+                PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -1302,6 +1312,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mSendSelectionInfo;
     }
 
+    private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
+                                                               int fieldId) {
+        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,false);
+    }
+
+    public static boolean getTestFieldNullInputTypeMultiline(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mNullInputTypeMultiline;
+    }
+
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
         String imeOptionsAction = prefs.getString(
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX + fieldId,
@@ -1475,6 +1494,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private int mInputType;
         private boolean mCreateInputConnection;
         private boolean mSendSelectionInfo;
+        private boolean mNullInputTypeMultiline;
         private int mImeOptions;
         private int mImeActionId;
         private String mImeActionLabel;
@@ -1499,6 +1519,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public interface EditorSettings {
         boolean shouldCreateInputConnection();
         boolean shouldSendSelectionInfo();
+        boolean nullInputTypeMultiline();
         //TODO: (EW) consider adding a setting for allowing sending text to the IME (only possible
         // if creating an InputConnection)
         //TODO: (EW) consider adding a setting for allowing composing text (only possible if
@@ -1520,6 +1541,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         @Override
         public boolean shouldSendSelectionInfo() {
             return Settings.getTestFieldSendSelectionInfo(mIndex);
+        }
+
+        @Override
+        public boolean nullInputTypeMultiline() {
+            return Settings.getTestFieldNullInputTypeMultiline(mIndex);
         }
     }
 }

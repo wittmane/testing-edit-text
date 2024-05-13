@@ -617,11 +617,34 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         CharSequence digits = null;
         boolean selectAllOnFocus = false;
         int ellipsize = ELLIPSIZE_NOT_SET;
-        boolean singleLine = false;
+        boolean singleLine;
         int maxLength = -1;
         CharSequence text = "";
         CharSequence hint = null;
-        int inputType = EditorInfo.TYPE_NULL;
+        // (EW) the AOSP version had initialized this to EditorInfo.TYPE_NULL, but it really mostly
+        // had this value as the default value for the input type when setting the Editor's input
+        // type below. there was a check for handling EditorInfo.TYPE_NULL differently (just set to
+        // EditorInfo.TYPE_CLASS_TEXT, not including the cases for other deprecated attributes not
+        // supported here), and due to the deprecated singleLine attribute defaulting to false,
+        // these would also become multiline. this made explicitly setting inputType="none" in the
+        // xml to not actually apply the value that flag is set to (EditorInfo.TYPE_NULL), forcing
+        // the app to call #setInputType to be able to actually force the EditText to use that input
+        // type. that flag is documented to mean that the text is not editable, but that simply
+        // isn't true, both in the sense that the value in the xml is simply disregarded and in that
+        // the value it's set to represent does allow the field to be editable. based on the code,
+        // this behavior seems to have been like this since InputType was added, but that seems
+        // inappropriate, so we're just changing the initial value so that if nothing is specified,
+        // it will work the same, but also allowing setting the value from xml to actually work.
+        // there was a comment saying that if no input type was specified, it would default to
+        // generic text, since it couldn't tell the IME about the set of digits that was selected. I
+        // don't fully understand that comment to know how important that is, but I don't think it's
+        // a big deal, so we'll still allow explicitly setting the input type to
+        // EditorInfo.TYPE_NULL in case there is any value to do so.
+        // see https://stackoverflow.com/q/10200950 for others having issue with not being able to
+        // set this value from xml, although they seem to want it to make the field not editable
+        // (which they may not recognize is still editable, just without the soft keyboard
+        // automatically showing up).
+        int inputType = EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE;
         typedArray = theme.obtainStyledAttributes(
                 attrs, R.styleable.EditText, defStyleAttr, defStyleRes);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -778,10 +801,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 mSpacingMultiplier = typedArray.getFloat(attr, mSpacingMultiplier);
 
             } else if (attr == R.styleable.EditText_android_inputType) {
-                //TODO: (EW) the default probably should be EditorInfo.TYPE_CLASS_TEXT (since that
-                // seems to be what it already functionally changes it to (see comment below for
-                // actually setting the input type), and it makes more sense for default normal
-                // functionality)?
                 inputType = typedArray.getInt(attr, EditorInfo.TYPE_NULL);
 
             } else if (attr == R.styleable.EditText_android_allowUndo) {
@@ -937,40 +956,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_NONE;
         }
 
+        // (EW) the AOSP version had handling for different attributes that are deprecated and we
+        // don't support, and it had some special handling around EditorInfo.TYPE_CLASS_TEXT for a
+        // somewhat convoluted management of the default input type (and restricting that from
+        // actually being set here). see the comment where inputType is defined for more info.
         if (digits != null) {
             mEditor.mKeyListener = DigitsKeyListener.getInstance(digits.toString());
-            // If no input type was specified, we will default to generic
-            // text, since we can't tell the IME about the set of digits
-            // that was selected.
-            mEditor.mInputType = inputType != EditorInfo.TYPE_NULL
-                    ? inputType : EditorInfo.TYPE_CLASS_TEXT;
-        } else if (inputType != EditorInfo.TYPE_NULL) {
-            setInputType(inputType, true);
-            // If set, the input type overrides what was set using the deprecated singleLine flag.
-            singleLine = !isMultilineInputType(inputType);
+            mEditor.mInputType = inputType;
         } else {
-            //TODO: (EW) this seems stupid. if the xml explicitly set inputType="none", this gets
-            // changed to the equivalent of inputType="text" (as far as I can tell, this code is
-            // equivalent to just calling setInputType(EditorInfo.TYPE_CLASS_TEXT, true)). updating
-            // the default from EditorInfo.TYPE_NULL to EditorInfo.TYPE_CLASS_TEXT seems reasonable,
-            // but simply not making the xml not do what it is explicitly set to do seems completely
-            // inappropriate. the documentation for the flag states "There is no content type. The
-            // text is not editable." I'm not completely sure what "no content type" is meant to
-            // mean other than maybe simply "unspecified", which conceptually doesn't seem different
-            // from "text". EditorInfo.TYPE_NULL does clearly have different functionality from
-            // EditorInfo.TYPE_CLASS_TEXT, but that documentation doesn't really help clarify what
-            // that is intended to be or why it works that way. also, if the value of the flag
-            // (EditorInfo.TYPE_NULL) was actually used, it wouldn't actually not be editable (it
-            // just wouldn't automatically open the soft keyboard). essentially, setting that value
-            // in xml neither does what the documentation says it will do nor what the value the
-            // flag represents ought to do (as if it was done by calling setInputType). see
-            // https://stackoverflow.com/q/10200950 for others having issue with this, although they
-            // seem to want it to make the field not editable (which they may not recognize is still
-            // editable, just without the soft keyboard automatically showing up). based on some
-            // comments there, this may be a bug introduced at some point, potentially related to
-            // deprecating android:editable="false".
-            mEditor.mKeyListener = TextKeyListener.getInstance();
-            mEditor.mInputType = EditorInfo.TYPE_CLASS_TEXT;
+            setInputType(inputType, true);
         }
 
         mEditor.adjustInputType(passwordInputType, webPasswordInputType, numberPasswordInputType);
@@ -979,8 +973,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mEditor.mSelectAllOnFocus = true;
         }
 
+        singleLine = !isMultilineInputType(inputType);
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line EditTexts.
+        //TODO: (EW) it might be good to refactor setInputType(int) and what is done here related to that
+        // to share code
         setInputTypeSingleLine(singleLine);
         applySingleLine(singleLine, singleLine, singleLine,
                 // Does not apply automated max length filter since length filter will be resolved
@@ -1143,6 +1140,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         @Override
         public boolean shouldSendSelectionInfo() {
             return mEditor.mInputType != EditorInfo.TYPE_NULL;
+        }
+
+        @Override
+        public boolean nullInputTypeMultiline() {
+            return false;
         }
     }
     // (EW) allow specifying additional settings not present in the AOSP version that are really
@@ -4488,7 +4490,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mSingleLine;
     }
 
-    private static boolean isMultilineInputType(int type) {
+    private boolean isMultilineInputType(int type) {
+        if (type == EditorInfo.TYPE_NULL) {
+            return mSettings.nullInputTypeMultiline();
+        }
         return (type & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE))
                 == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
     }

@@ -81,4 +81,8 @@
         android:title="@string/create_send_selection_info_title"
         android:summary="@string/create_send_selection_info_summary" />
 
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_test_field_null_input_type_multiline_"
+        android:title="@string/input_type_text_flag_multi_line" />
+
 </PreferenceScreen>

@@ -529,11 +529,11 @@
                     <EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:digits="123z"
+                        android:digits="123z\n"
                         android:selectAllOnFocus="true"
                         android:singleLine="false"
                         android:inputType="textMultiLine"
-                        android:hint="digits 123z selectAllOnFocus"/>
+                        android:hint="digits 123z\\n selectAllOnFocus"/>
                 </LinearLayout>
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -542,11 +542,11 @@
                     <com.wittmane.testingedittext.aosp.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:digits="123z"
+                        android:digits="123z\n"
                         android:selectAllOnFocus="true"
                         android:singleLine="false"
                         android:inputType="textMultiLine"
-                        android:hint="digits 123z selectAllOnFocus"/>
+                        android:hint="digits 123z\\n selectAllOnFocus"/>
                 </LinearLayout>
             </LinearLayout>
 
@@ -937,7 +937,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="none"
-                        android:hint="inputType none"/>
+                        android:hint="inputType none*"/>
                 </LinearLayout>
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -948,6 +948,29 @@
                         android:layout_height="wrap_content"
                         android:inputType="none"
                         android:hint="inputType none"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:hint="default"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <com.wittmane.testingedittext.aosp.widget.EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:hint="default"/>
                 </LinearLayout>
             </LinearLayout>
 
