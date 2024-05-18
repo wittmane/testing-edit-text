@@ -1129,24 +1129,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @NonNull
     EditorSettings mSettings = new DefaultEditorSettings();
-    //TODO: (EW) figure out a good way to have default functionality defined in a single place (at
-    // least as much as possible)
+
     private class DefaultEditorSettings implements EditorSettings {
         @Override
         public boolean shouldCreateInputConnection() {
-            return mEditor.mInputType != EditorInfo.TYPE_NULL;
+            return com.wittmane.testingedittext.settings.Settings.defaultCreateInputConnection(
+                    mEditor.mInputType);
         }
 
         @Override
         public boolean shouldSendSelectionInfo() {
-            return mEditor.mInputType != EditorInfo.TYPE_NULL;
+            return com.wittmane.testingedittext.settings.Settings.defaultSendSelectionInfo(
+                    mEditor.mInputType);
         }
 
         @Override
         public boolean nullInputTypeMultiline() {
-            return false;
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
         }
     }
+
     // (EW) allow specifying additional settings not present in the AOSP version that are really
     // only meant as behavior that an IME will need to gracefully deal with that mostly should be
     // invisible to a normal user using the field.
@@ -4800,13 +4802,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @see android.text.InputType
      */
     @InspectableProperty(flagMapping = {
-            //TODO: (EW) should this name be "null"? I think this is meant to match the flags from
-            // android:inputType, but as the comment in init mentions, android:inputType="none" is
-            // messed up, and although we can't change that attribute since we're using the same
-            // system one that the framework EditText uses for consistency (unless we changed to a
-            // custom type for that), if we fix how it works, we could just update this to reflect
-            // how our version deviates to work more appropriately, but changing this still may be
-            // weird.
             @FlagEntry(name = "none", mask = 0xffffffff, target = InputType.TYPE_NULL),
             @FlagEntry(
                     name = "text",

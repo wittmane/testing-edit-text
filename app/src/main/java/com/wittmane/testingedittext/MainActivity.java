@@ -458,6 +458,7 @@ public class MainActivity extends Activity {
             } else {
                 inputType = mCustomEditText.getInputType();
             }
+            //TODO: (EW) remove - testing
             if (inputType != mInputType) {
                 Log.w(TAG, "getInputType: " + inputType + " != " + mInputType);
             }

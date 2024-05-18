@@ -501,17 +501,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
             case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
-                if (testField.mInputType == InputType.TYPE_NULL) {
-                    testField.mCreateInputConnection =
-                            readTestFieldCreateInputConnection(mPrefs, fieldId);
-                    testField.mSendSelectionInfo = readTestFieldSendSelectionInfo(mPrefs, fieldId);
-                    testField.mNullInputTypeMultiline =
-                            readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
-                } else {
-                    testField.mCreateInputConnection = true;
-                    testField.mSendSelectionInfo = true;
-                    testField.mNullInputTypeMultiline = false;
-                }
+                testField.mCreateInputConnection =
+                        readTestFieldCreateInputConnection(mPrefs, fieldId, testField.mInputType);
+                testField.mSendSelectionInfo =
+                        readTestFieldSendSelectionInfo(mPrefs, fieldId, testField.mInputType);
+                testField.mNullInputTypeMultiline =
+                        readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
                 break;
             case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
             case PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
@@ -1294,27 +1289,51 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mInputType;
     }
 
+    public static boolean defaultCreateInputConnection(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL;
+    }
+
     private static boolean readTestFieldCreateInputConnection(final SharedPreferenceManager prefs,
-                                                              int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX + fieldId,false);
+                                                              int fieldId, int inputType) {
+        // this setting only applies to null input types since as far as I can tell, the others are
+        // expected to create the input connection to fully support rich input
+        if (inputType != EditorInfo.TYPE_NULL) {
+            return defaultCreateInputConnection(inputType);
+        }
+        return prefs.getBoolean(PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX + fieldId,
+                defaultCreateInputConnection(inputType));
     }
 
     public static boolean getTestFieldCreateInputConnection(int fieldIndex) {
         return getInstance().mTestFields.get(fieldIndex).mCreateInputConnection;
     }
 
+    public static boolean defaultSendSelectionInfo(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL;
+    }
+
     private static boolean readTestFieldSendSelectionInfo(final SharedPreferenceManager prefs,
-                                                          int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX + fieldId,false);
+                                                          int fieldId, int inputType) {
+        // this setting only applies to null input types since as far as I can tell, the others are
+        // expected to send selection info (possibly based on the same understanding for them
+        // needing to create an input connection)
+        if (inputType != EditorInfo.TYPE_NULL) {
+            return defaultCreateInputConnection(inputType);
+        }
+        return prefs.getBoolean(PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX + fieldId,
+                defaultCreateInputConnection(inputType));
     }
 
     public static boolean getTestFieldSendSelectionInfo(int fieldIndex) {
         return getInstance().mTestFields.get(fieldIndex).mSendSelectionInfo;
     }
 
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
+
     private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
                                                                int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,false);
+        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_MULTILINE);
     }
 
     public static boolean getTestFieldNullInputTypeMultiline(int fieldIndex) {
