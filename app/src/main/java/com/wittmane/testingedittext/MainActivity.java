@@ -23,6 +23,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
 import android.text.InputFilter;
+import android.text.InputType;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
@@ -34,6 +35,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -43,6 +45,8 @@ import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -241,6 +245,8 @@ public class MainActivity extends Activity {
             mTestFields = testFields;
             for (int i = firstChangedFieldIndex; i < mTestFields.length; i++) {
                 mTestFieldContainer.addView(mTestFields[i].mLayout);
+                mTestFields[i].mCustomEditText.mCustomEditText.setSettings(
+                        Settings.getTestFieldSettings(i));
             }
         }
 
@@ -251,18 +257,12 @@ public class MainActivity extends Activity {
     }
 
     private static void updateField(EditTextProxy editText, int fieldIndex) {
-        //TODO: (EW) manage the settings better. set it once when creating the field and let it
-        // automatically use any updates
-        if (editText.mCustomEditText != null) {
-            editText.mCustomEditText.setSettings(Settings.getTestFieldSettings(fieldIndex));
-        }
-
         int inputType = Settings.getTestFieldInputType(fieldIndex);
-        // setting the input type every time because the null input type multiline setting changing
-        // won't automatically apply
-        //TODO: (EW) see if there is a better way to manage this to only set this when the actual
-        // input type changes to be similar to the others
-        editText.setInputType(inputType);
+        boolean nullInputTypeSingleLine = !Settings.getTestFieldNullInputTypeMultiline(fieldIndex);
+        if (editText.getInputType() != inputType || (inputType == InputType.TYPE_NULL
+                && editText.isSingleLine() != nullInputTypeSingleLine)) {
+            editText.setInputType(inputType);
+        }
 
         int imeOptions = Settings.getTestFieldImeOptions(fieldIndex);
         if (editText.getImeOptions() != imeOptions) {
@@ -463,6 +463,30 @@ public class MainActivity extends Activity {
                 Log.w(TAG, "getInputType: " + inputType + " != " + mInputType);
             }
             return mInputType;
+        }
+
+        public boolean isSingleLine() {
+            if (mFrameworkEditText != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    return mFrameworkEditText.isSingleLine();
+                } else {
+                    // although it was only made public in Android 10, isSingleLine has existed as
+                    // package-private since at least Kitkat so we can fairly safely still access it
+                    // with reflection.
+                    try {
+                        Method isSingleLineMethod =
+                                TextView.class.getDeclaredMethod("isSingleLine");
+                        isSingleLineMethod.setAccessible(true);
+                        return (boolean) isSingleLineMethod.invoke(mFrameworkEditText);
+                    } catch (NoSuchMethodException | IllegalAccessException |
+                             InvocationTargetException e) {
+                        Log.e(TAG, "Reflection failed on TextView.isSingleLine: " + e.getMessage());
+                        return true;
+                    }
+                }
+            } else {
+                return mCustomEditText.isSingleLine();
+            }
         }
 
         public void setImeOptions(int imeOptions) {

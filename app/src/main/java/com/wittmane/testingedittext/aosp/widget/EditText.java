@@ -4488,7 +4488,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * Returns if the text is constrained to a single horizontally scrolling line ignoring new
      * line characters instead of letting it wrap onto multiple lines.
      */
-    boolean isSingleLine() {
+    public boolean isSingleLine() {
         return mSingleLine;
     }
 
