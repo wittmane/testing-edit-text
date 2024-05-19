@@ -120,6 +120,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_test_field_send_selection_info_connection_";
     public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
             "pref_key_test_field_null_input_type_multiline_";
+    public static final String PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX =
+            "pref_key_test_field_composing_text_behavior_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
             "pref_key_test_field_ime_options_action_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
@@ -306,6 +308,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                //PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -500,6 +503,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
             case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
             case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
+            case PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
                 testField.mCreateInputConnection =
                         readTestFieldCreateInputConnection(mPrefs, fieldId, testField.mInputType);
@@ -507,6 +511,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         readTestFieldSendSelectionInfo(mPrefs, fieldId, testField.mInputType);
                 testField.mNullInputTypeMultiline =
                         readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
+                testField.mComposingTextBehavior =
+                        readTestFieldComposingTextBehavior(mPrefs, fieldId, testField.mInputType,
+                                testField.mCreateInputConnection);
                 break;
             case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
             case PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
@@ -1079,6 +1086,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -1340,6 +1348,47 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mNullInputTypeMultiline;
     }
 
+    public static int COMPOSING_TEXT_BEHAVIOR_IGNORE = 0;
+    public static int COMPOSING_TEXT_BEHAVIOR_COMMIT = 1;
+    public static int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 2;
+
+    public static int defaultComposingTextBehavior(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? COMPOSING_TEXT_BEHAVIOR_COMPOSE
+                : COMPOSING_TEXT_BEHAVIOR_IGNORE;
+    }
+
+    private static int readTestFieldComposingTextBehavior(final SharedPreferenceManager prefs,
+                                                          int fieldId, int inputType,
+                                                          boolean createInputConnection) {
+        // composition is only possible if an input connection is created
+        if (!createInputConnection) {
+            return COMPOSING_TEXT_BEHAVIOR_IGNORE;
+        }
+        // this setting only applies to null input types since as far as I can tell, the others are
+        // expected to support all of the rich editing specified in documentation for
+        // InputConnection (that isn't noted as being optional)
+        if (inputType != EditorInfo.TYPE_NULL) {
+            return defaultComposingTextBehavior(inputType);
+        }
+        String behavior =
+                prefs.getString(PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX + fieldId, "");
+        switch (behavior) {
+            case "COMPOSE":
+                return COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+            case "COMMIT":
+                return COMPOSING_TEXT_BEHAVIOR_COMMIT;
+            case "IGNORE":
+                return COMPOSING_TEXT_BEHAVIOR_IGNORE;
+            default:
+                return defaultComposingTextBehavior(inputType);
+        }
+    }
+
+    public static int getTestFieldComposingTextBehavior(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mComposingTextBehavior;
+    }
+
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
         String imeOptionsAction = prefs.getString(
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX + fieldId,
@@ -1514,6 +1563,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private boolean mCreateInputConnection;
         private boolean mSendSelectionInfo;
         private boolean mNullInputTypeMultiline;
+        private int mComposingTextBehavior;
         private int mImeOptions;
         private int mImeActionId;
         private String mImeActionLabel;
@@ -1539,10 +1589,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         boolean shouldCreateInputConnection();
         boolean shouldSendSelectionInfo();
         boolean nullInputTypeMultiline();
+        int composingTextBehavior();
         //TODO: (EW) consider adding a setting for allowing sending text to the IME (only possible
         // if creating an InputConnection)
-        //TODO: (EW) consider adding a setting for allowing composing text (only possible if
-        // creating an InputConnection)
     }
 
     public static class FieldPrefEditorSettings implements EditorSettings {
@@ -1565,6 +1614,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         @Override
         public boolean nullInputTypeMultiline() {
             return Settings.getTestFieldNullInputTypeMultiline(mIndex);
+        }
+
+        @Override
+        public int composingTextBehavior() {
+            return Settings.getTestFieldComposingTextBehavior(mIndex);
         }
     }
 }

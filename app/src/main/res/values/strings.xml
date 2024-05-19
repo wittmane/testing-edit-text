@@ -245,6 +245,12 @@
     <string name="create_send_selection_info_title">Send selection info</string>
     <string name="create_send_selection_info_summary">Although documentation seems to indicate that editors should always specify the initial selection position and send updates when the selection position moves, the framework EditText doesn\'t send this info when set to InputType#TYPE_NULL. Instead of matching the framework\'s functionality, actually send the this info to the IME like the other input types.</string>
 
+    <string name="composing_text_behavior_title">Composing text behavior</string>
+    <string name="composing_text_behavior_summary">Although InputType#TYPE_NULL is documented to not have a rich input connection, including meaning that it doesn\'t support composing text, nothing specifically stops this type of field from supporting composition, so allow that like the other input types, or allow an alternate means of not supporting composing by just committing text instead of disregarding the composition (not certain if this is valid behavior).</string>
+    <string name="composing_text_behavior_ignore">Ignore</string>
+    <string name="composing_text_behavior_commit">Commit</string>
+    <string name="composing_text_behavior_compose">Compose</string>
+
     <string name="ime_options">IME options</string>
     <string name="ime_options_action">Action</string>
     <string name="ime_options_action_unspecified">Unspecified</string>

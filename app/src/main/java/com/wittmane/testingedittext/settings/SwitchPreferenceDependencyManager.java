@@ -47,6 +47,22 @@ public class SwitchPreferenceDependencyManager implements OnPreferenceChangeList
         mListener.onPreferencesChanged(prefsChecked);
     }
 
+    public SwitchPreferenceDependencyManager(SwitchPreference[] switchPrefListenerPrefs,
+                                             OnPreferencesChangedListener listener) {
+        mPrefs = new SwitchPreference[switchPrefListenerPrefs.length];
+        mListener = listener;
+        boolean[] prefsChecked = new boolean[switchPrefListenerPrefs.length];
+        for (int i = 0; i < switchPrefListenerPrefs.length; i++) {
+            SwitchPreference pref = switchPrefListenerPrefs[i];
+            mPrefs[i] = pref;
+            pref.setOnPreferenceChangeListener(this);
+            prefsChecked[i] = pref.isChecked();
+        }
+
+        // call right away so the initial state is correct
+        mListener.onPreferencesChanged(prefsChecked);
+    }
+
     @Override
     public boolean onPreferenceChange(Preference changingPreference, Object newValue) {
         boolean[] prefsChecked = new boolean[mPrefs.length];

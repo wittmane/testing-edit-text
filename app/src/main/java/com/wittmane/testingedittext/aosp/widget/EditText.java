@@ -1148,6 +1148,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         public boolean nullInputTypeMultiline() {
             return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
         }
+
+        @Override
+        public int composingTextBehavior() {
+            return com.wittmane.testingedittext.settings.Settings.defaultComposingTextBehavior(
+                    mEditor.mInputType);
+        }
     }
 
     // (EW) allow specifying additional settings not present in the AOSP version that are really
@@ -1155,6 +1161,10 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // invisible to a normal user using the field.
     public void setSettings(EditorSettings settings) {
         mSettings = settings == null ? new DefaultEditorSettings() : settings;
+    }
+
+    public EditorSettings getSettings() {
+        return mSettings;
     }
 
     private void setTextInternal(@NonNull CharSequence text) {

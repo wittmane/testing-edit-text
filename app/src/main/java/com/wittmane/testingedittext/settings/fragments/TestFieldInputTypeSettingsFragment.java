@@ -23,8 +23,8 @@ import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager;
-import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager.OnPreferencesChangedListener;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 
 public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFragment {
 
@@ -44,6 +44,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     private SwitchPreference mCreateInputConnectionPref;
     private SwitchPreference mSendSelectionInfoPref;
     private SwitchPreference mMultilinePref;
+    private ListPreference mComposingTextBehaviorPref;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -79,16 +80,27 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
         mMultilinePref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
+        mComposingTextBehaviorPref = (ListPreference)findPreference(
+                Settings.PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX);
     }
 
     @Override
     protected void registerPreferencesChangedListener(int fieldId) {
         new ListPreferenceDependencyManager(new String[]{
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX + fieldId
-        }, this, new OnPreferencesChangedListener() {
+        }, this, new ListPreferenceDependencyManager.OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(CharSequence[] prefValues) {
                 updateInputTypeFields(prefValues[0]);
+            }
+        });
+        new SwitchPreferenceDependencyManager(new SwitchPreference[]{
+                mCreateInputConnectionPref
+        }, new SwitchPreferenceDependencyManager.OnPreferencesChangedListener() {
+            @Override
+            public void onPreferencesChanged(boolean[] prefValues) {
+                boolean createInputConnection = prefValues[0];
+                mComposingTextBehaviorPref.setEnabled(createInputConnection);
             }
         });
     }
@@ -128,6 +140,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 preferenceScreen.addPreference(mCreateInputConnectionPref);
                 preferenceScreen.addPreference(mSendSelectionInfoPref);
                 preferenceScreen.addPreference(mMultilinePref);
+                preferenceScreen.addPreference(mComposingTextBehaviorPref);
                 break;
             case "TYPE_CLASS_PHONE":
             default:
@@ -166,5 +179,6 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
         preferenceScreen.removePreference(mCreateInputConnectionPref);
         preferenceScreen.removePreference(mSendSelectionInfoPref);
         preferenceScreen.removePreference(mMultilinePref);
+        preferenceScreen.removePreference(mComposingTextBehaviorPref);
     }
 }

@@ -85,4 +85,11 @@
         android:key="pref_key_test_field_null_input_type_multiline_"
         android:title="@string/input_type_text_flag_multi_line" />
 
+    <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
+        android:key="pref_key_test_field_composing_text_behavior_"
+        android:title="@string/composing_text_behavior_title"
+        android:summary="@string/composing_text_behavior_summary"
+        android:entries="@array/composing_text_behaviors"
+        android:entryValues="@array/composing_text_behavior_values"/>
+
 </PreferenceScreen>

@@ -68,6 +68,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
+import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
+import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
 
 // (EW) this is a merge of EditableInputConnection and BaseInputConnection to be able to insert
 // custom behavior
@@ -1507,6 +1510,19 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "setComposingText: text=" + text
                     + ", newCursorPosition=" + newCursorPosition);
         }
+        int composingTextBehavior = mEditText.getSettings().composingTextBehavior();
+        if (composingTextBehavior == COMPOSING_TEXT_BEHAVIOR_IGNORE) {
+            if (LOG_CALLS) {
+                Log.d(TAG, "setComposingText: skipping due to lack of support");
+            }
+            return false;
+        }
+        if (composingTextBehavior == COMPOSING_TEXT_BEHAVIOR_COMMIT) {
+            if (LOG_CALLS) {
+                Log.d(TAG, "setComposingText: redirecting due to lack of support");
+            }
+            return commitText(text, newCursorPosition);
+        }
         if (Settings.shouldModifyComposedText()) {
             // (EW) due to some weird behavior in #replaceText (see comment there), the default
             // composing span won't be added if the input is already a Spannable, so we need to keep
@@ -1714,6 +1730,13 @@ public class EditableInputConnection implements InputConnection {
                         "boolean android.view.inputmethod.InputConnection.setComposingRegion(int, int)");
             }
             Log.e(TAG, "couldn't fake not implementing setComposingRegion");
+        }
+
+        if (mEditText.getSettings().composingTextBehavior() != COMPOSING_TEXT_BEHAVIOR_COMPOSE) {
+            if (LOG_CALLS) {
+                Log.d(TAG, "setComposingRegion: skipping due to lack of support");
+            }
+            return false;
         }
 
         final Editable content = getEditable();

@@ -109,6 +109,17 @@
         <item>TYPE_DATETIME_VARIATION_TIME</item>
     </string-array>
 
+    <string-array name="composing_text_behaviors" translatable="false">
+        <item>@string/composing_text_behavior_ignore</item>
+        <item>@string/composing_text_behavior_commit</item>
+        <item>@string/composing_text_behavior_compose</item>
+    </string-array>
+    <string-array name="composing_text_behavior_values" translatable="false">
+        <item>IGNORE</item>
+        <item>COMMIT</item>
+        <item>COMPOSE</item>
+    </string-array>
+
     <string-array name="ime_options_actions" translatable="false">
         <item>@string/ime_options_action_unspecified</item>
         <item>@string/ime_options_action_none</item>
