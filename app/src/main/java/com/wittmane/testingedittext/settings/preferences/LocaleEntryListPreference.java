@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputFilter.AllCaps;
 import android.text.InputFilter.LengthFilter;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
@@ -63,11 +64,11 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         textFieldLayout.setOrientation(LinearLayout.HORIZONTAL);
 
         EditText languageView = createEditText(data != null ? data.getLanguage() : "",
-                R.string.locale_language);
+                R.string.locale_language, false);
         EditText countryView = createEditText(data != null ? data.getCountry() : "",
-                R.string.locale_country);
+                R.string.locale_country, true);
         EditText variantView = createEditText(data != null ? data.getVariant() : "",
-                R.string.locale_variant);
+                R.string.locale_variant, false);
         textFieldLayout.addView(languageView);
         textFieldLayout.addView(countryView);
         textFieldLayout.addView(variantView);
@@ -141,7 +142,7 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         };
     }
 
-    protected EditText createEditText(CharSequence text, int hintResId) {
+    protected EditText createEditText(CharSequence text, int hintResId, boolean caps) {
         EditText editText = new EditText(getContext());
         editText.setSingleLine();
         LinearLayout.LayoutParams editTextLayoutParams = new LinearLayout.LayoutParams(
@@ -152,6 +153,8 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
             editText.setText(text);
         }
         editText.setHint(hintResId);
+        editText.setInputType(InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE
+                | (caps ? InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS : 0));
         return editText;
     }
 

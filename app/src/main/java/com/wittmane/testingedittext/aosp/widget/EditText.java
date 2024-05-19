@@ -40,6 +40,7 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakStyle;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
 import com.wittmane.testingedittext.settings.Settings.EditorSettings;
 import com.wittmane.testingedittext.wrapper.Insets;
 
@@ -976,8 +977,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         singleLine = !isMultilineInputType(inputType);
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line EditTexts.
-        //TODO: (EW) it might be good to refactor setInputType(int) and what is done here related to that
-        // to share code
+        //TODO: (EW) it might be good to refactor setInputType(int) and what is done here related to
+        // that to share code
         setInputTypeSingleLine(singleLine);
         applySingleLine(singleLine, singleLine, singleLine,
                 // Does not apply automated max length filter since length filter will be resolved
@@ -2551,16 +2552,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         KeyListener listener = mEditor.mKeyListener;
         if (listener instanceof DigitsKeyListener) {
-            //TODO: (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
-            // that returns a DigitsKeyListener based on an the settings of a existing
+            // (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
+            // that returns a DigitsKeyListener based on the settings of a existing
             // DigitsKeyListener, with the locale modified. DigitsKeyListener doesn't seem to have
-            // any way to check the sign or decimal, and since the listener could come from
-            // setKeyListener, we can't really even track it ourself. Other than reflection, I'm not
-            // sure how we can do this. I suppose there are other types of listeners that we don't
-            // update the locale, so I guess not doing anything isn't that bad. note that
-            // DigitsKeyListener (or any of the others) didn't even start supporting a locale until
-            // Oreo, so not supporting it may not be too unreasonable. if DigitsKeyListener changes
-            // to accomplish this, this should be updated to match functionality of AOSP.
+            // any way to check the sign or decimal (internal settings set in the constructor), and
+            // since the listener could come from setKeyListener, we can't really even track it
+            // ourself. also, that is a restricted API (warning logged specifies "dark greylist"),
+            // so we can't even call it with reflection. our best option seems to be creating our
+            // own custom child DigitsKeyListener when we create one internally so we can at least
+            // manage updating the locale for those. this can still miss things passed to
+            // setKeyListener, but our custom class could be used if the caller cares about this
+            // functionality.
+            if (listener instanceof LocaleDigitsKeyListener) {
+                listener = LocaleDigitsKeyListener.getInstance(locale,
+                        (LocaleDigitsKeyListener) listener);
+            } else {
+                //TODO: (EW) if DigitsKeyListener ever changes to make that method available or
+                // allows checking the locale and the signed and decimal flags, this should be
+                // updated to match functionality of AOSP more completely.
+                return;
+            }
         } else if (listener instanceof DateKeyListener) {
             listener = DateKeyListener.getInstance(locale);
         } else if (listener instanceof TimeKeyListener) {
@@ -4731,7 +4742,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         } else if (cls == EditorInfo.TYPE_CLASS_NUMBER) {
             final Locale locale = getCustomLocaleForKeyListenerOrNull();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                input = DigitsKeyListener.getInstance(
+                // (EW) using our own child version of DigitsKeyListener to allow updating the
+                // locale (see #changeListenerLocaleTo)
+                input = LocaleDigitsKeyListener.getInstance(
                         locale,
                         (type & EditorInfo.TYPE_NUMBER_FLAG_SIGNED) != 0,
                         (type & EditorInfo.TYPE_NUMBER_FLAG_DECIMAL) != 0);

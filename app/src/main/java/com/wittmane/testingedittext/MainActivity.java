@@ -257,10 +257,18 @@ public class MainActivity extends Activity {
     }
 
     private static void updateField(EditTextProxy editText, int fieldIndex) {
+        // since we have a custom setting for making a null input type field still allow multiple
+        // lines (which is normally handled as part of the input type), we'll need to trigger
+        // setting the input type (even if that didn't change) to trigger a change in the field
+        // allowing multiple lines. also, since the input type isn't always set to exactly what we
+        // try to set it to, we need to check if the setting for the input type matches what we last
+        // requested (rather than what it actually is) to avoid trying to set again unnecessarily.
         int inputType = Settings.getTestFieldInputType(fieldIndex);
         boolean nullInputTypeSingleLine = !Settings.getTestFieldNullInputTypeMultiline(fieldIndex);
-        if (editText.getInputType() != inputType || (inputType == InputType.TYPE_NULL
-                && editText.isSingleLine() != nullInputTypeSingleLine)) {
+        if (editText.getRequestedInputType() != inputType
+                || (inputType == InputType.TYPE_NULL
+                        && editText.isSingleLine() != nullInputTypeSingleLine
+                        && editText.isCustom())) {
             editText.setInputType(inputType);
         }
 
@@ -418,10 +426,7 @@ public class MainActivity extends Activity {
         private final android.widget.EditText mFrameworkEditText;
         private final com.wittmane.testingedittext.aosp.widget.EditText mCustomEditText;
 
-        //TODO: (EW) why did I add this? can't we just load it from the EditText? I think setting it
-        // doesn't necessarily set it to exactly what we requested, so this caches what we set, but
-        // I don't remember if this was meant to fix some issue. presumably I had a reason for this.
-        private int mInputType;
+        private int mRequestedInputType;
         private boolean mSelectAllOnFocus;
         private CharSequence mSetText;
         private CharSequence mSetHint;
@@ -431,19 +436,23 @@ public class MainActivity extends Activity {
         public EditTextProxy(@NonNull android.widget.EditText editText) {
             mFrameworkEditText = editText;
             mCustomEditText = null;
-            mInputType = editText.getInputType();
+            mRequestedInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
         }
 
         public EditTextProxy(@NonNull com.wittmane.testingedittext.aosp.widget.EditText editText) {
             mCustomEditText = editText;
             mFrameworkEditText = null;
-            mInputType = editText.getInputType();
+            mRequestedInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
         }
 
+        public boolean isCustom() {
+            return mCustomEditText != null;
+        }
+
         public void setInputType(int type) {
-            mInputType = type;
+            mRequestedInputType = type;
             if (mFrameworkEditText != null) {
                 mFrameworkEditText.setInputType(type);
             } else {
@@ -458,11 +467,11 @@ public class MainActivity extends Activity {
             } else {
                 inputType = mCustomEditText.getInputType();
             }
-            //TODO: (EW) remove - testing
-            if (inputType != mInputType) {
-                Log.w(TAG, "getInputType: " + inputType + " != " + mInputType);
-            }
-            return mInputType;
+            return inputType;
+        }
+
+        public int getRequestedInputType() {
+            return mRequestedInputType;
         }
 
         public boolean isSingleLine() {
