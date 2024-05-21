@@ -43,6 +43,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     private SwitchPreference mCreateInputConnectionPref;
     private SwitchPreference mSendSelectionInfoPref;
+    private SwitchPreference mSendTextPref;
     private SwitchPreference mMultilinePref;
     private ListPreference mComposingTextBehaviorPref;
 
@@ -78,6 +79,8 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 Settings.PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX);
         mSendSelectionInfoPref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
+        mSendTextPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_SEND_TEXT_PREFIX);
         mMultilinePref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
         mComposingTextBehaviorPref = (ListPreference)findPreference(
@@ -100,6 +103,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             @Override
             public void onPreferencesChanged(boolean[] prefValues) {
                 boolean createInputConnection = prefValues[0];
+                mSendTextPref.setEnabled(createInputConnection);
                 mComposingTextBehaviorPref.setEnabled(createInputConnection);
             }
         });

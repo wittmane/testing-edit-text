@@ -972,8 +972,8 @@ public class EditableInputConnection implements InputConnection {
                     && !Settings.shouldIgnoreExtractedTextMonitor()) {
                 mEditText.setExtracting(extractedTextRequest);
             }
-            // (EW) check the setting to see if we should force this method to not return anything
-            if (!Settings.shouldSkipExtractingText()) {
+            // (EW) check the settings to see if we should force this method to not return anything
+            if (!Settings.shouldSkipExtractingText() || !mEditText.getSettings().shouldSendText()) {
                 return extractedText;
             }
         }
@@ -1017,6 +1017,11 @@ public class EditableInputConnection implements InputConnection {
         Preconditions.checkArgumentNonnegative(length);
 
         delay(Settings.getGetTextBeforeCursorDelay());
+
+        if (!mEditText.getSettings().shouldSendText()) {
+            Log.d(TAG, "getTextBeforeCursor: returning nothing due to lack of support");
+            return "";
+        }
 
         CharSequence textBeforeCursor = getTextBeforeCursorInternal(length, flags);
         // (EW) check the setting to force returning less text than requested. BaseInputConnection
@@ -1096,6 +1101,11 @@ public class EditableInputConnection implements InputConnection {
 
         delay(Settings.getGetSelectedTextDelay());
 
+        if (!mEditText.getSettings().shouldSendText()) {
+            Log.d(TAG, "getSelectedText: returning nothing due to lack of support");
+            return null;
+        }
+
         CharSequence selectedText = getSelectedTextInternal(flags);
         if (LOG_CALLS) {
             Log.d(TAG, "getSelectedText: return="
@@ -1140,6 +1150,11 @@ public class EditableInputConnection implements InputConnection {
         Preconditions.checkArgumentNonnegative(length);
 
         delay(Settings.getGetTextAfterCursorDelay());
+
+        if (!mEditText.getSettings().shouldSendText()) {
+            Log.d(TAG, "getTextAfterCursor: returning nothing due to lack of support");
+            return "";
+        }
 
         CharSequence textAfterCursor = getTextAfterCursorInternal(length, flags);
         // (EW) check the setting to force returning less text than requested. BaseInputConnection

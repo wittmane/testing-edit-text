@@ -117,7 +117,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX =
             "pref_key_test_field_create_input_connection_";
     public static final String PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX =
-            "pref_key_test_field_send_selection_info_connection_";
+            "pref_key_test_field_send_selection_info_";
+    public static final String PREF_TEST_FIELD_SEND_TEXT_PREFIX =
+            "pref_key_test_field_send_text_";
     public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
             "pref_key_test_field_null_input_type_multiline_";
     public static final String PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX =
@@ -307,6 +309,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
                 //PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
+                //PREF_TEST_FIELD_SEND_TEXT_PREFIX,
                 //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 //PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
@@ -502,6 +505,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
             case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
             case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
+            case PREF_TEST_FIELD_SEND_TEXT_PREFIX:
             case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
             case PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
@@ -509,6 +513,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         readTestFieldCreateInputConnection(mPrefs, fieldId, testField.mInputType);
                 testField.mSendSelectionInfo =
                         readTestFieldSendSelectionInfo(mPrefs, fieldId, testField.mInputType);
+                testField.mSendText =
+                        readTestFieldSendText(mPrefs, fieldId, testField.mInputType);
                 testField.mNullInputTypeMultiline =
                         readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
                 testField.mComposingTextBehavior =
@@ -1085,6 +1091,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
                 PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
+                PREF_TEST_FIELD_SEND_TEXT_PREFIX,
                 PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
@@ -1336,6 +1343,25 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mSendSelectionInfo;
     }
 
+    public static boolean defaultSendText(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL;
+    }
+
+    private static boolean readTestFieldSendText(final SharedPreferenceManager prefs, int fieldId,
+                                                 int inputType) {
+        // this setting only applies to null input types since as far as I can tell, the others are
+        // expected to return text as part of fully supporting rich input
+        if (inputType != EditorInfo.TYPE_NULL) {
+            return defaultSendText(inputType);
+        }
+        return prefs.getBoolean(PREF_TEST_FIELD_SEND_TEXT_PREFIX + fieldId,
+                defaultSendText(inputType));
+    }
+
+    public static boolean getTestFieldSendText(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mSendText;
+    }
+
     public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
 
     private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
@@ -1562,6 +1588,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private int mInputType;
         private boolean mCreateInputConnection;
         private boolean mSendSelectionInfo;
+        private boolean mSendText;
         private boolean mNullInputTypeMultiline;
         private int mComposingTextBehavior;
         private int mImeOptions;
@@ -1588,10 +1615,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public interface EditorSettings {
         boolean shouldCreateInputConnection();
         boolean shouldSendSelectionInfo();
+        boolean shouldSendText();
         boolean nullInputTypeMultiline();
         int composingTextBehavior();
-        //TODO: (EW) consider adding a setting for allowing sending text to the IME (only possible
-        // if creating an InputConnection)
     }
 
     public static class FieldPrefEditorSettings implements EditorSettings {
@@ -1609,6 +1635,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         @Override
         public boolean shouldSendSelectionInfo() {
             return Settings.getTestFieldSendSelectionInfo(mIndex);
+        }
+
+        @Override
+        public boolean shouldSendText() {
+            return Settings.getTestFieldSendText(mIndex);
         }
 
         @Override

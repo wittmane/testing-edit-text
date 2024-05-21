@@ -242,8 +242,11 @@
     <string name="create_input_connection_title">Rich input connection</string>
     <string name="create_input_connection_summary">Documentation for InputType#TYPE_NULL states that it should be interpreted that the input connection isn\'t rich (can\'t support things like composing text and retrieving text), but instead of using the system\'s default  limited \"generate key events\" mode, manage a normal input connection to still allow rich functionality. It\'s not clear if this should be considered an inappropriate implementation.</string>
 
-    <string name="create_send_selection_info_title">Send selection info</string>
-    <string name="create_send_selection_info_summary">Although documentation seems to indicate that editors should always specify the initial selection position and send updates when the selection position moves, the framework EditText doesn\'t send this info when set to InputType#TYPE_NULL. Instead of matching the framework\'s functionality, actually send the this info to the IME like the other input types.</string>
+    <string name="send_selection_info_title">Send selection info</string>
+    <string name="send_selection_info_summary">Although documentation seems to indicate that editors should always specify the initial selection position and send updates when the selection position moves, the framework EditText doesn\'t send this info when set to InputType#TYPE_NULL. Instead of matching the framework\'s functionality, actually send the this info to the IME like the other input types.</string>
+
+    <string name="send_text_title">Send text</string>
+    <string name="send_text_summary">Although InputType#TYPE_NULL is documented to not have a rich input connection, including meaning that it doesn\'t support  retrieving the current text, nothing specifically stops this type of field from giving the IME the text, so allow that like the other input types.</string>
 
     <string name="composing_text_behavior_title">Composing text behavior</string>
     <string name="composing_text_behavior_summary">Although InputType#TYPE_NULL is documented to not have a rich input connection, including meaning that it doesn\'t support composing text, nothing specifically stops this type of field from supporting composition, so allow that like the other input types, or allow an alternate means of not supporting composing by just committing text instead of disregarding the composition (not certain if this is valid behavior).</string>

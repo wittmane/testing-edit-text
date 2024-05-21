@@ -1750,6 +1750,9 @@ class Editor {
             // position info since this would include that
             return false;
         }
+        if (!mEditText.mSettings.shouldSendText()) {
+            return false;
+        }
         final ExtractedTextRequest req = ims.mExtractedTextRequest;
         if (req == null) {
             return false;
