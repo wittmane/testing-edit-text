@@ -72,6 +72,10 @@
         android:entryValues="@array/type_datetime_variation_values"/>
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_test_field_null_input_type_multiline_"
+        android:title="@string/input_type_text_flag_multi_line" />
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_test_field_create_input_connection_"
         android:title="@string/create_input_connection_title"
         android:summary="@string/create_input_connection_summary" />
@@ -85,10 +89,6 @@
         android:key="pref_key_test_field_send_text_"
         android:title="@string/send_text_title"
         android:summary="@string/send_text_summary" />
-
-    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-        android:key="pref_key_test_field_null_input_type_multiline_"
-        android:title="@string/input_type_text_flag_multi_line" />
 
     <com.wittmane.testingedittext.settings.preferences.EnhancedListPreference
         android:key="pref_key_test_field_composing_text_behavior_"

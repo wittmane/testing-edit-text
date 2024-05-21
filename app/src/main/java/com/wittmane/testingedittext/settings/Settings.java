@@ -114,14 +114,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_test_field_input_type_number_flag_signed_";
     public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX =
             "pref_key_test_field_input_type_number_flag_decimal_";
+    public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
+            "pref_key_test_field_null_input_type_multiline_";
     public static final String PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX =
             "pref_key_test_field_create_input_connection_";
     public static final String PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX =
             "pref_key_test_field_send_selection_info_";
     public static final String PREF_TEST_FIELD_SEND_TEXT_PREFIX =
             "pref_key_test_field_send_text_";
-    public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
-            "pref_key_test_field_null_input_type_multiline_";
     public static final String PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX =
             "pref_key_test_field_composing_text_behavior_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
@@ -307,10 +307,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
                 //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
                 //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 //PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 //PREF_TEST_FIELD_SEND_TEXT_PREFIX,
-                //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 //PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
@@ -503,20 +503,20 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
             case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
             case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
+            case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
             case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
             case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
             case PREF_TEST_FIELD_SEND_TEXT_PREFIX:
-            case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
             case PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
+                testField.mNullInputTypeMultiline =
+                        readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
                 testField.mCreateInputConnection =
                         readTestFieldCreateInputConnection(mPrefs, fieldId, testField.mInputType);
                 testField.mSendSelectionInfo =
                         readTestFieldSendSelectionInfo(mPrefs, fieldId, testField.mInputType);
                 testField.mSendText =
                         readTestFieldSendText(mPrefs, fieldId, testField.mInputType);
-                testField.mNullInputTypeMultiline =
-                        readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
                 testField.mComposingTextBehavior =
                         readTestFieldComposingTextBehavior(mPrefs, fieldId, testField.mInputType,
                                 testField.mCreateInputConnection);
@@ -1089,10 +1089,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
                 PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
                 PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
                 PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 PREF_TEST_FIELD_SEND_TEXT_PREFIX,
-                PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
                 PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
@@ -1304,6 +1304,18 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mInputType;
     }
 
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
+
+    private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
+                                                               int fieldId) {
+        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_MULTILINE);
+    }
+
+    public static boolean getTestFieldNullInputTypeMultiline(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mNullInputTypeMultiline;
+    }
+
     public static boolean defaultCreateInputConnection(int inputType) {
         return inputType != EditorInfo.TYPE_NULL;
     }
@@ -1360,18 +1372,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean getTestFieldSendText(int fieldIndex) {
         return getInstance().mTestFields.get(fieldIndex).mSendText;
-    }
-
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
-
-    private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
-                                                               int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_MULTILINE);
-    }
-
-    public static boolean getTestFieldNullInputTypeMultiline(int fieldIndex) {
-        return getInstance().mTestFields.get(fieldIndex).mNullInputTypeMultiline;
     }
 
     public static int COMPOSING_TEXT_BEHAVIOR_IGNORE = 0;
@@ -1586,10 +1586,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private final int mId;
 
         private int mInputType;
+        private boolean mNullInputTypeMultiline;
         private boolean mCreateInputConnection;
         private boolean mSendSelectionInfo;
         private boolean mSendText;
-        private boolean mNullInputTypeMultiline;
         private int mComposingTextBehavior;
         private int mImeOptions;
         private int mImeActionId;
@@ -1613,10 +1613,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public interface EditorSettings {
+        boolean nullInputTypeMultiline();
         boolean shouldCreateInputConnection();
         boolean shouldSendSelectionInfo();
         boolean shouldSendText();
-        boolean nullInputTypeMultiline();
         int composingTextBehavior();
     }
 
@@ -1625,6 +1625,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         private FieldPrefEditorSettings(int fieldIndex) {
             mIndex = fieldIndex;
+        }
+
+        @Override
+        public boolean nullInputTypeMultiline() {
+            return Settings.getTestFieldNullInputTypeMultiline(mIndex);
         }
 
         @Override
@@ -1640,11 +1645,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         @Override
         public boolean shouldSendText() {
             return Settings.getTestFieldSendText(mIndex);
-        }
-
-        @Override
-        public boolean nullInputTypeMultiline() {
-            return Settings.getTestFieldNullInputTypeMultiline(mIndex);
         }
 
         @Override

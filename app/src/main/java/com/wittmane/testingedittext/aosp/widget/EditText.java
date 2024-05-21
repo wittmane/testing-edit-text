@@ -1133,6 +1133,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private class DefaultEditorSettings implements EditorSettings {
         @Override
+        public boolean nullInputTypeMultiline() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
+        }
+
+        @Override
         public boolean shouldCreateInputConnection() {
             return com.wittmane.testingedittext.settings.Settings.defaultCreateInputConnection(
                     mEditor.mInputType);
@@ -1148,11 +1153,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         public boolean shouldSendText() {
             return com.wittmane.testingedittext.settings.Settings.defaultSendText(
                     mEditor.mInputType);
-        }
-
-        @Override
-        public boolean nullInputTypeMultiline() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
         }
 
         @Override
