@@ -260,9 +260,10 @@ public class MainActivity extends Activity {
         // since we have a custom setting for making a null input type field still allow multiple
         // lines (which is normally handled as part of the input type), we'll need to trigger
         // setting the input type (even if that didn't change) to trigger a change in the field
-        // allowing multiple lines. also, since the input type isn't always set to exactly what we
-        // try to set it to, we need to check if the setting for the input type matches what we last
-        // requested (rather than what it actually is) to avoid trying to set again unnecessarily.
+        // allowing multiple lines if that setting changed. also, since the input type isn't always
+        // set to exactly what we try to set it to, we need to check if the setting for the input
+        // type matches what we last requested (rather than what it actually is) to avoid trying to
+        // set again unnecessarily.
         int inputType = Settings.getTestFieldInputType(fieldIndex);
         boolean nullInputTypeSingleLine = !Settings.getTestFieldNullInputTypeMultiline(fieldIndex);
         if (editText.getRequestedInputType() != inputType

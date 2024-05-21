@@ -41,10 +41,10 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     private ListPreference mInputTypeDateTimeVariationPref;
 
+    private SwitchPreference mMultilinePref;
     private SwitchPreference mCreateInputConnectionPref;
     private SwitchPreference mSendSelectionInfoPref;
     private SwitchPreference mSendTextPref;
-    private SwitchPreference mMultilinePref;
     private ListPreference mComposingTextBehaviorPref;
 
     @Override
@@ -75,14 +75,14 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
         mInputTypeDateTimeVariationPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX);
 
+        mMultilinePref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
         mCreateInputConnectionPref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX);
         mSendSelectionInfoPref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
         mSendTextPref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_SEND_TEXT_PREFIX);
-        mMultilinePref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
         mComposingTextBehaviorPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX);
     }
@@ -141,9 +141,10 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 removeTextFields();
                 removeNumberFields();
                 removeDateTimeFields();
+                preferenceScreen.addPreference(mMultilinePref);
                 preferenceScreen.addPreference(mCreateInputConnectionPref);
                 preferenceScreen.addPreference(mSendSelectionInfoPref);
-                preferenceScreen.addPreference(mMultilinePref);
+                preferenceScreen.addPreference(mSendTextPref);
                 preferenceScreen.addPreference(mComposingTextBehaviorPref);
                 break;
             case "TYPE_CLASS_PHONE":
@@ -180,9 +181,10 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     private void removeTypeNullFields() {
         PreferenceScreen preferenceScreen = getPreferenceScreen();
+        preferenceScreen.removePreference(mMultilinePref);
         preferenceScreen.removePreference(mCreateInputConnectionPref);
         preferenceScreen.removePreference(mSendSelectionInfoPref);
-        preferenceScreen.removePreference(mMultilinePref);
+        preferenceScreen.removePreference(mSendTextPref);
         preferenceScreen.removePreference(mComposingTextBehaviorPref);
     }
 }

@@ -623,24 +623,24 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         CharSequence text = "";
         CharSequence hint = null;
         // (EW) the AOSP version had initialized this to EditorInfo.TYPE_NULL, but it really mostly
-        // had this value as the default value for the input type when setting the Editor's input
-        // type below. there was a check for handling EditorInfo.TYPE_NULL differently (just set to
-        // EditorInfo.TYPE_CLASS_TEXT, not including the cases for other deprecated attributes not
-        // supported here), and due to the deprecated singleLine attribute defaulting to false,
-        // these would also become multiline. this made explicitly setting inputType="none" in the
-        // xml to not actually apply the value that flag is set to (EditorInfo.TYPE_NULL), forcing
-        // the app to call #setInputType to be able to actually force the EditText to use that input
-        // type. that flag is documented to mean that the text is not editable, but that simply
-        // isn't true, both in the sense that the value in the xml is simply disregarded and in that
-        // the value it's set to represent does allow the field to be editable. based on the code,
-        // this behavior seems to have been like this since InputType was added, but that seems
-        // inappropriate, so we're just changing the initial value so that if nothing is specified,
-        // it will work the same, but also allowing setting the value from xml to actually work.
-        // there was a comment saying that if no input type was specified, it would default to
-        // generic text, since it couldn't tell the IME about the set of digits that was selected. I
-        // don't fully understand that comment to know how important that is, but I don't think it's
-        // a big deal, so we'll still allow explicitly setting the input type to
-        // EditorInfo.TYPE_NULL in case there is any value to do so.
+        // had this value (multiline text) as the default value for the input type when setting the
+        // Editor's input type below. there was a check for handling EditorInfo.TYPE_NULL
+        // differently (just set to EditorInfo.TYPE_CLASS_TEXT, not including the cases for other
+        // deprecated attributes not supported here), and due to the deprecated singleLine attribute
+        // defaulting to false, these would also become multiline. this made explicitly setting
+        // inputType="none" in the xml to not actually apply the value that flag is set to
+        // (EditorInfo.TYPE_NULL), forcing the app to call #setInputType to be able to actually
+        // force the EditText to use that input type. that flag is documented to mean that the text
+        // is not editable, but that simply isn't true, both in the sense that the value in the xml
+        // is simply disregarded and in that the value it's set to represent does allow the field to
+        // be editable. based on the code, this behavior seems to have been like this since
+        // InputType was added, but that seems inappropriate, so we're just changing the initial
+        // value so that if nothing is specified, it will work the same, but also allowing setting
+        // the value from xml to actually work. there was a comment saying that if no input type was
+        // specified, it would default to generic text since it couldn't tell the IME about the set
+        // of digits that was selected. I don't fully understand that comment to know how important
+        // that is, but I don't think it's a big deal, so we'll still allow explicitly setting the
+        // input type to EditorInfo.TYPE_NULL in case there is any value to do so.
         // see https://stackoverflow.com/q/10200950 for others having issue with not being able to
         // set this value from xml, although they seem to want it to make the field not editable
         // (which they may not recognize is still editable, just without the soft keyboard
@@ -2569,14 +2569,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         KeyListener listener = mEditor.mKeyListener;
         if (listener instanceof DigitsKeyListener) {
             // (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
-            // that returns a DigitsKeyListener based on the settings of a existing
+            // that returns a DigitsKeyListener based on the settings of an existing
             // DigitsKeyListener, with the locale modified. DigitsKeyListener doesn't seem to have
             // any way to check the sign or decimal (internal settings set in the constructor), and
             // since the listener could come from setKeyListener, we can't really even track it
             // ourself. also, that is a restricted API (warning logged specifies "dark greylist"),
             // so we can't even call it with reflection. our best option seems to be creating our
-            // own custom child DigitsKeyListener when we create one internally so we can at least
-            // manage updating the locale for those. this can still miss things passed to
+            // own custom child of DigitsKeyListener when we create one internally so we can at
+            // least manage updating the locale for those. this can still miss things passed to
             // setKeyListener, but our custom class could be used if the caller cares about this
             // functionality.
             if (listener instanceof LocaleDigitsKeyListener) {
@@ -2584,8 +2584,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                         (LocaleDigitsKeyListener) listener);
             } else {
                 //TODO: (EW) if DigitsKeyListener ever changes to make that method available or
-                // allows checking the locale and the signed and decimal flags, this should be
-                // updated to match functionality of AOSP more completely.
+                // allows checking the locale and the sign and decimal flags, this should be updated
+                // to match functionality of AOSP more completely.
                 return;
             }
         } else if (listener instanceof DateKeyListener) {
@@ -6251,11 +6251,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // out that the soft keyboard would not be displayed for the text view), but if the keyboard
         // was already open for another field and focus changed to the field, it could be used to
         // enter text. also, the cursor wasn't shown and tapping in the field wouldn't move the
-        // invisible cursor, but key events could be used to move the invisible cursor. since
-        // EditorInfo.TYPE_NULL is a valid input type for an editable text field, and we fixed this
-        // weird behavior to function normally, like other input types, we don't need the check
-        // here. this should always be considered an text editor. the only time this shouldn't be
-        // editable is if the field is disabled, but that's a separate check.
+        // invisible cursor, but key events could be used to move the invisible cursor. EditorInfo
+        // documents TYPE_NULL as indicating that the input connection isn't rich (doesn't support
+        // things like composing text and retrieving text). since EditorInfo.TYPE_NULL is a valid
+        // input type for an editable text field, and we fixed this weird behavior to function
+        // normally, like other input types, we don't need the check here. this should always be
+        // considered a text editor. the only time this shouldn't be editable is if the field is
+        // disabled, but that's a separate check.
         return true;
     }
 
@@ -6280,7 +6282,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // if the current IME doesn't request it. this seems inappropriate, and especially for
             // testing, which can change whether an InputConnection is even created (without the
             // InputConnection, we can't get notified of the request), so this could leak previous
-            // functionality, messing up what is trying to be tested, so we'll clear it here.
+            // functionality, messing up what is trying to be tested, so we need to clear it here.
             mEditor.mInputMethodState.mExtractedTextRequest = null;
 
             outAttrs.inputType = getInputType();
@@ -6358,12 +6360,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             }
             // (EW) this isn't very clear, but the normal TextUtils.CAP_MODE_* values that get sent
             // to this method are actually set to the value of InputType.TYPE_TEXT_FLAG_CAP_*, so
-            // this is just getting the value baked into the input type.
+            // this is just getting the value that's embedded in the input type.
             outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
             // (EW) don't send any text unless we're creating an InputConnection because without it
-            // the IME can't get any text, so it would be weird to give it this.
+            // the IME can't get any text by manually requesting it, so it would be weird to give it
+            // this.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                    && mSettings.shouldCreateInputConnection()) {
+                    && mSettings.shouldCreateInputConnection() && mSettings.shouldSendText()) {
                 outAttrs.setInitialSurroundingText(mText);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -6404,6 +6407,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (!mSettings.shouldSendSelectionInfo()) {
             // (EW) skipping extracting text due to the input type not sending any selection
             // position info since this would include that
+            return false;
+        }
+        if (!mSettings.shouldSendText()) {
             return false;
         }
         return mEditor.extractText(request, outText);
