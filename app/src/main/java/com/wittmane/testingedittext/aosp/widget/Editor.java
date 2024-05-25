@@ -1745,12 +1745,12 @@ class Editor {
         }
         ims.mContentChanged = false;
         ims.mSelectionModeChanged = false;
-        if (!mEditText.mSettings.shouldSendSelectionInfo()) {
+        if (!mEditText.getSettings().shouldSendSelectionInfo()) {
             // (EW) skipping extracting text due to the input type not sending any selection
             // position info since this would include that
             return false;
         }
-        if (!mEditText.mSettings.shouldSendText()) {
+        if (!mEditText.getSettings().shouldSendText()) {
             return false;
         }
         final ExtractedTextRequest req = ims.mExtractedTextRequest;
@@ -1821,7 +1821,7 @@ class Editor {
     }
 
     private void sendUpdateSelection() {
-        if (!mEditText.mSettings.shouldSendSelectionInfo()) {
+        if (!mEditText.getSettings().shouldSendSelectionInfo()) {
             // (EW) skipping sending a selection update due to the input type set to not send any
             // selection position info
             return;

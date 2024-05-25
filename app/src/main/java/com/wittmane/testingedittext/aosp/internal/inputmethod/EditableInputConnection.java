@@ -1751,7 +1751,10 @@ public class EditableInputConnection implements InputConnection {
             if (LOG_CALLS) {
                 Log.d(TAG, "setComposingRegion: skipping due to lack of support");
             }
-            return false;
+            // false returned to the IME indicates that the input connection is no longer valid, so
+            // we'll just return true (even though the system doesn't actually directly send this
+            // value to the IME)
+            return true;
         }
 
         final Editable content = getEditable();

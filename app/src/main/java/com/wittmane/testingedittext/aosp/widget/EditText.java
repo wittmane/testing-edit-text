@@ -527,6 +527,51 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Retention(RetentionPolicy.SOURCE)
     private @interface ViewStructureType {}
 
+    @NonNull
+    private EditorSettings mSettings = new DefaultEditorSettings();
+
+    private class DefaultEditorSettings implements EditorSettings {
+        @Override
+        public boolean nullInputTypeMultiline() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
+        }
+
+        @Override
+        public boolean shouldCreateInputConnection() {
+            return com.wittmane.testingedittext.settings.Settings.defaultCreateInputConnection(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public boolean shouldSendSelectionInfo() {
+            return com.wittmane.testingedittext.settings.Settings.defaultSendSelectionInfo(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public boolean shouldSendText() {
+            return com.wittmane.testingedittext.settings.Settings.defaultSendText(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public int composingTextBehavior() {
+            return com.wittmane.testingedittext.settings.Settings.defaultComposingTextBehavior(
+                    mEditor.mInputType);
+        }
+    }
+
+    // (EW) allow specifying additional settings not present in the AOSP version that are really
+    // only meant as behavior that an IME will need to gracefully deal with that mostly should be
+    // invisible to a normal user using the field.
+    public void setSettings(EditorSettings settings) {
+        mSettings = settings == null ? new DefaultEditorSettings() : settings;
+    }
+
+    public EditorSettings getSettings() {
+        return mSettings;
+    }
+
     public EditText(Context context) {
         this(context, null);
     }
@@ -634,13 +679,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         // is not editable, but that simply isn't true, both in the sense that the value in the xml
         // is simply disregarded and in that the value it's set to represent does allow the field to
         // be editable. based on the code, this behavior seems to have been like this since
-        // InputType was added, but that seems inappropriate, so we're just changing the initial
-        // value so that if nothing is specified, it will work the same, but also allowing setting
-        // the value from xml to actually work. there was a comment saying that if no input type was
-        // specified, it would default to generic text since it couldn't tell the IME about the set
-        // of digits that was selected. I don't fully understand that comment to know how important
-        // that is, but I don't think it's a big deal, so we'll still allow explicitly setting the
-        // input type to EditorInfo.TYPE_NULL in case there is any value to do so.
+        // InputType was added (Cupcake), but that seems inappropriate, so we're just changing the
+        // initial value so that if nothing is specified, it will work the same, but also allowing
+        // setting the value from xml to actually work. there was a comment saying that if no input
+        // type was specified, it would default to generic text since it couldn't tell the IME about
+        // the set of digits that was selected. I don't fully understand that comment to know how
+        // important that is, but I don't think it's a big deal, so we'll still allow explicitly
+        // setting the input type to EditorInfo.TYPE_NULL in case there is any value to do so.
         // see https://stackoverflow.com/q/10200950 for others having issue with not being able to
         // set this value from xml, although they seem to want it to make the field not editable
         // (which they may not recognize is still editable, just without the soft keyboard
@@ -957,8 +1002,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_NONE;
         }
 
-        // (EW) the AOSP version had handling for different attributes that are deprecated and we
-        // don't support, and it had some special handling around EditorInfo.TYPE_CLASS_TEXT for a
+        // (EW) the AOSP version had handling for different attributes that we don't support due to
+        // being deprecated, and it had some special handling around EditorInfo.TYPE_NULL for a
         // somewhat convoluted management of the default input type (and restricting that from
         // actually being set here). see the comment where inputType is defined for more info.
         if (digits != null) {
@@ -1126,51 +1171,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         if (lineHeight >= 0) {
             setLineHeight(lineHeight);
         }
-    }
-
-    @NonNull
-    EditorSettings mSettings = new DefaultEditorSettings();
-
-    private class DefaultEditorSettings implements EditorSettings {
-        @Override
-        public boolean nullInputTypeMultiline() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
-        }
-
-        @Override
-        public boolean shouldCreateInputConnection() {
-            return com.wittmane.testingedittext.settings.Settings.defaultCreateInputConnection(
-                    mEditor.mInputType);
-        }
-
-        @Override
-        public boolean shouldSendSelectionInfo() {
-            return com.wittmane.testingedittext.settings.Settings.defaultSendSelectionInfo(
-                    mEditor.mInputType);
-        }
-
-        @Override
-        public boolean shouldSendText() {
-            return com.wittmane.testingedittext.settings.Settings.defaultSendText(
-                    mEditor.mInputType);
-        }
-
-        @Override
-        public int composingTextBehavior() {
-            return com.wittmane.testingedittext.settings.Settings.defaultComposingTextBehavior(
-                    mEditor.mInputType);
-        }
-    }
-
-    // (EW) allow specifying additional settings not present in the AOSP version that are really
-    // only meant as behavior that an IME will need to gracefully deal with that mostly should be
-    // invisible to a normal user using the field.
-    public void setSettings(EditorSettings settings) {
-        mSettings = settings == null ? new DefaultEditorSettings() : settings;
-    }
-
-    public EditorSettings getSettings() {
-        return mSettings;
     }
 
     private void setTextInternal(@NonNull CharSequence text) {
