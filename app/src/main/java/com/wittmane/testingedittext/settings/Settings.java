@@ -1374,9 +1374,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mSendText;
     }
 
-    public static int COMPOSING_TEXT_BEHAVIOR_IGNORE = 0;
-    public static int COMPOSING_TEXT_BEHAVIOR_COMMIT = 1;
-    public static int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 2;
+    public static final int COMPOSING_TEXT_BEHAVIOR_IGNORE = 0;
+    public static final int COMPOSING_TEXT_BEHAVIOR_COMMIT = 1;
+    public static final int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 2;
 
     public static int defaultComposingTextBehavior(int inputType) {
         return inputType != EditorInfo.TYPE_NULL

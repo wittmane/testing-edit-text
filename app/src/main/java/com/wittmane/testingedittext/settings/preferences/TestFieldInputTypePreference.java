@@ -66,13 +66,42 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
 
     @Override
     protected void updateSummary() {
-        setSummary(getInputTypeDescription(Settings.getTestFieldInputType(getFieldIndex()),
-                getContext()));
+        setSummary(getInputTypeDescription(getFieldIndex(), getContext()));
     }
 
-    public static String getInputTypeDescription(int inputType, Context context) {
+    public static String getInputTypeDescription(int fieldIndex, Context context) {
+        int inputType = Settings.getTestFieldInputType(fieldIndex);
+
         if (inputType == InputType.TYPE_NULL) {
-            return context.getString(R.string.input_type_null);
+            List<String> extraDetails = new ArrayList<>();
+            if (Settings.getTestFieldNullInputTypeMultiline(fieldIndex)) {
+                extraDetails.add(context.getString(
+                        R.string.input_type_text_flag_multi_line));
+            }
+            if (Settings.getTestFieldSendSelectionInfo(fieldIndex)) {
+                extraDetails.add(context.getString(
+                        R.string.send_selection_info_title));
+            }
+            if (Settings.getTestFieldCreateInputConnection(fieldIndex)) {
+                extraDetails.add(context.getString(
+                        R.string.create_input_connection_title));
+                if (Settings.getTestFieldSendText(fieldIndex)) {
+                    extraDetails.add(context.getString(
+                            R.string.send_text_title));
+                }
+                switch (Settings.getTestFieldComposingTextBehavior(fieldIndex)) {
+                    case Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE:
+                        extraDetails.add(context.getString(
+                                R.string.composing_text_behavior_compose));
+                        break;
+                    case Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT:
+                        extraDetails.add(context.getString(
+                                R.string.composing_text_behavior_commit));
+                        break;
+                }
+            }
+            return getDescription(context.getString(R.string.input_type_null), extraDetails,
+                    context);
         }
 
         int inputTypeClass = inputType & InputType.TYPE_MASK_CLASS;
