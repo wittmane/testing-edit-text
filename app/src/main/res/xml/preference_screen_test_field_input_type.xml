@@ -97,4 +97,9 @@
         android:entries="@array/composing_text_behaviors"
         android:entryValues="@array/composing_text_behavior_values"/>
 
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_test_field_allow_delete_surrounding_text_"
+        android:title="@string/allow_delete_surrounding_text_title"
+        android:summary="@string/allow_delete_surrounding_text_summary" />
+
 </PreferenceScreen>

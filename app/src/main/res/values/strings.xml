@@ -254,6 +254,9 @@
     <string name="composing_text_behavior_commit">Commit</string>
     <string name="composing_text_behavior_compose">Compose</string>
 
+    <string name="allow_delete_surrounding_text_title">Allow deleting text around the selection</string>
+    <string name="allow_delete_surrounding_text_summary">Support InputConnection\'s deleteSurroundingText and deleteSurroundingTextInCodePoints methods, rather than only allowing deleting from the key event. Documentation for InputType#TYPE_NULL doesn\'t specifically call it out either way. Although the framework EditText doesn\'t support it, support can be added.</string>
+
     <string name="ime_options">IME options</string>
     <string name="ime_options_action">Action</string>
     <string name="ime_options_action_unspecified">Unspecified</string>

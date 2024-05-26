@@ -99,6 +99,10 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
                                 R.string.composing_text_behavior_commit));
                         break;
                 }
+                if (Settings.getTestFieldAllowDeleteSurroundingText(fieldIndex)) {
+                    extraDetails.add(context.getString(
+                            R.string.allow_delete_surrounding_text_title));
+                }
             }
             return getDescription(context.getString(R.string.input_type_null), extraDetails,
                     context);

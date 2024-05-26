@@ -559,6 +559,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             return com.wittmane.testingedittext.settings.Settings.defaultComposingTextBehavior(
                     mEditor.mInputType);
         }
+
+        @Override
+        public boolean allowDeleteSurroundingText() {
+            return com.wittmane.testingedittext.settings.Settings.defaultAllowDeleteSurroundingText(
+                    mEditor.mInputType);
+        }
     }
 
     // (EW) allow specifying additional settings not present in the AOSP version that are really

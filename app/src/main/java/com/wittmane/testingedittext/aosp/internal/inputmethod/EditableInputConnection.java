@@ -615,6 +615,15 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "deleteSurroundingText: beforeLength=" + beforeLength
                     + ", afterLength=" + afterLength);
         }
+
+        if (!mEditText.getSettings().allowDeleteSurroundingText()) {
+            // (EW) documentation for this sounds like the editor would control the return value
+            // sent to the IME, but that doesn't seem to happen, so this return value doesn't really
+            // matter. false probably makes more sense based on documentation, but setting to true
+            // since that's what the IME actually receives.
+            return true;
+        }
+
         final Editable content = getEditable();
 
         beginBatchEdit();
@@ -815,6 +824,14 @@ public class EditableInputConnection implements InputConnection {
                         "boolean android.view.inputmethod.InputConnection.deleteSurroundingTextInCodePoints(int, int)");
             }
             Log.e(TAG, "couldn't fake not implementing deleteSurroundingTextInCodePoints");
+        }
+
+        if (!mEditText.getSettings().allowDeleteSurroundingText()) {
+            // (EW) documentation for this sounds like the editor would control the return value
+            // sent to the IME, but that doesn't seem to happen, so this return value doesn't really
+            // matter. false probably makes more sense based on documentation, but setting to true
+            // since that's what the IME actually receives.
+            return true;
         }
 
         final Editable content = getEditable();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import android.view.View.OnLongClickListener;
 import android.widget.TextView;
 
 public class LongTextSwitchPreference extends SwitchPreference {
+    private static final String TAG = LongTextSwitchPreference.class.getSimpleName();
 
     public LongTextSwitchPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -63,35 +64,41 @@ public class LongTextSwitchPreference extends SwitchPreference {
                 @Override
                 public void run() {
                     Layout layout = summaryTextView.getLayout();
-                    if (layout == null) {
-                        // can't tell if the text is cut off
-                        return;
-                    }
-                    if (layout.getLineCount() < summaryTextView.getMaxLines()) {
-                        // text isn't cut off
-                        return;
-                    }
 
-                    OnLongClickListener longClickListener = new OnLongClickListener() {
-                        @Override
-                        public boolean onLongClick(View v) {
-                            // Create the object of AlertDialog Builder class
-                            AlertDialog dialog = new AlertDialog.Builder(getContext())
-                                    .setTitle(getTitle())
-                                    .setMessage(getDisplayedSummary())
-                                    .setPositiveButton(android.R.string.ok,
-                                            new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialog,
-                                                                    int which) {
-                                                }
-                                            })
-                                    .create();
-                            dialog.show();
+                    OnLongClickListener longClickListener;
+                    if (layout != null && ((layout.getLineCount() == summaryTextView.getMaxLines()
+                            && layout.getEllipsisCount(layout.getLineCount() - 1) > 0)
+                            || layout.getLineCount() > summaryTextView.getMaxLines())) {
+                        // the text is cut off, so we need a long click to be able to show the full
+                        // text
+                        longClickListener = new OnLongClickListener() {
+                            @Override
+                            public boolean onLongClick(View v) {
+                                // Create the object of AlertDialog Builder class
+                                AlertDialog dialog = new AlertDialog.Builder(getContext())
+                                        .setTitle(getTitle())
+                                        .setMessage(getDisplayedSummary())
+                                        .setPositiveButton(android.R.string.ok,
+                                                new DialogInterface.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(DialogInterface dialog,
+                                                                        int which) {
+                                                    }
+                                                })
+                                        .create();
+                                dialog.show();
 
-                            return true;
-                        }
-                    };
+                                return true;
+                            }
+                        };
+                    } else {
+                        // the text isn't cut off (or we don't have any indication that it is), so
+                        // we don't need a long click handler, but we need to explicitly clear it
+                        // because the system seems to reuse the UI content, which could leak an old
+                        // long click listener from some other preference that is out of view
+                        // otherwise
+                        longClickListener = null;
+                    }
                     summaryTextView.setOnLongClickListener(longClickListener);
 
                     // adding a long click listener seems to block the single click on the text from

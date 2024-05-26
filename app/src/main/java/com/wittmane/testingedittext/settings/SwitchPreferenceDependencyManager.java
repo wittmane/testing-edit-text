@@ -22,6 +22,8 @@ import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
 
 public class SwitchPreferenceDependencyManager implements OnPreferenceChangeListener {
+    private static final String TAG = SwitchPreferenceDependencyManager.class.getSimpleName();
+
     public interface OnPreferencesChangedListener {
         void onPreferencesChanged(boolean[] prefsChecked);
     }

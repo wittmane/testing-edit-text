@@ -124,6 +124,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_test_field_send_text_";
     public static final String PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX =
             "pref_key_test_field_composing_text_behavior_";
+    public static final String PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
+            "pref_key_test_field_allow_delete_surrounding_text_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
             "pref_key_test_field_ime_options_action_";
     public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
@@ -312,6 +314,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 //PREF_TEST_FIELD_SEND_TEXT_PREFIX,
                 //PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                //PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -508,6 +511,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
             case PREF_TEST_FIELD_SEND_TEXT_PREFIX:
             case PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+            case PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
                 testField.mNullInputTypeMultiline =
                         readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
@@ -520,6 +524,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 testField.mComposingTextBehavior =
                         readTestFieldComposingTextBehavior(mPrefs, fieldId, testField.mInputType,
                                 testField.mCreateInputConnection);
+                testField.mAllowDeleteSurroundingText =
+                        readTestFieldAllowDeleteSurroundingText(mPrefs, fieldId,
+                                testField.mInputType, testField.mCreateInputConnection);
                 break;
             case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
             case PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
@@ -1094,6 +1101,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
                 PREF_TEST_FIELD_SEND_TEXT_PREFIX,
                 PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -1415,6 +1423,31 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mComposingTextBehavior;
     }
 
+    public static boolean defaultAllowDeleteSurroundingText(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL;
+    }
+
+    private static boolean readTestFieldAllowDeleteSurroundingText(
+            final SharedPreferenceManager prefs, int fieldId, int inputType,
+            boolean createInputConnection) {
+        // composition is only possible if an input connection is created
+        if (!createInputConnection) {
+            return false;
+        }
+        // this setting only applies to null input types since as far as I can tell, the others are
+        // expected to support all of the rich editing specified in documentation for
+        // InputConnection (that isn't noted as being optional)
+        if (inputType != EditorInfo.TYPE_NULL) {
+            return defaultAllowDeleteSurroundingText(inputType);
+        }
+        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + fieldId,
+                defaultAllowDeleteSurroundingText(inputType));
+    }
+
+    public static boolean getTestFieldAllowDeleteSurroundingText(int fieldIndex) {
+        return getInstance().mTestFields.get(fieldIndex).mAllowDeleteSurroundingText;
+    }
+
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
         String imeOptionsAction = prefs.getString(
                 PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX + fieldId,
@@ -1591,6 +1624,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private boolean mSendSelectionInfo;
         private boolean mSendText;
         private int mComposingTextBehavior;
+        private boolean mAllowDeleteSurroundingText;
         private int mImeOptions;
         private int mImeActionId;
         private String mImeActionLabel;
@@ -1618,6 +1652,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         boolean shouldSendSelectionInfo();
         boolean shouldSendText();
         int composingTextBehavior();
+        boolean allowDeleteSurroundingText();
     }
 
     public static class FieldPrefEditorSettings implements EditorSettings {
@@ -1650,6 +1685,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         @Override
         public int composingTextBehavior() {
             return Settings.getTestFieldComposingTextBehavior(mIndex);
+        }
+
+        @Override
+        public boolean allowDeleteSurroundingText() {
+            return Settings.getTestFieldAllowDeleteSurroundingText(mIndex);
         }
     }
 }
