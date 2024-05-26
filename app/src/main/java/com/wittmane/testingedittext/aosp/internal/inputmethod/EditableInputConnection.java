@@ -1019,6 +1019,11 @@ public class EditableInputConnection implements InputConnection {
         delay(Settings.getGetTextBeforeCursorDelay());
 
         if (!mEditText.getSettings().shouldSendText()) {
+            // (EW) the system sends back an empty string when the editor doesn't create an input
+            // connection, presumably because sending back null would indicate that the input
+            // connection is no longer valid, and although the input connection from the editor
+            // doesn't even exist, the asymmetrical one given to the IME is still valid, so null
+            // probably wouldn't be appropriate
             Log.d(TAG, "getTextBeforeCursor: returning nothing due to lack of support");
             return "";
         }
@@ -1152,6 +1157,11 @@ public class EditableInputConnection implements InputConnection {
         delay(Settings.getGetTextAfterCursorDelay());
 
         if (!mEditText.getSettings().shouldSendText()) {
+            // (EW) the system sends back an empty string when the editor doesn't create an input
+            // connection, presumably because sending back null would indicate that the input
+            // connection is no longer valid, and although the input connection from the editor
+            // doesn't even exist, the asymmetrical one given to the IME is still valid, so null
+            // probably wouldn't be appropriate
             Log.d(TAG, "getTextAfterCursor: returning nothing due to lack of support");
             return "";
         }
@@ -1530,7 +1540,10 @@ public class EditableInputConnection implements InputConnection {
             if (LOG_CALLS) {
                 Log.d(TAG, "setComposingText: skipping due to lack of support");
             }
-            return false;
+            // (EW) false returned to the IME indicates that the input connection is no longer
+            // valid, so we'll just return true (even though the system doesn't actually directly
+            // send this value to the IME)
+            return true;
         }
         if (composingTextBehavior == COMPOSING_TEXT_BEHAVIOR_COMMIT) {
             if (LOG_CALLS) {
@@ -1744,6 +1757,9 @@ public class EditableInputConnection implements InputConnection {
                 throw new AbstractMethodError(
                         "boolean android.view.inputmethod.InputConnection.setComposingRegion(int, int)");
             }
+            //TODO: (EW) it might be useful to show a toast to point out that what is being
+            // attempted to be tested isn't working rather than rely on the dev to be looking at
+            // these logs
             Log.e(TAG, "couldn't fake not implementing setComposingRegion");
         }
 
@@ -1751,10 +1767,14 @@ public class EditableInputConnection implements InputConnection {
             if (LOG_CALLS) {
                 Log.d(TAG, "setComposingRegion: skipping due to lack of support");
             }
-            // false returned to the IME indicates that the input connection is no longer valid, so
-            // we'll just return true (even though the system doesn't actually directly send this
-            // value to the IME)
-            return true;
+            // (EW) prior to Tiramisu, when an editor doesn't support this, the system returns false
+            // to the IME, but starting in Tiramisu, the system will only return false to indicate
+            // that the input connection is no longer valid. regardless of the version, the return
+            // value sent here is never actually sent to the IME, so this doesn't really matter, but
+            // in case there is some case that it does go through that I missed or something
+            // changes in the future, we'll have this return false prior to Tiramisu and true from
+            // then on to match what the return value is meant to indicate.
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
         }
 
         final Editable content = getEditable();
