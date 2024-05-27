@@ -47,6 +47,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     private SwitchPreference mSendTextPref;
     private ListPreference mComposingTextBehaviorPref;
     private SwitchPreference mAllowDeleteSurroundingTextPref;
+    private SwitchPreference mAllowSettingSelectionPref;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -88,6 +89,8 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 Settings.PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX);
         mAllowDeleteSurroundingTextPref = (SwitchPreference)findPreference(
                 Settings.PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX);
+        mAllowSettingSelectionPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX);
     }
 
     @Override
@@ -101,7 +104,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             }
         });
         new SwitchPreferenceDependencyManager(new SwitchPreference[]{
-                mCreateInputConnectionPref, mAllowDeleteSurroundingTextPref
+                mCreateInputConnectionPref
         }, new SwitchPreferenceDependencyManager.OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefValues) {
@@ -109,6 +112,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 mSendTextPref.setEnabled(createInputConnection);
                 mComposingTextBehaviorPref.setEnabled(createInputConnection);
                 mAllowDeleteSurroundingTextPref.setEnabled(createInputConnection);
+                mAllowSettingSelectionPref.setEnabled(createInputConnection);
             }
         });
     }
@@ -151,6 +155,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
                 preferenceScreen.addPreference(mSendTextPref);
                 preferenceScreen.addPreference(mComposingTextBehaviorPref);
                 preferenceScreen.addPreference(mAllowDeleteSurroundingTextPref);
+                preferenceScreen.addPreference(mAllowSettingSelectionPref);
                 break;
             case "TYPE_CLASS_PHONE":
             default:
@@ -192,5 +197,6 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
         preferenceScreen.removePreference(mSendTextPref);
         preferenceScreen.removePreference(mComposingTextBehaviorPref);
         preferenceScreen.removePreference(mAllowDeleteSurroundingTextPref);
+        preferenceScreen.removePreference(mAllowSettingSelectionPref);
     }
 }

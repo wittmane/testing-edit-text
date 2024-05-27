@@ -103,6 +103,9 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
                     extraDetails.add(context.getString(
                             R.string.allow_delete_surrounding_text_title));
                 }
+                if (Settings.getTestFieldAllowSettingSelection(fieldIndex)) {
+                    extraDetails.add(context.getString(R.string.allow_setting_selection_title));
+                }
             }
             return getDescription(context.getString(R.string.input_type_null), extraDetails,
                     context);

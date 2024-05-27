@@ -1857,6 +1857,11 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "setSelection: start=" + start + ", end=" + end);
         }
+        if (!mEditText.getSettings().allowSettingSelection()) {
+            // (EW) false indicates that the input connection is no longer valid, so we'll return
+            // true (not that this value is actually passed to the IME)
+            return true;
+        }
         final Editable content = getEditable();
         int length = content.length();
         if (start > length || end > length || start < 0 || end < 0) {

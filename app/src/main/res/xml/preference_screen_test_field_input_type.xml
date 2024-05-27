@@ -102,4 +102,9 @@
         android:title="@string/allow_delete_surrounding_text_title"
         android:summary="@string/allow_delete_surrounding_text_summary" />
 
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_test_field_allow_setting_selection_"
+        android:title="@string/allow_setting_selection_title"
+        android:summary="@string/allow_setting_selection_summary" />
+
 </PreferenceScreen>
