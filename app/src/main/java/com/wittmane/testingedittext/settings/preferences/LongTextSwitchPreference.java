@@ -22,6 +22,7 @@ import android.content.DialogInterface;
 import android.preference.SwitchPreference;
 import android.text.Layout;
 import android.text.TextUtils;
+import android.text.TextUtils.TruncateAt;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -60,6 +61,9 @@ public class LongTextSwitchPreference extends SwitchPreference {
 
         TextView summaryTextView = view.findViewById(android.R.id.summary);
         if (summaryTextView != null) {
+            // make sure the text shows an ellipsis for any overflow
+            summaryTextView.setEllipsize(TruncateAt.END);
+
             summaryTextView.post(new Runnable() {
                 @Override
                 public void run() {
