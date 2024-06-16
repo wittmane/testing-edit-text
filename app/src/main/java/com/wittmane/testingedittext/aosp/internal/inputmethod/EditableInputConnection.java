@@ -2138,21 +2138,33 @@ public class EditableInputConnection implements InputConnection {
         // desired range of text it will be located in the correct spot.
         // This allows us to deal with filters performing edits on the text
         // we are providing here.
+        int absoluteNewCursorPosition;
         if (newCursorPosition > 0) {
-            newCursorPosition += composingSpanEnd - 1;
+            absoluteNewCursorPosition = newCursorPosition + composingSpanEnd - 1;
         } else {
-            newCursorPosition += composingSpanStart;
+            absoluteNewCursorPosition = newCursorPosition + composingSpanStart;
         }
-        if (newCursorPosition < 0) newCursorPosition = 0;
-        if (newCursorPosition > content.length())
-            newCursorPosition = content.length();
-        Selection.setSelection(content, newCursorPosition);
+        if (absoluteNewCursorPosition < 0) {
+            absoluteNewCursorPosition = 0;
+        }
+        if (absoluteNewCursorPosition > content.length()) {
+            absoluteNewCursorPosition = content.length();
+        }
+        Selection.setSelection(content, absoluteNewCursorPosition);
 
-        //TODO: (EW) this seems to shift the cursor position if it was placed right before where the
-        // text is getting entered (newCursorPosition=0). this is also an issue in the AOSP, but we
-        // should fix it to allow appropriate behavior. should there be a setting or any sort of
-        // call out for this bug? also, check what versions the bug applies to. I found it on Pie.
         content.replace(composingSpanStart, composingSpanEnd, text);
+
+        // (EW) Editable#replace shifts the cursor forward with the new text if text is inserted at
+        // the cursor's position (no text is being replaced), so we need to set the selection again
+        // if we're trying to have the cursor at the beginning of the text. the AOSP version doesn't
+        // handle this issue, basically meaning that IMEs can't set newCursorPosition=0 when
+        // composing or committing text unless there is an existing composition or some text is
+        // selected.
+        //TODO: (EW) is there any value in having a setting for this (maybe just for the sake of
+        // adding visibility for this bug)?
+        if (newCursorPosition == 0 && composingSpanStart == composingSpanEnd) {
+            Selection.setSelection(content, absoluteNewCursorPosition);
+        }
 
         if (DEBUG) {
             LogPrinter lp = new LogPrinter(Log.VERBOSE, TAG);
