@@ -59,6 +59,7 @@ import android.icu.text.DecimalFormatSymbols;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -137,6 +138,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputContentInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
@@ -6280,6 +6282,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        // (EW) note that The IME doesn't actually directly interact with the InputConnection that
+        // is returned here. this is called by InputMethodManager#startInputInner, which will create
+        // a new wrapper for the result or track null if this returns null for the InputConnection,
+        // and then that's passed that to
+        // com.android.internal.view.IInputMethodManager#startInputOrWindowGainedFocus as the
+        // com.android.internal.view.IInputContext, which is presumably what somehow passes that
+        // value to android.inputmethodservice.IInputMethodWrapper#executeMessage (DO_START_INPUT).
+        // that creates the normal wrapper (android.inputmethodservice.RemoteInputConnection, or
+        // com.android.internal.view.InputConnectionWrapper prior to Tiramisu) if we returned a
+        // non-null InputConnection, and that wrapper (or null) is passed to InputMethodService to
+        // start input and that seems to gets tracked as the started InputConnection.
+        // InputMethodService#getCurrentInputConnection (which the IME uses to interact with the
+        // editor) tries to return that wrapped InputConnection, but if that was null, it falls back
+        // to some alternate InputConnection that it seems to get from
+        // android.inputmethodservice.IInputMethodWrapper#executeMessage (DO_SET_INPUT_CONTEXT). I
+        // haven't been able to specifically trace where that comes from, but my best guess is that
+        // it comes from InputMethodManager creating a BaseInputConnection because the comment there
+        // seems to indicate it, and the functionality from that matches the behavior of the default
+        // handling for not creating an InputConnection.
+
         // (EW) the AOSP version skipped creating the InputConnection and setting any of the
         // EditorInfo values if the input type was TYPE_NULL. we have a setting to determine if the
         // InputConnection is created or if the selection info is sent, and the rest of the values
@@ -6389,24 +6411,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 return ic.createWrapperIfNecessary();
             }
         }
-        // (EW) note that The IME doesn't actually directly interact with the InputConnection that
-        // is returned here. instead, InputMethodService#getCurrentInputConnection returns some
-        // wrapper (android.inputmethodservice.RemoteInputConnection or
-        // com.android.internal.view.InputConnectionWrapper prior to Tiramisu) that the IME actually
-        // interacts with. InputMethodManager tracks the InputConnection returned here in some
-        // wrapper (com.android.internal.inputmethod.RemoteInputConnectionImpl or
-        // android.view.inputmethod.InputMethodManager.ControlledInputConnectionWrapper prior to
-        // Tiramisu), which is null if we return null here. InputMethodManager has a number of null
-        // checks for it to have different behavior, such as not bothering to try to finish the
-        // composition or send a selection update, and InputMethodManager#isAcceptingText checks it
-        // to determine if this view is accepting full text edits or if it can only handle raw key
-        // events (although I didn't hunt down what calls that to see how normally committed text
-        // converts to key events).
         mInputConnection = null;
         return null;
     }
 
-    @Nullable EditableInputConnection getInputConnection() {
+    @Nullable
+    EditableInputConnection getInputConnection() {
         return mInputConnection;
     }
 

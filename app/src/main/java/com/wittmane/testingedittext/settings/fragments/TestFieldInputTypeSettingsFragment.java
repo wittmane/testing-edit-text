@@ -28,6 +28,7 @@ import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 
 public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFragment {
 
+    private ListPreference mInputTypeClassPref;
     private ListPreference mInputTypeTextVariationPref;
     private ListPreference mInputTypeTextMultiLineFlagPref;
     private ListPreference mInputTypeTextCapFlagPref;
@@ -53,6 +54,9 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_test_field_input_type);
+
+        mInputTypeClassPref = (ListPreference)findPreference(
+                Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX);
 
         mInputTypeTextVariationPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX);
@@ -95,24 +99,39 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     @Override
     protected void registerPreferencesChangedListener(int fieldId) {
-        new ListPreferenceDependencyManager(new String[]{
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX + fieldId
-        }, this, new ListPreferenceDependencyManager.OnPreferencesChangedListener() {
+        new ListPreferenceDependencyManager(new ListPreference[]{
+                mInputTypeClassPref, mComposingTextBehaviorPref
+        }, new ListPreferenceDependencyManager.OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(CharSequence[] prefValues) {
-                updateInputTypeFields(prefValues[0]);
+                CharSequence inputTypeClass = prefValues[0];
+                CharSequence composingTextBehavior = prefValues[1];
+                updateInputTypeFields(inputTypeClass);
+                if (composingTextBehavior.equals("INVISIBLE") && mSendTextPref.isChecked()) {
+                    // (EW) if we're doing the odd handling for the invisible composition, it
+                    // probably doesn't make sense to send the real text in the field because we
+                    // wouldn't be able to report the invisible composition, so disable sending text
+                    mSendTextPref.setChecked(false);
+                }
             }
         });
         new SwitchPreferenceDependencyManager(new SwitchPreference[]{
-                mCreateInputConnectionPref
+                mCreateInputConnectionPref, mSendTextPref
         }, new SwitchPreferenceDependencyManager.OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefValues) {
                 boolean createInputConnection = prefValues[0];
+                boolean sendText = prefValues[1];
                 mSendTextPref.setEnabled(createInputConnection);
                 mComposingTextBehaviorPref.setEnabled(createInputConnection);
                 mAllowDeleteSurroundingTextPref.setEnabled(createInputConnection);
                 mAllowSettingSelectionPref.setEnabled(createInputConnection);
+                if (sendText && mComposingTextBehaviorPref.getValue().equals("INVISIBLE")) {
+                    // (EW) if we're sending the real text in the field, this odd handling for the
+                    // invisible composition probably doesn't make sense because we lose the ability
+                    // to report that text, so change it to a normal composition
+                    mComposingTextBehaviorPref.setValue("COMPOSE");
+                }
             }
         });
     }

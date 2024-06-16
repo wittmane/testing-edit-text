@@ -110,14 +110,16 @@
     </string-array>
 
     <string-array name="composing_text_behaviors" translatable="false">
-        <item>@string/composing_text_behavior_ignore</item>
-        <item>@string/composing_text_behavior_commit</item>
+        <item>@string/composing_text_behavior_invisible</item>
         <item>@string/composing_text_behavior_compose</item>
+        <item>@string/composing_text_behavior_commit</item>
+        <item>@string/composing_text_behavior_ignore</item>
     </string-array>
     <string-array name="composing_text_behavior_values" translatable="false">
-        <item>IGNORE</item>
-        <item>COMMIT</item>
+        <item>INVISIBLE</item>
         <item>COMPOSE</item>
+        <item>COMMIT</item>
+        <item>IGNORE</item>
     </string-array>
 
     <string-array name="ime_options_actions" translatable="false">

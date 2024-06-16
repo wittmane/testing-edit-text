@@ -47,6 +47,22 @@ public class ListPreferenceDependencyManager implements OnPreferenceChangeListen
         mListener.onPreferencesChanged(prefsValues);
     }
 
+    public ListPreferenceDependencyManager(ListPreference[] listPrefListenerPrefs,
+                                             OnPreferencesChangedListener listener) {
+        mPrefs = new ListPreference[listPrefListenerPrefs.length];
+        mListener = listener;
+        String[] prefsValue = new String[listPrefListenerPrefs.length];
+        for (int i = 0; i < listPrefListenerPrefs.length; i++) {
+            ListPreference pref = listPrefListenerPrefs[i];
+            mPrefs[i] = pref;
+            pref.setOnPreferenceChangeListener(this);
+            prefsValue[i] = pref.getValue();
+        }
+
+        // call right away so the initial state is correct
+        mListener.onPreferencesChanged(prefsValue);
+    }
+
     @Override
     public boolean onPreferenceChange(Preference changingPreference, Object newValue) {
         CharSequence[] prefsValues = new CharSequence[mPrefs.length];

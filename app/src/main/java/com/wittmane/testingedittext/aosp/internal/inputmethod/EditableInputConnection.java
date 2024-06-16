@@ -71,6 +71,7 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
 import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
 import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
+import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
 
 // (EW) this is a merge of EditableInputConnection and BaseInputConnection to be able to insert
 // custom behavior
@@ -95,6 +96,68 @@ public class EditableInputConnection implements InputConnection {
 
     protected final InputMethodManager mIMM;
     protected final @NonNull EditText mEditText;
+
+    // (EW) the AOSP version had a dummy mode flag (set to true when the full editor flag in the
+    // constructor false), which would be used to convert the text in the Editable to key events to
+    // send to the view and then clear the Editable when committing text, finishing the composition,
+    // or setting the composing region. this is used for the default InputConnection that the system
+    // uses when a view doesn't provide one, which isn't tied to the view, so it can't support
+    // anything advanced that needs to connect to the view's Editable since the InputConnection
+    // can't access it, and it may not even exist. it may also be intended to be used for
+    // non-editable views to still be able to throw key events at it in case it wants to do anything
+    // with that since BaseInputConnection's constructor argument is available to apps, but I'm not
+    // certain on the exact use case for that. we want to have the ability to mimic the
+    // functionality from an editor not providing an InputConnection (relying on the system provided
+    // default) while also expanding or tweaking functionality that seems reasonable for an editor
+    // to do. since we have access to the editor's Editable, we don't need to convert to key events,
+    // but we'll manage the composition buffer (for when we don't add a real (visible) composition)
+    // in the same way with an Editable to match AOSP code closer and reuse code for the normal
+    // functionality as much as possible (which seems to be the intention in the AOSP version).
+    //
+    // BaseInputConnection's dummy mode handling has some weird behavior that doesn't seem to me to
+    // be entirely intentional, but more of the natural result of reusing code with minimal extra
+    // handling (calling sendCurrentText in 3 places). we should try to support most of it the same,
+    // but we do support skipping creating our own InputConnection, so some of the things that are
+    // particularly weird (seem more like bugs) and don't seem very valuable for testing can be
+    // skipped, and the real fallback InputConnection can be used to test those things.
+    //
+    // one weird thing it does is how it manages the cursor position. setting the composing text
+    // respects the new cursor position, except that it doesn't have the context of the rest of the
+    // text in the field, so it only allows setting the cursor at the beginning or end of the
+    // composition. setting the selection also only works on the temporary Editable, which will only
+    // persist the composed text between calls, so that will only ever be able to move the cursor in
+    // (and based on) the composed text. since the text in the composition gets converted to key
+    // events when finishing the composition, the actual selection position is disregarded, which
+    // seemingly would make that selection position handing irrelevant, but when requesting text
+    // before, in, or after the selection, that cursor position will be used, which seems like a lie
+    // to the IME since that's not where the text is (it's not actually anywhere but the invisible
+    // buffer) or where it will end up once the composition finishes (it will always be before the
+    // cursor). rather than mimic that exactly, we'll make setting the selection position not mess
+    // with the invisible composition buffer at all, and we'll have the composition be added on the
+    // correct side of the cursor based on the new cursor position specified for the composition
+    // (still not supporting moving to be non-adjacent from the cursor) since we don't have to
+    // convert it to a key event, and this will allow the text returned as being before or after the
+    // cursor actually match where the composition will be placed once finished.
+    //
+    // somewhat related to that last point, it's a bit weird that it supports returning the text in
+    // the composition when it doesn't support returning the committed text in the field. based on
+    // how the cursor position is managed, this doesn't seem clear that it is intentional
+    // functionality. we could add an option to skip returning this text.
+    //
+    // another somewhat weird thing is how the invisible composition is maintained when moving the
+    // cursor position. for a normal InputConnection, the composition position is independent of the
+    // cursor position, so it somewhat makes sense to not drop the composition when moving the
+    // cursor or doing other actions like deleting text (BaseInputConnection's APIs don't do
+    // anything in dummy mode since it doesn't have access to the committed text and it
+    // intentionally skips the composition) or sending a key event to match the normal
+    // functionality. still, that seems potentially confusing to a user when the composition is
+    // invisible. at least for IMEs with a suggestions bar, they might at least be able to see the
+    // current composition there, but it's not obvious where the composition is. with a normal
+    // InputConnection, the composition would stay where it was entered, but with this, the
+    // composition just gets placed wherever the selection moves to. neither dropping the
+    // composition nor moving it invisibly seems perfect. we could add a setting for it, but at
+    // least for now, we'll just match AOSP functionality and move it invisibly.
+    private final Editable mInvisibleComposition;
 
     // (EW) from InputMethodManager
     private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
@@ -135,6 +198,9 @@ public class EditableInputConnection implements InputConnection {
         mIMM = (InputMethodManager)targetView.getContext().getSystemService(
                 Context.INPUT_METHOD_SERVICE);
         mEditText = targetView;
+
+        mInvisibleComposition = Editable.Factory.getInstance().newEditable("");
+        Selection.setSelection(mInvisibleComposition, 0);
     }
 
     public static void removeComposingSpans(Spannable text) {
@@ -397,8 +463,10 @@ public class EditableInputConnection implements InputConnection {
             text = modifyText(text);
         }
         replaceText(text, newCursorPosition, false);
-        // (EW) the AOSP version also called sendCurrentText, but that does nothing since
-        // mFallbackMode would be false for an EditText
+        // (EW) the AOSP version called sendCurrentText, which would convert the text to a key event
+        // to send if necessary and clear then clear the text buffer, so we just need to clear the
+        // invisible composition buffer
+        mInvisibleComposition.clear();
         return true;
     }
 
@@ -905,15 +973,36 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "finishComposingText");
         }
+        delay(Settings.getFinishComposingTextDelay());
+        finishComposingTextInternal();
+        return true;
+    }
+
+    private void finishComposingTextInternal() {
         final Editable content = getEditable();
         beginBatchEdit();
-        delay(Settings.getFinishComposingTextDelay());
         removeComposingSpans(content);
-        // (EW) the AOSP version also called sendCurrentText, but that does nothing since
-        // mFallbackMode would be false for an EditText
+
+        // (EW) the AOSP version called sendCurrentText, which would convert the text in the
+        // temporary buffer to a key event to send if necessary (only would contain the composition
+        // here) and then clear the text buffer, so we just need to add any text in the invisible
+        // composition buffer to the actual text field
+        if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE
+                && !TextUtils.isEmpty(mInvisibleComposition)) {
+            removeComposingSpans(mInvisibleComposition);
+            // (EW) place the cursor based on what was specified for the new cursor position when
+            // setting the composing text (which simplifies to just being directly before or
+            // directly after the composing text)
+            int newCursorPosition = (Selection.getSelectionStart(mInvisibleComposition) == 0
+                    && Selection.getSelectionEnd(mInvisibleComposition) == 0)
+                    ? 0
+                    : 1;
+            replaceText(mInvisibleComposition, newCursorPosition, false);
+        }
+        mInvisibleComposition.clear();
+
         endBatchEdit();
         endComposingRegionEditInternal();
-        return true;
     }
 
     /**
@@ -1035,7 +1124,10 @@ public class EditableInputConnection implements InputConnection {
 
         delay(Settings.getGetTextBeforeCursorDelay());
 
-        if (!mEditText.getSettings().shouldSendText()) {
+        CharSequence textBeforeCursor;
+        if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+            textBeforeCursor = getTextBeforeCursorInternal(length, flags, mInvisibleComposition);
+        } else if (!mEditText.getSettings().shouldSendText()) {
             // (EW) the system sends back an empty string when the editor doesn't create an input
             // connection, presumably because sending back null would indicate that the input
             // connection is no longer valid, and although the input connection from the editor
@@ -1043,9 +1135,10 @@ public class EditableInputConnection implements InputConnection {
             // probably wouldn't be appropriate
             Log.d(TAG, "getTextBeforeCursor: returning nothing due to lack of support");
             return "";
+        } else {
+            textBeforeCursor = getTextBeforeCursorInternal(length, flags, getEditable());
         }
 
-        CharSequence textBeforeCursor = getTextBeforeCursorInternal(length, flags);
         // (EW) check the setting to force returning less text than requested. BaseInputConnection
         // returns half of a surrogate pair, so we don't need any special handling to try to avoid
         // cutting off in the middle of one.
@@ -1064,9 +1157,9 @@ public class EditableInputConnection implements InputConnection {
     }
 
     @Nullable
-    private CharSequence getTextBeforeCursorInternal(@IntRange(from = 0) int length, int flags) {
-        final Editable content = getEditable();
-
+    private static CharSequence getTextBeforeCursorInternal(@IntRange(from = 0) int length,
+                                                            int flags,
+                                                            final Editable content) {
         int selectionStart = Selection.getSelectionStart(content);
         int selectionEnd = Selection.getSelectionEnd(content);
 
@@ -1123,12 +1216,16 @@ public class EditableInputConnection implements InputConnection {
 
         delay(Settings.getGetSelectedTextDelay());
 
-        if (!mEditText.getSettings().shouldSendText()) {
+        CharSequence selectedText;
+        if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+            selectedText = getSelectedTextInternal(flags, mInvisibleComposition);
+        } else if (!mEditText.getSettings().shouldSendText()) {
             Log.d(TAG, "getSelectedText: returning nothing due to lack of support");
             return null;
+        } else {
+            selectedText = getSelectedTextInternal(flags, getEditable());
         }
 
-        CharSequence selectedText = getSelectedTextInternal(flags);
         if (LOG_CALLS) {
             Log.d(TAG, "getSelectedText: return="
                     + (selectedText == null ? "null" : "\"" + selectedText + "\""));
@@ -1136,9 +1233,7 @@ public class EditableInputConnection implements InputConnection {
         return selectedText;
     }
 
-    private CharSequence getSelectedTextInternal(int flags) {
-        final Editable content = getEditable();
-
+    private static CharSequence getSelectedTextInternal(int flags, final Editable content) {
         int selectionStart = Selection.getSelectionStart(content);
         int selectionEnd = Selection.getSelectionEnd(content);
 
@@ -1173,7 +1268,10 @@ public class EditableInputConnection implements InputConnection {
 
         delay(Settings.getGetTextAfterCursorDelay());
 
-        if (!mEditText.getSettings().shouldSendText()) {
+        CharSequence textAfterCursor;
+        if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+            textAfterCursor = getTextAfterCursorInternal(length, flags, mInvisibleComposition);
+        } else if (!mEditText.getSettings().shouldSendText()) {
             // (EW) the system sends back an empty string when the editor doesn't create an input
             // connection, presumably because sending back null would indicate that the input
             // connection is no longer valid, and although the input connection from the editor
@@ -1181,9 +1279,10 @@ public class EditableInputConnection implements InputConnection {
             // probably wouldn't be appropriate
             Log.d(TAG, "getTextAfterCursor: returning nothing due to lack of support");
             return "";
+        } else {
+            textAfterCursor = getTextAfterCursorInternal(length, flags, getEditable());
         }
 
-        CharSequence textAfterCursor = getTextAfterCursorInternal(length, flags);
         // (EW) check the setting to force returning less text than requested. BaseInputConnection
         // returns half of a surrogate pair, so we don't need any special handling to try to avoid
         // cutting off in the middle of one.
@@ -1200,9 +1299,9 @@ public class EditableInputConnection implements InputConnection {
     }
 
     @Nullable
-    private CharSequence getTextAfterCursorInternal(@IntRange(from = 0) int length, int flags) {
-        final Editable content = getEditable();
-
+    private static CharSequence getTextAfterCursorInternal(@IntRange(from = 0) int length,
+                                                           int flags,
+                                                           final Editable content) {
         int selectionStart = Selection.getSelectionStart(content);
         int selectionEnd = Selection.getSelectionEnd(content);
 
@@ -1593,7 +1692,11 @@ public class EditableInputConnection implements InputConnection {
                 text = new SpannedString(text);
             }
         }
-        replaceText(text, newCursorPosition, true);
+        if (composingTextBehavior == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+            replaceText(text, newCursorPosition, true, mInvisibleComposition);
+        } else {
+            replaceText(text, newCursorPosition, true);
+        }
         return true;
     }
 
@@ -1780,6 +1883,15 @@ public class EditableInputConnection implements InputConnection {
             Log.e(TAG, "couldn't fake not implementing setComposingRegion");
         }
 
+        if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+            // (EW) the AOSP version called sendCurrentText at the end, which would convert the text
+            // in the (temporary) Editable to key events to send to the view and then clear the
+            // Editable when in dummy mode, which ultimately wouldn't result in a composing region
+            // being set, so we just need to finish the invisible composition to get its text added
+            // to the field.
+            finishComposingTextInternal();
+            return true;
+        }
         if (mEditText.getSettings().composingTextBehavior() != COMPOSING_TEXT_BEHAVIOR_COMPOSE) {
             if (LOG_CALLS) {
                 Log.d(TAG, "setComposingRegion: skipping due to lack of support");
@@ -1830,8 +1942,6 @@ public class EditableInputConnection implements InputConnection {
         content.setSpan(COMPOSING, composingStart, composingEnd,
                 getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
 
-        // (EW) the AOSP version also called sendCurrentText, but that does nothing since
-        // mFallbackMode would be false for an EditText
         endBatchEdit();
         endComposingRegionEditInternal();
         return true;
@@ -1944,10 +2054,12 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
-    private void replaceText(CharSequence text, int newCursorPosition,
-                             boolean composing) {
-        final Editable content = getEditable();
+    private void replaceText(CharSequence text, int newCursorPosition, boolean composing) {
+        replaceText(text, newCursorPosition, composing, getEditable());
+    }
 
+    private void replaceText(CharSequence text, int newCursorPosition, boolean composing,
+                             Editable content) {
         beginBatchEdit();
 
         // delete composing text set previously.
@@ -2036,6 +2148,10 @@ public class EditableInputConnection implements InputConnection {
             newCursorPosition = content.length();
         Selection.setSelection(content, newCursorPosition);
 
+        //TODO: (EW) this seems to shift the cursor position if it was placed right before where the
+        // text is getting entered (newCursorPosition=0). this is also an issue in the AOSP, but we
+        // should fix it to allow appropriate behavior. should there be a setting or any sort of
+        // call out for this bug? also, check what versions the bug applies to. I found it on Pie.
         content.replace(composingSpanStart, composingSpanEnd, text);
 
         if (DEBUG) {

@@ -1390,22 +1390,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestFields.get(fieldIndex).mSendText;
     }
 
-    public static final int COMPOSING_TEXT_BEHAVIOR_IGNORE = 0;
-    public static final int COMPOSING_TEXT_BEHAVIOR_COMMIT = 1;
-    public static final int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 2;
+    public static final int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
+    public static final int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 1;
+    public static final int COMPOSING_TEXT_BEHAVIOR_COMMIT = 2;
+    public static final int COMPOSING_TEXT_BEHAVIOR_IGNORE = 3;
 
     public static int defaultComposingTextBehavior(int inputType) {
         return inputType != EditorInfo.TYPE_NULL
                 ? COMPOSING_TEXT_BEHAVIOR_COMPOSE
-                : COMPOSING_TEXT_BEHAVIOR_IGNORE;
+                : COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
     }
 
     private static int readTestFieldComposingTextBehavior(final SharedPreferenceManager prefs,
                                                           int fieldId, int inputType,
                                                           boolean createInputConnection) {
-        // composition is only possible if an input connection is created
+        // composition (or custom management) is only possible if an input connection is created
         if (!createInputConnection) {
-            return COMPOSING_TEXT_BEHAVIOR_IGNORE;
+            return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
         }
         // this setting only applies to null input types since as far as I can tell, the others are
         // expected to support all of the rich editing specified in documentation for
@@ -1416,6 +1417,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         String behavior =
                 prefs.getString(PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX + fieldId, "");
         switch (behavior) {
+            case "INVISIBLE":
+                return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
             case "COMPOSE":
                 return COMPOSING_TEXT_BEHAVIOR_COMPOSE;
             case "COMMIT":
