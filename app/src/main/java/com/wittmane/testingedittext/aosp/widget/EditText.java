@@ -6395,7 +6395,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // (EW) this isn't very clear, but the normal TextUtils.CAP_MODE_* values that get sent
             // to this method are actually set to the value of InputType.TYPE_TEXT_FLAG_CAP_*, so
             // this is just getting the value that's embedded in the input type.
-            outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
+            outAttrs.initialCapsMode = ic.getCursorCapsModeInternal(getInputType());
             // (EW) don't send any text unless we're creating an InputConnection because without it
             // the IME can't get any text by manually requesting it, so it would be weird to give it
             // this.

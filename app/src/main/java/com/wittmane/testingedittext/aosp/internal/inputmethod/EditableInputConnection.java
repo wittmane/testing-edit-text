@@ -291,6 +291,10 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "beginBatchEdit");
         }
+        return beginBatchEditInternal();
+    }
+
+    private boolean beginBatchEditInternal() {
         synchronized(this) {
             if (mBatchEditNesting >= 0) {
                 mEditText.beginBatchEdit();
@@ -307,6 +311,10 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "endBatchEdit");
         }
+        return endBatchEditInternal();
+    }
+
+    private boolean endBatchEditInternal() {
         synchronized(this) {
             if (mBatchEditNesting > 0) {
                 // When the connection is reset by the InputMethodManager and reportFinish
@@ -359,15 +367,15 @@ public class EditableInputConnection implements InputConnection {
             return;
         }
 
-        finishComposingText();
+        finishComposingTextInternal();
         // (EW) the AOSP version only did this starting in S, which is also when it is available
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            setImeConsumesInput(false);
+            setImeConsumesInputInternal(false);
         }
 
         synchronized (this) {
             while (mBatchEditNesting > 0) {
-                endBatchEdit();
+                endBatchEditInternal();
             }
             // Will prevent any further calls to begin or endBatchEdit
             mBatchEditNesting = -1;
@@ -459,6 +467,10 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "commitText: text=" + text + ", newCursorPosition=" + newCursorPosition);
         }
+        return commitTextInternal(text, newCursorPosition);
+    }
+
+    private boolean commitTextInternal(CharSequence text, int newCursorPosition) {
         if (Settings.shouldModifyCommittedText()) {
             text = modifyText(text);
         }
@@ -477,7 +489,7 @@ public class EditableInputConnection implements InputConnection {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public boolean commitText(@NonNull CharSequence text, int newCursorPosition,
-                       @Nullable TextAttribute textAttribute) {
+                              @Nullable TextAttribute textAttribute) {
         if (LOG_CALLS) {
             Log.d(TAG, "commitText: text=" + text + ", newCursorPosition=" + newCursorPosition
                     + ", textAttribute=" + textAttribute);
@@ -694,7 +706,7 @@ public class EditableInputConnection implements InputConnection {
 
         final Editable content = getEditable();
 
-        beginBatchEdit();
+        beginBatchEditInternal();
 
         int selectionStart = Selection.getSelectionStart(content);
         int selectionEnd = Selection.getSelectionEnd(content);
@@ -707,7 +719,7 @@ public class EditableInputConnection implements InputConnection {
 
         // Skip when the selection is not yet attached.
         if (selectionStart == -1 || selectionEnd == -1) {
-            endBatchEdit();
+            endBatchEditInternal();
             return false;
         }
 
@@ -756,7 +768,7 @@ public class EditableInputConnection implements InputConnection {
             }
         }
 
-        endBatchEdit();
+        endBatchEditInternal();
 
         return true;
     }
@@ -891,6 +903,9 @@ public class EditableInputConnection implements InputConnection {
                 throw new AbstractMethodError(
                         "boolean android.view.inputmethod.InputConnection.deleteSurroundingTextInCodePoints(int, int)");
             }
+            //TODO: (EW) it might be useful to show a toast to point out that what is being
+            // attempted to be tested isn't working rather than rely on the dev to be looking at
+            // these logs
             Log.e(TAG, "couldn't fake not implementing deleteSurroundingTextInCodePoints");
         }
 
@@ -904,7 +919,7 @@ public class EditableInputConnection implements InputConnection {
 
         final Editable content = getEditable();
 
-        beginBatchEdit();
+        beginBatchEditInternal();
 
         int selectionStart = Selection.getSelectionStart(content);
         int selectionEnd = Selection.getSelectionEnd(content);
@@ -957,7 +972,7 @@ public class EditableInputConnection implements InputConnection {
             // including this method look like asynchronous calls from the IME.
         }
 
-        endBatchEdit();
+        endBatchEditInternal();
 
         return true;
     }
@@ -980,7 +995,7 @@ public class EditableInputConnection implements InputConnection {
 
     private void finishComposingTextInternal() {
         final Editable content = getEditable();
-        beginBatchEdit();
+        beginBatchEditInternal();
         removeComposingSpans(content);
 
         // (EW) the AOSP version called sendCurrentText, which would convert the text in the
@@ -1001,7 +1016,7 @@ public class EditableInputConnection implements InputConnection {
         }
         mInvisibleComposition.clear();
 
-        endBatchEdit();
+        endBatchEditInternal();
         endComposingRegionEditInternal();
     }
 
@@ -1019,6 +1034,14 @@ public class EditableInputConnection implements InputConnection {
 
         delay(Settings.getGetCursorCapsModeDelay());
 
+        int cursorCapsMode = getCursorCapsModeInternal(reqModes);
+        if (LOG_CALLS) {
+            Log.d(TAG, "getCursorCapsMode: return=" + cursorCapsMode);
+        }
+        return cursorCapsMode;
+    }
+
+    public int getCursorCapsModeInternal(int reqModes) {
         final Editable content = getEditable();
 
         int selectionStart = Selection.getSelectionStart(content);
@@ -1030,11 +1053,7 @@ public class EditableInputConnection implements InputConnection {
             selectionEnd = temp;
         }
 
-        int cursorCapsMode = TextUtils.getCapsMode(content, selectionStart, reqModes);
-        if (LOG_CALLS) {
-            Log.d(TAG, "getCursorCapsMode: return=" + cursorCapsMode);
-        }
-        return cursorCapsMode;
+        return TextUtils.getCapsMode(content, selectionStart, reqModes);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
@@ -1056,7 +1075,7 @@ public class EditableInputConnection implements InputConnection {
     }
 
     private ExtractedText getExtractedTextInternal(ExtractedTextRequest extractedTextRequest,
-                                                  int flags) {
+                                                   int flags) {
         ExtractedText extractedText = new ExtractedText();
         if (mEditText.extractText(extractedTextRequest, extractedText)) {
             // (EW) documentation states "This method may fail either if the input connection has
@@ -1125,16 +1144,18 @@ public class EditableInputConnection implements InputConnection {
         delay(Settings.getGetTextBeforeCursorDelay());
 
         CharSequence textBeforeCursor;
+        CharSequence logInfo = null;
         if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             textBeforeCursor = getTextBeforeCursorInternal(length, flags, mInvisibleComposition);
+            logInfo = "composition only";
         } else if (!mEditText.getSettings().shouldSendText()) {
             // (EW) the system sends back an empty string when the editor doesn't create an input
             // connection, presumably because sending back null would indicate that the input
             // connection is no longer valid, and although the input connection from the editor
             // doesn't even exist, the asymmetrical one given to the IME is still valid, so null
             // probably wouldn't be appropriate
-            Log.d(TAG, "getTextBeforeCursor: returning nothing due to lack of support");
-            return "";
+            textBeforeCursor = "";
+            logInfo = "sending text not supported";
         } else {
             textBeforeCursor = getTextBeforeCursorInternal(length, flags, getEditable());
         }
@@ -1148,10 +1169,17 @@ public class EditableInputConnection implements InputConnection {
             textBeforeCursor = textBeforeCursor.subSequence(
                     textBeforeCursor.length() - returnedTextLimit,
                     textBeforeCursor.length());
+            if (logInfo == null) {
+                logInfo = "limited";
+            } else {
+                logInfo += ", limited";
+            }
         }
+
         if (LOG_CALLS) {
             Log.d(TAG, "getTextBeforeCursor: return="
-                    + (textBeforeCursor == null ? "null" : "\"" + textBeforeCursor + "\""));
+                    + (textBeforeCursor == null ? "null" : "\"" + textBeforeCursor + "\"")
+                    + (logInfo == null ? "" : " (" + logInfo + ")"));
         }
         return textBeforeCursor;
     }
@@ -1209,7 +1237,7 @@ public class EditableInputConnection implements InputConnection {
                         "java.lang.CharSequence android.view.inputmethod.InputConnection.getSelectedText(int)");
             }
             if (LOG_CALLS) {
-                Log.d(TAG, "getSelectedText: return=null");
+                Log.d(TAG, "getSelectedText: return=null (faking not implemented)");
             }
             return null;
         }
@@ -1217,18 +1245,21 @@ public class EditableInputConnection implements InputConnection {
         delay(Settings.getGetSelectedTextDelay());
 
         CharSequence selectedText;
+        CharSequence logInfo = null;
         if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             selectedText = getSelectedTextInternal(flags, mInvisibleComposition);
+            logInfo = "composition only";
         } else if (!mEditText.getSettings().shouldSendText()) {
-            Log.d(TAG, "getSelectedText: returning nothing due to lack of support");
-            return null;
+            selectedText = null;
+            logInfo = "sending text not supported";
         } else {
             selectedText = getSelectedTextInternal(flags, getEditable());
         }
 
         if (LOG_CALLS) {
             Log.d(TAG, "getSelectedText: return="
-                    + (selectedText == null ? "null" : "\"" + selectedText + "\""));
+                    + (selectedText == null ? "null" : "\"" + selectedText + "\"")
+                    + (logInfo == null ? "" : " (" + logInfo + ")"));
         }
         return selectedText;
     }
@@ -1269,16 +1300,18 @@ public class EditableInputConnection implements InputConnection {
         delay(Settings.getGetTextAfterCursorDelay());
 
         CharSequence textAfterCursor;
+        CharSequence logInfo = null;
         if (mEditText.getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             textAfterCursor = getTextAfterCursorInternal(length, flags, mInvisibleComposition);
+            logInfo = "composition only";
         } else if (!mEditText.getSettings().shouldSendText()) {
             // (EW) the system sends back an empty string when the editor doesn't create an input
             // connection, presumably because sending back null would indicate that the input
             // connection is no longer valid, and although the input connection from the editor
             // doesn't even exist, the asymmetrical one given to the IME is still valid, so null
             // probably wouldn't be appropriate
-            Log.d(TAG, "getTextAfterCursor: returning nothing due to lack of support");
-            return "";
+            textAfterCursor = "";
+            logInfo = "sending text not supported";
         } else {
             textAfterCursor = getTextAfterCursorInternal(length, flags, getEditable());
         }
@@ -1290,10 +1323,17 @@ public class EditableInputConnection implements InputConnection {
         if (returnedTextLimit > 0 && textAfterCursor != null
                 && textAfterCursor.length() > returnedTextLimit) {
             textAfterCursor = textAfterCursor.subSequence(0, returnedTextLimit);
+            if (logInfo == null) {
+                logInfo = "limited";
+            } else {
+                logInfo += ", limited";
+            }
         }
+
         if (LOG_CALLS) {
             Log.d(TAG, "getTextAfterCursor: return="
-                    + (textAfterCursor == null ? "null" : "\"" + textAfterCursor + "\""));
+                    + (textAfterCursor == null ? "null" : "\"" + textAfterCursor + "\"")
+                    + (logInfo == null ? "" : " (" + logInfo + ")"));
         }
         return textAfterCursor;
     }
@@ -1319,7 +1359,6 @@ public class EditableInputConnection implements InputConnection {
         if (selectionEnd + length > content.length()) {
             length = content.length() - selectionEnd;
         }
-
 
         if ((flags & GET_TEXT_WITH_STYLES) != 0) {
             return content.subSequence(selectionEnd, selectionEnd + length);
@@ -1356,6 +1395,9 @@ public class EditableInputConnection implements InputConnection {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 return mProxyForDefaultMethods.getSurroundingText(beforeLength, afterLength, flags);
             }
+            if (LOG_CALLS) {
+                Log.d(TAG, "getSurroundingText: return=null (faking not implemented)");
+            }
             return null;
         }
 
@@ -1363,23 +1405,6 @@ public class EditableInputConnection implements InputConnection {
 
         SurroundingText surroundingText =
                 getSurroundingTextInternal(beforeLength, afterLength, flags);
-
-        // (EW) check the setting to force returning less text than requested.
-        int returnedTextLimit = Settings.getReturnedTextLimit();
-        if (returnedTextLimit > 0 && surroundingText != null) {
-            int extraBefore = Math.max(0, surroundingText.getSelectionStart() - returnedTextLimit);
-            int extraAfter = Math.max(0,
-                    surroundingText.getText().length() - surroundingText.getSelectionEnd()
-                            - returnedTextLimit);
-            if (extraBefore > 0 || extraAfter > 0) {
-                surroundingText = new SurroundingText(
-                        surroundingText.getText().subSequence(
-                                extraBefore, surroundingText.getText().length() - extraAfter),
-                        surroundingText.getSelectionStart() - extraBefore,
-                        surroundingText.getSelectionEnd() - extraBefore,
-                        surroundingText.getOffset() + extraBefore);
-            }
-        }
 
         if (LOG_CALLS) {
             Log.d(TAG, "getSurroundingText: return="
@@ -1422,8 +1447,28 @@ public class EditableInputConnection implements InputConnection {
         } else {
             surroundingText = TextUtils.substring(content, startPos, endPos);
         }
-        return new SurroundingText(
+
+        SurroundingText result = new SurroundingText(
                 surroundingText, selStart - startPos, selEnd - startPos, startPos);
+
+        // (EW) check the setting to force returning less text than requested.
+        int returnedTextLimit = Settings.getReturnedTextLimit();
+        if (returnedTextLimit > 0) {
+            int extraBefore = Math.max(0, result.getSelectionStart() - returnedTextLimit);
+            int extraAfter = Math.max(0,
+                    result.getText().length() - result.getSelectionEnd()
+                            - returnedTextLimit);
+            if (extraBefore > 0 || extraAfter > 0) {
+                result = new SurroundingText(
+                        result.getText().subSequence(
+                                extraBefore, result.getText().length() - extraAfter),
+                        result.getSelectionStart() - extraBefore,
+                        result.getSelectionEnd() - extraBefore,
+                        result.getOffset() + extraBefore);
+            }
+        }
+
+        return result;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
@@ -1487,7 +1532,11 @@ public class EditableInputConnection implements InputConnection {
                     + ", cursorUpdateFilter=" + cursorUpdateFilter);
         }
         // TODO(b/210039666): use separate attrs for updateMode and updateFilter.
-        return requestCursorUpdates(cursorUpdateMode | cursorUpdateFilter);
+        boolean result = requestCursorUpdatesInternal(cursorUpdateMode | cursorUpdateFilter);
+        if (LOG_CALLS) {
+            Log.d(TAG, "getSurroundingText: return=" + result);
+        }
+        return result;
     }
 
     //TODO: (EW) there may be new options for settings for this with the extra flags
@@ -1497,7 +1546,14 @@ public class EditableInputConnection implements InputConnection {
         if (LOG_CALLS) {
             Log.d(TAG, "requestCursorUpdates: cursorUpdateMode=" + cursorUpdateMode);
         }
+        boolean result = requestCursorUpdatesInternal(cursorUpdateMode);
+        if (LOG_CALLS) {
+            Log.d(TAG, "getSurroundingText: return=" + result);
+        }
+        return result;
+    }
 
+    private boolean requestCursorUpdatesInternal(int cursorUpdateMode) {
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
         // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
         // stack being one level off since this method did get called). for Nougat through S, the
@@ -1662,10 +1718,7 @@ public class EditableInputConnection implements InputConnection {
             return true;
         }
         if (composingTextBehavior == COMPOSING_TEXT_BEHAVIOR_COMMIT) {
-            if (LOG_CALLS) {
-                Log.d(TAG, "setComposingText: redirecting due to lack of support");
-            }
-            return commitText(text, newCursorPosition);
+            return commitTextInternal(text, newCursorPosition);
         }
         if (Settings.shouldModifyComposedText()) {
             // (EW) due to some weird behavior in #replaceText (see comment there), the default
@@ -1703,7 +1756,7 @@ public class EditableInputConnection implements InputConnection {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public boolean setComposingText(@NonNull CharSequence text, int newCursorPosition,
-                             @Nullable TextAttribute textAttribute) {
+                                    @Nullable TextAttribute textAttribute) {
         if (LOG_CALLS) {
             Log.d(TAG, "setComposingText: text=" + text
                     + ", newCursorPosition=" + newCursorPosition
@@ -1907,7 +1960,7 @@ public class EditableInputConnection implements InputConnection {
         }
 
         final Editable content = getEditable();
-        beginBatchEdit();
+        beginBatchEditInternal();
         removeComposingSpans(content);
         int composingStart = start;
         int composingEnd = end;
@@ -1942,7 +1995,7 @@ public class EditableInputConnection implements InputConnection {
         content.setSpan(COMPOSING, composingStart, composingEnd,
                 getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
 
-        endBatchEdit();
+        endBatchEditInternal();
         endComposingRegionEditInternal();
         return true;
     }
@@ -2060,7 +2113,7 @@ public class EditableInputConnection implements InputConnection {
 
     private void replaceText(CharSequence text, int newCursorPosition, boolean composing,
                              Editable content) {
-        beginBatchEdit();
+        beginBatchEditInternal();
 
         // delete composing text set previously.
         int composingSpanStart = getComposingSpanStart(content);
@@ -2172,7 +2225,7 @@ public class EditableInputConnection implements InputConnection {
             TextUtils.dumpSpans(content, lp, "  ");
         }
 
-        endBatchEdit();
+        endBatchEditInternal();
     }
 
     /**
@@ -2288,8 +2341,12 @@ public class EditableInputConnection implements InputConnection {
             return true;
         }
 
-        mEditText.setImeConsumesInput(imeConsumesInput);
+        setImeConsumesInputInternal(imeConsumesInput);
         return true;
+    }
+
+    private void setImeConsumesInputInternal(boolean imeConsumesInput) {
+        mEditText.setImeConsumesInput(imeConsumesInput);
     }
 
     /**
@@ -2336,14 +2393,14 @@ public class EditableInputConnection implements InputConnection {
             composingEnd = tmp;
         }
 
-        final SurroundingText surroundingText = getSurroundingText(
+        final SurroundingText surroundingText = getSurroundingTextInternal(
                 MEMORY_EFFICIENT_TEXT_LENGTH / 2,
                 MEMORY_EFFICIENT_TEXT_LENGTH / 2, GET_TEXT_WITH_STYLES);
         if (surroundingText == null) {
             return null;
         }
 
-        final int cursorCapsMode = getCursorCapsMode(TextUtils.CAP_MODE_CHARACTERS
+        final int cursorCapsMode = getCursorCapsModeInternal(TextUtils.CAP_MODE_CHARACTERS
                 | TextUtils.CAP_MODE_WORDS | TextUtils.CAP_MODE_SENTENCES);
 
         return new TextSnapshot(surroundingText, composingStart, composingEnd, cursorCapsMode);
@@ -2355,9 +2412,9 @@ public class EditableInputConnection implements InputConnection {
             return "null";
         }
         return "{ surroundingText=\"" + snapshot.getSurroundingText()
-                    + "\", compositionStart=" + snapshot.getCompositionStart()
-                    + ", compositionEnd=" + snapshot.getCompositionEnd()
-                    + ", cursorCapsMode=" + snapshot.getCursorCapsMode() + " }";
+                + "\", compositionStart=" + snapshot.getCompositionStart()
+                + ", compositionEnd=" + snapshot.getCompositionEnd()
+                + ", cursorCapsMode=" + snapshot.getCursorCapsMode() + " }";
     }
 
     //TODO: (EW) for some reason Kitkat throws a VerifyError when instantiating
