@@ -498,7 +498,7 @@ public class EditableInputConnection implements InputConnection {
     }
 
     // (EW) added for modifying input text
-    private static CharSequence modifyText(CharSequence text) {
+    public static CharSequence modifyText(CharSequence text) {
         return modifyText(text, 0, 0);
     }
 

@@ -6081,6 +6081,52 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 break;
         }
 
+        // (EW) there doesn't seem to be any way to determine what key events are from calls to
+        // commit text vs compose text since we don't get those calls when we don't create an input
+        // connection and the system just maps them to key events and sends those here. as long as
+        // something was configured to modify text, try doing that.
+        //TODO (EW) should we add a setting to convert key events and do this even when creating an
+        // input connection?
+        if (!mSettings.shouldCreateInputConnection()
+                && (com.wittmane.testingedittext.settings.Settings.shouldModifyCommittedText()
+                || com.wittmane.testingedittext.settings.Settings.shouldModifyComposedText())) {
+            // (EW) create a new view and editable to pass to a text key listener to see if this
+            // event will create text to add without actually impacting this field yet
+            View view = new View(getContext());
+            Editable editable = Editable.Factory.getInstance().newEditable("");
+            Selection.setSelection(editable, 0);
+            TextKeyListener keyListener = TextKeyListener.getInstance();
+            final boolean handled;
+            if (otherEvent != null) {
+                handled = keyListener.onKeyOther(view, editable, otherEvent);
+            } else {
+                handled = keyListener.onKeyDown(view, editable, keyCode, event);
+            }
+            // (EW) if the event was handled and it actually produced text, take that text, modify
+            // it, and add it to this field's editable instead of letting the event get processed by
+            // the normal key listener
+            if (handled && !TextUtils.isEmpty(editable)) {
+                beginBatchEdit();
+                CharSequence text = EditableInputConnection.modifyText(editable);
+                int selectionStart = Selection.getSelectionStart(mText);
+                int selectionEnd = Selection.getSelectionEnd(mText);
+                if (selectionStart < 0) {
+                    selectionStart = 0;
+                }
+                if (selectionEnd < 0) {
+                    selectionEnd = 0;
+                }
+                if (selectionEnd < selectionStart) {
+                    int temp = selectionStart;
+                    selectionStart = selectionEnd;
+                    selectionEnd = temp;
+                }
+                mText.replace(selectionStart, selectionEnd, text);
+                endBatchEdit();
+                return KEY_EVENT_HANDLED;
+            }
+        }
+
         if (mEditor.mKeyListener != null) {
             boolean doDown = true;
             if (otherEvent != null) {
@@ -6149,6 +6195,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        // (EW) the system calls this when no InputConnection was created, so we'll log the call in
+        // that case (skip otherwise since EditableInputConnection#sendKeyEvent would essentially
+        // already log the same call)
+        if (LOG_CALLS && !mSettings.shouldCreateInputConnection()) {
+            Log.d(TAG, "onKeyUp: keyCode=" + keyCode + ", event=" + event);
+        }
+
         if (!isEnabled()) {
             return super.onKeyUp(keyCode, event);
         }
