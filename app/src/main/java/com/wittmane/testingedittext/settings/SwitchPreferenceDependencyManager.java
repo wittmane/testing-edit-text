@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,6 +22,8 @@ import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
 
 public class SwitchPreferenceDependencyManager implements OnPreferenceChangeListener {
+    private static final String TAG = SwitchPreferenceDependencyManager.class.getSimpleName();
+
     public interface OnPreferencesChangedListener {
         void onPreferencesChanged(boolean[] prefsChecked);
     }
@@ -38,6 +40,22 @@ public class SwitchPreferenceDependencyManager implements OnPreferenceChangeList
         for (int i = 0; i < switchPrefListenerKeys.length; i++) {
             SwitchPreference pref =
                     (SwitchPreference)fragment.findPreference(switchPrefListenerKeys[i]);
+            mPrefs[i] = pref;
+            pref.setOnPreferenceChangeListener(this);
+            prefsChecked[i] = pref.isChecked();
+        }
+
+        // call right away so the initial state is correct
+        mListener.onPreferencesChanged(prefsChecked);
+    }
+
+    public SwitchPreferenceDependencyManager(SwitchPreference[] switchPrefListenerPrefs,
+                                             OnPreferencesChangedListener listener) {
+        mPrefs = new SwitchPreference[switchPrefListenerPrefs.length];
+        mListener = listener;
+        boolean[] prefsChecked = new boolean[switchPrefListenerPrefs.length];
+        for (int i = 0; i < switchPrefListenerPrefs.length; i++) {
+            SwitchPreference pref = switchPrefListenerPrefs[i];
             mPrefs[i] = pref;
             pref.setOnPreferenceChangeListener(this);
             prefsChecked[i] = pref.isChecked();

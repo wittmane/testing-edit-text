@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022-2023 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
      Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,6 +196,7 @@
     <string name="input_type_class_number">Number</string>
     <string name="input_type_class_datetime">Date/Time</string>
     <string name="input_type_class_phone">Phone</string>
+    <string name="input_type_null">Null</string>
 
     <string name="input_type_text_variation_normal">Normal</string>
     <string name="input_type_text_variation_password">Password</string>
@@ -237,6 +238,28 @@
     <string name="input_type_datetime_variation_normal">Date and time</string>
     <string name="input_type_datetime_variation_date">Date</string>
     <string name="input_type_datetime_variation_time">Time</string>
+
+    <string name="create_input_connection_title">Rich input connection</string>
+    <string name="create_input_connection_summary">Documentation for InputType#TYPE_NULL states that it should be interpreted that the input connection isn\'t rich (can\'t support things like composing text and retrieving text), but instead of using the system\'s default  limited \"generate key events\" mode, manage a normal input connection to still allow rich functionality. It\'s not clear if this should be considered an inappropriate implementation.</string>
+
+    <string name="send_selection_info_title">Send selection info</string>
+    <string name="send_selection_info_summary">Although documentation seems to indicate that editors should always specify the initial selection position and send updates when the selection position moves, the framework EditText doesn\'t send this info when set to InputType#TYPE_NULL. Instead of matching the framework\'s functionality, actually send the this info to the IME like the other input types.</string>
+
+    <string name="send_text_title">Send text</string>
+    <string name="send_text_summary">Although InputType#TYPE_NULL is documented to not have a rich input connection, including meaning that it doesn\'t support  retrieving the current text, nothing specifically stops this type of field from giving the IME the text, so allow that like the other input types.</string>
+
+    <string name="composing_text_behavior_title">Composing text behavior</string>
+    <string name="composing_text_behavior_summary">Although InputType#TYPE_NULL is documented to not have a rich input connection, including meaning that it doesn\'t support composing text, nothing specifically stops this type of field from fully supporting composition. The default handling by the framework when there is no InputConnection is to invisibly track the composition and return that when calling InputConnection#getTextBeforeCursor or InputConnection#getTextBeforeCursor (regardless of any change in cursor position) and will show up when calling InputConnection#finishComposingText. Instead of that default functionality, allow composing normally like the other input types, or allow an alternate means of not supporting composing by just committing text instead of disregarding the composition (not certain if this is valid behavior) or ignoring the composition altogether (not certain if this is valid behavior).</string>
+    <string name="composing_text_behavior_invisible">Invisible composition</string>
+    <string name="composing_text_behavior_ignore">Ignore</string>
+    <string name="composing_text_behavior_commit">Commit</string>
+    <string name="composing_text_behavior_compose">Compose</string>
+
+    <string name="allow_delete_surrounding_text_title">Allow deleting text around the selection</string>
+    <string name="allow_delete_surrounding_text_summary">Support InputConnection\'s deleteSurroundingText and deleteSurroundingTextInCodePoints methods, rather than only allowing deleting from the key event. Documentation for InputType#TYPE_NULL doesn\'t specifically call it out either way. Although the framework EditText doesn\'t support it with that InputType, support can be added.</string>
+
+    <string name="allow_setting_selection_title">Allow setting the selection position</string>
+    <string name="allow_setting_selection_summary">Support setting the selection with the InputConnection. Documentation for InputType#TYPE_NULL doesn\'t specifically mention it, and although the framework EditText doesn\'t support it with that InputType, support can be added.</string>
 
     <string name="ime_options">IME options</string>
     <string name="ime_options_action">Action</string>

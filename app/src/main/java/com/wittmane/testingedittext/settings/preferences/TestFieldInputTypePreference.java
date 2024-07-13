@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import android.content.Context;
 import android.os.Build;
 import android.text.InputType;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TestFieldInputTypePreference extends SingleFieldPreference {
+    private static final String TAG = TestFieldInputTypePreference.class.getSimpleName();
 
     public TestFieldInputTypePreference(Context context) {
         super(context);
@@ -64,11 +66,51 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
 
     @Override
     protected void updateSummary() {
-        setSummary(getInputTypeDescription(Settings.getTestFieldInputType(getFieldIndex()),
-                getContext()));
+        setSummary(getInputTypeDescription(getFieldIndex(), getContext()));
     }
 
-    public static String getInputTypeDescription(int inputType, Context context) {
+    public static String getInputTypeDescription(int fieldIndex, Context context) {
+        int inputType = Settings.getTestFieldInputType(fieldIndex);
+
+        if (inputType == InputType.TYPE_NULL) {
+            List<String> extraDetails = new ArrayList<>();
+            if (Settings.getTestFieldNullInputTypeMultiline(fieldIndex)) {
+                extraDetails.add(context.getString(
+                        R.string.input_type_text_flag_multi_line));
+            }
+            if (Settings.getTestFieldSendSelectionInfo(fieldIndex)) {
+                extraDetails.add(context.getString(
+                        R.string.send_selection_info_title));
+            }
+            if (Settings.getTestFieldCreateInputConnection(fieldIndex)) {
+                extraDetails.add(context.getString(
+                        R.string.create_input_connection_title));
+                if (Settings.getTestFieldSendText(fieldIndex)) {
+                    extraDetails.add(context.getString(
+                            R.string.send_text_title));
+                }
+                switch (Settings.getTestFieldComposingTextBehavior(fieldIndex)) {
+                    case Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE:
+                        extraDetails.add(context.getString(
+                                R.string.composing_text_behavior_compose));
+                        break;
+                    case Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT:
+                        extraDetails.add(context.getString(
+                                R.string.composing_text_behavior_commit));
+                        break;
+                }
+                if (Settings.getTestFieldAllowDeleteSurroundingText(fieldIndex)) {
+                    extraDetails.add(context.getString(
+                            R.string.allow_delete_surrounding_text_title));
+                }
+                if (Settings.getTestFieldAllowSettingSelection(fieldIndex)) {
+                    extraDetails.add(context.getString(R.string.allow_setting_selection_title));
+                }
+            }
+            return getDescription(context.getString(R.string.input_type_null), extraDetails,
+                    context);
+        }
+
         int inputTypeClass = inputType & InputType.TYPE_MASK_CLASS;
         int inputTypeFlags = inputType & InputType.TYPE_MASK_FLAGS;
         int inputTypeVariation = inputType & InputType.TYPE_MASK_VARIATION;
@@ -210,6 +252,7 @@ public class TestFieldInputTypePreference extends SingleFieldPreference {
                 break;
             default:
                 // this shouldn't happen
+                Log.e(TAG, "Unknown InputType class. InputType: " + inputType);
                 return "";
         }
 

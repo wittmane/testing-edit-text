@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,11 +23,12 @@ import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager;
-import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager.OnPreferencesChangedListener;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 
 public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFragment {
 
+    private ListPreference mInputTypeClassPref;
     private ListPreference mInputTypeTextVariationPref;
     private ListPreference mInputTypeTextMultiLineFlagPref;
     private ListPreference mInputTypeTextCapFlagPref;
@@ -41,10 +42,21 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
     private ListPreference mInputTypeDateTimeVariationPref;
 
+    private SwitchPreference mMultilinePref;
+    private SwitchPreference mCreateInputConnectionPref;
+    private SwitchPreference mSendSelectionInfoPref;
+    private SwitchPreference mSendTextPref;
+    private ListPreference mComposingTextBehaviorPref;
+    private SwitchPreference mAllowDeleteSurroundingTextPref;
+    private SwitchPreference mAllowSettingSelectionPref;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_test_field_input_type);
+
+        mInputTypeClassPref = (ListPreference)findPreference(
+                Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX);
 
         mInputTypeTextVariationPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX);
@@ -68,16 +80,58 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
 
         mInputTypeDateTimeVariationPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX);
+
+        mMultilinePref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
+        mCreateInputConnectionPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX);
+        mSendSelectionInfoPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
+        mSendTextPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_SEND_TEXT_PREFIX);
+        mComposingTextBehaviorPref = (ListPreference)findPreference(
+                Settings.PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX);
+        mAllowDeleteSurroundingTextPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX);
+        mAllowSettingSelectionPref = (SwitchPreference)findPreference(
+                Settings.PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX);
     }
 
     @Override
     protected void registerPreferencesChangedListener(int fieldId) {
-        new ListPreferenceDependencyManager(new String[]{
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX + fieldId
-        }, this, new OnPreferencesChangedListener() {
+        new ListPreferenceDependencyManager(new ListPreference[]{
+                mInputTypeClassPref, mComposingTextBehaviorPref
+        }, new ListPreferenceDependencyManager.OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(CharSequence[] prefValues) {
-                updateInputTypeFields(prefValues[0]);
+                CharSequence inputTypeClass = prefValues[0];
+                CharSequence composingTextBehavior = prefValues[1];
+                updateInputTypeFields(inputTypeClass);
+                if (composingTextBehavior.equals("INVISIBLE") && mSendTextPref.isChecked()) {
+                    // (EW) if we're doing the odd handling for the invisible composition, it
+                    // probably doesn't make sense to send the real text in the field because we
+                    // wouldn't be able to report the invisible composition, so disable sending text
+                    mSendTextPref.setChecked(false);
+                }
+            }
+        });
+        new SwitchPreferenceDependencyManager(new SwitchPreference[]{
+                mCreateInputConnectionPref, mSendTextPref
+        }, new SwitchPreferenceDependencyManager.OnPreferencesChangedListener() {
+            @Override
+            public void onPreferencesChanged(boolean[] prefValues) {
+                boolean createInputConnection = prefValues[0];
+                boolean sendText = prefValues[1];
+                mSendTextPref.setEnabled(createInputConnection);
+                mComposingTextBehaviorPref.setEnabled(createInputConnection);
+                mAllowDeleteSurroundingTextPref.setEnabled(createInputConnection);
+                mAllowSettingSelectionPref.setEnabled(createInputConnection);
+                if (sendText && mComposingTextBehaviorPref.getValue().equals("INVISIBLE")) {
+                    // (EW) if we're sending the real text in the field, this odd handling for the
+                    // invisible composition probably doesn't make sense because we lose the ability
+                    // to report that text, so change it to a normal composition
+                    mComposingTextBehaviorPref.setValue("COMPOSE");
+                }
             }
         });
     }
@@ -88,6 +142,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             case "TYPE_CLASS_TEXT":
                 removeDateTimeFields();
                 removeNumberFields();
+                removeTypeNullFields();
                 preferenceScreen.addPreference(mInputTypeTextVariationPref);
                 preferenceScreen.addPreference(mInputTypeTextMultiLineFlagPref);
                 preferenceScreen.addPreference(mInputTypeTextCapFlagPref);
@@ -98,6 +153,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             case "TYPE_CLASS_NUMBER":
                 removeTextFields();
                 removeDateTimeFields();
+                removeTypeNullFields();
                 preferenceScreen.addPreference(mInputTypeNumberVariationPref);
                 preferenceScreen.addPreference(mInputTypeNumberSignedFlagPref);
                 preferenceScreen.addPreference(mInputTypeNumberDecimalFlagPref);
@@ -105,13 +161,27 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
             case "TYPE_CLASS_DATETIME":
                 removeTextFields();
                 removeNumberFields();
+                removeTypeNullFields();
                 preferenceScreen.addPreference(mInputTypeDateTimeVariationPref);
+                break;
+            case "TYPE_NULL":
+                removeTextFields();
+                removeNumberFields();
+                removeDateTimeFields();
+                preferenceScreen.addPreference(mMultilinePref);
+                preferenceScreen.addPreference(mCreateInputConnectionPref);
+                preferenceScreen.addPreference(mSendSelectionInfoPref);
+                preferenceScreen.addPreference(mSendTextPref);
+                preferenceScreen.addPreference(mComposingTextBehaviorPref);
+                preferenceScreen.addPreference(mAllowDeleteSurroundingTextPref);
+                preferenceScreen.addPreference(mAllowSettingSelectionPref);
                 break;
             case "TYPE_CLASS_PHONE":
             default:
                 removeTextFields();
                 removeNumberFields();
                 removeDateTimeFields();
+                removeTypeNullFields();
                 break;
         }
     }
@@ -136,5 +206,16 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     private void removeDateTimeFields() {
         PreferenceScreen preferenceScreen = getPreferenceScreen();
         preferenceScreen.removePreference(mInputTypeDateTimeVariationPref);
+    }
+
+    private void removeTypeNullFields() {
+        PreferenceScreen preferenceScreen = getPreferenceScreen();
+        preferenceScreen.removePreference(mMultilinePref);
+        preferenceScreen.removePreference(mCreateInputConnectionPref);
+        preferenceScreen.removePreference(mSendSelectionInfoPref);
+        preferenceScreen.removePreference(mSendTextPref);
+        preferenceScreen.removePreference(mComposingTextBehaviorPref);
+        preferenceScreen.removePreference(mAllowDeleteSurroundingTextPref);
+        preferenceScreen.removePreference(mAllowSettingSelectionPref);
     }
 }

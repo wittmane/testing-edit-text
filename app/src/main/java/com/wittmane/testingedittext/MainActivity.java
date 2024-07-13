@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,8 +23,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
 import android.text.InputFilter;
+import android.text.InputType;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -33,6 +35,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,6 +45,8 @@ import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -151,6 +156,14 @@ public class MainActivity extends Activity {
             doNotScrollFrameworkEditText.setKeyListener(null);
             com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText =
                     findViewById(R.id.ellipsizeCustomEditText);
+            //TODO: (EW) it seems that the key listener shouldn't matter if the field is already
+            // disabled (I can't focus or scroll the field). figure out why this is actually
+            // necessary to allow ellipsize to work and see if that can be handled better without
+            // needing to null out the key listener. it doesn't really make sense for an edit test
+            // to have no key listener unless the view was disabled, so it probably makes more sense
+            // to do some of that handling automatically when disabling the view (possibly not
+            // actually clearing the key listener, but just adding checks for the view being
+            // disabled), rather than forcing this manual call.
             doNotScrollEditText.setKeyListener(null);
 
             Button testButton1 = findViewById(R.id.testButton1);
@@ -232,6 +245,8 @@ public class MainActivity extends Activity {
             mTestFields = testFields;
             for (int i = firstChangedFieldIndex; i < mTestFields.length; i++) {
                 mTestFieldContainer.addView(mTestFields[i].mLayout);
+                mTestFields[i].mCustomEditText.mCustomEditText.setSettings(
+                        Settings.getTestFieldSettings(i));
             }
         }
 
@@ -242,8 +257,19 @@ public class MainActivity extends Activity {
     }
 
     private static void updateField(EditTextProxy editText, int fieldIndex) {
+        // since we have a custom setting for making a null input type field still allow multiple
+        // lines (which is normally handled as part of the input type), we'll need to trigger
+        // setting the input type (even if that didn't change) to trigger a change in the field
+        // allowing multiple lines if that setting changed. also, since the input type isn't always
+        // set to exactly what we try to set it to, we need to check if the setting for the input
+        // type matches what we last requested (rather than what it actually is) to avoid trying to
+        // set again unnecessarily.
         int inputType = Settings.getTestFieldInputType(fieldIndex);
-        if (editText.getInputType() != inputType) {
+        boolean nullInputTypeSingleLine = !Settings.getTestFieldNullInputTypeMultiline(fieldIndex);
+        if (editText.getRequestedInputType() != inputType
+                || (inputType == InputType.TYPE_NULL
+                        && editText.isSingleLine() != nullInputTypeSingleLine
+                        && editText.isCustom())) {
             editText.setInputType(inputType);
         }
 
@@ -401,7 +427,7 @@ public class MainActivity extends Activity {
         private final android.widget.EditText mFrameworkEditText;
         private final com.wittmane.testingedittext.aosp.widget.EditText mCustomEditText;
 
-        private int mInputType;
+        private int mRequestedInputType;
         private boolean mSelectAllOnFocus;
         private CharSequence mSetText;
         private CharSequence mSetHint;
@@ -411,17 +437,23 @@ public class MainActivity extends Activity {
         public EditTextProxy(@NonNull android.widget.EditText editText) {
             mFrameworkEditText = editText;
             mCustomEditText = null;
+            mRequestedInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
         }
 
         public EditTextProxy(@NonNull com.wittmane.testingedittext.aosp.widget.EditText editText) {
             mCustomEditText = editText;
             mFrameworkEditText = null;
+            mRequestedInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
         }
 
+        public boolean isCustom() {
+            return mCustomEditText != null;
+        }
+
         public void setInputType(int type) {
-            mInputType = type;
+            mRequestedInputType = type;
             if (mFrameworkEditText != null) {
                 mFrameworkEditText.setInputType(type);
             } else {
@@ -430,7 +462,41 @@ public class MainActivity extends Activity {
         }
 
         public int getInputType() {
-            return mInputType;
+            int inputType;
+            if (mFrameworkEditText != null) {
+                inputType = mFrameworkEditText.getInputType();
+            } else {
+                inputType = mCustomEditText.getInputType();
+            }
+            return inputType;
+        }
+
+        public int getRequestedInputType() {
+            return mRequestedInputType;
+        }
+
+        public boolean isSingleLine() {
+            if (mFrameworkEditText != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    return mFrameworkEditText.isSingleLine();
+                } else {
+                    // although it was only made public in Android 10, isSingleLine has existed as
+                    // package-private since at least Kitkat so we can fairly safely still access it
+                    // with reflection.
+                    try {
+                        Method isSingleLineMethod =
+                                TextView.class.getDeclaredMethod("isSingleLine");
+                        isSingleLineMethod.setAccessible(true);
+                        return (boolean) isSingleLineMethod.invoke(mFrameworkEditText);
+                    } catch (NoSuchMethodException | IllegalAccessException |
+                             InvocationTargetException e) {
+                        Log.e(TAG, "Reflection failed on TextView.isSingleLine: " + e.getMessage());
+                        return true;
+                    }
+                }
+            } else {
+                return mCustomEditText.isSingleLine();
+            }
         }
 
         public void setImeOptions(int imeOptions) {

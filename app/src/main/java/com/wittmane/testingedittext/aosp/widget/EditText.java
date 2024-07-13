@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,8 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakStyle;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
+import com.wittmane.testingedittext.settings.Settings.EditorSettings;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Matrix;
@@ -57,6 +59,7 @@ import android.icu.text.DecimalFormatSymbols;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -135,6 +138,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputContentInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
@@ -192,6 +196,7 @@ import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_C
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
 import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
+import static com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection.LOG_CALLS;
 import static com.wittmane.testingedittext.aosp.widget.Editor.logCursor;
 
 public class EditText extends View implements ViewTreeObserver.OnPreDrawListener {
@@ -524,6 +529,63 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @Retention(RetentionPolicy.SOURCE)
     private @interface ViewStructureType {}
 
+    @NonNull
+    private EditorSettings mSettings = new DefaultEditorSettings();
+
+    private class DefaultEditorSettings implements EditorSettings {
+        @Override
+        public boolean nullInputTypeMultiline() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
+        }
+
+        @Override
+        public boolean shouldCreateInputConnection() {
+            return com.wittmane.testingedittext.settings.Settings.defaultCreateInputConnection(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public boolean shouldSendSelectionInfo() {
+            return com.wittmane.testingedittext.settings.Settings.defaultSendSelectionInfo(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public boolean shouldSendText() {
+            return com.wittmane.testingedittext.settings.Settings.defaultSendText(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public int composingTextBehavior() {
+            return com.wittmane.testingedittext.settings.Settings.defaultComposingTextBehavior(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public boolean allowDeleteSurroundingText() {
+            return com.wittmane.testingedittext.settings.Settings.defaultAllowDeleteSurroundingText(
+                    mEditor.mInputType);
+        }
+
+        @Override
+        public boolean allowSettingSelection() {
+            return com.wittmane.testingedittext.settings.Settings.defaultAllowSettingSelection(
+                    mEditor.mInputType);
+        }
+    }
+
+    // (EW) allow specifying additional settings not present in the AOSP version that are really
+    // only meant as behavior that an IME will need to gracefully deal with that mostly should be
+    // invisible to a normal user using the field.
+    public void setSettings(EditorSettings settings) {
+        mSettings = settings == null ? new DefaultEditorSettings() : settings;
+    }
+
+    public EditorSettings getSettings() {
+        return mSettings;
+    }
+
     public EditText(Context context) {
         this(context, null);
     }
@@ -615,11 +677,34 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         CharSequence digits = null;
         boolean selectAllOnFocus = false;
         int ellipsize = ELLIPSIZE_NOT_SET;
-        boolean singleLine = false;
+        boolean singleLine;
         int maxLength = -1;
         CharSequence text = "";
         CharSequence hint = null;
-        int inputType = EditorInfo.TYPE_NULL;
+        // (EW) the AOSP version had initialized this to EditorInfo.TYPE_NULL, but it really mostly
+        // had this value (multiline text) as the default value for the input type when setting the
+        // Editor's input type below. there was a check for handling EditorInfo.TYPE_NULL
+        // differently (just set to EditorInfo.TYPE_CLASS_TEXT, not including the cases for other
+        // deprecated attributes not supported here), and due to the deprecated singleLine attribute
+        // defaulting to false, these would also become multiline. this made explicitly setting
+        // inputType="none" in the xml to not actually apply the value that flag is set to
+        // (EditorInfo.TYPE_NULL), forcing the app to call #setInputType to be able to actually
+        // force the EditText to use that input type. that flag is documented to mean that the text
+        // is not editable, but that simply isn't true, both in the sense that the value in the xml
+        // is simply disregarded and in that the value it's set to represent does allow the field to
+        // be editable. based on the code, this behavior seems to have been like this since
+        // InputType was added (Cupcake), but that seems inappropriate, so we're just changing the
+        // initial value so that if nothing is specified, it will work the same, but also allowing
+        // setting the value from xml to actually work. there was a comment saying that if no input
+        // type was specified, it would default to generic text since it couldn't tell the IME about
+        // the set of digits that was selected. I don't fully understand that comment to know how
+        // important that is, but I don't think it's a big deal, so we'll still allow explicitly
+        // setting the input type to EditorInfo.TYPE_NULL in case there is any value to do so.
+        // see https://stackoverflow.com/q/10200950 for others having issue with not being able to
+        // set this value from xml, although they seem to want it to make the field not editable
+        // (which they may not recognize is still editable, just without the soft keyboard
+        // automatically showing up).
+        int inputType = EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE;
         typedArray = theme.obtainStyledAttributes(
                 attrs, R.styleable.EditText, defStyleAttr, defStyleRes);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -931,20 +1016,15 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_NONE;
         }
 
+        // (EW) the AOSP version had handling for different attributes that we don't support due to
+        // being deprecated, and it had some special handling around EditorInfo.TYPE_NULL for a
+        // somewhat convoluted management of the default input type (and restricting that from
+        // actually being set here). see the comment where inputType is defined for more info.
         if (digits != null) {
             mEditor.mKeyListener = DigitsKeyListener.getInstance(digits.toString());
-            // If no input type was specified, we will default to generic
-            // text, since we can't tell the IME about the set of digits
-            // that was selected.
-            mEditor.mInputType = inputType != EditorInfo.TYPE_NULL
-                    ? inputType : EditorInfo.TYPE_CLASS_TEXT;
-        } else if (inputType != EditorInfo.TYPE_NULL) {
-            setInputType(inputType, true);
-            // If set, the input type overrides what was set using the deprecated singleLine flag.
-            singleLine = !isMultilineInputType(inputType);
+            mEditor.mInputType = inputType;
         } else {
-            mEditor.mKeyListener = TextKeyListener.getInstance();
-            mEditor.mInputType = EditorInfo.TYPE_CLASS_TEXT;
+            setInputType(inputType, true);
         }
 
         mEditor.adjustInputType(passwordInputType, webPasswordInputType, numberPasswordInputType);
@@ -953,8 +1033,11 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             mEditor.mSelectAllOnFocus = true;
         }
 
+        singleLine = !isMultilineInputType(inputType);
         // Same as setSingleLine(), but make sure the transformation method and the maximum number
         // of lines of height are unchanged for multi-line EditTexts.
+        //TODO: (EW) it might be good to refactor setInputType(int) and what is done here related to
+        // that to share code
         setInputTypeSingleLine(singleLine);
         applySingleLine(singleLine, singleLine, singleLine,
                 // Does not apply automated max length filter since length filter will be resolved
@@ -1370,6 +1453,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return mEditor.mKeyListener;
     }
 
+    //TODO: (EW) it might be good to add settings to mess with this given the note about how this
+    // can have a significant impact on the soft keyboard
     /**
      * Sets the key listener to be used with this EditText.  This can be null
      * to disallow user input.  Note that this method has significant and
@@ -2497,16 +2582,26 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
         KeyListener listener = mEditor.mKeyListener;
         if (listener instanceof DigitsKeyListener) {
-            //TODO: (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
-            // that returns a DigitsKeyListener based on an the settings of a existing
+            // (EW) the AOSP version calls a hidden overload of DigitsKeyListener#getInstance
+            // that returns a DigitsKeyListener based on the settings of an existing
             // DigitsKeyListener, with the locale modified. DigitsKeyListener doesn't seem to have
-            // any way to check the sign or decimal, and since the listener could come from
-            // setKeyListener, we can't really even track it ourself. Other than reflection, I'm not
-            // sure how we can do this. I suppose there are other types of listeners that we don't
-            // update the locale, so I guess not doing anything isn't that bad. note that
-            // DigitsKeyListener (or any of the others) didn't even start supporting a locale until
-            // Oreo, so not supporting it may not be too unreasonable. if DigitsKeyListener changes
-            // to accomplish this, this should be updated to match functionality of AOSP.
+            // any way to check the sign or decimal (internal settings set in the constructor), and
+            // since the listener could come from setKeyListener, we can't really even track it
+            // ourself. also, that is a restricted API (warning logged specifies "dark greylist"),
+            // so we can't even call it with reflection. our best option seems to be creating our
+            // own custom child of DigitsKeyListener when we create one internally so we can at
+            // least manage updating the locale for those. this can still miss things passed to
+            // setKeyListener, but our custom class could be used if the caller cares about this
+            // functionality.
+            if (listener instanceof LocaleDigitsKeyListener) {
+                listener = LocaleDigitsKeyListener.getInstance(locale,
+                        (LocaleDigitsKeyListener) listener);
+            } else {
+                //TODO: (EW) if DigitsKeyListener ever changes to make that method available or
+                // allows checking the locale and the sign and decimal flags, this should be updated
+                // to match functionality of AOSP more completely.
+                return;
+            }
         } else if (listener instanceof DateKeyListener) {
             listener = DateKeyListener.getInstance(locale);
         } else if (listener instanceof TimeKeyListener) {
@@ -4434,11 +4529,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * Returns if the text is constrained to a single horizontally scrolling line ignoring new
      * line characters instead of letting it wrap onto multiple lines.
      */
-    boolean isSingleLine() {
+    public boolean isSingleLine() {
         return mSingleLine;
     }
 
-    private static boolean isMultilineInputType(int type) {
+    private boolean isMultilineInputType(int type) {
+        if (type == EditorInfo.TYPE_NULL) {
+            return mSettings.nullInputTypeMultiline();
+        }
         return (type & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE))
                 == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
     }
@@ -4483,8 +4581,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     /**
      * Set the type of the content with a constant as defined for {@link EditorInfo#inputType}. This
      * will take care of changing the key listener, by calling {@link #setKeyListener(KeyListener)},
-     * to match the given content type.  If the given content type is {@link EditorInfo#TYPE_NULL}
-     * then a soft keyboard will not be displayed for this text view.
+     * to match the given content type.
      *
      * Note that the maximum number of displayed lines (see {@link #setMaxLines(int)}) will be
      * modified if you change the {@link EditorInfo#TYPE_TEXT_FLAG_MULTI_LINE} flag of the input
@@ -4675,7 +4772,9 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         } else if (cls == EditorInfo.TYPE_CLASS_NUMBER) {
             final Locale locale = getCustomLocaleForKeyListenerOrNull();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                input = DigitsKeyListener.getInstance(
+                // (EW) using our own child version of DigitsKeyListener to allow updating the
+                // locale (see #changeListenerLocaleTo)
+                input = LocaleDigitsKeyListener.getInstance(
                         locale,
                         (type & EditorInfo.TYPE_NUMBER_FLAG_SIGNED) != 0,
                         (type & EditorInfo.TYPE_NUMBER_FLAG_DECIMAL) != 0);
@@ -5768,6 +5867,12 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // (EW) the system calls this when no InputConnection was created, so we'll log the call in
+        // that case (skip otherwise since EditableInputConnection#sendKeyEvent would essentially
+        // already log the same call)
+        if (LOG_CALLS && !mSettings.shouldCreateInputConnection()) {
+            Log.d(TAG, "onKeyDown: keyCode=" + keyCode + ", event=" + event);
+        }
         final int which = doKeyDown(keyCode, event, null);
         if (which == KEY_EVENT_NOT_HANDLED) {
             return super.onKeyDown(keyCode, event);
@@ -5778,6 +5883,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
+        // (EW) the system calls this when no InputConnection was created, so we'll log the call in
+        // that case (skip otherwise since EditableInputConnection#sendKeyEvent would essentially
+        // already log the same call)
+        if (LOG_CALLS && !mSettings.shouldCreateInputConnection()) {
+            Log.d(TAG, "onKeyMultiple: keyCode=" + keyCode + ", repeatCount=" + repeatCount
+                    + ", event=" + event);
+        }
         KeyEvent down = KeyEvent.changeAction(event, KeyEvent.ACTION_DOWN);
         final int which = doKeyDown(keyCode, down, event);
         if (which == KEY_EVENT_NOT_HANDLED) {
@@ -5969,6 +6081,52 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                 break;
         }
 
+        // (EW) there doesn't seem to be any way to determine what key events are from calls to
+        // commit text vs compose text since we don't get those calls when we don't create an input
+        // connection and the system just maps them to key events and sends those here. as long as
+        // something was configured to modify text, try doing that.
+        //TODO (EW) should we add a setting to convert key events and do this even when creating an
+        // input connection?
+        if (!mSettings.shouldCreateInputConnection()
+                && (com.wittmane.testingedittext.settings.Settings.shouldModifyCommittedText()
+                || com.wittmane.testingedittext.settings.Settings.shouldModifyComposedText())) {
+            // (EW) create a new view and editable to pass to a text key listener to see if this
+            // event will create text to add without actually impacting this field yet
+            View view = new View(getContext());
+            Editable editable = Editable.Factory.getInstance().newEditable("");
+            Selection.setSelection(editable, 0);
+            TextKeyListener keyListener = TextKeyListener.getInstance();
+            final boolean handled;
+            if (otherEvent != null) {
+                handled = keyListener.onKeyOther(view, editable, otherEvent);
+            } else {
+                handled = keyListener.onKeyDown(view, editable, keyCode, event);
+            }
+            // (EW) if the event was handled and it actually produced text, take that text, modify
+            // it, and add it to this field's editable instead of letting the event get processed by
+            // the normal key listener
+            if (handled && !TextUtils.isEmpty(editable)) {
+                beginBatchEdit();
+                CharSequence text = EditableInputConnection.modifyText(editable);
+                int selectionStart = Selection.getSelectionStart(mText);
+                int selectionEnd = Selection.getSelectionEnd(mText);
+                if (selectionStart < 0) {
+                    selectionStart = 0;
+                }
+                if (selectionEnd < 0) {
+                    selectionEnd = 0;
+                }
+                if (selectionEnd < selectionStart) {
+                    int temp = selectionStart;
+                    selectionStart = selectionEnd;
+                    selectionEnd = temp;
+                }
+                mText.replace(selectionStart, selectionEnd, text);
+                endBatchEdit();
+                return KEY_EVENT_HANDLED;
+            }
+        }
+
         if (mEditor.mKeyListener != null) {
             boolean doDown = true;
             if (otherEvent != null) {
@@ -6037,6 +6195,13 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        // (EW) the system calls this when no InputConnection was created, so we'll log the call in
+        // that case (skip otherwise since EditableInputConnection#sendKeyEvent would essentially
+        // already log the same call)
+        if (LOG_CALLS && !mSettings.shouldCreateInputConnection()) {
+            Log.d(TAG, "onKeyUp: keyCode=" + keyCode + ", event=" + event);
+        }
+
         if (!isEnabled()) {
             return super.onKeyUp(keyCode, event);
         }
@@ -6143,15 +6308,24 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public boolean onCheckIsTextEditor() {
-        //TODO: (EW) this probably should be made to always be true since TYPE_NULL indicates text
-        // is not editable, which doesn't make sense for an edit text. I'm leaving this for now to
-        // allow #setKeyListener to pass null to allow an ellipsis to show (see comment in #init for
-        // EditText_android_ellipsize), but it doesn't really make sense for an edit test to have no
-        // key listener unless the view was disabled, so it probably makes more sense to do some of
-        // that handling automatically when disabling the view and remove the option to specify the
-        // input type as TYPE_NULL (probably use TYPE_CLASS_TEXT as the new default, which is
-        // already done normally).
-        return mEditor.mInputType != EditorInfo.TYPE_NULL;
+        // (EW) the AOSP version checked if there was an Editor object (which we always have) and if
+        // the input type was not EditorInfo.TYPE_NULL. that input type is handled and documented in
+        // inconsistent ways. the xml attribute flag inputType="none" (value is
+        // EditorInfo.TYPE_NULL) is documented as indicating that the text is not editable (although
+        // setting that basically just gets converted to inputType="text"), but if the input type
+        // was set to EditorInfo.TYPE_NULL via code, the text was still actually editable but it
+        // behaved a bit odd. it didn't show the soft keyboard automatically (#setInputType did call
+        // out that the soft keyboard would not be displayed for the text view), but if the keyboard
+        // was already open for another field and focus changed to the field, it could be used to
+        // enter text. also, the cursor wasn't shown and tapping in the field wouldn't move the
+        // invisible cursor, but key events could be used to move the invisible cursor. EditorInfo
+        // documents TYPE_NULL as indicating that the input connection isn't rich (doesn't support
+        // things like composing text and retrieving text). since EditorInfo.TYPE_NULL is a valid
+        // input type for an editable text field, and we fixed this weird behavior to function
+        // normally, like other input types, we don't need the check here. this should always be
+        // considered a text editor. the only time this shouldn't be editable is if the field is
+        // disabled, but that's a separate check.
+        return true;
     }
 
     private boolean hasEditorInFocusSearchDirection(@FocusRealDirection int direction) {
@@ -6161,8 +6335,43 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-        if (onCheckIsTextEditor() && isEnabled()) {
+        // (EW) note that The IME doesn't actually directly interact with the InputConnection that
+        // is returned here. this is called by InputMethodManager#startInputInner, which will create
+        // a new wrapper for the result or track null if this returns null for the InputConnection,
+        // and then that's passed that to
+        // com.android.internal.view.IInputMethodManager#startInputOrWindowGainedFocus as the
+        // com.android.internal.view.IInputContext, which is presumably what somehow passes that
+        // value to android.inputmethodservice.IInputMethodWrapper#executeMessage (DO_START_INPUT).
+        // that creates the normal wrapper (android.inputmethodservice.RemoteInputConnection, or
+        // com.android.internal.view.InputConnectionWrapper prior to Tiramisu) if we returned a
+        // non-null InputConnection, and that wrapper (or null) is passed to InputMethodService to
+        // start input and that seems to gets tracked as the started InputConnection.
+        // InputMethodService#getCurrentInputConnection (which the IME uses to interact with the
+        // editor) tries to return that wrapped InputConnection, but if that was null, it falls back
+        // to some alternate InputConnection that it seems to get from
+        // android.inputmethodservice.IInputMethodWrapper#executeMessage (DO_SET_INPUT_CONTEXT). I
+        // haven't been able to specifically trace where that comes from, but my best guess is that
+        // it comes from InputMethodManager creating a BaseInputConnection because the comment there
+        // seems to indicate it, and the functionality from that matches the behavior of the default
+        // handling for not creating an InputConnection.
+
+        // (EW) the AOSP version skipped creating the InputConnection and setting any of the
+        // EditorInfo values if the input type was TYPE_NULL. we have a setting to determine if the
+        // InputConnection is created or if the selection info is sent, and the rest of the values
+        // set are configurable (and there is a setting for testing all of them except for the mime
+        // types), so rather than blatantly ignoring values that were configured for seemingly no
+        // reason, we'll still set them as long as the field is enabled.
+        if (isEnabled()) {
             mEditor.createInputMethodStateIfNeeded();
+            // (EW) the AOSP version doesn't do this, but if the input method state already existed,
+            // any extracted text request from a time the field had focus from the current IME or
+            // from a previous IME would persist and cause extracted text updates to get sent even
+            // if the current IME doesn't request it. this seems inappropriate, and especially for
+            // testing, which can change whether an InputConnection is even created (without the
+            // InputConnection, we can't get notified of the request), so this could leak previous
+            // functionality, messing up what is trying to be tested, so we need to clear it here.
+            mEditor.mInputMethodState.mExtractedTextRequest = null;
+
             outAttrs.inputType = getInputType();
             if (mEditor.mInputContentType != null) {
                 outAttrs.imeOptions = mEditor.mInputContentType.imeOptions;
@@ -6232,23 +6441,35 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // think there is anything we can do here.
 
             EditableInputConnection ic = new EditableInputConnection(this);
-            outAttrs.initialSelStart = getSelectionStart();
-            outAttrs.initialSelEnd = getSelectionEnd();
-            outAttrs.initialCapsMode = ic.getCursorCapsMode(getInputType());
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (mSettings.shouldSendSelectionInfo()) {
+                outAttrs.initialSelStart = getSelectionStart();
+                outAttrs.initialSelEnd = getSelectionEnd();
+            }
+            // (EW) this isn't very clear, but the normal TextUtils.CAP_MODE_* values that get sent
+            // to this method are actually set to the value of InputType.TYPE_TEXT_FLAG_CAP_*, so
+            // this is just getting the value that's embedded in the input type.
+            outAttrs.initialCapsMode = ic.getCursorCapsModeInternal(getInputType());
+            // (EW) don't send any text unless we're creating an InputConnection because without it
+            // the IME can't get any text by manually requesting it, so it would be weird to give it
+            // this.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && mSettings.shouldCreateInputConnection() && mSettings.shouldSendText()) {
                 outAttrs.setInitialSurroundingText(mText);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
-            mInputConnection = ic;
-            return ic.createWrapperIfNecessary();
+            if (mSettings.shouldCreateInputConnection()) {
+                mInputConnection = ic;
+                return ic.createWrapperIfNecessary();
+            }
         }
         mInputConnection = null;
         return null;
     }
 
-    @Nullable EditableInputConnection getInputConnection() {
+    @Nullable
+    EditableInputConnection getInputConnection() {
         return mInputConnection;
     }
 
@@ -6258,6 +6479,14 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
      * @return Returns true if the text was successfully extracted, else false.
      */
     public boolean extractText(ExtractedTextRequest request, ExtractedText outText) {
+        if (!mSettings.shouldSendSelectionInfo()) {
+            // (EW) skipping extracting text due to the input type not sending any selection
+            // position info since this would include that
+            return false;
+        }
+        if (!mSettings.shouldSendText()) {
+            return false;
+        }
         return mEditor.extractText(request, outText);
     }
 
