@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2007 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -32,9 +32,9 @@ import com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFrag
 import com.wittmane.testingedittext.settings.fragments.SystemBehaviorSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TargetVersionSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ComposingTextSettingsFragment;
-import com.wittmane.testingedittext.settings.fragments.TestFieldImeActionSettingsFragment;
-import com.wittmane.testingedittext.settings.fragments.TestFieldImeOptionsSettingsFragment;
-import com.wittmane.testingedittext.settings.fragments.TestFieldInputTypeSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.ImeActionSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.ImeOptionsSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.InputTypeSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 
@@ -92,8 +92,8 @@ public class SettingsActivity extends PreferenceActivity {
                 || ReturningTextSettingsFragment.class.getName().equals(fragmentName)
                 || TestFieldListSettingsFragment.class.getName().equals(fragmentName)
                 || TestFieldSettingsFragment.class.getName().equals(fragmentName)
-                || TestFieldInputTypeSettingsFragment.class.getName().equals(fragmentName)
-                || TestFieldImeOptionsSettingsFragment.class.getName().equals(fragmentName)
-                || TestFieldImeActionSettingsFragment.class.getName().equals(fragmentName);
+                || InputTypeSettingsFragment.class.getName().equals(fragmentName)
+                || ImeOptionsSettingsFragment.class.getName().equals(fragmentName)
+                || ImeActionSettingsFragment.class.getName().equals(fragmentName);
     }
 }

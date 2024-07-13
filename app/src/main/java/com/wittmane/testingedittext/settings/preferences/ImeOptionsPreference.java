@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,42 +24,42 @@ import android.view.inputmethod.EditorInfo;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.fragments.TestFieldImeOptionsSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.ImeOptionsSettingsFragment;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestFieldImeOptionsPreference extends SingleFieldPreference {
+public class ImeOptionsPreference extends PerTestFieldPreference {
 
-    public TestFieldImeOptionsPreference(Context context) {
+    public ImeOptionsPreference(Context context) {
         super(context);
         init();
     }
 
-    public TestFieldImeOptionsPreference(Context context, int fieldIndex) {
+    public ImeOptionsPreference(Context context, int fieldIndex) {
         super(context, fieldIndex);
         init();
     }
 
-    public TestFieldImeOptionsPreference(Context context, AttributeSet attrs) {
+    public ImeOptionsPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public TestFieldImeOptionsPreference(Context context, AttributeSet attrs, int defStyleAttr) {
+    public ImeOptionsPreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public TestFieldImeOptionsPreference(Context context, AttributeSet attrs, int defStyleAttr,
-                                         int defStyleRes) {
+    public ImeOptionsPreference(Context context, AttributeSet attrs, int defStyleAttr,
+                                int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init();
     }
 
     private void init() {
-        setFragment(TestFieldImeOptionsSettingsFragment.class.getName());
+        setFragment(ImeOptionsSettingsFragment.class.getName());
     }
 
     @Override

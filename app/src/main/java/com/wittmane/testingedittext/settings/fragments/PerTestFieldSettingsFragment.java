@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,10 +23,10 @@ import android.preference.PreferenceGroup;
 import android.util.Log;
 
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.preferences.SingleFieldPreference;
+import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 
-public abstract class TestFieldBaseSettingsFragment extends PreferenceFragment {
-    private static final String TAG = TestFieldBaseSettingsFragment.class.getSimpleName();
+public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
+    private static final String TAG = PerTestFieldSettingsFragment.class.getSimpleName();
 
     public static final String FIELD_INDEX_BUNDLE_KEY = "FIELD_INDEX";
 
@@ -77,9 +77,9 @@ public abstract class TestFieldBaseSettingsFragment extends PreferenceFragment {
                     // add the suffix to the preference keys
                     pref.setKey(key + fieldId);
                 }
-                if (pref instanceof SingleFieldPreference) {
+                if (pref instanceof PerTestFieldPreference) {
                     // set the index for launching sub preference screens
-                    ((SingleFieldPreference)pref).setFieldIndex(mFieldIndex);
+                    ((PerTestFieldPreference)pref).setFieldIndex(mFieldIndex);
                 }
             }
             prefGroup.addPreference(pref);

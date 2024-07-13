@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -28,13 +28,13 @@
         app:defaultText=""
         app:inputType="textMultiLine|textStyled" />
 
-    <com.wittmane.testingedittext.settings.preferences.TestFieldInputTypePreference
+    <com.wittmane.testingedittext.settings.preferences.InputTypePreference
         android:title="@string/input_type" />
 
-    <com.wittmane.testingedittext.settings.preferences.TestFieldImeOptionsPreference
+    <com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference
         android:title="@string/ime_options" />
 
-    <com.wittmane.testingedittext.settings.preferences.TestFieldImeActionPreference
+    <com.wittmane.testingedittext.settings.preferences.ImeActionPreference
         android:title="@string/ime_action" />
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference

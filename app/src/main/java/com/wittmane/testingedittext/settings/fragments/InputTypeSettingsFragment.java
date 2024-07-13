@@ -26,7 +26,7 @@ import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 
-public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFragment {
+public class InputTypeSettingsFragment extends PerTestFieldSettingsFragment {
 
     private ListPreference mInputTypeClassPref;
     private ListPreference mInputTypeTextVariationPref;
@@ -53,7 +53,7 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        addPreferencesFromResource(R.xml.preference_screen_test_field_input_type);
+        addPreferencesFromResource(R.xml.preference_screen_input_type);
 
         mInputTypeClassPref = (ListPreference)findPreference(
                 Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX);

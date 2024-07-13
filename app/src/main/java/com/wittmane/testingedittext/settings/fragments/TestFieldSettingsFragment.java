@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -32,7 +32,7 @@ import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 
-public class TestFieldSettingsFragment extends TestFieldBaseSettingsFragment {
+public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
     private static final String TAG = TestFieldSettingsFragment.class.getSimpleName();
 
     private View mView;
