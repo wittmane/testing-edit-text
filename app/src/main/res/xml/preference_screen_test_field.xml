@@ -66,4 +66,19 @@
         android:key="pref_key_test_field_ime_hint_locales_"
         android:title="@string/ime_hint_locales"/>
 
+    <com.wittmane.testingedittext.settings.preferences.ModifyTextPreference
+        android:title="@string/modify_text_input_screen" />
+
+    <com.wittmane.testingedittext.settings.preferences.ReturningTextPreference
+        android:title="@string/returning_text_screen" />
+
+    <com.wittmane.testingedittext.settings.preferences.ComposingTextPreference
+        android:title="@string/composing_text_screen" />
+
+    <com.wittmane.testingedittext.settings.preferences.TargetVersionPreference
+        android:title="@string/simulate_old_target_versions_screen" />
+
+    <com.wittmane.testingedittext.settings.preferences.SystemBehaviorPreference
+        android:title="@string/simulate_system_behavior_screen" />
+
 </PreferenceScreen>

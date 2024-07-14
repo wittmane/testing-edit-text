@@ -20,6 +20,7 @@ import android.preference.Preference;
 import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
+import android.util.Log;
 
 public class SwitchPreferenceDependencyManager implements OnPreferenceChangeListener {
     private static final String TAG = SwitchPreferenceDependencyManager.class.getSimpleName();
@@ -41,6 +42,9 @@ public class SwitchPreferenceDependencyManager implements OnPreferenceChangeList
             SwitchPreference pref =
                     (SwitchPreference)fragment.findPreference(switchPrefListenerKeys[i]);
             mPrefs[i] = pref;
+            if (pref == null) {
+                Log.e(TAG, "couldn't find preference for: " + switchPrefListenerKeys[i]);
+            }
             pref.setOnPreferenceChangeListener(this);
             prefsChecked[i] = pref.isChecked();
         }

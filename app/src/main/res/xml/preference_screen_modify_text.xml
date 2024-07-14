@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2023 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -17,6 +17,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto" >
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_override_text_input_modification"
+        android:title="@string/override_app_level_settings" />
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_modify_committed_text"
         android:title="@string/modify_committed_text_title"
         android:summary="@string/modify_committed_text_summary" />
@@ -27,14 +31,12 @@
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_modify_composed_changes_only"
         android:title="@string/modify_composed_changes_only_title"
-        android:summary="@string/modify_composed_changes_only_summary"
-        android:dependency="pref_key_modify_composed_text" />
+        android:summary="@string/modify_composed_changes_only_summary" />
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_consider_composed_changes_from_end"
         android:title="@string/consider_composed_changes_from_end_title"
-        android:summary="@string/consider_composed_changes_from_end_summary"
-        android:dependency="pref_key_modify_composed_changes_only" />
+        android:summary="@string/consider_composed_changes_from_end_summary" />
 
     <PreferenceCategory android:title="@string/restrict_input_text_category">
 

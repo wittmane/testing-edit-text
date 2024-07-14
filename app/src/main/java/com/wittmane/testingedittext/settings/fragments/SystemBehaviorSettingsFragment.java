@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,17 +19,24 @@ package com.wittmane.testingedittext.settings.fragments;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
-import android.preference.PreferenceFragment;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
 
-public class SystemBehaviorSettingsFragment extends PreferenceFragment {
+public class SystemBehaviorSettingsFragment extends PerTestFieldSettingsFragment {
+    private static final String TAG = SystemBehaviorSettingsFragment.class.getSimpleName();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_system_behavior);
+    }
+
+    @Override
+    public void onActivityCreated(final Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        manageOverrideToggle(Settings.PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION);
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             Preference getSurroundingTextDelayPref =

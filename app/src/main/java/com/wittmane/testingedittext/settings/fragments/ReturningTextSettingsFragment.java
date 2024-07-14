@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,45 +18,87 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import android.os.Bundle;
 import android.preference.Preference;
-import android.preference.PreferenceFragment;
+import android.preference.PreferenceScreen;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager.OnPreferencesChangedListener;
 
-public class ReturningTextSettingsFragment extends PreferenceFragment {
+public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment {
+    private static final String TAG = ReturningTextSettingsFragment.class.getSimpleName();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_returning_text);
+    }
+
+    @Override
+    public void onActivityCreated(final Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
 
         new SwitchPreferenceDependencyManager(new String[]{
-                Settings.PREF_SKIP_EXTRACTING_TEXT,
-                Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
-                Settings.PREF_EXTRACT_FULL_TEXT
+                getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN),
+                getPrefKey(Settings.PREF_SKIP_EXTRACTING_TEXT),
+                getPrefKey(Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR),
+                getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT)
         }, this, new OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefsChecked) {
-                updateExtractTextEnabledState(prefsChecked[0], prefsChecked[1], prefsChecked[2]);
+                updateEnabledState(prefsChecked[0], prefsChecked[1], prefsChecked[2],
+                        prefsChecked[3]);
             }
         });
+        if (getFieldIndex() == NO_FIELD_INDEX) {
+            PreferenceScreen preferenceScreen = getPreferenceScreen();
+            Preference pref = findPreference(getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN));
+            preferenceScreen.removePreference(pref);
+        }
     }
 
-    private void updateExtractTextEnabledState(boolean skipExtractingText,
-                                               boolean ignoreExtractedTextMonitor,
-                                               boolean extractFullText) {
-        Preference updateSelectionBeforeExtractedTextPref =
-                findPreference(Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT);
-        updateSelectionBeforeExtractedTextPref.setEnabled(!ignoreExtractedTextMonitor);
+    private void updateEnabledState(boolean overrideDefaults,
+                                    boolean skipExtractingText,
+                                    boolean ignoreExtractedTextMonitor,
+                                    boolean extractFullText) {
+        boolean enableUpdateSelectionBeforeExtractedText;
+        boolean enableExtractFullText;
+        boolean enableLimitExtractMonitorText;
+        boolean enableOthers;
+        if (overrideDefaults || getFieldIndex() < 0) {
+            enableUpdateSelectionBeforeExtractedText = !ignoreExtractedTextMonitor;
+            enableExtractFullText = !ignoreExtractedTextMonitor;
+            enableLimitExtractMonitorText = !skipExtractingText
+                    || (!ignoreExtractedTextMonitor && extractFullText);
+            enableOthers = true;
+        } else {
+            enableUpdateSelectionBeforeExtractedText = false;
+            enableExtractFullText = false;
+            enableLimitExtractMonitorText = false;
+            enableOthers = false;
+        }
 
-        Preference extractFullTextPref = findPreference(Settings.PREF_EXTRACT_FULL_TEXT);
-        extractFullTextPref.setEnabled(!ignoreExtractedTextMonitor);
+        Preference updateSelectionBeforeExtractedTextPref =
+                findPreference(getPrefKey(Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT));
+        updateSelectionBeforeExtractedTextPref.setEnabled(enableUpdateSelectionBeforeExtractedText);
+
+        Preference extractFullTextPref =
+                findPreference(getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT));
+        extractFullTextPref.setEnabled(enableExtractFullText);
 
         Preference limitExtractMonitorTextPref =
-                findPreference(Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT);
-        limitExtractMonitorTextPref.setEnabled(!skipExtractingText
-                || (!ignoreExtractedTextMonitor && extractFullText));
+                findPreference(getPrefKey(Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT));
+        limitExtractMonitorTextPref.setEnabled(enableLimitExtractMonitorText);
+
+        String[] otherPrefKeyPrefixes = new String[] {
+                Settings.PREF_SKIP_EXTRACTING_TEXT,
+                Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
+                Settings.PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
+                Settings.PREF_LIMIT_RETURNED_TEXT
+        };
+        for (String prefKey : otherPrefKeyPrefixes) {
+            Preference pref = findPreference(getPrefKey(prefKey));
+            pref.setEnabled(enableOthers);
+        }
     }
 }

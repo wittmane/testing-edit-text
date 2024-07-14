@@ -40,6 +40,11 @@ import java.util.Locale;
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = Settings.class.getSimpleName();
 
+    public static final String BASE_SUFFIX = "_base";
+    public static final String FIELD_INFIX = "_field_";
+
+    public static final String PREF_OVERRIDE_TEXT_INPUT_MODIFICATION =
+            "pref_key_override_text_input_modification";
     public static final String PREF_MODIFY_COMMITTED_TEXT = "pref_key_modify_committed_text";
     public static final String PREF_MODIFY_COMPOSED_TEXT = "pref_key_modify_composed_text";
     public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY =
@@ -53,6 +58,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_TRANSLATE_FULL_MATCH_ONLY =
             "pref_key_translate_full_match_only";
     public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
+
+    public static final String PREF_OVERRIDE_TEXT_RETURN =
+            "pref_key_override_text_return";
     public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
     public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR =
             "pref_key_ignore_extracted_text_monitor";
@@ -64,10 +72,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
             "pref_key_limit_extract_monitor_text";
     public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
+
+    public static final String PREF_OVERRIDE_TEXT_COMPOSITION =
+            "pref_key_override_text_composition";
     public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT =
             "pref_key_delete_through_composing_text";
     public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
             "pref_key_keep_empty_composing_position";
+
+    public static final String PREF_OVERRIDE_TARGET_VERSION_SIMULATION =
+            "pref_key_override_target_version_simulation";
     public static final String PREF_SKIP_TAKESNAPSHOT = "pref_key_skip_takesnapshot";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
     public static final String PREF_SKIP_PERFORMSPELLCHECK = "pref_key_skip_performspellcheck";
@@ -81,6 +95,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SKIP_COMMITCORRECTION = "pref_key_skip_commitcorrection";
     public static final String PREF_SKIP_GETSELECTEDTEXT = "pref_key_skip_getselectedtext";
     public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
+
+    public static final String PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION =
+            "pref_key_override_system_behavior_simulation";
     public static final String PREF_UPDATE_DELAY = "pref_key_update_delay";
     public static final String PREF_FINISHCOMPOSINGTEXT_DELAY =
             "pref_key_finishcomposingtext_delay";
@@ -91,6 +108,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_GETTEXTAFTERCURSOR_DELAY = "pref_key_gettextaftercursor_delay";
     public static final String PREF_GETCURSORCAPSMODE_DELAY = "pref_key_getcursorcapsmode_delay";
     public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
+
     public static final String PREF_TEST_FIELD_IDS = "pref_key_test_field_ids";
     public static final String PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX =
             "pref_key_test_field_input_type_class_";

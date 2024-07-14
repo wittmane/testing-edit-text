@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,19 +19,27 @@ package com.wittmane.testingedittext.settings.fragments;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceCategory;
-import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
+import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.settings.Settings;
 
-public class TargetVersionSettingsFragment extends PreferenceFragment {
+public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment {
+    private static final String TAG = TargetVersionSettingsFragment.class.getSimpleName();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_target_version);
+    }
+
+    @Override
+    public void onActivityCreated(final Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        manageOverrideToggle(Settings.PREF_OVERRIDE_TARGET_VERSION_SIMULATION);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
                 && !EditableInputConnection.canSimulateMissingMethods(getContext())) {

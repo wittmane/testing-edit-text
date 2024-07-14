@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2023 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,6 +14,10 @@
      limitations under the License.
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_override_target_version_simulation"
+        android:title="@string/override_app_level_settings" />
 
     <PreferenceCategory android:title="@string/added_in_api_level_33"
         android:key="pref_key_added_in_api_level_33">
