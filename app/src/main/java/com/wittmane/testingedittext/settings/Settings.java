@@ -110,80 +110,80 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
 
     public static final String PREF_TEST_FIELD_IDS = "pref_key_test_field_ids";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX =
-            "pref_key_test_field_input_type_class_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX =
-            "pref_key_test_field_input_type_text_variation_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX =
-            "pref_key_test_field_input_type_number_variation_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX =
-            "pref_key_test_field_input_type_datetime_variation_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX =
-            "pref_key_test_field_input_type_text_flag_multi_line_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX =
-            "pref_key_test_field_input_type_text_flag_cap_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX =
-            "pref_key_test_field_input_type_text_flag_auto_complete_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX =
-            "pref_key_test_field_input_type_text_flag_auto_correct_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX =
-            "pref_key_test_field_input_type_text_flag_no_suggestions_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX =
-            "pref_key_test_field_input_type_number_flag_signed_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX =
-            "pref_key_test_field_input_type_number_flag_decimal_";
-    public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
-            "pref_key_test_field_null_input_type_multiline_";
-    public static final String PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX =
-            "pref_key_test_field_create_input_connection_";
-    public static final String PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX =
-            "pref_key_test_field_send_selection_info_";
-    public static final String PREF_TEST_FIELD_SEND_TEXT_PREFIX =
-            "pref_key_test_field_send_text_";
-    public static final String PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX =
-            "pref_key_test_field_composing_text_behavior_";
-    public static final String PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
-            "pref_key_test_field_allow_delete_surrounding_text_";
-    public static final String PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX =
-            "pref_key_test_field_allow_setting_selection_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
-            "pref_key_test_field_ime_options_action_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
-            "pref_key_test_field_ime_options_flag_force_ascii_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX =
-            "pref_key_test_field_ime_options_flag_navigate_next_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX =
-            "pref_key_test_field_ime_options_flag_navigate_previous_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_accessory_action_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_enter_action_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_extract_ui_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_fullscreen_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_personalized_learning_";
-    public static final String PREF_TEST_FIELD_IME_ACTION_ID_PREFIX =
-            "pref_key_test_field_ime_action_id_";
-    public static final String PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX =
-            "pref_key_test_field_ime_action_label_";
-    public static final String PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX =
-            "pref_key_test_field_private_ime_options_";
-    public static final String PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX =
-            "pref_key_test_field_select_all_on_focus_";
-    public static final String PREF_TEST_FIELD_MAX_LENGTH_PREFIX =
-            "pref_key_test_field_max_length_";
-    public static final String PREF_TEST_FIELD_ALLOW_UNDO_PREFIX =
-            "pref_key_test_field_allow_undo_";
-    public static final String PREF_TEST_FIELD_TEXT_LOCALES_PREFIX =
-            "pref_key_test_field_text_locales_";
-    public static final String PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX =
-            "pref_key_test_field_ime_hint_locales_";
-    public static final String PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX =
-            "pref_key_test_field_default_text_";
-    public static final String PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX =
-            "pref_key_test_field_hint_text_";
+    public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
+            "pref_key_input_type_class";
+    public static final String PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX =
+            "pref_key_input_type_text_variation";
+    public static final String PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX =
+            "pref_key_input_type_number_variation";
+    public static final String PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX =
+            "pref_key_input_type_datetime_variation";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX =
+            "pref_key_input_type_text_flag_multi_line";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX =
+            "pref_key_input_type_text_flag_cap";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX =
+            "pref_key_input_type_text_flag_auto_complete";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX =
+            "pref_key_input_type_text_flag_auto_correct";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX =
+            "pref_key_input_type_text_flag_no_suggestions";
+    public static final String PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX =
+            "pref_key_input_type_number_flag_signed";
+    public static final String PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX =
+            "pref_key_input_type_number_flag_decimal";
+    public static final String PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX =
+            "pref_key_null_input_type_multiline";
+    public static final String PREF_CREATE_INPUT_CONNECTION_PREFIX =
+            "pref_key_create_input_connection";
+    public static final String PREF_SEND_SELECTION_INFO_PREFIX =
+            "pref_key_send_selection_info";
+    public static final String PREF_SEND_TEXT_PREFIX =
+            "pref_key_send_text";
+    public static final String PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX =
+            "pref_key_composing_text_behavior";
+    public static final String PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
+            "pref_key_allow_delete_surrounding_text";
+    public static final String PREF_ALLOW_SETTING_SELECTION_PREFIX =
+            "pref_key_allow_setting_selection";
+    public static final String PREF_IME_OPTIONS_ACTION_PREFIX =
+            "pref_key_ime_options_action";
+    public static final String PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
+            "pref_key_ime_options_flag_force_ascii";
+    public static final String PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX =
+            "pref_key_ime_options_flag_navigate_next";
+    public static final String PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX =
+            "pref_key_ime_options_flag_navigate_previous";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX =
+            "pref_key_ime_options_flag_no_accessory_action";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX =
+            "pref_key_ime_options_flag_no_enter_action";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX =
+            "pref_key_ime_options_flag_no_extract_ui";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX =
+            "pref_key_ime_options_flag_no_fullscreen";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX =
+            "pref_key_ime_options_flag_no_personalized_learning";
+    public static final String PREF_IME_ACTION_ID_PREFIX =
+            "pref_key_ime_action_id";
+    public static final String PREF_IME_ACTION_LABEL_PREFIX =
+            "pref_key_ime_action_label";
+    public static final String PREF_PRIVATE_IME_OPTIONS_PREFIX =
+            "pref_key_private_ime_options";
+    public static final String PREF_SELECT_ALL_ON_FOCUS_PREFIX =
+            "pref_key_select_all_on_focus";
+    public static final String PREF_MAX_LENGTH_PREFIX =
+            "pref_key_max_length";
+    public static final String PREF_ALLOW_UNDO_PREFIX =
+            "pref_key_allow_undo";
+    public static final String PREF_TEXT_LOCALES_PREFIX =
+            "pref_key_text_locales";
+    public static final String PREF_IME_HINT_LOCALES_PREFIX =
+            "pref_key_ime_hint_locales";
+    public static final String PREF_IME_DEFAULT_TEXT_PREFIX =
+            "pref_key_default_text";
+    public static final String PREF_IME_HINT_TEXT_PREFIX =
+            "pref_key_hint_text";
 
     private boolean mModifyCommittedText;
     private boolean mModifyComposedText;
@@ -318,43 +318,43 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         // all would just read all of them multiple times. leaving them commented out here for
         // visibility.
         final String[] testFieldPrefKeyPrefixes = new String[]{
-                PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
-                //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                //PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
-                //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
-                //PREF_TEST_FIELD_SEND_TEXT_PREFIX,
-                //PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                //PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                //PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_ID_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX,
-                PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX,
-                PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX,
-                PREF_TEST_FIELD_MAX_LENGTH_PREFIX,
-                PREF_TEST_FIELD_ALLOW_UNDO_PREFIX,
-                PREF_TEST_FIELD_TEXT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX
+                PREF_INPUT_TYPE_CLASS_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                //PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                //PREF_CREATE_INPUT_CONNECTION_PREFIX,
+                //PREF_SEND_SELECTION_INFO_PREFIX,
+                //PREF_SEND_TEXT_PREFIX,
+                //PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                //PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                //PREF_ALLOW_SETTING_SELECTION_PREFIX,
+                PREF_IME_OPTIONS_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
+                PREF_IME_ACTION_ID_PREFIX,
+                PREF_IME_ACTION_LABEL_PREFIX,
+                PREF_PRIVATE_IME_OPTIONS_PREFIX,
+                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
+                PREF_MAX_LENGTH_PREFIX,
+                PREF_ALLOW_UNDO_PREFIX,
+                PREF_TEXT_LOCALES_PREFIX,
+                PREF_IME_HINT_LOCALES_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
             loadTestFieldSetting(prefKeyPrefix, fieldId);
@@ -516,24 +516,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
         TestField testField = mTestFields.get(index);
         switch (prefKeyPrefix) {
-            case PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
-            case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
-            case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
-            case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
-            case PREF_TEST_FIELD_SEND_TEXT_PREFIX:
-            case PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX:
-            case PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
-            case PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX:
+            case PREF_INPUT_TYPE_CLASS_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
+            case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
+            case PREF_CREATE_INPUT_CONNECTION_PREFIX:
+            case PREF_SEND_SELECTION_INFO_PREFIX:
+            case PREF_SEND_TEXT_PREFIX:
+            case PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+            case PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
+            case PREF_ALLOW_SETTING_SELECTION_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
                 testField.mNullInputTypeMultiline =
                         readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
@@ -553,45 +553,45 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         readTestFieldAllowSettingSelection(mPrefs, fieldId, testField.mInputType,
                                 testField.mCreateInputConnection);
                 break;
-            case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
+            case PREF_IME_OPTIONS_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
                 testField.mImeOptions = readTestFieldImeOptions(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_ACTION_ID_PREFIX:
+            case PREF_IME_ACTION_ID_PREFIX:
                 testField.mImeActionId = readTestFieldImeActionId(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX:
+            case PREF_IME_ACTION_LABEL_PREFIX:
                 testField.mImeActionLabel = readTestFieldImeActionLabel(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX:
+            case PREF_PRIVATE_IME_OPTIONS_PREFIX:
                 testField.mPrivateImeOptions = readTestFieldPrivateImeOptions(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX:
+            case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
                 testField.mSelectAllOnFocus = readTestFieldSelectAllOnFocus(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_MAX_LENGTH_PREFIX:
+            case PREF_MAX_LENGTH_PREFIX:
                 testField.mMaxLength = readTestFieldMaxLength(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_ALLOW_UNDO_PREFIX:
+            case PREF_ALLOW_UNDO_PREFIX:
                 testField.mAllowUndo = readTestFieldAllowUndo(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_TEXT_LOCALES_PREFIX:
+            case PREF_TEXT_LOCALES_PREFIX:
                 testField.mTextLocales = readTestFieldTextLocales(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX:
+            case PREF_IME_HINT_LOCALES_PREFIX:
                 testField.mImeHintLocales = readTestFieldImeHintLocales(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX:
+            case PREF_IME_DEFAULT_TEXT_PREFIX:
                 testField.mDefaultText = readTestFieldDefaultText(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX:
+            case PREF_IME_HINT_TEXT_PREFIX:
                 testField.mHintText = readTestFieldHintText(mPrefs, fieldId);
                 break;
         }
@@ -1110,43 +1110,43 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static void removeTestFieldPrefs(Editor editor, int idToRemove) {
         final String[] testFieldPrefKeyPrefixes = new String[]{
-                PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
-                PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
-                PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
-                PREF_TEST_FIELD_SEND_TEXT_PREFIX,
-                PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_ID_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX,
-                PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX,
-                PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX,
-                PREF_TEST_FIELD_MAX_LENGTH_PREFIX,
-                PREF_TEST_FIELD_ALLOW_UNDO_PREFIX,
-                PREF_TEST_FIELD_TEXT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX
+                PREF_INPUT_TYPE_CLASS_PREFIX,
+                PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
+                PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
+                PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
+                PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
+                PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                PREF_CREATE_INPUT_CONNECTION_PREFIX,
+                PREF_SEND_SELECTION_INFO_PREFIX,
+                PREF_SEND_TEXT_PREFIX,
+                PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                PREF_ALLOW_SETTING_SELECTION_PREFIX,
+                PREF_IME_OPTIONS_ACTION_PREFIX,
+                PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
+                PREF_IME_ACTION_ID_PREFIX,
+                PREF_IME_ACTION_LABEL_PREFIX,
+                PREF_PRIVATE_IME_OPTIONS_PREFIX,
+                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
+                PREF_MAX_LENGTH_PREFIX,
+                PREF_ALLOW_UNDO_PREFIX,
+                PREF_TEXT_LOCALES_PREFIX,
+                PREF_IME_HINT_LOCALES_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
             editor.remove(prefKeyPrefix + idToRemove);
@@ -1172,7 +1172,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readTestFieldInputType(final SharedPreferenceManager prefs, int fieldId) {
-        String inputTypeClass = prefs.getString(PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX + fieldId,
+        String inputTypeClass = prefs.getString(
+                PREF_INPUT_TYPE_CLASS_PREFIX + FIELD_INFIX + fieldId,
                 "TYPE_CLASS_TEXT");
         String variation;
         int inputType;
@@ -1183,7 +1184,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "TYPE_CLASS_DATETIME":
                 inputType = InputType.TYPE_CLASS_DATETIME;
                 variation = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX + FIELD_INFIX + fieldId,
                         "TYPE_DATETIME_VARIATION_NORMAL");
                 switch (variation) {
                     case "TYPE_DATETIME_VARIATION_NORMAL":
@@ -1203,7 +1204,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "TYPE_CLASS_NUMBER":
                 inputType = InputType.TYPE_CLASS_NUMBER;
                 variation = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX + FIELD_INFIX + fieldId,
                         "TYPE_NUMBER_VARIATION_NORMAL");
                 switch (variation) {
                     case "TYPE_NUMBER_VARIATION_NORMAL":
@@ -1217,12 +1218,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_SIGNED;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_DECIMAL;
                 }
@@ -1233,7 +1234,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "TYPE_CLASS_TEXT":
                 inputType = InputType.TYPE_CLASS_TEXT;
                 variation = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX + FIELD_INFIX + fieldId,
                         "TYPE_TEXT_VARIATION_NORMAL");
                 switch (variation) {
                     case "TYPE_TEXT_VARIATION_NORMAL":
@@ -1286,7 +1287,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 String multiLineFlag = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX + FIELD_INFIX + fieldId,
                         "");
                 switch (multiLineFlag) {
                     case "TYPE_TEXT_FLAG_MULTI_LINE":
@@ -1297,7 +1298,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 String capFlag = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX + FIELD_INFIX + fieldId,
                         "");
                 switch (capFlag) {
                     case "TYPE_TEXT_FLAG_CAP_CHARACTERS":
@@ -1311,17 +1312,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                 }
@@ -1342,7 +1343,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
                                                                int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX + FIELD_INFIX + fieldId,
                 DEFAULT_NULL_INPUT_TYPE_MULTILINE);
     }
 
@@ -1361,7 +1362,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultCreateInputConnection(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_CREATE_INPUT_CONNECTION_PREFIX + FIELD_INFIX + fieldId,
                 defaultCreateInputConnection(inputType));
     }
 
@@ -1381,7 +1382,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultCreateInputConnection(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_SEND_SELECTION_INFO_PREFIX + FIELD_INFIX + fieldId,
                 defaultCreateInputConnection(inputType));
     }
 
@@ -1400,7 +1401,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultSendText(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_SEND_TEXT_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_SEND_TEXT_PREFIX + FIELD_INFIX + fieldId,
                 defaultSendText(inputType));
     }
 
@@ -1433,7 +1434,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return defaultComposingTextBehavior(inputType);
         }
         String behavior =
-                prefs.getString(PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX + fieldId, "");
+                prefs.getString(PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX + FIELD_INFIX + fieldId, "");
         switch (behavior) {
             case "INVISIBLE":
                 return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
@@ -1469,7 +1470,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultAllowDeleteSurroundingText(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + FIELD_INFIX + fieldId,
                 defaultAllowDeleteSurroundingText(inputType));
     }
 
@@ -1494,7 +1495,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultAllowSettingSelection(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_ALLOW_SETTING_SELECTION_PREFIX + FIELD_INFIX + fieldId,
                 defaultAllowSettingSelection(inputType));
     }
 
@@ -1504,7 +1505,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
         String imeOptionsAction = prefs.getString(
-                PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX + fieldId,
+                PREF_IME_OPTIONS_ACTION_PREFIX + FIELD_INFIX + fieldId,
                 "IME_ACTION_UNSPECIFIED");
         int imeOptions;
         switch (imeOptionsAction) {
@@ -1537,37 +1538,37 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 imeOptions = EditorInfo.IME_NULL;
                 break;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_FORCE_ASCII;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_NEXT;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
         }
         if (prefs.getBoolean(
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX + fieldId,
+                PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ACCESSORY_ACTION;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ENTER_ACTION;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_EXTRACT_UI;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_FULLSCREEN;
         }
         if (prefs.getBoolean(
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX + fieldId,
+                PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX + FIELD_INFIX + fieldId,
                 false)
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
@@ -1580,7 +1581,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readTestFieldImeActionId(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_TEST_FIELD_IME_ACTION_ID_PREFIX + fieldId, 0);
+        return prefs.getInt(PREF_IME_ACTION_ID_PREFIX + FIELD_INFIX + fieldId, 0);
     }
 
     public static int getTestFieldImeActionId(int fieldIndex) {
@@ -1589,7 +1590,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static String readTestFieldImeActionLabel(final SharedPreferenceManager prefs,
                                                       int fieldId) {
-        return prefs.getString(PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX + fieldId, null);
+        return prefs.getString(PREF_IME_ACTION_LABEL_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static String getTestFieldImeActionLabel(int fieldIndex) {
@@ -1598,7 +1599,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static String readTestFieldPrivateImeOptions(final SharedPreferenceManager prefs,
                                                          int fieldId) {
-        return prefs.getString(PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX + fieldId, null);
+        return prefs.getString(PREF_PRIVATE_IME_OPTIONS_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static String getTestFieldPrivateImeOptions(int fieldIndex) {
@@ -1607,7 +1608,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readTestFieldSelectAllOnFocus(final SharedPreferenceManager prefs,
                                                          int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX + fieldId, false);
+        return prefs.getBoolean(PREF_SELECT_ALL_ON_FOCUS_PREFIX + FIELD_INFIX + fieldId, false);
     }
 
     public static boolean shouldTestFieldSelectAllOnFocus(int fieldIndex) {
@@ -1615,7 +1616,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readTestFieldMaxLength(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_TEST_FIELD_MAX_LENGTH_PREFIX + fieldId, -1);
+        return prefs.getInt(PREF_MAX_LENGTH_PREFIX + FIELD_INFIX + fieldId, -1);
     }
 
     public static int getTestFieldMaxLength(int fieldIndex) {
@@ -1624,7 +1625,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readTestFieldAllowUndo(final SharedPreferenceManager prefs,
                                                   int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_UNDO_PREFIX + fieldId, true);
+        return prefs.getBoolean(PREF_ALLOW_UNDO_PREFIX + FIELD_INFIX + fieldId, true);
     }
 
     public static boolean shouldTestFieldAllowUndo(int fieldIndex) {
@@ -1634,7 +1635,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static Locale[] readTestFieldTextLocales(final SharedPreferenceManager prefs,
                                                      int fieldId) {
         return (new LocaleEntryListPreference.Reader(prefs,
-                PREF_TEST_FIELD_TEXT_LOCALES_PREFIX + fieldId)).readValue();
+                PREF_TEXT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
     public static Locale[] getTestFieldTextLocales(int fieldIndex) {
@@ -1644,7 +1645,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static Locale[] readTestFieldImeHintLocales(final SharedPreferenceManager prefs,
                                                         int fieldId) {
         return (new LocaleEntryListPreference.Reader(prefs,
-                PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX + fieldId)).readValue();
+                PREF_IME_HINT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
     public static Locale[] getTestFieldImeHintLocales(int fieldIndex) {
@@ -1653,7 +1654,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static CharSequence readTestFieldDefaultText(final SharedPreferenceManager prefs,
                                                          int fieldId) {
-        return prefs.getCharSequence(PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX + fieldId, null);
+        return prefs.getCharSequence(PREF_IME_DEFAULT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static CharSequence getTestFieldDefaultText(int fieldIndex) {
@@ -1662,7 +1663,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static CharSequence readTestFieldHintText(final SharedPreferenceManager prefs,
                                                       int fieldId) {
-        return prefs.getCharSequence(PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX + fieldId, null);
+        return prefs.getCharSequence(PREF_IME_HINT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static CharSequence getTestFieldHintText(int fieldIndex) {

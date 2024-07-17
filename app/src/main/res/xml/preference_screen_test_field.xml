@@ -17,13 +17,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_default_text_"
+        android:key="pref_key_default_text"
         android:title="@string/default_text"
         app:defaultText=""
         app:inputType="textMultiLine|textStyled" />
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_hint_text_"
+        android:key="pref_key_hint_text"
         android:title="@string/hint_text"
         app:defaultText=""
         app:inputType="textMultiLine|textStyled" />
@@ -38,32 +38,32 @@
         android:title="@string/ime_action" />
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_private_ime_options_"
+        android:key="pref_key_private_ime_options"
         android:title="@string/private_ime_options"
         app:inputType="text" />
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-        android:key="pref_key_test_field_select_all_on_focus_"
+        android:key="pref_key_select_all_on_focus"
         android:title="@string/select_all_on_focus" />
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_max_length_"
+        android:key="pref_key_max_length"
         android:title="@string/max_length"
         app:defaultText="-1"
         app:inputType="number" />
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
-        android:key="pref_key_test_field_allow_undo_"
+        android:key="pref_key_allow_undo"
         android:title="@string/allow_undo"
         android:summary="@string/dynamic_set_not_supported_in_framework"
         android:defaultValue="true" />
 
     <com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference
-        android:key="pref_key_test_field_text_locales_"
+        android:key="pref_key_text_locales"
         android:title="@string/text_locales" />
 
     <com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference
-        android:key="pref_key_test_field_ime_hint_locales_"
+        android:key="pref_key_ime_hint_locales"
         android:title="@string/ime_hint_locales"/>
 
     <com.wittmane.testingedittext.settings.preferences.ModifyTextPreference

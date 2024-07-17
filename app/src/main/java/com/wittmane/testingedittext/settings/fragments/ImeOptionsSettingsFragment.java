@@ -34,7 +34,7 @@ public class ImeOptionsSettingsFragment extends PerTestFieldSettingsFragment {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             SwitchPreference noPersonalizedLearningFlagPref = (SwitchPreference) findPreference(
-                    Settings.PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX);
+                    Settings.PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX);
             preferenceScreen.removePreference(noPersonalizedLearningFlagPref);
         }
     }

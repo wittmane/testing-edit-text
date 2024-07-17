@@ -17,12 +17,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_ime_action_id_"
+        android:key="pref_key_ime_action_id"
         android:title="@string/ime_action_id"
         app:inputType="number|numberSigned" />
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_ime_action_label_"
+        android:key="pref_key_ime_action_label"
         android:title="@string/ime_action_label"
         app:inputType="text" />
 
