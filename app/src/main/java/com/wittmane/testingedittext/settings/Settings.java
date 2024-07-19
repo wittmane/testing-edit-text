@@ -1146,10 +1146,58 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEXT_LOCALES_PREFIX,
                 PREF_IME_HINT_LOCALES_PREFIX,
                 PREF_IME_DEFAULT_TEXT_PREFIX,
-                PREF_IME_HINT_TEXT_PREFIX
+                PREF_IME_HINT_TEXT_PREFIX,
+
+                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION,
+                PREF_MODIFY_COMMITTED_TEXT,
+                PREF_MODIFY_COMPOSED_TEXT,
+                PREF_MODIFY_COMPOSED_CHANGES_ONLY,
+                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END,
+                PREF_RESTRICT_TO_INCLUDE,
+                PREF_RESTRICT_SPECIFIC,
+                PREF_RESTRICT_RANGE,
+                PREF_TRANSLATE_SPECIFIC,
+                PREF_TRANSLATE_FULL_MATCH_ONLY,
+                PREF_SHIFT_CODEPOINT,
+
+                PREF_OVERRIDE_TEXT_RETURN,
+                PREF_SKIP_EXTRACTING_TEXT,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
+                PREF_EXTRACT_FULL_TEXT,
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT,
+                PREF_LIMIT_RETURNED_TEXT,
+
+                PREF_OVERRIDE_TEXT_COMPOSITION,
+                PREF_DELETE_THROUGH_COMPOSING_TEXT,
+                PREF_KEEP_EMPTY_COMPOSING_POSITION,
+
+                PREF_OVERRIDE_TARGET_VERSION_SIMULATION,
+                PREF_SKIP_TAKESNAPSHOT,
+                PREF_SKIP_GETSURROUNDINGTEXT,
+                PREF_SKIP_PERFORMSPELLCHECK,
+                PREF_SKIP_SETIMECONSUMESINPUT,
+                PREF_SKIP_COMMITCONTENT,
+                PREF_SKIP_CLOSECONNECTION,
+                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS,
+                PREF_SKIP_REQUESTCURSORUPDATES,
+                PREF_SKIP_COMMITCORRECTION,
+                PREF_SKIP_GETSELECTEDTEXT,
+                PREF_SKIP_SETCOMPOSINGREGION,
+
+                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION,
+                PREF_UPDATE_DELAY,
+                PREF_FINISHCOMPOSINGTEXT_DELAY,
+                PREF_GETSURROUNDINGTEXT_DELAY,
+                PREF_GETTEXTBEFORECURSOR_DELAY,
+                PREF_GETSELECTEDTEXT_DELAY,
+                PREF_GETTEXTAFTERCURSOR_DELAY,
+                PREF_GETCURSORCAPSMODE_DELAY,
+                PREF_GETEXTRACTEDTEXT_DELAY
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
-            editor.remove(prefKeyPrefix + idToRemove);
+            editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);
         }
     }
 
