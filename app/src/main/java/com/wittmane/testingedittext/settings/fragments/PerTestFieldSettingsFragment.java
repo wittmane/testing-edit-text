@@ -44,7 +44,8 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
     @Override
     public void onActivityCreated(final Bundle savedInstanceState) {
         // note that this is done here, rather than in onCreate because the preference screen isn't
-        // available yet
+        // available yet. the preference screen is available in onCreateView, so this theoretically
+        // could move to be there.
         final Bundle args = getArguments();
         if (args != null) {
             String fieldIndex = args.getString(FIELD_INDEX_BUNDLE_KEY);
@@ -92,9 +93,10 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
             if (pref instanceof PreferenceGroup) {
                 updatePrefsForSpecificTestField((PreferenceGroup) pref, fieldId);
             } else {
-                if (key != null && key.length() > 1) {
+                String suffix = getPrefKeySuffix(fieldId);
+                if (key != null && key.length() > 1 && !key.endsWith(suffix)) {
                     // add the suffix to the preference keys
-                    pref.setKey(getPrefKey(key, fieldId));
+                    pref.setKey(key + suffix);
                 }
                 if (pref instanceof PerTestFieldPreference) {
                     // set the index for launching sub preference screens
@@ -106,18 +108,20 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
     }
 
     protected String getPrefKey(String prefKeyPrefix) {
+        int fieldId;
         if (mFieldIndex == NO_FIELD_INDEX) {
-            return getPrefKey(prefKeyPrefix, BASE_FIELD_ID);
+            fieldId = BASE_FIELD_ID;
+        } else {
+            fieldId = Settings.getTestFieldId(mFieldIndex);
         }
-        int fieldId = Settings.getTestFieldId(mFieldIndex);
-        return prefKeyPrefix + FIELD_INFIX + fieldId;
+        return prefKeyPrefix + getPrefKeySuffix(fieldId);
     }
 
-    private static String getPrefKey(String prefKeyPrefix, int fieldId) {
+    private static String getPrefKeySuffix(int fieldId) {
         if (fieldId == BASE_FIELD_ID) {
-            return prefKeyPrefix + BASE_SUFFIX;
+            return BASE_SUFFIX;
         }
-        return prefKeyPrefix + FIELD_INFIX + fieldId;
+        return FIELD_INFIX + fieldId;
     }
 
     protected void registerPreferencesChangedListener(int fieldId) {
