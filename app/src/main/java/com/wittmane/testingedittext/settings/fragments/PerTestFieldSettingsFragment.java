@@ -39,13 +39,12 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
     public static final int NO_FIELD_INDEX = -1;
     private static final int BASE_FIELD_ID = -1;
 
-    private int mFieldIndex = -1;
+    private int mFieldIndex = Integer.MIN_VALUE;
 
     @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        // note that this is done here, rather than in onCreate because the preference screen isn't
-        // available yet. the preference screen is available in onCreateView, so this theoretically
-        // could move to be there.
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
         final Bundle args = getArguments();
         if (args != null) {
             String fieldIndex = args.getString(FIELD_INDEX_BUNDLE_KEY);
@@ -56,27 +55,54 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
                     Log.e(TAG, "Failed to parse the index: " + e.getMessage());
                     getFragmentManager().popBackStack();
                 }
-                if (mFieldIndex >= 0 && mFieldIndex < Settings.getTestFieldCount()) {
-                    int fieldId = Settings.getTestFieldId(mFieldIndex);
-                    updatePrefsForSpecificTestField(getPreferenceScreen(), fieldId);
-
-                    registerPreferencesChangedListener(fieldId);
-                } else {
+                if (mFieldIndex < 0 || mFieldIndex >= Settings.getTestFieldCount()) {
                     Log.e(TAG, "Invalid index: " + mFieldIndex);
                     getFragmentManager().popBackStack();
                 }
             } else {
                 mFieldIndex = NO_FIELD_INDEX;
-                updatePrefsForSpecificTestField(getPreferenceScreen(), BASE_FIELD_ID);
-
-                registerPreferencesChangedListener(BASE_FIELD_ID);
             }
         } else {
             Log.e(TAG, "No bundle for the index");
             getFragmentManager().popBackStack();
         }
+    }
 
+    @Override
+    public void addPreferencesFromResource(int preferencesResId) {
+        // make sure we already got a valid field index from onCreate
+        if (mFieldIndex != NO_FIELD_INDEX
+                && (mFieldIndex < 0 || mFieldIndex >= Settings.getTestFieldCount())) {
+            Log.e(TAG, "Invalid index: " + mFieldIndex);
+            getFragmentManager().popBackStack();
+        }
+
+        // in case there are any preferences with a key matching the prefix specified in the
+        // resource file, clear out the shared preferences name because changing the key doesn't
+        // reset the preference to the default value in case there isn't a value set for the new
+        // preference key, and there doesn't seem to be way to force it to reset to default. this
+        // will force it to start at the default value so we don't need to try to reset it.
+        String sharedPreferencesName = getPreferenceManager().getSharedPreferencesName();
+        getPreferenceManager().setSharedPreferencesName(null);
+
+        super.addPreferencesFromResource(preferencesResId);
+        PreferenceScreen preferenceScreen = getPreferenceScreen();
+
+        // add the appropriate suffix to the preferences
+        int fieldId = getFieldId();
+        updatePrefsForSpecificTestField(preferenceScreen, fieldId);
+
+        // add the original shared preferences name back now that the correct keys are set, and
+        // force the preferences to update to use the value from the shared preferences
+        getPreferenceManager().setSharedPreferencesName(sharedPreferencesName);
+        refreshPrefs(preferenceScreen);
+    }
+
+    @Override
+    public void onActivityCreated(final Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        registerPreferencesChangedListener(getFieldId());
     }
 
     private void updatePrefsForSpecificTestField(PreferenceGroup prefGroup, int fieldId) {
@@ -84,10 +110,6 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
         for (int i = 0; i < prefGroup.getPreferenceCount(); i++) {
             prefs[i] = prefGroup.getPreference(i);
         }
-        // simply updating the key doesn't update the UI with the actual stored preference value for
-        // the new key, so remove the preferences and add them back with the updated key to get the
-        // appropriate value displayed
-        prefGroup.removeAll();
         for (Preference pref : prefs) {
             String key = pref.getKey();
             if (pref instanceof PreferenceGroup) {
@@ -103,18 +125,34 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
                     ((PerTestFieldPreference)pref).setFieldIndex(mFieldIndex);
                 }
             }
+        }
+    }
+
+    private void refreshPrefs(PreferenceGroup prefGroup) {
+        // simply updating the key or the shared preference name doesn't update the UI with the
+        // actual stored preference value for, so we need to remove the preferences and add them
+        // back to get the appropriate value displayed
+        Preference[] prefs = new Preference[prefGroup.getPreferenceCount()];
+        for (int i = 0; i < prefGroup.getPreferenceCount(); i++) {
+            prefs[i] = prefGroup.getPreference(i);
+        }
+        prefGroup.removeAll();
+        for (Preference pref : prefs) {
+            if (pref instanceof PreferenceGroup) {
+                refreshPrefs((PreferenceGroup) pref);
+            }
             prefGroup.addPreference(pref);
         }
     }
 
+    private int getFieldId() {
+        return mFieldIndex == NO_FIELD_INDEX
+                ? BASE_FIELD_ID
+                : Settings.getTestFieldId(mFieldIndex);
+    }
+
     protected String getPrefKey(String prefKeyPrefix) {
-        int fieldId;
-        if (mFieldIndex == NO_FIELD_INDEX) {
-            fieldId = BASE_FIELD_ID;
-        } else {
-            fieldId = Settings.getTestFieldId(mFieldIndex);
-        }
-        return prefKeyPrefix + getPrefKeySuffix(fieldId);
+        return prefKeyPrefix + getPrefKeySuffix(getFieldId());
     }
 
     private static String getPrefKeySuffix(int fieldId) {

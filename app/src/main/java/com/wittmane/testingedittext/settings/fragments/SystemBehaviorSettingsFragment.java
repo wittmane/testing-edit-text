@@ -40,7 +40,7 @@ public class SystemBehaviorSettingsFragment extends PerTestFieldSettingsFragment
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             Preference getSurroundingTextDelayPref =
-                    findPreference(Settings.PREF_GETSURROUNDINGTEXT_DELAY);
+                    findPreference(getPrefKey(Settings.PREF_GETSURROUNDINGTEXT_DELAY));
             getPreferenceScreen().removePreference(getSurroundingTextDelayPref);
         }
     }

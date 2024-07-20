@@ -46,12 +46,12 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference imeHintLocalesPref = findPreference(
-                    Settings.PREF_IME_HINT_LOCALES_PREFIX);
+                    getPrefKey(Settings.PREF_IME_HINT_LOCALES_PREFIX));
             preferenceScreen.removePreference(imeHintLocalesPref);
 
             LocaleEntryListPreference textLocalesPref =
                     (LocaleEntryListPreference)findPreference(
-                            Settings.PREF_TEXT_LOCALES_PREFIX);
+                            getPrefKey(Settings.PREF_TEXT_LOCALES_PREFIX));
             textLocalesPref.setMaxEntries(1);
         }
     }

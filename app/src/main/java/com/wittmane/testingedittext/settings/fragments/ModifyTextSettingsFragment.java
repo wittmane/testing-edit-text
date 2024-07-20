@@ -32,11 +32,6 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_modify_text);
-    }
-
-    @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
 
         findPreference(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY))
                 .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT));

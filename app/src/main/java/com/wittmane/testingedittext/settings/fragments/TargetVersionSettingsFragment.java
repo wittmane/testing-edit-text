@@ -45,16 +45,17 @@ public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment 
                 && !EditableInputConnection.canSimulateMissingMethods(getContext())) {
             // these methods require lying to the framework about not implementing them to get the
             // appropriate return value to the IME for a valid test, so since we can't seem to fake
-            // it that way, these aren't valid tests, so shouldn't be allowed.
+            // it that way, these aren't valid tests, so they shouldn't be allowed.
 
             SwitchPreference skipDeleteSurroundingTextInCodePointsPref =
                     (SwitchPreference)findPreference(
-                            Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
+                            getPrefKey(Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS));
             skipDeleteSurroundingTextInCodePointsPref.setEnabled(false);
             skipDeleteSurroundingTextInCodePointsPref.setChecked(false);
 
             SwitchPreference skipSetComposingRegionPref =
-                    (SwitchPreference)findPreference(Settings.PREF_SKIP_SETCOMPOSINGREGION);
+                    (SwitchPreference)findPreference(
+                            getPrefKey(Settings.PREF_SKIP_SETCOMPOSINGREGION));
             skipSetComposingRegionPref.setEnabled(false);
             skipSetComposingRegionPref.setChecked(false);
         }
