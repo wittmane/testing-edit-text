@@ -43,71 +43,79 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String BASE_SUFFIX = "_base";
     public static final String FIELD_INFIX = "_field_";
 
-    public static final String PREF_OVERRIDE_TEXT_INPUT_MODIFICATION =
+    public static final String PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX =
             "pref_key_override_text_input_modification";
-    public static final String PREF_MODIFY_COMMITTED_TEXT = "pref_key_modify_committed_text";
-    public static final String PREF_MODIFY_COMPOSED_TEXT = "pref_key_modify_composed_text";
-    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY =
+    public static final String PREF_MODIFY_COMMITTED_TEXT_PREFIX = "pref_key_modify_committed_text";
+    public static final String PREF_MODIFY_COMPOSED_TEXT_PREFIX = "pref_key_modify_composed_text";
+    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX =
             "pref_key_modify_composed_changes_only";
-    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END =
+    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX =
             "pref_key_consider_composed_changes_from_end";
-    public static final String PREF_RESTRICT_TO_INCLUDE = "pref_key_restrict_to_include";
-    public static final String PREF_RESTRICT_SPECIFIC = "pref_key_restrict_specific";
-    public static final String PREF_RESTRICT_RANGE = "pref_key_restrict_range";
-    public static final String PREF_TRANSLATE_SPECIFIC = "pref_key_translate_specific";
-    public static final String PREF_TRANSLATE_FULL_MATCH_ONLY =
+    public static final String PREF_RESTRICT_TO_INCLUDE_PREFIX = "pref_key_restrict_to_include";
+    public static final String PREF_RESTRICT_SPECIFIC_PREFIX = "pref_key_restrict_specific";
+    public static final String PREF_RESTRICT_RANGE_PREFIX = "pref_key_restrict_range";
+    public static final String PREF_TRANSLATE_SPECIFIC_PREFIX = "pref_key_translate_specific";
+    public static final String PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX =
             "pref_key_translate_full_match_only";
-    public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
+    public static final String PREF_SHIFT_CODEPOINT_PREFIX = "pref_key_shift_codepoint";
 
-    public static final String PREF_OVERRIDE_TEXT_RETURN =
+    public static final String PREF_OVERRIDE_TEXT_RETURN_PREFIX =
             "pref_key_override_text_return";
-    public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
-    public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR =
+    public static final String PREF_SKIP_EXTRACTING_TEXT_PREFIX = "pref_key_skip_extracting_text";
+    public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX =
             "pref_key_ignore_extracted_text_monitor";
-    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
+    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX =
             "pref_key_update_selection_before_extracted_text";
-    public static final String PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES =
+    public static final String PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX =
             "pref_key_update_extracted_text_only_on_net_changes";
-    public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
-    public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
+    public static final String PREF_EXTRACT_FULL_TEXT_PREFIX = "pref_key_extract_full_text";
+    public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX =
             "pref_key_limit_extract_monitor_text";
-    public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
+    public static final String PREF_LIMIT_RETURNED_TEXT_PREFIX = "pref_key_limit_returned_text";
 
-    public static final String PREF_OVERRIDE_TEXT_COMPOSITION =
+    public static final String PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX =
             "pref_key_override_text_composition";
-    public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT =
+    public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX =
             "pref_key_delete_through_composing_text";
-    public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
+    public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX =
             "pref_key_keep_empty_composing_position";
 
-    public static final String PREF_OVERRIDE_TARGET_VERSION_SIMULATION =
+    public static final String PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX =
             "pref_key_override_target_version_simulation";
-    public static final String PREF_SKIP_TAKESNAPSHOT = "pref_key_skip_takesnapshot";
-    public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
-    public static final String PREF_SKIP_PERFORMSPELLCHECK = "pref_key_skip_performspellcheck";
-    public static final String PREF_SKIP_SETIMECONSUMESINPUT = "pref_key_skip_setimeconsumesinput";
-    public static final String PREF_SKIP_COMMITCONTENT = "pref_key_skip_commitcontent";
-    public static final String PREF_SKIP_CLOSECONNECTION = "pref_key_skip_closeconnection";
-    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS =
+    public static final String PREF_SKIP_TAKESNAPSHOT_PREFIX = "pref_key_skip_takesnapshot";
+    public static final String PREF_SKIP_GETSURROUNDINGTEXT_PREFIX =
+            "pref_key_skip_getsurroundingtext";
+    public static final String PREF_SKIP_PERFORMSPELLCHECK_PREFIX =
+            "pref_key_skip_performspellcheck";
+    public static final String PREF_SKIP_SETIMECONSUMESINPUT_PREFIX =
+            "pref_key_skip_setimeconsumesinput";
+    public static final String PREF_SKIP_COMMITCONTENT_PREFIX = "pref_key_skip_commitcontent";
+    public static final String PREF_SKIP_CLOSECONNECTION_PREFIX = "pref_key_skip_closeconnection";
+    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX =
             "pref_key_skip_deletesurroundingtextincodepoints";
-    public static final String PREF_SKIP_REQUESTCURSORUPDATES =
+    public static final String PREF_SKIP_REQUESTCURSORUPDATES_PREFIX =
             "pref_key_skip_requestcursorupdates";
-    public static final String PREF_SKIP_COMMITCORRECTION = "pref_key_skip_commitcorrection";
-    public static final String PREF_SKIP_GETSELECTEDTEXT = "pref_key_skip_getselectedtext";
-    public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
+    public static final String PREF_SKIP_COMMITCORRECTION_PREFIX = "pref_key_skip_commitcorrection";
+    public static final String PREF_SKIP_GETSELECTEDTEXT_PREFIX = "pref_key_skip_getselectedtext";
+    public static final String PREF_SKIP_SETCOMPOSINGREGION_PREFIX =
+            "pref_key_skip_setcomposingregion";
 
-    public static final String PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION =
+    public static final String PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX =
             "pref_key_override_system_behavior_simulation";
-    public static final String PREF_UPDATE_DELAY = "pref_key_update_delay";
-    public static final String PREF_FINISHCOMPOSINGTEXT_DELAY =
+    public static final String PREF_UPDATE_DELAY_PREFIX = "pref_key_update_delay";
+    public static final String PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX =
             "pref_key_finishcomposingtext_delay";
-    public static final String PREF_GETSURROUNDINGTEXT_DELAY = "pref_key_getsurroundingtext_delay";
-    public static final String PREF_GETTEXTBEFORECURSOR_DELAY =
+    public static final String PREF_GETSURROUNDINGTEXT_DELAY_PREFIX =
+            "pref_key_getsurroundingtext_delay";
+    public static final String PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX =
             "pref_key_gettextbeforecursor_delay";
-    public static final String PREF_GETSELECTEDTEXT_DELAY = "pref_key_getselectedtext_delay";
-    public static final String PREF_GETTEXTAFTERCURSOR_DELAY = "pref_key_gettextaftercursor_delay";
-    public static final String PREF_GETCURSORCAPSMODE_DELAY = "pref_key_getcursorcapsmode_delay";
-    public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
+    public static final String PREF_GETSELECTEDTEXT_DELAY_PREFIX = "pref_key_getselectedtext_delay";
+    public static final String PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX =
+            "pref_key_gettextaftercursor_delay";
+    public static final String PREF_GETCURSORCAPSMODE_DELAY_PREFIX =
+            "pref_key_getcursorcapsmode_delay";
+    public static final String PREF_GETEXTRACTEDTEXT_DELAY_PREFIX =
+            "pref_key_getextractedtext_delay";
 
     public static final String PREF_TEST_FIELD_IDS = "pref_key_test_field_ids";
     public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
@@ -263,44 +271,44 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSettings() {
         final String[] prefKeys = new String[] {
-                PREF_MODIFY_COMMITTED_TEXT,
-                PREF_MODIFY_COMPOSED_TEXT,
-                PREF_MODIFY_COMPOSED_CHANGES_ONLY,
-                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END,
-                PREF_RESTRICT_TO_INCLUDE,
-                PREF_RESTRICT_SPECIFIC,
-                PREF_RESTRICT_RANGE,
-                PREF_TRANSLATE_SPECIFIC,
-                PREF_TRANSLATE_FULL_MATCH_ONLY,
-                PREF_SHIFT_CODEPOINT,
-                PREF_SKIP_EXTRACTING_TEXT,
-                PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
-                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT,
-                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
-                PREF_EXTRACT_FULL_TEXT,
-                PREF_LIMIT_EXTRACT_MONITOR_TEXT,
-                PREF_LIMIT_RETURNED_TEXT,
-                PREF_DELETE_THROUGH_COMPOSING_TEXT,
-                PREF_KEEP_EMPTY_COMPOSING_POSITION,
-                PREF_SKIP_TAKESNAPSHOT,
-                PREF_SKIP_GETSURROUNDINGTEXT,
-                PREF_SKIP_PERFORMSPELLCHECK,
-                PREF_SKIP_SETIMECONSUMESINPUT,
-                PREF_SKIP_COMMITCONTENT,
-                PREF_SKIP_CLOSECONNECTION,
-                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS,
-                PREF_SKIP_REQUESTCURSORUPDATES,
-                PREF_SKIP_COMMITCORRECTION,
-                PREF_SKIP_GETSELECTEDTEXT,
-                PREF_SKIP_SETCOMPOSINGREGION,
-                PREF_UPDATE_DELAY,
-                PREF_FINISHCOMPOSINGTEXT_DELAY,
-                PREF_GETSURROUNDINGTEXT_DELAY,
-                PREF_GETTEXTBEFORECURSOR_DELAY,
-                PREF_GETSELECTEDTEXT_DELAY,
-                PREF_GETTEXTAFTERCURSOR_DELAY,
-                PREF_GETCURSORCAPSMODE_DELAY,
-                PREF_GETEXTRACTEDTEXT_DELAY
+                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
+                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
+                PREF_RESTRICT_TO_INCLUDE_PREFIX,
+                PREF_RESTRICT_SPECIFIC_PREFIX,
+                PREF_RESTRICT_RANGE_PREFIX,
+                PREF_TRANSLATE_SPECIFIC_PREFIX,
+                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+                PREF_SHIFT_CODEPOINT_PREFIX,
+                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+                PREF_EXTRACT_FULL_TEXT_PREFIX,
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
+                PREF_LIMIT_RETURNED_TEXT_PREFIX,
+                PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
+                PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
+                PREF_SKIP_TAKESNAPSHOT_PREFIX,
+                PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
+                PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
+                PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
+                PREF_SKIP_COMMITCONTENT_PREFIX,
+                PREF_SKIP_CLOSECONNECTION_PREFIX,
+                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
+                PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
+                PREF_SKIP_COMMITCORRECTION_PREFIX,
+                PREF_SKIP_GETSELECTEDTEXT_PREFIX,
+                PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
+                PREF_UPDATE_DELAY_PREFIX,
+                PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
+                PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
+                PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
+                PREF_GETSELECTEDTEXT_DELAY_PREFIX,
+                PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
+                PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
+                PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
         };
         for (String prefKey : prefKeys) {
             loadSetting(prefKey);
@@ -363,125 +371,125 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSetting(String prefKey) {
         switch (prefKey) {
-            case PREF_MODIFY_COMMITTED_TEXT:
+            case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
                 mModifyCommittedText = readModifyCommittedText(mPrefs);
                 break;
-            case PREF_MODIFY_COMPOSED_TEXT:
+            case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
                 mModifyComposedText = readModifyComposedText(mPrefs);
                 break;
-            case PREF_MODIFY_COMPOSED_CHANGES_ONLY:
+            case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
                 mModifyComposedChangesOnly = readModifyComposedChangesOnly(mPrefs);
                 break;
-            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END:
+            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
                 mConsiderComposedChangesFromEnd = readConsiderComposedChangesFromEnd(mPrefs);
                 break;
-            case PREF_RESTRICT_TO_INCLUDE:
+            case PREF_RESTRICT_TO_INCLUDE_PREFIX:
                 mRestrictToInclude = readRestrictToInclude(mPrefs);
                 break;
-            case PREF_RESTRICT_SPECIFIC:
+            case PREF_RESTRICT_SPECIFIC_PREFIX:
                 mRestrictSpecific = readRestrictSpecific(mPrefs);
                 break;
-            case PREF_RESTRICT_RANGE:
+            case PREF_RESTRICT_RANGE_PREFIX:
                 mRestrictRange = readRestrictRange(mPrefs);
                 break;
-            case PREF_TRANSLATE_SPECIFIC:
+            case PREF_TRANSLATE_SPECIFIC_PREFIX:
                 mTranslateSpecific = readTranslateSpecific(mPrefs);
                 break;
-            case PREF_TRANSLATE_FULL_MATCH_ONLY:
+            case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
                 mTranslateFullMatchOnly = readTranslateFullMatchOnly(mPrefs);
                 break;
-            case PREF_SHIFT_CODEPOINT:
+            case PREF_SHIFT_CODEPOINT_PREFIX:
                 mShiftCodepoint = readShiftCodepoint(mPrefs);
                 break;
 
-            case PREF_SKIP_EXTRACTING_TEXT:
+            case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
                 mSkipExtractingText = readSkipExtractingText(mPrefs);
                 break;
-            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR:
+            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
                 mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
                 break;
-            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT:
+            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
                 mUpdateSelectionBeforeExtractedText =
                         readUpdateSelectionBeforeExtractedText(mPrefs);
                 break;
-            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES:
+            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
                 mUpdateExtractedTextOnlyOnNetChanges =
                         readUpdateExtractedTextOnlyOnNetChanges(mPrefs);
                 break;
-            case PREF_EXTRACT_FULL_TEXT:
+            case PREF_EXTRACT_FULL_TEXT_PREFIX:
                 mExtractFullText = readExtractFullText(mPrefs);
                 break;
-            case PREF_LIMIT_EXTRACT_MONITOR_TEXT:
+            case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
                 mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
                 break;
-            case PREF_LIMIT_RETURNED_TEXT:
+            case PREF_LIMIT_RETURNED_TEXT_PREFIX:
                 mReturnedTextLimit = readReturnedTextLimit(mPrefs);
                 break;
 
-            case PREF_DELETE_THROUGH_COMPOSING_TEXT:
+            case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
                 mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
                 break;
-            case PREF_KEEP_EMPTY_COMPOSING_POSITION:
+            case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
                 mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
                 break;
 
-            case PREF_SKIP_TAKESNAPSHOT:
+            case PREF_SKIP_TAKESNAPSHOT_PREFIX:
                 mSkipTakeSnapshot = readSkipTakeSnapshot(mPrefs);
                 break;
-            case PREF_SKIP_GETSURROUNDINGTEXT:
+            case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
                 mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
                 break;
-            case PREF_SKIP_PERFORMSPELLCHECK:
+            case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
                 mSkipPerformSpellCheck = readSkipPerformSpellCheck(mPrefs);
                 break;
-            case PREF_SKIP_SETIMECONSUMESINPUT:
+            case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
                 mSkipSetImeConsumesInput = readSkipSetImeConsumesInput(mPrefs);
                 break;
-            case PREF_SKIP_COMMITCONTENT:
+            case PREF_SKIP_COMMITCONTENT_PREFIX:
                 mSkipCommitContent = readSkipCommitContent(mPrefs);
                 break;
-            case PREF_SKIP_CLOSECONNECTION:
+            case PREF_SKIP_CLOSECONNECTION_PREFIX:
                 mSkipCloseConnection = readSkipCloseConnection(mPrefs);
                 break;
-            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS:
+            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
                 mSkipDeleteSurroundingTextInCodePoints =
                         readSkipDeleteSurroundingTextInCodePoints(mPrefs);
                 break;
-            case PREF_SKIP_REQUESTCURSORUPDATES:
+            case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
                 mSkipRequestCursorUpdates = readSkipRequestCursorUpdates(mPrefs);
                 break;
-            case PREF_SKIP_COMMITCORRECTION:
+            case PREF_SKIP_COMMITCORRECTION_PREFIX:
                 mSkipCommitCorrection = readSkipCommitCorrection(mPrefs);
                 break;
-            case PREF_SKIP_GETSELECTEDTEXT:
+            case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
                 mSkipGetSelectedText = readSkipGetSelectedText(mPrefs);
                 break;
-            case PREF_SKIP_SETCOMPOSINGREGION:
+            case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
                 mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
                 break;
 
-            case PREF_UPDATE_DELAY:
+            case PREF_UPDATE_DELAY_PREFIX:
                 mUpdateDelay = readUpdateDelay(mPrefs);
                 break;
-            case PREF_FINISHCOMPOSINGTEXT_DELAY:
+            case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
                 mFinishComposingTextDelay = readFinishComposingTextDelay(mPrefs);
                 break;
-            case PREF_GETSURROUNDINGTEXT_DELAY:
+            case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
                 mGetSurroundingTextDelay = readGetSurroundingTextDelay(mPrefs);
                 break;
-            case PREF_GETTEXTBEFORECURSOR_DELAY:
+            case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
                 mGetTextBeforeCursorDelay = readGetTextBeforeCursorDelay(mPrefs);
                 break;
-            case PREF_GETSELECTEDTEXT_DELAY:
+            case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
                 mGetSelectedTextDelay = readGetSelectedTextDelay(mPrefs);
                 break;
-            case PREF_GETTEXTAFTERCURSOR_DELAY:
+            case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
                 mGetTextAfterCursorDelay = readGetTextAfterCursorDelay(mPrefs);
                 break;
-            case PREF_GETCURSORCAPSMODE_DELAY:
+            case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
                 mGetCursorCapsModeDelay = readGetCursorCapsModeDelay(mPrefs);
                 break;
-            case PREF_GETEXTRACTEDTEXT_DELAY:
+            case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
                 mGetExtractedTextDelay = readGetExtractedTextDelay(mPrefs);
                 break;
 
@@ -609,7 +617,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readModifyCommittedText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT, false);
+        return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT_PREFIX, false);
     }
 
     public static boolean shouldModifyCommittedText() {
@@ -617,7 +625,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readModifyComposedText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT, false);
+        return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT_PREFIX, false);
     }
 
     public static boolean shouldModifyComposedText() {
@@ -625,7 +633,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readModifyComposedChangesOnly(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY, false);
+        return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX, false);
     }
 
     public static boolean shouldModifyComposedChangesOnly() {
@@ -633,7 +641,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readConsiderComposedChangesFromEnd(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END, false);
+        return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX, false);
     }
 
     public static boolean shouldConsiderComposedChangesFromEnd() {
@@ -641,7 +649,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readRestrictToInclude(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE, false);
+        return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE_PREFIX, false);
     }
 
     public static boolean shouldRestrictToInclude() {
@@ -650,7 +658,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static String[] readRestrictSpecific(final SharedPreferenceManager prefs) {
         TextList<String> textList =
-                (new TextListPreference.Reader(prefs, PREF_RESTRICT_SPECIFIC)).readValue();
+                (new TextListPreference.Reader(prefs, PREF_RESTRICT_SPECIFIC_PREFIX)).readValue();
         String[] result = new String[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
             if (textList.escapeChars()) {
@@ -747,7 +755,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     @Nullable
     private static IntRange readRestrictRange(final SharedPreferenceManager prefs) {
-        return (new CodepointRangeDialogPreference.Reader(prefs, PREF_RESTRICT_RANGE)).readValue();
+        return (new CodepointRangeDialogPreference.Reader(prefs, PREF_RESTRICT_RANGE_PREFIX))
+                .readValue();
     }
 
     public static @Nullable IntRange getRestrictRange() {
@@ -756,7 +765,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static TranslateText[] readTranslateSpecific(final SharedPreferenceManager prefs) {
         TextList<TranslateText> textList =
-                (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC))
+                (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC_PREFIX))
                         .readValue();
         TranslateText[] result = new TranslateText[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
@@ -775,7 +784,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readTranslateFullMatchOnly(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_TRANSLATE_FULL_MATCH_ONLY, false);
+        return prefs.getBoolean(PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX, false);
     }
 
     public static boolean shouldTranslateFullMatchOnly() {
@@ -783,7 +792,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readShiftCodepoint(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_SHIFT_CODEPOINT, 0);
+        return prefs.getInt(PREF_SHIFT_CODEPOINT_PREFIX, 0);
     }
 
     public static int getShiftCodepoint() {
@@ -791,7 +800,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipExtractingText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT, false);
+        return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT_PREFIX, false);
     }
 
     public static boolean shouldSkipExtractingText() {
@@ -799,7 +808,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readIgnoreExtractedTextMonitor(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR, false);
+        return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX, false);
     }
 
     public static boolean shouldIgnoreExtractedTextMonitor() {
@@ -808,7 +817,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readUpdateSelectionBeforeExtractedText(
             final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
+        return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX, false);
     }
 
     public static boolean shouldUpdateSelectionBeforeExtractedText() {
@@ -817,7 +826,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readUpdateExtractedTextOnlyOnNetChanges(
             final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES, false);
+        return prefs.getBoolean(PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX, false);
     }
 
     public static boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
@@ -825,7 +834,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readExtractFullText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT, false);
+        return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT_PREFIX, false);
     }
 
     public static boolean shouldExtractFullText() {
@@ -833,7 +842,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readExtractMonitorTextLimit(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT, -1);
+        return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX, -1);
     }
 
     public static int getExtractMonitorTextLimit() {
@@ -841,7 +850,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readReturnedTextLimit(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT, -1);
+        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT_PREFIX, -1);
     }
 
     public static int getReturnedTextLimit() {
@@ -849,7 +858,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readDeleteThroughComposingText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT, false);
+        return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX, false);
     }
 
     public static boolean shouldDeleteThroughComposingText() {
@@ -857,7 +866,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readKeepEmptyComposingPosition(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION, false);
+        return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX, false);
     }
 
     public static boolean shouldKeepEmptyComposingPosition() {
@@ -865,7 +874,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipTakeSnapshot(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_TAKESNAPSHOT, false);
+        return prefs.getBoolean(PREF_SKIP_TAKESNAPSHOT_PREFIX, false);
     }
 
     public static boolean shouldSkipTakeSnapshot() {
@@ -873,7 +882,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipGetSurroundingText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT, false);
+        return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT_PREFIX, false);
     }
 
     public static boolean shouldSkipGetSurroundingText() {
@@ -881,7 +890,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipPerformSpellCheck(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK, false);
+        return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK_PREFIX, false);
     }
 
     public static boolean shouldSkipPerformSpellCheck() {
@@ -889,7 +898,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipSetImeConsumesInput(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT, false);
+        return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT_PREFIX, false);
     }
 
     public static boolean shouldSkipSetImeConsumesInput() {
@@ -897,7 +906,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipCommitContent(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_COMMITCONTENT, false);
+        return prefs.getBoolean(PREF_SKIP_COMMITCONTENT_PREFIX, false);
     }
 
     public static boolean shouldSkipCommitContent() {
@@ -905,7 +914,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipCloseConnection(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION, false);
+        return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION_PREFIX, false);
     }
 
     public static boolean shouldSkipCloseConnection() {
@@ -914,7 +923,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readSkipDeleteSurroundingTextInCodePoints(
             final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS, false);
+        return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX, false);
     }
 
     public static boolean shouldSkipDeleteSurroundingTextInCodePoints() {
@@ -922,7 +931,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipRequestCursorUpdates(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES, false);
+        return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES_PREFIX, false);
     }
 
     public static boolean shouldSkipRequestCursorUpdates() {
@@ -930,7 +939,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipCommitCorrection(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION, false);
+        return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION_PREFIX, false);
     }
 
     public static boolean shouldSkipCommitCorrection() {
@@ -938,7 +947,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipGetSelectedText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT, false);
+        return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT_PREFIX, false);
     }
 
     public static boolean shouldSkipGetSelectedText() {
@@ -946,7 +955,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean readSkipSetComposingRegion(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION, false);
+        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION_PREFIX, false);
     }
 
     public static boolean shouldSkipSetComposingRegion() {
@@ -954,7 +963,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readUpdateDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_UPDATE_DELAY, 0);
+        return prefs.getInt(PREF_UPDATE_DELAY_PREFIX, 0);
     }
 
     public static int getUpdateDelay() {
@@ -962,7 +971,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readFinishComposingTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY, 0);
+        return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX, 0);
     }
 
     public static int getFinishComposingTextDelay() {
@@ -970,7 +979,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readGetSurroundingTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY, 0);
+        return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY_PREFIX, 0);
     }
 
     public static int getGetSurroundingTextDelay() {
@@ -978,7 +987,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readGetTextBeforeCursorDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY, 0);
+        return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX, 0);
     }
 
     public static int getGetTextBeforeCursorDelay() {
@@ -986,7 +995,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readGetSelectedTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY, 0);
+        return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY_PREFIX, 0);
     }
 
     public static int getGetSelectedTextDelay() {
@@ -994,7 +1003,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readGetTextAfterCursorDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY, 0);
+        return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX, 0);
     }
 
     public static int getGetTextAfterCursorDelay() {
@@ -1002,7 +1011,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readGetCursorCapsModeDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY, 0);
+        return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY_PREFIX, 0);
     }
 
     public static int getGetCursorCapsModeDelay() {
@@ -1010,7 +1019,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readGetExtractedTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY, 0);
+        return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY_PREFIX, 0);
     }
 
     public static int getGetExtractedTextDelay() {
@@ -1148,53 +1157,53 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_IME_DEFAULT_TEXT_PREFIX,
                 PREF_IME_HINT_TEXT_PREFIX,
 
-                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION,
-                PREF_MODIFY_COMMITTED_TEXT,
-                PREF_MODIFY_COMPOSED_TEXT,
-                PREF_MODIFY_COMPOSED_CHANGES_ONLY,
-                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END,
-                PREF_RESTRICT_TO_INCLUDE,
-                PREF_RESTRICT_SPECIFIC,
-                PREF_RESTRICT_RANGE,
-                PREF_TRANSLATE_SPECIFIC,
-                PREF_TRANSLATE_FULL_MATCH_ONLY,
-                PREF_SHIFT_CODEPOINT,
+                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
+                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
+                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
+                PREF_RESTRICT_TO_INCLUDE_PREFIX,
+                PREF_RESTRICT_SPECIFIC_PREFIX,
+                PREF_RESTRICT_RANGE_PREFIX,
+                PREF_TRANSLATE_SPECIFIC_PREFIX,
+                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+                PREF_SHIFT_CODEPOINT_PREFIX,
 
-                PREF_OVERRIDE_TEXT_RETURN,
-                PREF_SKIP_EXTRACTING_TEXT,
-                PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
-                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT,
-                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
-                PREF_EXTRACT_FULL_TEXT,
-                PREF_LIMIT_EXTRACT_MONITOR_TEXT,
-                PREF_LIMIT_RETURNED_TEXT,
+                PREF_OVERRIDE_TEXT_RETURN_PREFIX,
+                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+                PREF_EXTRACT_FULL_TEXT_PREFIX,
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
+                PREF_LIMIT_RETURNED_TEXT_PREFIX,
 
-                PREF_OVERRIDE_TEXT_COMPOSITION,
-                PREF_DELETE_THROUGH_COMPOSING_TEXT,
-                PREF_KEEP_EMPTY_COMPOSING_POSITION,
+                PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
+                PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
+                PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
 
-                PREF_OVERRIDE_TARGET_VERSION_SIMULATION,
-                PREF_SKIP_TAKESNAPSHOT,
-                PREF_SKIP_GETSURROUNDINGTEXT,
-                PREF_SKIP_PERFORMSPELLCHECK,
-                PREF_SKIP_SETIMECONSUMESINPUT,
-                PREF_SKIP_COMMITCONTENT,
-                PREF_SKIP_CLOSECONNECTION,
-                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS,
-                PREF_SKIP_REQUESTCURSORUPDATES,
-                PREF_SKIP_COMMITCORRECTION,
-                PREF_SKIP_GETSELECTEDTEXT,
-                PREF_SKIP_SETCOMPOSINGREGION,
+                PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
+                PREF_SKIP_TAKESNAPSHOT_PREFIX,
+                PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
+                PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
+                PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
+                PREF_SKIP_COMMITCONTENT_PREFIX,
+                PREF_SKIP_CLOSECONNECTION_PREFIX,
+                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
+                PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
+                PREF_SKIP_COMMITCORRECTION_PREFIX,
+                PREF_SKIP_GETSELECTEDTEXT_PREFIX,
+                PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
 
-                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION,
-                PREF_UPDATE_DELAY,
-                PREF_FINISHCOMPOSINGTEXT_DELAY,
-                PREF_GETSURROUNDINGTEXT_DELAY,
-                PREF_GETTEXTBEFORECURSOR_DELAY,
-                PREF_GETSELECTEDTEXT_DELAY,
-                PREF_GETTEXTAFTERCURSOR_DELAY,
-                PREF_GETCURSORCAPSMODE_DELAY,
-                PREF_GETEXTRACTEDTEXT_DELAY
+                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
+                PREF_UPDATE_DELAY_PREFIX,
+                PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
+                PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
+                PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
+                PREF_GETSELECTEDTEXT_DELAY_PREFIX,
+                PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
+                PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
+                PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
             editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);

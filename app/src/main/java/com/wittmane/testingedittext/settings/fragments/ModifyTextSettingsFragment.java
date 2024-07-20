@@ -33,15 +33,15 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_modify_text);
 
-        findPreference(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY))
-                .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT));
-        findPreference(getPrefKey(Settings.PREF_CONSIDER_COMPOSED_CHANGES_FROM_END))
-                .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY));
+        findPreference(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX))
+                .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX));
+        findPreference(getPrefKey(Settings.PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX))
+                .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX));
 
         new SwitchPreferenceDependencyManager(new String[]{
-                getPrefKey(Settings.PREF_OVERRIDE_TEXT_INPUT_MODIFICATION),
-                getPrefKey(Settings.PREF_MODIFY_COMMITTED_TEXT),
-                getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT)
+                getPrefKey(Settings.PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX),
+                getPrefKey(Settings.PREF_MODIFY_COMMITTED_TEXT_PREFIX),
+                getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX)
         }, this, new OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefsChecked) {
@@ -51,7 +51,7 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         if (getFieldIndex() == NO_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference pref = findPreference(getPrefKey(
-                    Settings.PREF_OVERRIDE_TEXT_INPUT_MODIFICATION));
+                    Settings.PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX));
             preferenceScreen.removePreference(pref);
         }
     }
@@ -70,8 +70,8 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         }
 
         String[] modifyEntryTypePrefKeyPrefixes = new String[] {
-                Settings.PREF_MODIFY_COMMITTED_TEXT,
-                Settings.PREF_MODIFY_COMPOSED_TEXT
+                Settings.PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+                Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX
         };
         for (String prefKey : modifyEntryTypePrefKeyPrefixes) {
             Preference pref = findPreference(getPrefKey(prefKey));
@@ -79,12 +79,12 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         }
 
         String[] modifierPrefKeyPrefixes = new String[] {
-                Settings.PREF_RESTRICT_TO_INCLUDE,
-                Settings.PREF_RESTRICT_SPECIFIC,
-                Settings.PREF_RESTRICT_RANGE,
-                Settings.PREF_TRANSLATE_SPECIFIC,
-                Settings.PREF_TRANSLATE_FULL_MATCH_ONLY,
-                Settings.PREF_SHIFT_CODEPOINT
+                Settings.PREF_RESTRICT_TO_INCLUDE_PREFIX,
+                Settings.PREF_RESTRICT_SPECIFIC_PREFIX,
+                Settings.PREF_RESTRICT_RANGE_PREFIX,
+                Settings.PREF_TRANSLATE_SPECIFIC_PREFIX,
+                Settings.PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+                Settings.PREF_SHIFT_CODEPOINT_PREFIX
         };
         for (String prefKey : modifierPrefKeyPrefixes) {
             Preference pref = findPreference(getPrefKey(prefKey));

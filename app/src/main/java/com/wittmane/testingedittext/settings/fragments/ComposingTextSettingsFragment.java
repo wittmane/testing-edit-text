@@ -34,6 +34,6 @@ public class ComposingTextSettingsFragment extends PerTestFieldSettingsFragment 
     public void onActivityCreated(final Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        manageOverrideToggle(Settings.PREF_OVERRIDE_TEXT_COMPOSITION);
+        manageOverrideToggle(Settings.PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
     }
 }

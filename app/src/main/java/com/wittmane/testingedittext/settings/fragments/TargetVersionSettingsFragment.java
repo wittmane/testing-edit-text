@@ -20,7 +20,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceCategory;
 import android.preference.SwitchPreference;
-import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
@@ -39,7 +38,7 @@ public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment 
     public void onActivityCreated(final Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        manageOverrideToggle(Settings.PREF_OVERRIDE_TARGET_VERSION_SIMULATION);
+        manageOverrideToggle(Settings.PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
                 && !EditableInputConnection.canSimulateMissingMethods(getContext())) {
@@ -48,14 +47,14 @@ public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment 
             // it that way, these aren't valid tests, so they shouldn't be allowed.
 
             SwitchPreference skipDeleteSurroundingTextInCodePointsPref =
-                    (SwitchPreference)findPreference(
-                            getPrefKey(Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS));
+                    (SwitchPreference)findPreference(getPrefKey(
+                            Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX));
             skipDeleteSurroundingTextInCodePointsPref.setEnabled(false);
             skipDeleteSurroundingTextInCodePointsPref.setChecked(false);
 
             SwitchPreference skipSetComposingRegionPref =
                     (SwitchPreference)findPreference(
-                            getPrefKey(Settings.PREF_SKIP_SETCOMPOSINGREGION));
+                            getPrefKey(Settings.PREF_SKIP_SETCOMPOSINGREGION_PREFIX));
             skipSetComposingRegionPref.setEnabled(false);
             skipSetComposingRegionPref.setChecked(false);
         }

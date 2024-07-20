@@ -39,10 +39,10 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
         super.onActivityCreated(savedInstanceState);
 
         new SwitchPreferenceDependencyManager(new String[]{
-                getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN),
-                getPrefKey(Settings.PREF_SKIP_EXTRACTING_TEXT),
-                getPrefKey(Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR),
-                getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT)
+                getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN_PREFIX),
+                getPrefKey(Settings.PREF_SKIP_EXTRACTING_TEXT_PREFIX),
+                getPrefKey(Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX),
+                getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT_PREFIX)
         }, this, new OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefsChecked) {
@@ -52,7 +52,7 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
         });
         if (getFieldIndex() == NO_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
-            Preference pref = findPreference(getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN));
+            Preference pref = findPreference(getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN_PREFIX));
             preferenceScreen.removePreference(pref);
         }
     }
@@ -78,23 +78,23 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
             enableOthers = false;
         }
 
-        Preference updateSelectionBeforeExtractedTextPref =
-                findPreference(getPrefKey(Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT));
+        Preference updateSelectionBeforeExtractedTextPref = findPreference(getPrefKey(
+                        Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX));
         updateSelectionBeforeExtractedTextPref.setEnabled(enableUpdateSelectionBeforeExtractedText);
 
         Preference extractFullTextPref =
-                findPreference(getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT));
+                findPreference(getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT_PREFIX));
         extractFullTextPref.setEnabled(enableExtractFullText);
 
         Preference limitExtractMonitorTextPref =
-                findPreference(getPrefKey(Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT));
+                findPreference(getPrefKey(Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX));
         limitExtractMonitorTextPref.setEnabled(enableLimitExtractMonitorText);
 
         String[] otherPrefKeyPrefixes = new String[] {
-                Settings.PREF_SKIP_EXTRACTING_TEXT,
-                Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
-                Settings.PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
-                Settings.PREF_LIMIT_RETURNED_TEXT
+                Settings.PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+                Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+                Settings.PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+                Settings.PREF_LIMIT_RETURNED_TEXT_PREFIX
         };
         for (String prefKey : otherPrefKeyPrefixes) {
             Preference pref = findPreference(getPrefKey(prefKey));
