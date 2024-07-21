@@ -1481,7 +1481,7 @@ class Editor {
         if (ims.mContentChanged || ims.mSelectionModeChanged) {
             mEditText.updateAfterEdit();
             // (EW) check the setting to determine which update method should be called first
-            if (Settings.shouldUpdateSelectionBeforeExtractedText()) {
+            if (mEditText.getSettings().shouldUpdateSelectionBeforeExtractedText()) {
                 needsToReportExtractedText = true;
             } else {
                 reportExtractedText();
@@ -1555,7 +1555,7 @@ class Editor {
         if (partialStartOffset != EXTRACT_NOTHING) {
             final int N = content.length();
             // (EW) check the setting to force doing a full text extract
-            if (partialStartOffset < 0 || Settings.shouldExtractFullText()) {
+            if (partialStartOffset < 0 || mEditText.getSettings().shouldExtractFullText()) {
                 outText.partialStartOffset = outText.partialEndOffset = -1;
 
                 //TODO: (EW) it might be good to have an option to respect request.hintMaxLines and
@@ -1565,7 +1565,7 @@ class Editor {
 
                 // (EW) check the setting to see if the full text extract should limit how much text
                 // is returned
-                int textLimit = Settings.getExtractMonitorTextLimit();
+                int textLimit = mEditText.getSettings().getExtractMonitorTextLimit();
                 if (textLimit > 0) {
                     // (EW) the most important thing to return is text that changed. the
                     // documentation for InputConnection#getExtractedText doesn't clearly indicate
@@ -1758,7 +1758,7 @@ class Editor {
             return false;
         }
         final InputMethodManager imm = getInputMethodManager();
-        int updateDelay = Settings.getUpdateDelay();
+        int updateDelay = mEditText.getSettings().getUpdateDelay();
         if (updateDelay <= 0 && imm == null) {
             return false;
         }
@@ -1775,7 +1775,7 @@ class Editor {
         // (EW) check the setting to see if we should skip the updates if there was no actual
         // change
         CharSequence text = mEditText.getText().subSequence(0, mEditText.getText().length());
-        if (Settings.shouldUpdateExtractedTextOnlyOnNetChanges()
+        if (mEditText.getSettings().shouldUpdateExtractedTextOnlyOnNetChanges()
                 && mTextAtLastExtract != null
                 && mTextAtLastExtract.toString().equals(mEditText.getText().toString())) {
             if ((req.flags & InputConnection.GET_TEXT_WITH_STYLES) != 0
@@ -1829,7 +1829,7 @@ class Editor {
         if (null != mInputMethodState && mInputMethodState.mBatchEditNesting <= 0
                 && !mHasPendingRestartInputForSetText) {
             final InputMethodManager imm = getInputMethodManager();
-            int updateDelay = Settings.getUpdateDelay();
+            int updateDelay = mEditText.getSettings().getUpdateDelay();
             if (null != imm || updateDelay > 0) {
                 final int selectionStart = mEditText.getSelectionStart();
                 final int selectionEnd = mEditText.getSelectionEnd();

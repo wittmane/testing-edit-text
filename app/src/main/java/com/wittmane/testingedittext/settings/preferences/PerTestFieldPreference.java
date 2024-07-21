@@ -31,8 +31,8 @@ import com.wittmane.testingedittext.R;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
-import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.NO_FIELD_INDEX;
 
 /**
  * Preference to link to a test field specific settings screen.
@@ -90,7 +90,7 @@ public abstract class PerTestFieldPreference extends Preference {
 
     @Override
     public Bundle getExtras() {
-        if (mFieldIndex == NO_FIELD_INDEX) {
+        if (mFieldIndex == BASE_FIELD_INDEX) {
             return super.getExtras();
         }
         if (mExtras == null) {

@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
+
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
@@ -50,7 +52,7 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
                         prefsChecked[3]);
             }
         });
-        if (getFieldIndex() == NO_FIELD_INDEX) {
+        if (getFieldIndex() == BASE_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference pref = findPreference(getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN_PREFIX));
             preferenceScreen.removePreference(pref);

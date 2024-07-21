@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package com.wittmane.testingedittext.settings.preferences;
+
+import static com.wittmane.testingedittext.settings.Settings.DEFAULT_TRANSLATE_SPECIFIC;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -125,7 +127,7 @@ public class TextTranslateListPreference
         @NonNull
         @Override
         protected TranslateText[] getDefaultDataArray() {
-            return new TranslateText[0];
+            return DEFAULT_TRANSLATE_SPECIFIC;
         }
     }
 
