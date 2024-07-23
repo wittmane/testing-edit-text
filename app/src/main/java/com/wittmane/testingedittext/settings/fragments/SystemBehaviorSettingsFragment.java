@@ -30,11 +30,6 @@ public class SystemBehaviorSettingsFragment extends PerTestFieldSettingsFragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_system_behavior);
-    }
-
-    @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
 
         manageOverrideToggle(Settings.PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX);
 

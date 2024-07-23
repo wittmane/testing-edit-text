@@ -75,8 +75,8 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
                 Settings.PREF_MODIFY_COMMITTED_TEXT_PREFIX,
                 Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX
         };
-        for (String prefKey : modifyEntryTypePrefKeyPrefixes) {
-            Preference pref = findPreference(getPrefKey(prefKey));
+        for (String prefKeyPrefix : modifyEntryTypePrefKeyPrefixes) {
+            Preference pref = findPreference(getPrefKey(prefKeyPrefix));
             pref.setEnabled(enableEntryTypeSettings);
         }
 
@@ -88,8 +88,8 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
                 Settings.PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
                 Settings.PREF_SHIFT_CODEPOINT_PREFIX
         };
-        for (String prefKey : modifierPrefKeyPrefixes) {
-            Preference pref = findPreference(getPrefKey(prefKey));
+        for (String prefKeyPrefix : modifierPrefKeyPrefixes) {
+            Preference pref = findPreference(getPrefKey(prefKeyPrefix));
             pref.setEnabled(enableModifierSettings);
         }
     }

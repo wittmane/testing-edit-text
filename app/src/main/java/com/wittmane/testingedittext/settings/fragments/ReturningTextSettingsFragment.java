@@ -34,11 +34,6 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_returning_text);
-    }
-
-    @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
 
         new SwitchPreferenceDependencyManager(new String[]{
                 getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN_PREFIX),
@@ -81,15 +76,15 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
         }
 
         Preference updateSelectionBeforeExtractedTextPref = findPreference(getPrefKey(
-                        Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX));
+                Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX));
         updateSelectionBeforeExtractedTextPref.setEnabled(enableUpdateSelectionBeforeExtractedText);
 
-        Preference extractFullTextPref =
-                findPreference(getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT_PREFIX));
+        Preference extractFullTextPref = findPreference(getPrefKey(
+                Settings.PREF_EXTRACT_FULL_TEXT_PREFIX));
         extractFullTextPref.setEnabled(enableExtractFullText);
 
-        Preference limitExtractMonitorTextPref =
-                findPreference(getPrefKey(Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX));
+        Preference limitExtractMonitorTextPref = findPreference(getPrefKey(
+                Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX));
         limitExtractMonitorTextPref.setEnabled(enableLimitExtractMonitorText);
 
         String[] otherPrefKeyPrefixes = new String[] {
@@ -98,8 +93,8 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
                 Settings.PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
                 Settings.PREF_LIMIT_RETURNED_TEXT_PREFIX
         };
-        for (String prefKey : otherPrefKeyPrefixes) {
-            Preference pref = findPreference(getPrefKey(prefKey));
+        for (String prefKeyPrefix : otherPrefKeyPrefixes) {
+            Preference pref = findPreference(getPrefKey(prefKeyPrefix));
             pref.setEnabled(enableOthers);
         }
     }

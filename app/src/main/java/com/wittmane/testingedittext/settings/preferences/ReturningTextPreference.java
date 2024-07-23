@@ -58,6 +58,5 @@ public class ReturningTextPreference extends PerTestFieldPreference {
 
     @Override
     protected void updateSummary() {
-        //TODO: (EW) set a summary?
     }
 }

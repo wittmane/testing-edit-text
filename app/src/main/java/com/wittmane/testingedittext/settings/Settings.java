@@ -49,33 +49,43 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static final String PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX =
             "pref_key_override_text_input_modification";
-    public static final String PREF_MODIFY_COMMITTED_TEXT_PREFIX = "pref_key_modify_committed_text";
-    public static final String PREF_MODIFY_COMPOSED_TEXT_PREFIX = "pref_key_modify_composed_text";
+    public static final String PREF_MODIFY_COMMITTED_TEXT_PREFIX =
+            "pref_key_modify_committed_text";
+    public static final String PREF_MODIFY_COMPOSED_TEXT_PREFIX =
+            "pref_key_modify_composed_text";
     public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX =
             "pref_key_modify_composed_changes_only";
     public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX =
             "pref_key_consider_composed_changes_from_end";
-    public static final String PREF_RESTRICT_TO_INCLUDE_PREFIX = "pref_key_restrict_to_include";
-    public static final String PREF_RESTRICT_SPECIFIC_PREFIX = "pref_key_restrict_specific";
-    public static final String PREF_RESTRICT_RANGE_PREFIX = "pref_key_restrict_range";
-    public static final String PREF_TRANSLATE_SPECIFIC_PREFIX = "pref_key_translate_specific";
+    public static final String PREF_RESTRICT_TO_INCLUDE_PREFIX =
+            "pref_key_restrict_to_include";
+    public static final String PREF_RESTRICT_SPECIFIC_PREFIX =
+            "pref_key_restrict_specific";
+    public static final String PREF_RESTRICT_RANGE_PREFIX =
+            "pref_key_restrict_range";
+    public static final String PREF_TRANSLATE_SPECIFIC_PREFIX =
+            "pref_key_translate_specific";
     public static final String PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX =
             "pref_key_translate_full_match_only";
-    public static final String PREF_SHIFT_CODEPOINT_PREFIX = "pref_key_shift_codepoint";
+    public static final String PREF_SHIFT_CODEPOINT_PREFIX =
+            "pref_key_shift_codepoint";
 
     public static final String PREF_OVERRIDE_TEXT_RETURN_PREFIX =
             "pref_key_override_text_return";
-    public static final String PREF_SKIP_EXTRACTING_TEXT_PREFIX = "pref_key_skip_extracting_text";
+    public static final String PREF_SKIP_EXTRACTING_TEXT_PREFIX =
+            "pref_key_skip_extracting_text";
     public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX =
             "pref_key_ignore_extracted_text_monitor";
     public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX =
             "pref_key_update_selection_before_extracted_text";
     public static final String PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX =
             "pref_key_update_extracted_text_only_on_net_changes";
-    public static final String PREF_EXTRACT_FULL_TEXT_PREFIX = "pref_key_extract_full_text";
+    public static final String PREF_EXTRACT_FULL_TEXT_PREFIX =
+            "pref_key_extract_full_text";
     public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX =
             "pref_key_limit_extract_monitor_text";
-    public static final String PREF_LIMIT_RETURNED_TEXT_PREFIX = "pref_key_limit_returned_text";
+    public static final String PREF_LIMIT_RETURNED_TEXT_PREFIX =
+            "pref_key_limit_returned_text";
 
     public static final String PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX =
             "pref_key_override_text_composition";
@@ -86,21 +96,26 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static final String PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX =
             "pref_key_override_target_version_simulation";
-    public static final String PREF_SKIP_TAKESNAPSHOT_PREFIX = "pref_key_skip_takesnapshot";
+    public static final String PREF_SKIP_TAKESNAPSHOT_PREFIX =
+            "pref_key_skip_takesnapshot";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT_PREFIX =
             "pref_key_skip_getsurroundingtext";
     public static final String PREF_SKIP_PERFORMSPELLCHECK_PREFIX =
             "pref_key_skip_performspellcheck";
     public static final String PREF_SKIP_SETIMECONSUMESINPUT_PREFIX =
             "pref_key_skip_setimeconsumesinput";
-    public static final String PREF_SKIP_COMMITCONTENT_PREFIX = "pref_key_skip_commitcontent";
-    public static final String PREF_SKIP_CLOSECONNECTION_PREFIX = "pref_key_skip_closeconnection";
+    public static final String PREF_SKIP_COMMITCONTENT_PREFIX =
+            "pref_key_skip_commitcontent";
+    public static final String PREF_SKIP_CLOSECONNECTION_PREFIX =
+            "pref_key_skip_closeconnection";
     public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX =
             "pref_key_skip_deletesurroundingtextincodepoints";
     public static final String PREF_SKIP_REQUESTCURSORUPDATES_PREFIX =
             "pref_key_skip_requestcursorupdates";
-    public static final String PREF_SKIP_COMMITCORRECTION_PREFIX = "pref_key_skip_commitcorrection";
-    public static final String PREF_SKIP_GETSELECTEDTEXT_PREFIX = "pref_key_skip_getselectedtext";
+    public static final String PREF_SKIP_COMMITCORRECTION_PREFIX =
+            "pref_key_skip_commitcorrection";
+    public static final String PREF_SKIP_GETSELECTEDTEXT_PREFIX =
+            "pref_key_skip_getselectedtext";
     public static final String PREF_SKIP_SETCOMPOSINGREGION_PREFIX =
             "pref_key_skip_setcomposingregion";
 
@@ -113,7 +128,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_getsurroundingtext_delay";
     public static final String PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX =
             "pref_key_gettextbeforecursor_delay";
-    public static final String PREF_GETSELECTEDTEXT_DELAY_PREFIX = "pref_key_getselectedtext_delay";
+    public static final String PREF_GETSELECTEDTEXT_DELAY_PREFIX =
+            "pref_key_getselectedtext_delay";
     public static final String PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX =
             "pref_key_gettextaftercursor_delay";
     public static final String PREF_GETCURSORCAPSMODE_DELAY_PREFIX =
@@ -121,7 +137,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_GETEXTRACTEDTEXT_DELAY_PREFIX =
             "pref_key_getextractedtext_delay";
 
-    public static final String PREF_TEST_FIELD_IDS = "pref_key_test_field_ids";
+    public static final String PREF_TEST_FIELD_IDS =
+            "pref_key_test_field_ids";
     public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
             "pref_key_input_type_class";
     public static final String PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX =
@@ -368,7 +385,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return;
         }
         if (prefKey.endsWith(BASE_SUFFIX)) {
-            loadTestFieldOrDefaultSetting(prefKey.substring(0, prefKey.length() - BASE_SUFFIX.length()), BASE_FIELD_ID);
+            loadTestFieldOrDefaultSetting(
+                    prefKey.substring(0, prefKey.length() - BASE_SUFFIX.length()),
+                    BASE_FIELD_ID);
         } else if (prefKey.contains(FIELD_INFIX)) {
             int prefixLength = prefKey.lastIndexOf(FIELD_INFIX);
             int id;
@@ -659,7 +678,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return fieldId == BASE_FIELD_ID ? BASE_SUFFIX : (FIELD_INFIX + fieldId);
     }
 
-    private static AppLevelDefaults getTestFieldOrBase(int fieldIndex, Predicate<TestField> override) {
+    private static AppLevelDefaults getTestFieldOrBase(int fieldIndex,
+                                                       Predicate<TestField> override) {
         List<TestField> testFields = getInstance().mTestFields;
         TestField testField;
         if (fieldIndex < 0 || fieldIndex >= testFields.size()) {

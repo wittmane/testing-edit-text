@@ -28,11 +28,6 @@ public class ComposingTextSettingsFragment extends PerTestFieldSettingsFragment 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_composing_text);
-    }
-
-    @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
 
         manageOverrideToggle(Settings.PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
     }

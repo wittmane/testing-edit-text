@@ -206,16 +206,18 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
             setTitle(getFieldTitle(context, fieldIndex));
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
-                            InputTypePreference.getInputTypeDescription(fieldIndex,
-                                    context), context),
+                            InputTypePreference.getInputTypeDescription(fieldIndex, context),
+                            context),
                     getLabeledProperty(R.string.ime_options,
                             ImeOptionsPreference.getImeOptionsDescription(
-                                    Settings.getTestFieldImeOptions(fieldIndex), context), context),
+                                    Settings.getTestFieldImeOptions(fieldIndex), context),
+                            context),
                     getLabeledProperty(R.string.ime_action,
                             ImeActionPreference.getImeActionDescription(
                                     Settings.getTestFieldImeActionId(fieldIndex),
                                     Settings.getTestFieldImeActionLabel(fieldIndex),
-                                    context), context),
+                                    context),
+                            context),
                     getLabeledPrivateImeOptions(
                             Settings.getTestFieldPrivateImeOptions(fieldIndex), context),
                     Settings.shouldTestFieldSelectAllOnFocus(fieldIndex)

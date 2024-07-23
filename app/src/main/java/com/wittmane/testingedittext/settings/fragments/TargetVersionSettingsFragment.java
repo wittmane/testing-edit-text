@@ -32,11 +32,6 @@ public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_target_version);
-    }
-
-    @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
 
         manageOverrideToggle(Settings.PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX);
 
@@ -53,8 +48,8 @@ public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment 
             skipDeleteSurroundingTextInCodePointsPref.setChecked(false);
 
             SwitchPreference skipSetComposingRegionPref =
-                    (SwitchPreference)findPreference(
-                            getPrefKey(Settings.PREF_SKIP_SETCOMPOSINGREGION_PREFIX));
+                    (SwitchPreference)findPreference(getPrefKey(
+                            Settings.PREF_SKIP_SETCOMPOSINGREGION_PREFIX));
             skipSetComposingRegionPref.setEnabled(false);
             skipSetComposingRegionPref.setChecked(false);
         }
