@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,39 +23,39 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.fragments.TestFieldImeActionSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.ImeActionSettingsFragment;
 
-public class TestFieldImeActionPreference extends SingleFieldPreference {
+public class ImeActionPreference extends PerTestFieldPreference {
 
-    public TestFieldImeActionPreference(Context context) {
+    public ImeActionPreference(Context context) {
         super(context);
         init();
     }
 
-    public TestFieldImeActionPreference(Context context, int fieldIndex) {
+    public ImeActionPreference(Context context, int fieldIndex) {
         super(context, fieldIndex);
         init();
     }
 
-    public TestFieldImeActionPreference(Context context, AttributeSet attrs) {
+    public ImeActionPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public TestFieldImeActionPreference(Context context, AttributeSet attrs, int defStyleAttr) {
+    public ImeActionPreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public TestFieldImeActionPreference(Context context, AttributeSet attrs, int defStyleAttr,
-                                        int defStyleRes) {
+    public ImeActionPreference(Context context, AttributeSet attrs, int defStyleAttr,
+                               int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init();
     }
 
     private void init() {
-        setFragment(TestFieldImeActionSettingsFragment.class.getName());
+        setFragment(ImeActionSettingsFragment.class.getName());
     }
 
     @Override

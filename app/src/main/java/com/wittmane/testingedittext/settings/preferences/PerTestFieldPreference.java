@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,37 +31,38 @@ import com.wittmane.testingedittext.R;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.wittmane.testingedittext.settings.fragments.TestFieldBaseSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
+import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
+import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
 
 /**
  * Preference to link to a test field specific settings screen.
  */
-public abstract class SingleFieldPreference extends Preference {
-    private static final String TAG = SingleFieldPreference.class.getSimpleName();
+public abstract class PerTestFieldPreference extends Preference {
+    private static final String TAG = PerTestFieldPreference.class.getSimpleName();
 
     private int mFieldIndex = -1;
     private Bundle mExtras;
 
-    public SingleFieldPreference(Context context) {
+    public PerTestFieldPreference(Context context) {
         super(context);
     }
 
-    public SingleFieldPreference(Context context, int fieldIndex) {
+    public PerTestFieldPreference(Context context, int fieldIndex) {
         this(context);
         setFieldIndex(fieldIndex);
     }
 
-    public SingleFieldPreference(Context context, AttributeSet attrs) {
+    public PerTestFieldPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public SingleFieldPreference(Context context, AttributeSet attrs, int defStyleAttr) {
+    public PerTestFieldPreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public SingleFieldPreference(Context context, AttributeSet attrs, int defStyleAttr,
-                                 int defStyleRes) {
+    public PerTestFieldPreference(Context context, AttributeSet attrs, int defStyleAttr,
+                                  int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
     }
 
@@ -89,8 +90,7 @@ public abstract class SingleFieldPreference extends Preference {
 
     @Override
     public Bundle getExtras() {
-        if (mFieldIndex < 0) {
-            Log.e(TAG, "No field index for extras");
+        if (mFieldIndex == BASE_FIELD_INDEX) {
             return super.getExtras();
         }
         if (mExtras == null) {

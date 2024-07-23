@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,34 +19,37 @@ package com.wittmane.testingedittext.settings.fragments;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceCategory;
-import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.settings.Settings;
 
-public class TargetVersionSettingsFragment extends PreferenceFragment {
+public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment {
+    private static final String TAG = TargetVersionSettingsFragment.class.getSimpleName();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_target_version);
 
+        manageOverrideToggle(Settings.PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
                 && !EditableInputConnection.canSimulateMissingMethods(getContext())) {
             // these methods require lying to the framework about not implementing them to get the
             // appropriate return value to the IME for a valid test, so since we can't seem to fake
-            // it that way, these aren't valid tests, so shouldn't be allowed.
+            // it that way, these aren't valid tests, so they shouldn't be allowed.
 
             SwitchPreference skipDeleteSurroundingTextInCodePointsPref =
-                    (SwitchPreference)findPreference(
-                            Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
+                    (SwitchPreference)findPreference(getPrefKey(
+                            Settings.PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX));
             skipDeleteSurroundingTextInCodePointsPref.setEnabled(false);
             skipDeleteSurroundingTextInCodePointsPref.setChecked(false);
 
             SwitchPreference skipSetComposingRegionPref =
-                    (SwitchPreference)findPreference(Settings.PREF_SKIP_SETCOMPOSINGREGION);
+                    (SwitchPreference)findPreference(getPrefKey(
+                            Settings.PREF_SKIP_SETCOMPOSINGREGION_PREFIX));
             skipSetComposingRegionPref.setEnabled(false);
             skipSetComposingRegionPref.setChecked(false);
         }

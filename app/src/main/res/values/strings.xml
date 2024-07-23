@@ -26,6 +26,7 @@
 
     <string name="button_clear">Clear</string>
 
+    <string name="override_app_level_settings">Override app level settings</string>
     <string name="modify_text_input_screen">Modify text input</string>
 
     <string name="modify_committed_text_title">Modify committed text</string>

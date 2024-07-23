@@ -42,6 +42,7 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.Lin
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
 import com.wittmane.testingedittext.settings.Settings.EditorSettings;
+import com.wittmane.testingedittext.settings.TranslateText;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Matrix;
@@ -532,6 +533,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     @NonNull
     private EditorSettings mSettings = new DefaultEditorSettings();
 
+    //TODO: (EW) would it make more sense to extend FieldPrefEditorSettings (with the base index)
+    // and just override the things that don't have an app-level default preference
     private class DefaultEditorSettings implements EditorSettings {
         @Override
         public boolean nullInputTypeMultiline() {
@@ -572,6 +575,196 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         public boolean allowSettingSelection() {
             return com.wittmane.testingedittext.settings.Settings.defaultAllowSettingSelection(
                     mEditor.mInputType);
+        }
+
+        @Override
+        public boolean shouldModifyCommittedText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_MODIFY_COMMITTED_TEXT;
+        }
+
+        @Override
+        public boolean shouldModifyComposedText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_MODIFY_COMPOSED_TEXT;
+        }
+
+        @Override
+        public boolean shouldModifyComposedChangesOnly() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY;
+        }
+
+        @Override
+        public boolean shouldConsiderComposedChangesFromEnd() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END;
+        }
+
+        @Override
+        public boolean shouldRestrictToInclude() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_TO_INCLUDE;
+        }
+
+        @Override
+        public String[] getRestrictSpecific() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_SPECIFIC;
+        }
+
+        @Override
+        public @Nullable com.wittmane.testingedittext.settings.IntRange getRestrictRange() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_RANGE;
+        }
+
+        @Override
+        public TranslateText[] getTranslateSpecific() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_TRANSLATE_SPECIFIC;
+        }
+
+        @Override
+        public boolean shouldTranslateFullMatchOnly() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_TRANSLATE_FULL_MATCH_ONLY;
+        }
+
+        @Override
+        public int getCodepointShift() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_CODEPOINT_SHIFT;
+        }
+
+        @Override
+        public boolean shouldSkipExtractingText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_EXTRACTING_TEXT;
+        }
+
+        @Override
+        public boolean shouldIgnoreExtractedTextMonitor() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR;
+        }
+
+        @Override
+        public boolean shouldUpdateSelectionBeforeExtractedText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT;
+        }
+
+        @Override
+        public boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES;
+        }
+
+        @Override
+        public boolean shouldExtractFullText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_EXTRACT_FULL_TEXT;
+        }
+
+        @Override
+        public int getExtractMonitorTextLimit() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT;
+        }
+
+        @Override
+        public int getReturnedTextLimit() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RETURNED_TEXT_LIMIT;
+        }
+
+        @Override
+        public boolean shouldDeleteThroughComposingText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_DELETE_THROUGH_COMPOSING_TEXT;
+        }
+
+        @Override
+        public boolean shouldKeepEmptyComposingPosition() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_KEEP_EMPTY_COMPOSING_POSITION;
+        }
+
+        @Override
+        public boolean shouldSkipTakeSnapshot() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_TAKESNAPSHOT;
+        }
+
+        @Override
+        public boolean shouldSkipGetSurroundingText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_GETSURROUNDINGTEXT;
+        }
+
+        @Override
+        public boolean shouldSkipPerformSpellCheck() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_PERFORMSPELLCHECK;
+        }
+
+        @Override
+        public boolean shouldSkipSetImeConsumesInput() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_SETIMECONSUMESINPUT;
+        }
+
+        @Override
+        public boolean shouldSkipCommitContent() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_COMMITCONTENT;
+        }
+
+        @Override
+        public boolean shouldSkipCloseConnection() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_CLOSECONNECTION;
+        }
+
+        @Override
+        public boolean shouldSkipDeleteSurroundingTextInCodePoints() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS;
+        }
+
+        @Override
+        public boolean shouldSkipRequestCursorUpdates() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_REQUESTCURSORUPDATES;
+        }
+
+        @Override
+        public boolean shouldSkipCommitCorrection() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_COMMITCORRECTION;
+        }
+
+        @Override
+        public boolean shouldSkipGetSelectedText() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_GETSELECTEDTEXT;
+        }
+
+        @Override
+        public boolean shouldSkipSetComposingRegion() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_SETCOMPOSINGREGION;
+        }
+
+        @Override
+        public int getUpdateDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_UPDATE_DELAY;
+        }
+
+        @Override
+        public int getFinishComposingTextDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_FINISHCOMPOSINGTEXT_DELAY;
+        }
+
+        @Override
+        public int getGetSurroundingTextDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETSURROUNDINGTEXT_DELAY;
+        }
+
+        @Override
+        public int getGetTextBeforeCursorDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETTEXTBEFORECURSOR_DELAY;
+        }
+
+        @Override
+        public int getGetSelectedTextDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETSELECTEDTEXT_DELAY;
+        }
+
+        @Override
+        public int getGetTextAfterCursorDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETTEXTAFTERCURSOR_DELAY;
+        }
+
+        @Override
+        public int getGetCursorCapsModeDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETCURSORCAPSMODE_DELAY;
+        }
+
+        @Override
+        public int getGetExtractedTextDelay() {
+            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETEXTRACTEDTEXT_DELAY;
         }
     }
 
@@ -6088,8 +6281,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         //TODO (EW) should we add a setting to convert key events and do this even when creating an
         // input connection?
         if (!mSettings.shouldCreateInputConnection()
-                && (com.wittmane.testingedittext.settings.Settings.shouldModifyCommittedText()
-                || com.wittmane.testingedittext.settings.Settings.shouldModifyComposedText())) {
+                && (mSettings.shouldModifyCommittedText()
+                        || mSettings.shouldModifyComposedText())) {
             // (EW) create a new view and editable to pass to a text key listener to see if this
             // event will create text to add without actually impacting this field yet
             View view = new View(getContext());
@@ -6107,7 +6300,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // the normal key listener
             if (handled && !TextUtils.isEmpty(editable)) {
                 beginBatchEdit();
-                CharSequence text = EditableInputConnection.modifyText(editable);
+                CharSequence text = EditableInputConnection.modifyText(editable, mSettings);
                 int selectionStart = Selection.getSelectionStart(mText);
                 int selectionEnd = Selection.getSelectionEnd(mText);
                 if (selectionStart < 0) {
@@ -6388,7 +6581,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     outAttrs.hintLocales = null;
                 }
             }
-            if (com.wittmane.testingedittext.settings.Settings.shouldSkipExtractingText()) {
+            if (mSettings.shouldSkipExtractingText()) {
                 // (EW) if InputConnection#getExtractedText returns null, no text is shown in the
                 // full screen text field (landscape) so since we're forcing that to be null, we
                 // should also block the full screen view, since that would just be broken

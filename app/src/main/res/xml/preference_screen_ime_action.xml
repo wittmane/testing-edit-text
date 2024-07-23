@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_ime_action_id_"
+        android:key="pref_key_ime_action_id"
         android:title="@string/ime_action_id"
         app:inputType="number|numberSigned" />
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
-        android:key="pref_key_test_field_ime_action_label_"
+        android:key="pref_key_ime_action_label"
         android:title="@string/ime_action_label"
         app:inputType="text" />
 

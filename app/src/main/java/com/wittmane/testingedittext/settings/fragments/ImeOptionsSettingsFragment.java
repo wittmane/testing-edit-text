@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,15 +16,26 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceScreen;
+import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.Settings;
 
-public class TestFieldImeActionSettingsFragment extends TestFieldBaseSettingsFragment {
+public class ImeOptionsSettingsFragment extends PerTestFieldSettingsFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        addPreferencesFromResource(R.xml.preference_screen_test_field_ime_action);
+        addPreferencesFromResource(R.xml.preference_screen_ime_options);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            PreferenceScreen preferenceScreen = getPreferenceScreen();
+            SwitchPreference noPersonalizedLearningFlagPref = (SwitchPreference) findPreference(
+                    getPrefKey(Settings.PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX));
+            preferenceScreen.removePreference(noPersonalizedLearningFlagPref);
+        }
     }
 }

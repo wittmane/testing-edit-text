@@ -26,7 +26,7 @@ import com.wittmane.testingedittext.settings.ListPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 
-public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFragment {
+public class InputTypeSettingsFragment extends PerTestFieldSettingsFragment {
 
     private ListPreference mInputTypeClassPref;
     private ListPreference mInputTypeTextVariationPref;
@@ -53,48 +53,48 @@ public class TestFieldInputTypeSettingsFragment extends TestFieldBaseSettingsFra
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        addPreferencesFromResource(R.xml.preference_screen_test_field_input_type);
+        addPreferencesFromResource(R.xml.preference_screen_input_type);
 
         mInputTypeClassPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_CLASS_PREFIX));
 
         mInputTypeTextVariationPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX));
         mInputTypeTextMultiLineFlagPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX));
         mInputTypeTextCapFlagPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX));
         mInputTypeTextAutoCompleteFlagPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX));
         mInputTypeTextAutoCorrectFlagPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX));
         mInputTypeTextNoSuggestionsFlagPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX));
 
         mInputTypeNumberVariationPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX));
         mInputTypeNumberSignedFlagPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX));
         mInputTypeNumberDecimalFlagPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX));
 
         mInputTypeDateTimeVariationPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX);
+                getPrefKey(Settings.PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX));
 
         mMultilinePref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX);
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX));
         mCreateInputConnectionPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX);
+                getPrefKey(Settings.PREF_CREATE_INPUT_CONNECTION_PREFIX));
         mSendSelectionInfoPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX);
+                getPrefKey(Settings.PREF_SEND_SELECTION_INFO_PREFIX));
         mSendTextPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_SEND_TEXT_PREFIX);
+                getPrefKey(Settings.PREF_SEND_TEXT_PREFIX));
         mComposingTextBehaviorPref = (ListPreference)findPreference(
-                Settings.PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX);
+                getPrefKey(Settings.PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX));
         mAllowDeleteSurroundingTextPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX);
+                getPrefKey(Settings.PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX));
         mAllowSettingSelectionPref = (SwitchPreference)findPreference(
-                Settings.PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX);
+                getPrefKey(Settings.PREF_ALLOW_SETTING_SELECTION_PREFIX));
     }
 
     @Override

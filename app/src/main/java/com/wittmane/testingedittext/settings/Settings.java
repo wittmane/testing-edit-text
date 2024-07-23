@@ -34,178 +34,188 @@ import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPre
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = Settings.class.getSimpleName();
 
-    public static final String PREF_MODIFY_COMMITTED_TEXT = "pref_key_modify_committed_text";
-    public static final String PREF_MODIFY_COMPOSED_TEXT = "pref_key_modify_composed_text";
-    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY =
-            "pref_key_modify_composed_changes_only";
-    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END =
-            "pref_key_consider_composed_changes_from_end";
-    public static final String PREF_RESTRICT_TO_INCLUDE = "pref_key_restrict_to_include";
-    public static final String PREF_RESTRICT_SPECIFIC = "pref_key_restrict_specific";
-    public static final String PREF_RESTRICT_RANGE = "pref_key_restrict_range";
-    public static final String PREF_TRANSLATE_SPECIFIC = "pref_key_translate_specific";
-    public static final String PREF_TRANSLATE_FULL_MATCH_ONLY =
-            "pref_key_translate_full_match_only";
-    public static final String PREF_SHIFT_CODEPOINT = "pref_key_shift_codepoint";
-    public static final String PREF_SKIP_EXTRACTING_TEXT = "pref_key_skip_extracting_text";
-    public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR =
-            "pref_key_ignore_extracted_text_monitor";
-    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT =
-            "pref_key_update_selection_before_extracted_text";
-    public static final String PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES =
-            "pref_key_update_extracted_text_only_on_net_changes";
-    public static final String PREF_EXTRACT_FULL_TEXT = "pref_key_extract_full_text";
-    public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT =
-            "pref_key_limit_extract_monitor_text";
-    public static final String PREF_LIMIT_RETURNED_TEXT = "pref_key_limit_returned_text";
-    public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT =
-            "pref_key_delete_through_composing_text";
-    public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION =
-            "pref_key_keep_empty_composing_position";
-    public static final String PREF_SKIP_TAKESNAPSHOT = "pref_key_skip_takesnapshot";
-    public static final String PREF_SKIP_GETSURROUNDINGTEXT = "pref_key_skip_getsurroundingtext";
-    public static final String PREF_SKIP_PERFORMSPELLCHECK = "pref_key_skip_performspellcheck";
-    public static final String PREF_SKIP_SETIMECONSUMESINPUT = "pref_key_skip_setimeconsumesinput";
-    public static final String PREF_SKIP_COMMITCONTENT = "pref_key_skip_commitcontent";
-    public static final String PREF_SKIP_CLOSECONNECTION = "pref_key_skip_closeconnection";
-    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS =
-            "pref_key_skip_deletesurroundingtextincodepoints";
-    public static final String PREF_SKIP_REQUESTCURSORUPDATES =
-            "pref_key_skip_requestcursorupdates";
-    public static final String PREF_SKIP_COMMITCORRECTION = "pref_key_skip_commitcorrection";
-    public static final String PREF_SKIP_GETSELECTEDTEXT = "pref_key_skip_getselectedtext";
-    public static final String PREF_SKIP_SETCOMPOSINGREGION = "pref_key_skip_setcomposingregion";
-    public static final String PREF_UPDATE_DELAY = "pref_key_update_delay";
-    public static final String PREF_FINISHCOMPOSINGTEXT_DELAY =
-            "pref_key_finishcomposingtext_delay";
-    public static final String PREF_GETSURROUNDINGTEXT_DELAY = "pref_key_getsurroundingtext_delay";
-    public static final String PREF_GETTEXTBEFORECURSOR_DELAY =
-            "pref_key_gettextbeforecursor_delay";
-    public static final String PREF_GETSELECTEDTEXT_DELAY = "pref_key_getselectedtext_delay";
-    public static final String PREF_GETTEXTAFTERCURSOR_DELAY = "pref_key_gettextaftercursor_delay";
-    public static final String PREF_GETCURSORCAPSMODE_DELAY = "pref_key_getcursorcapsmode_delay";
-    public static final String PREF_GETEXTRACTEDTEXT_DELAY = "pref_key_getextractedtext_delay";
-    public static final String PREF_TEST_FIELD_IDS = "pref_key_test_field_ids";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX =
-            "pref_key_test_field_input_type_class_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX =
-            "pref_key_test_field_input_type_text_variation_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX =
-            "pref_key_test_field_input_type_number_variation_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX =
-            "pref_key_test_field_input_type_datetime_variation_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX =
-            "pref_key_test_field_input_type_text_flag_multi_line_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX =
-            "pref_key_test_field_input_type_text_flag_cap_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX =
-            "pref_key_test_field_input_type_text_flag_auto_complete_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX =
-            "pref_key_test_field_input_type_text_flag_auto_correct_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX =
-            "pref_key_test_field_input_type_text_flag_no_suggestions_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX =
-            "pref_key_test_field_input_type_number_flag_signed_";
-    public static final String PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX =
-            "pref_key_test_field_input_type_number_flag_decimal_";
-    public static final String PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX =
-            "pref_key_test_field_null_input_type_multiline_";
-    public static final String PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX =
-            "pref_key_test_field_create_input_connection_";
-    public static final String PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX =
-            "pref_key_test_field_send_selection_info_";
-    public static final String PREF_TEST_FIELD_SEND_TEXT_PREFIX =
-            "pref_key_test_field_send_text_";
-    public static final String PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX =
-            "pref_key_test_field_composing_text_behavior_";
-    public static final String PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
-            "pref_key_test_field_allow_delete_surrounding_text_";
-    public static final String PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX =
-            "pref_key_test_field_allow_setting_selection_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX =
-            "pref_key_test_field_ime_options_action_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
-            "pref_key_test_field_ime_options_flag_force_ascii_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX =
-            "pref_key_test_field_ime_options_flag_navigate_next_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX =
-            "pref_key_test_field_ime_options_flag_navigate_previous_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_accessory_action_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_enter_action_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_extract_ui_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_fullscreen_";
-    public static final String PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX =
-            "pref_key_test_field_ime_options_flag_no_personalized_learning_";
-    public static final String PREF_TEST_FIELD_IME_ACTION_ID_PREFIX =
-            "pref_key_test_field_ime_action_id_";
-    public static final String PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX =
-            "pref_key_test_field_ime_action_label_";
-    public static final String PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX =
-            "pref_key_test_field_private_ime_options_";
-    public static final String PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX =
-            "pref_key_test_field_select_all_on_focus_";
-    public static final String PREF_TEST_FIELD_MAX_LENGTH_PREFIX =
-            "pref_key_test_field_max_length_";
-    public static final String PREF_TEST_FIELD_ALLOW_UNDO_PREFIX =
-            "pref_key_test_field_allow_undo_";
-    public static final String PREF_TEST_FIELD_TEXT_LOCALES_PREFIX =
-            "pref_key_test_field_text_locales_";
-    public static final String PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX =
-            "pref_key_test_field_ime_hint_locales_";
-    public static final String PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX =
-            "pref_key_test_field_default_text_";
-    public static final String PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX =
-            "pref_key_test_field_hint_text_";
+    public static final int BASE_FIELD_INDEX = -1;
+    public static final int BASE_FIELD_ID = -1;
 
-    private boolean mModifyCommittedText;
-    private boolean mModifyComposedText;
-    private boolean mConsiderComposedChangesFromEnd;
-    private boolean mModifyComposedChangesOnly;
-    private boolean mRestrictToInclude;
-    private String[] mRestrictSpecific;
-    private IntRange mRestrictRange;
-    private TranslateText[] mTranslateSpecific;
-    private boolean mTranslateFullMatchOnly;
-    private int mShiftCodepoint;
-    private boolean mSkipExtractingText;
-    private boolean mIgnoreExtractedTextMonitor;
-    private boolean mUpdateSelectionBeforeExtractedText;
-    private boolean mUpdateExtractedTextOnlyOnNetChanges;
-    private boolean mExtractFullText;
-    private int mExtractMonitorTextLimit;
-    private int mReturnedTextLimit;
-    private boolean mDeleteThroughComposingText;
-    private boolean mKeepEmptyComposingPosition;
-    private boolean mSkipTakeSnapshot;
-    private boolean mSkipGetSurroundingText;
-    private boolean mSkipPerformSpellCheck;
-    private boolean mSkipSetImeConsumesInput;
-    private boolean mSkipCommitContent;
-    private boolean mSkipCloseConnection;
-    private boolean mSkipDeleteSurroundingTextInCodePoints;
-    private boolean mSkipRequestCursorUpdates;
-    private boolean mSkipCommitCorrection;
-    private boolean mSkipGetSelectedText;
-    private boolean mSkipSetComposingRegion;
-    private int mUpdateDelay;
-    private int mFinishComposingTextDelay;
-    private int mGetSurroundingTextDelay;
-    private int mGetTextBeforeCursorDelay;
-    private int mGetSelectedTextDelay;
-    private int mGetTextAfterCursorDelay;
-    private int mGetCursorCapsModeDelay;
-    private int mGetExtractedTextDelay;
+    public static final String BASE_SUFFIX = "_base";
+    public static final String FIELD_INFIX = "_field_";
+
+    public static final String PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX =
+            "pref_key_override_text_input_modification";
+    public static final String PREF_MODIFY_COMMITTED_TEXT_PREFIX =
+            "pref_key_modify_committed_text";
+    public static final String PREF_MODIFY_COMPOSED_TEXT_PREFIX =
+            "pref_key_modify_composed_text";
+    public static final String PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX =
+            "pref_key_modify_composed_changes_only";
+    public static final String PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX =
+            "pref_key_consider_composed_changes_from_end";
+    public static final String PREF_RESTRICT_TO_INCLUDE_PREFIX =
+            "pref_key_restrict_to_include";
+    public static final String PREF_RESTRICT_SPECIFIC_PREFIX =
+            "pref_key_restrict_specific";
+    public static final String PREF_RESTRICT_RANGE_PREFIX =
+            "pref_key_restrict_range";
+    public static final String PREF_TRANSLATE_SPECIFIC_PREFIX =
+            "pref_key_translate_specific";
+    public static final String PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX =
+            "pref_key_translate_full_match_only";
+    public static final String PREF_SHIFT_CODEPOINT_PREFIX =
+            "pref_key_shift_codepoint";
+
+    public static final String PREF_OVERRIDE_TEXT_RETURN_PREFIX =
+            "pref_key_override_text_return";
+    public static final String PREF_SKIP_EXTRACTING_TEXT_PREFIX =
+            "pref_key_skip_extracting_text";
+    public static final String PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX =
+            "pref_key_ignore_extracted_text_monitor";
+    public static final String PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX =
+            "pref_key_update_selection_before_extracted_text";
+    public static final String PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX =
+            "pref_key_update_extracted_text_only_on_net_changes";
+    public static final String PREF_EXTRACT_FULL_TEXT_PREFIX =
+            "pref_key_extract_full_text";
+    public static final String PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX =
+            "pref_key_limit_extract_monitor_text";
+    public static final String PREF_LIMIT_RETURNED_TEXT_PREFIX =
+            "pref_key_limit_returned_text";
+
+    public static final String PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX =
+            "pref_key_override_text_composition";
+    public static final String PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX =
+            "pref_key_delete_through_composing_text";
+    public static final String PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX =
+            "pref_key_keep_empty_composing_position";
+
+    public static final String PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX =
+            "pref_key_override_target_version_simulation";
+    public static final String PREF_SKIP_TAKESNAPSHOT_PREFIX =
+            "pref_key_skip_takesnapshot";
+    public static final String PREF_SKIP_GETSURROUNDINGTEXT_PREFIX =
+            "pref_key_skip_getsurroundingtext";
+    public static final String PREF_SKIP_PERFORMSPELLCHECK_PREFIX =
+            "pref_key_skip_performspellcheck";
+    public static final String PREF_SKIP_SETIMECONSUMESINPUT_PREFIX =
+            "pref_key_skip_setimeconsumesinput";
+    public static final String PREF_SKIP_COMMITCONTENT_PREFIX =
+            "pref_key_skip_commitcontent";
+    public static final String PREF_SKIP_CLOSECONNECTION_PREFIX =
+            "pref_key_skip_closeconnection";
+    public static final String PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX =
+            "pref_key_skip_deletesurroundingtextincodepoints";
+    public static final String PREF_SKIP_REQUESTCURSORUPDATES_PREFIX =
+            "pref_key_skip_requestcursorupdates";
+    public static final String PREF_SKIP_COMMITCORRECTION_PREFIX =
+            "pref_key_skip_commitcorrection";
+    public static final String PREF_SKIP_GETSELECTEDTEXT_PREFIX =
+            "pref_key_skip_getselectedtext";
+    public static final String PREF_SKIP_SETCOMPOSINGREGION_PREFIX =
+            "pref_key_skip_setcomposingregion";
+
+    public static final String PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX =
+            "pref_key_override_system_behavior_simulation";
+    public static final String PREF_UPDATE_DELAY_PREFIX = "pref_key_update_delay";
+    public static final String PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX =
+            "pref_key_finishcomposingtext_delay";
+    public static final String PREF_GETSURROUNDINGTEXT_DELAY_PREFIX =
+            "pref_key_getsurroundingtext_delay";
+    public static final String PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX =
+            "pref_key_gettextbeforecursor_delay";
+    public static final String PREF_GETSELECTEDTEXT_DELAY_PREFIX =
+            "pref_key_getselectedtext_delay";
+    public static final String PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX =
+            "pref_key_gettextaftercursor_delay";
+    public static final String PREF_GETCURSORCAPSMODE_DELAY_PREFIX =
+            "pref_key_getcursorcapsmode_delay";
+    public static final String PREF_GETEXTRACTEDTEXT_DELAY_PREFIX =
+            "pref_key_getextractedtext_delay";
+
+    public static final String PREF_TEST_FIELD_IDS =
+            "pref_key_test_field_ids";
+    public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
+            "pref_key_input_type_class";
+    public static final String PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX =
+            "pref_key_input_type_text_variation";
+    public static final String PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX =
+            "pref_key_input_type_number_variation";
+    public static final String PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX =
+            "pref_key_input_type_datetime_variation";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX =
+            "pref_key_input_type_text_flag_multi_line";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX =
+            "pref_key_input_type_text_flag_cap";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX =
+            "pref_key_input_type_text_flag_auto_complete";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX =
+            "pref_key_input_type_text_flag_auto_correct";
+    public static final String PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX =
+            "pref_key_input_type_text_flag_no_suggestions";
+    public static final String PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX =
+            "pref_key_input_type_number_flag_signed";
+    public static final String PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX =
+            "pref_key_input_type_number_flag_decimal";
+    public static final String PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX =
+            "pref_key_null_input_type_multiline";
+    public static final String PREF_CREATE_INPUT_CONNECTION_PREFIX =
+            "pref_key_create_input_connection";
+    public static final String PREF_SEND_SELECTION_INFO_PREFIX =
+            "pref_key_send_selection_info";
+    public static final String PREF_SEND_TEXT_PREFIX =
+            "pref_key_send_text";
+    public static final String PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX =
+            "pref_key_composing_text_behavior";
+    public static final String PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
+            "pref_key_allow_delete_surrounding_text";
+    public static final String PREF_ALLOW_SETTING_SELECTION_PREFIX =
+            "pref_key_allow_setting_selection";
+    public static final String PREF_IME_OPTIONS_ACTION_PREFIX =
+            "pref_key_ime_options_action";
+    public static final String PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
+            "pref_key_ime_options_flag_force_ascii";
+    public static final String PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX =
+            "pref_key_ime_options_flag_navigate_next";
+    public static final String PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX =
+            "pref_key_ime_options_flag_navigate_previous";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX =
+            "pref_key_ime_options_flag_no_accessory_action";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX =
+            "pref_key_ime_options_flag_no_enter_action";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX =
+            "pref_key_ime_options_flag_no_extract_ui";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX =
+            "pref_key_ime_options_flag_no_fullscreen";
+    public static final String PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX =
+            "pref_key_ime_options_flag_no_personalized_learning";
+    public static final String PREF_IME_ACTION_ID_PREFIX =
+            "pref_key_ime_action_id";
+    public static final String PREF_IME_ACTION_LABEL_PREFIX =
+            "pref_key_ime_action_label";
+    public static final String PREF_PRIVATE_IME_OPTIONS_PREFIX =
+            "pref_key_private_ime_options";
+    public static final String PREF_SELECT_ALL_ON_FOCUS_PREFIX =
+            "pref_key_select_all_on_focus";
+    public static final String PREF_MAX_LENGTH_PREFIX =
+            "pref_key_max_length";
+    public static final String PREF_ALLOW_UNDO_PREFIX =
+            "pref_key_allow_undo";
+    public static final String PREF_TEXT_LOCALES_PREFIX =
+            "pref_key_text_locales";
+    public static final String PREF_IME_HINT_LOCALES_PREFIX =
+            "pref_key_ime_hint_locales";
+    public static final String PREF_IME_DEFAULT_TEXT_PREFIX =
+            "pref_key_default_text";
+    public static final String PREF_IME_HINT_TEXT_PREFIX =
+            "pref_key_hint_text";
+
     private final List<TestField> mTestFields = new ArrayList<>();
+    private final AppLevelDefaults mTestFieldDefaults = new AppLevelDefaults();
 
     private SharedPreferenceManager mPrefs;
 
@@ -245,48 +255,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSettings() {
         final String[] prefKeys = new String[] {
-                PREF_MODIFY_COMMITTED_TEXT,
-                PREF_MODIFY_COMPOSED_TEXT,
-                PREF_MODIFY_COMPOSED_CHANGES_ONLY,
-                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END,
-                PREF_RESTRICT_TO_INCLUDE,
-                PREF_RESTRICT_SPECIFIC,
-                PREF_RESTRICT_RANGE,
-                PREF_TRANSLATE_SPECIFIC,
-                PREF_TRANSLATE_FULL_MATCH_ONLY,
-                PREF_SHIFT_CODEPOINT,
-                PREF_SKIP_EXTRACTING_TEXT,
-                PREF_IGNORE_EXTRACTED_TEXT_MONITOR,
-                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT,
-                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES,
-                PREF_EXTRACT_FULL_TEXT,
-                PREF_LIMIT_EXTRACT_MONITOR_TEXT,
-                PREF_LIMIT_RETURNED_TEXT,
-                PREF_DELETE_THROUGH_COMPOSING_TEXT,
-                PREF_KEEP_EMPTY_COMPOSING_POSITION,
-                PREF_SKIP_TAKESNAPSHOT,
-                PREF_SKIP_GETSURROUNDINGTEXT,
-                PREF_SKIP_PERFORMSPELLCHECK,
-                PREF_SKIP_SETIMECONSUMESINPUT,
-                PREF_SKIP_COMMITCONTENT,
-                PREF_SKIP_CLOSECONNECTION,
-                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS,
-                PREF_SKIP_REQUESTCURSORUPDATES,
-                PREF_SKIP_COMMITCORRECTION,
-                PREF_SKIP_GETSELECTEDTEXT,
-                PREF_SKIP_SETCOMPOSINGREGION,
-                PREF_UPDATE_DELAY,
-                PREF_FINISHCOMPOSINGTEXT_DELAY,
-                PREF_GETSURROUNDINGTEXT_DELAY,
-                PREF_GETTEXTBEFORECURSOR_DELAY,
-                PREF_GETSELECTEDTEXT_DELAY,
-                PREF_GETTEXTAFTERCURSOR_DELAY,
-                PREF_GETCURSORCAPSMODE_DELAY,
-                PREF_GETEXTRACTEDTEXT_DELAY
         };
         for (String prefKey : prefKeys) {
             loadSetting(prefKey);
         }
+        loadTestFieldSettings(BASE_FIELD_ID);
         int[] fieldIds = readTestFieldIds(mPrefs);
         mTestFields.clear();
         for (int id : fieldIds) {
@@ -300,172 +273,105 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         // all would just read all of them multiple times. leaving them commented out here for
         // visibility.
         final String[] testFieldPrefKeyPrefixes = new String[]{
-                PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
-                //PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
-                //PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                //PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
-                //PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
-                //PREF_TEST_FIELD_SEND_TEXT_PREFIX,
-                //PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                //PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                //PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
-                //PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_ID_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX,
-                PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX,
-                PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX,
-                PREF_TEST_FIELD_MAX_LENGTH_PREFIX,
-                PREF_TEST_FIELD_ALLOW_UNDO_PREFIX,
-                PREF_TEST_FIELD_TEXT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX
+                PREF_INPUT_TYPE_CLASS_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                //PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                //PREF_CREATE_INPUT_CONNECTION_PREFIX,
+                //PREF_SEND_SELECTION_INFO_PREFIX,
+                //PREF_SEND_TEXT_PREFIX,
+                //PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                //PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                //PREF_ALLOW_SETTING_SELECTION_PREFIX,
+                PREF_IME_OPTIONS_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
+                PREF_IME_ACTION_ID_PREFIX,
+                PREF_IME_ACTION_LABEL_PREFIX,
+                PREF_PRIVATE_IME_OPTIONS_PREFIX,
+                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
+                PREF_MAX_LENGTH_PREFIX,
+                PREF_ALLOW_UNDO_PREFIX,
+                PREF_TEXT_LOCALES_PREFIX,
+                PREF_IME_HINT_LOCALES_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX,
+
+                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
+                PREF_OVERRIDE_TEXT_RETURN_PREFIX,
+                PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
+                PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
+                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
             loadTestFieldSetting(prefKeyPrefix, fieldId);
+        }
+
+        final String[] testFieldWithDefaultPrefKeyPrefixes = new String[]{
+                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
+                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
+                PREF_RESTRICT_TO_INCLUDE_PREFIX,
+                PREF_RESTRICT_SPECIFIC_PREFIX,
+                PREF_RESTRICT_RANGE_PREFIX,
+                PREF_TRANSLATE_SPECIFIC_PREFIX,
+                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+                PREF_SHIFT_CODEPOINT_PREFIX,
+
+                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+                PREF_EXTRACT_FULL_TEXT_PREFIX,
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
+                PREF_LIMIT_RETURNED_TEXT_PREFIX,
+
+                PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
+                PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
+
+                PREF_SKIP_TAKESNAPSHOT_PREFIX,
+                PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
+                PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
+                PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
+                PREF_SKIP_COMMITCONTENT_PREFIX,
+                PREF_SKIP_CLOSECONNECTION_PREFIX,
+                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
+                PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
+                PREF_SKIP_COMMITCORRECTION_PREFIX,
+                PREF_SKIP_GETSELECTEDTEXT_PREFIX,
+                PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
+
+                PREF_UPDATE_DELAY_PREFIX,
+                PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
+                PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
+                PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
+                PREF_GETSELECTEDTEXT_DELAY_PREFIX,
+                PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
+                PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
+                PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
+        };
+        for (String prefKeyPrefix : testFieldWithDefaultPrefKeyPrefixes) {
+            loadTestFieldOrDefaultSetting(prefKeyPrefix, fieldId);
         }
     }
 
     private void loadSetting(String prefKey) {
         switch (prefKey) {
-            case PREF_MODIFY_COMMITTED_TEXT:
-                mModifyCommittedText = readModifyCommittedText(mPrefs);
-                break;
-            case PREF_MODIFY_COMPOSED_TEXT:
-                mModifyComposedText = readModifyComposedText(mPrefs);
-                break;
-            case PREF_MODIFY_COMPOSED_CHANGES_ONLY:
-                mModifyComposedChangesOnly = readModifyComposedChangesOnly(mPrefs);
-                break;
-            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END:
-                mConsiderComposedChangesFromEnd = readConsiderComposedChangesFromEnd(mPrefs);
-                break;
-            case PREF_RESTRICT_TO_INCLUDE:
-                mRestrictToInclude = readRestrictToInclude(mPrefs);
-                break;
-            case PREF_RESTRICT_SPECIFIC:
-                mRestrictSpecific = readRestrictSpecific(mPrefs);
-                break;
-            case PREF_RESTRICT_RANGE:
-                mRestrictRange = readRestrictRange(mPrefs);
-                break;
-            case PREF_TRANSLATE_SPECIFIC:
-                mTranslateSpecific = readTranslateSpecific(mPrefs);
-                break;
-            case PREF_TRANSLATE_FULL_MATCH_ONLY:
-                mTranslateFullMatchOnly = readTranslateFullMatchOnly(mPrefs);
-                break;
-            case PREF_SHIFT_CODEPOINT:
-                mShiftCodepoint = readShiftCodepoint(mPrefs);
-                break;
-
-            case PREF_SKIP_EXTRACTING_TEXT:
-                mSkipExtractingText = readSkipExtractingText(mPrefs);
-                break;
-            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR:
-                mIgnoreExtractedTextMonitor = readIgnoreExtractedTextMonitor(mPrefs);
-                break;
-            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT:
-                mUpdateSelectionBeforeExtractedText =
-                        readUpdateSelectionBeforeExtractedText(mPrefs);
-                break;
-            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES:
-                mUpdateExtractedTextOnlyOnNetChanges =
-                        readUpdateExtractedTextOnlyOnNetChanges(mPrefs);
-                break;
-            case PREF_EXTRACT_FULL_TEXT:
-                mExtractFullText = readExtractFullText(mPrefs);
-                break;
-            case PREF_LIMIT_EXTRACT_MONITOR_TEXT:
-                mExtractMonitorTextLimit = readExtractMonitorTextLimit(mPrefs);
-                break;
-            case PREF_LIMIT_RETURNED_TEXT:
-                mReturnedTextLimit = readReturnedTextLimit(mPrefs);
-                break;
-
-            case PREF_DELETE_THROUGH_COMPOSING_TEXT:
-                mDeleteThroughComposingText = readDeleteThroughComposingText(mPrefs);
-                break;
-            case PREF_KEEP_EMPTY_COMPOSING_POSITION:
-                mKeepEmptyComposingPosition = readKeepEmptyComposingPosition(mPrefs);
-                break;
-
-            case PREF_SKIP_TAKESNAPSHOT:
-                mSkipTakeSnapshot = readSkipTakeSnapshot(mPrefs);
-                break;
-            case PREF_SKIP_GETSURROUNDINGTEXT:
-                mSkipGetSurroundingText = readSkipGetSurroundingText(mPrefs);
-                break;
-            case PREF_SKIP_PERFORMSPELLCHECK:
-                mSkipPerformSpellCheck = readSkipPerformSpellCheck(mPrefs);
-                break;
-            case PREF_SKIP_SETIMECONSUMESINPUT:
-                mSkipSetImeConsumesInput = readSkipSetImeConsumesInput(mPrefs);
-                break;
-            case PREF_SKIP_COMMITCONTENT:
-                mSkipCommitContent = readSkipCommitContent(mPrefs);
-                break;
-            case PREF_SKIP_CLOSECONNECTION:
-                mSkipCloseConnection = readSkipCloseConnection(mPrefs);
-                break;
-            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS:
-                mSkipDeleteSurroundingTextInCodePoints =
-                        readSkipDeleteSurroundingTextInCodePoints(mPrefs);
-                break;
-            case PREF_SKIP_REQUESTCURSORUPDATES:
-                mSkipRequestCursorUpdates = readSkipRequestCursorUpdates(mPrefs);
-                break;
-            case PREF_SKIP_COMMITCORRECTION:
-                mSkipCommitCorrection = readSkipCommitCorrection(mPrefs);
-                break;
-            case PREF_SKIP_GETSELECTEDTEXT:
-                mSkipGetSelectedText = readSkipGetSelectedText(mPrefs);
-                break;
-            case PREF_SKIP_SETCOMPOSINGREGION:
-                mSkipSetComposingRegion = readSkipSetComposingRegion(mPrefs);
-                break;
-
-            case PREF_UPDATE_DELAY:
-                mUpdateDelay = readUpdateDelay(mPrefs);
-                break;
-            case PREF_FINISHCOMPOSINGTEXT_DELAY:
-                mFinishComposingTextDelay = readFinishComposingTextDelay(mPrefs);
-                break;
-            case PREF_GETSURROUNDINGTEXT_DELAY:
-                mGetSurroundingTextDelay = readGetSurroundingTextDelay(mPrefs);
-                break;
-            case PREF_GETTEXTBEFORECURSOR_DELAY:
-                mGetTextBeforeCursorDelay = readGetTextBeforeCursorDelay(mPrefs);
-                break;
-            case PREF_GETSELECTEDTEXT_DELAY:
-                mGetSelectedTextDelay = readGetSelectedTextDelay(mPrefs);
-                break;
-            case PREF_GETTEXTAFTERCURSOR_DELAY:
-                mGetTextAfterCursorDelay = readGetTextAfterCursorDelay(mPrefs);
-                break;
-            case PREF_GETCURSORCAPSMODE_DELAY:
-                mGetCursorCapsModeDelay = readGetCursorCapsModeDelay(mPrefs);
-                break;
-            case PREF_GETEXTRACTEDTEXT_DELAY:
-                mGetExtractedTextDelay = readGetExtractedTextDelay(mPrefs);
-                break;
 
             default:
                 // try loading as a specific field's setting
@@ -478,17 +384,22 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (prefKey == null) {
             return;
         }
-        int prefixEnd = prefKey.lastIndexOf("_");
-        if (prefixEnd < 0 || prefKey.length() - prefixEnd - 1 <= 0) {
-            return;
+        if (prefKey.endsWith(BASE_SUFFIX)) {
+            loadTestFieldOrDefaultSetting(
+                    prefKey.substring(0, prefKey.length() - BASE_SUFFIX.length()),
+                    BASE_FIELD_ID);
+        } else if (prefKey.contains(FIELD_INFIX)) {
+            int prefixLength = prefKey.lastIndexOf(FIELD_INFIX);
+            int id;
+            try {
+                id = Integer.parseInt(prefKey.substring(prefixLength + FIELD_INFIX.length()));
+            } catch (NumberFormatException ignored) {
+                return;
+            }
+            String prefKeyPrefix = prefKey.substring(0, prefixLength);
+            loadTestFieldSetting(prefKeyPrefix, id);
+            loadTestFieldOrDefaultSetting(prefKeyPrefix, id);
         }
-        int id;
-        try {
-            id = Integer.parseInt(prefKey.substring(prefixEnd + 1));
-        } catch (NumberFormatException ignored) {
-            return;
-        }
-        loadTestFieldSetting(prefKey.substring(0, prefixEnd + 1), id);
     }
 
     private void loadTestFieldSetting(String prefKeyPrefix, int fieldId) {
@@ -498,24 +409,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
         TestField testField = mTestFields.get(index);
         switch (prefKeyPrefix) {
-            case PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
-            case PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
-            case PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX:
-            case PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX:
-            case PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX:
-            case PREF_TEST_FIELD_SEND_TEXT_PREFIX:
-            case PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX:
-            case PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
-            case PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX:
+            case PREF_INPUT_TYPE_CLASS_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
+            case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
+            case PREF_CREATE_INPUT_CONNECTION_PREFIX:
+            case PREF_SEND_SELECTION_INFO_PREFIX:
+            case PREF_SEND_TEXT_PREFIX:
+            case PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+            case PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
+            case PREF_ALLOW_SETTING_SELECTION_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
                 testField.mNullInputTypeMultiline =
                         readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
@@ -535,46 +446,219 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         readTestFieldAllowSettingSelection(mPrefs, fieldId, testField.mInputType,
                                 testField.mCreateInputConnection);
                 break;
-            case PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
-            case PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
+            case PREF_IME_OPTIONS_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
                 testField.mImeOptions = readTestFieldImeOptions(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_ACTION_ID_PREFIX:
+            case PREF_IME_ACTION_ID_PREFIX:
                 testField.mImeActionId = readTestFieldImeActionId(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX:
+            case PREF_IME_ACTION_LABEL_PREFIX:
                 testField.mImeActionLabel = readTestFieldImeActionLabel(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX:
+            case PREF_PRIVATE_IME_OPTIONS_PREFIX:
                 testField.mPrivateImeOptions = readTestFieldPrivateImeOptions(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX:
+            case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
                 testField.mSelectAllOnFocus = readTestFieldSelectAllOnFocus(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_MAX_LENGTH_PREFIX:
+            case PREF_MAX_LENGTH_PREFIX:
                 testField.mMaxLength = readTestFieldMaxLength(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_ALLOW_UNDO_PREFIX:
+            case PREF_ALLOW_UNDO_PREFIX:
                 testField.mAllowUndo = readTestFieldAllowUndo(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_TEXT_LOCALES_PREFIX:
+            case PREF_TEXT_LOCALES_PREFIX:
                 testField.mTextLocales = readTestFieldTextLocales(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX:
+            case PREF_IME_HINT_LOCALES_PREFIX:
                 testField.mImeHintLocales = readTestFieldImeHintLocales(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX:
+            case PREF_IME_DEFAULT_TEXT_PREFIX:
                 testField.mDefaultText = readTestFieldDefaultText(mPrefs, fieldId);
                 break;
-            case PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX:
+            case PREF_IME_HINT_TEXT_PREFIX:
                 testField.mHintText = readTestFieldHintText(mPrefs, fieldId);
+                break;
+
+            case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
+                testField.mOverrideTextInputModification =
+                        readOverrideTextInputModification(mPrefs, fieldId);
+                break;
+            case PREF_OVERRIDE_TEXT_RETURN_PREFIX:
+                testField.mOverrideTextReturn = readOverrideTextReturn(mPrefs, fieldId);
+                break;
+            case PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX:
+                testField.mOverrideTextComposition = readOverrideTextComposition(mPrefs, fieldId);
+                break;
+            case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
+                testField.mOverrideTargetVersion = readOverrideTargetVersion(mPrefs, fieldId);
+                break;
+            case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
+                testField.mOverrideSystemBehavior = readOverrideSystemBehavior(mPrefs, fieldId);
+                break;
+        }
+    }
+
+    private void loadTestFieldOrDefaultSetting(String prefKeyPrefix, int fieldId) {
+        AppLevelDefaults testFieldOrDefault;
+        if (fieldId == BASE_FIELD_ID) {
+            testFieldOrDefault = mTestFieldDefaults;
+        } else {
+            int index = indexOf(mTestFields, fieldId);
+            if (index < 0) {
+                return;
+            }
+            testFieldOrDefault = mTestFields.get(index);
+        }
+        switch (prefKeyPrefix) {
+            case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
+                testFieldOrDefault.mModifyCommittedText = readModifyCommittedText(mPrefs, fieldId);
+                break;
+            case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
+                testFieldOrDefault.mModifyComposedText = readModifyComposedText(mPrefs, fieldId);
+                break;
+            case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
+                testFieldOrDefault.mModifyComposedChangesOnly =
+                        readModifyComposedChangesOnly(mPrefs, fieldId);
+                break;
+            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
+                testFieldOrDefault.mConsiderComposedChangesFromEnd =
+                        readConsiderComposedChangesFromEnd(mPrefs, fieldId);
+                break;
+            case PREF_RESTRICT_TO_INCLUDE_PREFIX:
+                testFieldOrDefault.mRestrictToInclude = readRestrictToInclude(mPrefs, fieldId);
+                break;
+            case PREF_RESTRICT_SPECIFIC_PREFIX:
+                testFieldOrDefault.mRestrictSpecific = readRestrictSpecific(mPrefs, fieldId);
+                break;
+            case PREF_RESTRICT_RANGE_PREFIX:
+                testFieldOrDefault.mRestrictRange = readRestrictRange(mPrefs, fieldId);
+                break;
+            case PREF_TRANSLATE_SPECIFIC_PREFIX:
+                testFieldOrDefault.mTranslateSpecific = readTranslateSpecific(mPrefs, fieldId);
+                break;
+            case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
+                testFieldOrDefault.mTranslateFullMatchOnly =
+                        readTranslateFullMatchOnly(mPrefs, fieldId);
+                break;
+            case PREF_SHIFT_CODEPOINT_PREFIX:
+                testFieldOrDefault.mShiftCodepoint = readShiftCodepoint(mPrefs, fieldId);
+                break;
+
+            case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
+                testFieldOrDefault.mSkipExtractingText = readSkipExtractingText(mPrefs, fieldId);
+                break;
+            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
+                testFieldOrDefault.mIgnoreExtractedTextMonitor =
+                        readIgnoreExtractedTextMonitor(mPrefs, fieldId);
+                break;
+            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
+                testFieldOrDefault.mUpdateSelectionBeforeExtractedText =
+                        readUpdateSelectionBeforeExtractedText(mPrefs, fieldId);
+                break;
+            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
+                testFieldOrDefault.mUpdateExtractedTextOnlyOnNetChanges =
+                        readUpdateExtractedTextOnlyOnNetChanges(mPrefs, fieldId);
+                break;
+            case PREF_EXTRACT_FULL_TEXT_PREFIX:
+                testFieldOrDefault.mExtractFullText = readExtractFullText(mPrefs, fieldId);
+                break;
+            case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
+                testFieldOrDefault.mExtractMonitorTextLimit =
+                        readExtractMonitorTextLimit(mPrefs, fieldId);
+                break;
+            case PREF_LIMIT_RETURNED_TEXT_PREFIX:
+                testFieldOrDefault.mReturnedTextLimit = readReturnedTextLimit(mPrefs, fieldId);
+                break;
+
+            case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
+                testFieldOrDefault.mDeleteThroughComposingText =
+                        readDeleteThroughComposingText(mPrefs, fieldId);
+                break;
+            case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
+                testFieldOrDefault.mKeepEmptyComposingPosition =
+                        readKeepEmptyComposingPosition(mPrefs, fieldId);
+                break;
+
+            case PREF_SKIP_TAKESNAPSHOT_PREFIX:
+                testFieldOrDefault.mSkipTakeSnapshot = readSkipTakeSnapshot(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
+                testFieldOrDefault.mSkipGetSurroundingText =
+                        readSkipGetSurroundingText(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
+                testFieldOrDefault.mSkipPerformSpellCheck =
+                        readSkipPerformSpellCheck(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
+                testFieldOrDefault.mSkipSetImeConsumesInput =
+                        readSkipSetImeConsumesInput(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_COMMITCONTENT_PREFIX:
+                testFieldOrDefault.mSkipCommitContent = readSkipCommitContent(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_CLOSECONNECTION_PREFIX:
+                testFieldOrDefault.mSkipCloseConnection = readSkipCloseConnection(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
+                testFieldOrDefault.mSkipDeleteSurroundingTextInCodePoints =
+                        readSkipDeleteSurroundingTextInCodePoints(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
+                testFieldOrDefault.mSkipRequestCursorUpdates =
+                        readSkipRequestCursorUpdates(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_COMMITCORRECTION_PREFIX:
+                testFieldOrDefault.mSkipCommitCorrection =
+                        readSkipCommitCorrection(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
+                testFieldOrDefault.mSkipGetSelectedText = readSkipGetSelectedText(mPrefs, fieldId);
+                break;
+            case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
+                testFieldOrDefault.mSkipSetComposingRegion =
+                        readSkipSetComposingRegion(mPrefs, fieldId);
+                break;
+
+            case PREF_UPDATE_DELAY_PREFIX:
+                testFieldOrDefault.mUpdateDelay = readUpdateDelay(mPrefs, fieldId);
+                break;
+            case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
+                testFieldOrDefault.mFinishComposingTextDelay =
+                        readFinishComposingTextDelay(mPrefs, fieldId);
+                break;
+            case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
+                testFieldOrDefault.mGetSurroundingTextDelay =
+                        readGetSurroundingTextDelay(mPrefs, fieldId);
+                break;
+            case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
+                testFieldOrDefault.mGetTextBeforeCursorDelay =
+                        readGetTextBeforeCursorDelay(mPrefs, fieldId);
+                break;
+            case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
+                testFieldOrDefault.mGetSelectedTextDelay =
+                        readGetSelectedTextDelay(mPrefs, fieldId);
+                break;
+            case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
+                testFieldOrDefault.mGetTextAfterCursorDelay =
+                        readGetTextAfterCursorDelay(mPrefs, fieldId);
+                break;
+            case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
+                testFieldOrDefault.mGetCursorCapsModeDelay =
+                        readGetCursorCapsModeDelay(mPrefs, fieldId);
+                break;
+            case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+                testFieldOrDefault.mGetExtractedTextDelay =
+                        readGetExtractedTextDelay(mPrefs, fieldId);
                 break;
         }
     }
@@ -590,49 +674,100 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return -1;
     }
 
-    private static boolean readModifyCommittedText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT, false);
+    private static String getSuffix(int fieldId) {
+        return fieldId == BASE_FIELD_ID ? BASE_SUFFIX : (FIELD_INFIX + fieldId);
     }
 
-    public static boolean shouldModifyCommittedText() {
-        return getInstance().mModifyCommittedText;
+    private static AppLevelDefaults getTestFieldOrBase(int fieldIndex,
+                                                       Predicate<TestField> override) {
+        List<TestField> testFields = getInstance().mTestFields;
+        TestField testField;
+        if (fieldIndex < 0 || fieldIndex >= testFields.size()) {
+            testField = null;
+        } else {
+            testField = testFields.get(fieldIndex);
+        }
+        if (testField == null || !override.test(testField)) {
+            return getInstance().mTestFieldDefaults;
+        }
+        return testField;
     }
 
-    private static boolean readModifyComposedText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT, false);
+    private static boolean readOverrideTextInputModification(final SharedPreferenceManager prefs,
+                                                             int fieldId) {
+        return prefs.getBoolean(PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX + getSuffix(fieldId),
+                false);
     }
 
-    public static boolean shouldModifyComposedText() {
-        return getInstance().mModifyComposedText;
+    public static final boolean DEFAULT_MODIFY_COMMITTED_TEXT = false;
+
+    private static boolean readModifyCommittedText(final SharedPreferenceManager prefs,
+                                                   int fieldId) {
+        return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_MODIFY_COMMITTED_TEXT);
     }
 
-    private static boolean readModifyComposedChangesOnly(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY, false);
+    public static boolean shouldModifyCommittedText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mModifyCommittedText;
     }
 
-    public static boolean shouldModifyComposedChangesOnly() {
-        return getInstance().mModifyComposedChangesOnly;
+    public static final boolean DEFAULT_MODIFY_COMPOSED_TEXT = false;
+
+    private static boolean readModifyComposedText(final SharedPreferenceManager prefs,
+                                                  int fieldId) {
+        return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_MODIFY_COMPOSED_TEXT);
     }
 
-    private static boolean readConsiderComposedChangesFromEnd(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END, false);
+    public static boolean shouldModifyComposedText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mModifyComposedText;
     }
 
-    public static boolean shouldConsiderComposedChangesFromEnd() {
-        return getInstance().mConsiderComposedChangesFromEnd;
+    public static final boolean DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY = false;
+
+    private static boolean readModifyComposedChangesOnly(final SharedPreferenceManager prefs,
+                                                         int fieldId) {
+        return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX + getSuffix(fieldId),
+                DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY);
     }
 
-    private static boolean readRestrictToInclude(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE, false);
+    public static boolean shouldModifyComposedChangesOnly(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mModifyComposedChangesOnly;
     }
 
-    public static boolean shouldRestrictToInclude() {
-        return getInstance().mRestrictToInclude;
+    public static final boolean DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END = false;
+
+    private static boolean readConsiderComposedChangesFromEnd(final SharedPreferenceManager prefs,
+                                                              int fieldId) {
+        return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX + getSuffix(fieldId),
+                DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END);
     }
 
-    private static String[] readRestrictSpecific(final SharedPreferenceManager prefs) {
-        TextList<String> textList =
-                (new TextListPreference.Reader(prefs, PREF_RESTRICT_SPECIFIC)).readValue();
+    public static boolean shouldConsiderComposedChangesFromEnd(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mConsiderComposedChangesFromEnd;
+    }
+
+    public static final boolean DEFAULT_RESTRICT_TO_INCLUDE = false;
+
+    private static boolean readRestrictToInclude(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE_PREFIX + getSuffix(fieldId),
+                DEFAULT_RESTRICT_TO_INCLUDE);
+    }
+
+    public static boolean shouldRestrictToInclude(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mRestrictToInclude;
+    }
+
+    public static final String[] DEFAULT_RESTRICT_SPECIFIC = new String[0];
+
+    private static String[] readRestrictSpecific(final SharedPreferenceManager prefs, int fieldId) {
+        TextList<String> textList = (new TextListPreference.Reader(prefs,
+                PREF_RESTRICT_SPECIFIC_PREFIX + getSuffix(fieldId))).readValue();
         String[] result = new String[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
             if (textList.escapeChars()) {
@@ -644,8 +779,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return result;
     }
 
-    public static String[] getRestrictSpecific() {
-        return getInstance().mRestrictSpecific;
+    public static String[] getRestrictSpecific(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mRestrictSpecific;
     }
 
     private static String escapeChars(String text) {
@@ -727,18 +863,27 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return sb.toString();
     }
 
+    public static final IntRange DEFAULT_RESTRICT_RANGE = null;
+
     @Nullable
-    private static IntRange readRestrictRange(final SharedPreferenceManager prefs) {
-        return (new CodepointRangeDialogPreference.Reader(prefs, PREF_RESTRICT_RANGE)).readValue();
+    private static IntRange readRestrictRange(final SharedPreferenceManager prefs, int fieldId) {
+        return (new CodepointRangeDialogPreference.Reader(prefs,
+                PREF_RESTRICT_RANGE_PREFIX + getSuffix(fieldId)))
+                .readValue();
     }
 
-    public static @Nullable IntRange getRestrictRange() {
-        return getInstance().mRestrictRange;
+    public static @Nullable IntRange getRestrictRange(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mRestrictRange;
     }
 
-    private static TranslateText[] readTranslateSpecific(final SharedPreferenceManager prefs) {
+    public static final TranslateText[] DEFAULT_TRANSLATE_SPECIFIC = new TranslateText[0];
+
+    private static TranslateText[] readTranslateSpecific(final SharedPreferenceManager prefs,
+                                                         int fieldId) {
         TextList<TranslateText> textList =
-                (new TextTranslateListPreference.Reader(prefs, PREF_TRANSLATE_SPECIFIC))
+                (new TextTranslateListPreference.Reader(prefs,
+                        PREF_TRANSLATE_SPECIFIC_PREFIX + getSuffix(fieldId)))
                         .readValue();
         TranslateText[] result = new TranslateText[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
@@ -752,251 +897,415 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return result;
     }
 
-    public static TranslateText[] getTranslateSpecific() {
-        return getInstance().mTranslateSpecific;
+    public static TranslateText[] getTranslateSpecific(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mTranslateSpecific;
     }
 
-    private static boolean readTranslateFullMatchOnly(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_TRANSLATE_FULL_MATCH_ONLY, false);
+    public static final boolean DEFAULT_TRANSLATE_FULL_MATCH_ONLY = false;
+
+    private static boolean readTranslateFullMatchOnly(final SharedPreferenceManager prefs,
+                                                      int fieldId) {
+        return prefs.getBoolean(PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX + getSuffix(fieldId),
+                DEFAULT_TRANSLATE_FULL_MATCH_ONLY);
     }
 
-    public static boolean shouldTranslateFullMatchOnly() {
-        return getInstance().mTranslateFullMatchOnly;
+    public static boolean shouldTranslateFullMatchOnly(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mTranslateFullMatchOnly;
     }
 
-    private static int readShiftCodepoint(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_SHIFT_CODEPOINT, 0);
+    public static final int DEFAULT_CODEPOINT_SHIFT = 0;
+
+    private static int readShiftCodepoint(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getInt(PREF_SHIFT_CODEPOINT_PREFIX + getSuffix(fieldId),
+                DEFAULT_CODEPOINT_SHIFT);
     }
 
-    public static int getShiftCodepoint() {
-        return getInstance().mShiftCodepoint;
+    public static int getShiftCodepoint(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+                .mShiftCodepoint;
     }
 
-    private static boolean readSkipExtractingText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT, false);
+    private static boolean readOverrideTextReturn(final SharedPreferenceManager prefs,
+                                                  int fieldId) {
+        return prefs.getBoolean(PREF_OVERRIDE_TEXT_RETURN_PREFIX + getSuffix(fieldId), false);
     }
 
-    public static boolean shouldSkipExtractingText() {
-        return getInstance().mSkipExtractingText;
+    public static final boolean DEFAULT_SKIP_EXTRACTING_TEXT = false;
+
+    private static boolean readSkipExtractingText(final SharedPreferenceManager prefs,
+                                                  int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_EXTRACTING_TEXT);
     }
 
-    private static boolean readIgnoreExtractedTextMonitor(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR, false);
+    public static boolean shouldSkipExtractingText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mSkipExtractingText;
     }
 
-    public static boolean shouldIgnoreExtractedTextMonitor() {
-        return getInstance().mIgnoreExtractedTextMonitor;
+    public static final boolean DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR = false;
+
+    private static boolean readIgnoreExtractedTextMonitor(final SharedPreferenceManager prefs,
+                                                          int fieldId) {
+        return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX + getSuffix(fieldId),
+                DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR);
     }
+
+    public static boolean shouldIgnoreExtractedTextMonitor(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mIgnoreExtractedTextMonitor;
+    }
+
+    public static final boolean DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT = false;
 
     private static boolean readUpdateSelectionBeforeExtractedText(
-            final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT, false);
+            final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT);
     }
 
-    public static boolean shouldUpdateSelectionBeforeExtractedText() {
-        return getInstance().mUpdateSelectionBeforeExtractedText;
+    public static boolean shouldUpdateSelectionBeforeExtractedText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mUpdateSelectionBeforeExtractedText;
     }
+
+    public static final boolean DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES = false;
 
     private static boolean readUpdateExtractedTextOnlyOnNetChanges(
-            final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES, false);
+            final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX + getSuffix(fieldId),
+                DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES);
     }
 
-    public static boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
-        return getInstance().mUpdateExtractedTextOnlyOnNetChanges;
+    public static boolean shouldUpdateExtractedTextOnlyOnNetChanges(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mUpdateExtractedTextOnlyOnNetChanges;
     }
 
-    private static boolean readExtractFullText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT, false);
+    public static final boolean DEFAULT_EXTRACT_FULL_TEXT = false;
+
+    private static boolean readExtractFullText(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_EXTRACT_FULL_TEXT);
     }
 
-    public static boolean shouldExtractFullText() {
-        return getInstance().mExtractFullText;
+    public static boolean shouldExtractFullText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mExtractFullText;
     }
 
-    private static int readExtractMonitorTextLimit(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT, -1);
+    public static final int DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT = -1;
+
+    private static int readExtractMonitorTextLimit(final SharedPreferenceManager prefs,
+                                                   int fieldId) {
+        return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT);
     }
 
-    public static int getExtractMonitorTextLimit() {
-        return getInstance().mExtractMonitorTextLimit;
+    public static int getExtractMonitorTextLimit(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mExtractMonitorTextLimit;
     }
 
-    private static int readReturnedTextLimit(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT, -1);
+    public static final int DEFAULT_RETURNED_TEXT_LIMIT = -1;
+
+    private static int readReturnedTextLimit(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_RETURNED_TEXT_LIMIT);
     }
 
-    public static int getReturnedTextLimit() {
-        return getInstance().mReturnedTextLimit;
+    public static int getReturnedTextLimit(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+                .mReturnedTextLimit;
     }
 
-    private static boolean readDeleteThroughComposingText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT, false);
+    private static boolean readOverrideTextComposition(final SharedPreferenceManager prefs,
+                                                       int fieldId) {
+        return prefs.getBoolean(PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX + getSuffix(fieldId), false);
     }
 
-    public static boolean shouldDeleteThroughComposingText() {
-        return getInstance().mDeleteThroughComposingText;
+    public static final boolean DEFAULT_DELETE_THROUGH_COMPOSING_TEXT = false;
+
+    private static boolean readDeleteThroughComposingText(final SharedPreferenceManager prefs,
+                                                          int fieldId) {
+        return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_DELETE_THROUGH_COMPOSING_TEXT);
     }
 
-    private static boolean readKeepEmptyComposingPosition(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION, false);
+    public static boolean shouldDeleteThroughComposingText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextComposition)
+                .mDeleteThroughComposingText;
     }
 
-    public static boolean shouldKeepEmptyComposingPosition() {
-        return getInstance().mKeepEmptyComposingPosition;
+    public static final boolean DEFAULT_KEEP_EMPTY_COMPOSING_POSITION = false;
+
+    private static boolean readKeepEmptyComposingPosition(final SharedPreferenceManager prefs,
+                                                          int fieldId) {
+        return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX + getSuffix(fieldId),
+                DEFAULT_KEEP_EMPTY_COMPOSING_POSITION);
     }
 
-    private static boolean readSkipTakeSnapshot(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_TAKESNAPSHOT, false);
+    public static boolean shouldKeepEmptyComposingPosition(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextComposition)
+                .mKeepEmptyComposingPosition;
     }
 
-    public static boolean shouldSkipTakeSnapshot() {
-        return getInstance().mSkipTakeSnapshot;
+    private static boolean readOverrideTargetVersion(final SharedPreferenceManager prefs,
+                                                     int fieldId) {
+        return prefs.getBoolean(PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX + getSuffix(fieldId),
+                false);
     }
 
-    private static boolean readSkipGetSurroundingText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT, false);
+    public static final boolean DEFAULT_SKIP_TAKESNAPSHOT = false;
+
+    private static boolean readSkipTakeSnapshot(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_TAKESNAPSHOT_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_TAKESNAPSHOT);
     }
 
-    public static boolean shouldSkipGetSurroundingText() {
-        return getInstance().mSkipGetSurroundingText;
+    public static boolean shouldSkipTakeSnapshot(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipTakeSnapshot;
     }
 
-    private static boolean readSkipPerformSpellCheck(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK, false);
+    public static final boolean DEFAULT_SKIP_GETSURROUNDINGTEXT = false;
+
+    private static boolean readSkipGetSurroundingText(final SharedPreferenceManager prefs,
+                                                      int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_GETSURROUNDINGTEXT);
     }
 
-    public static boolean shouldSkipPerformSpellCheck() {
-        return getInstance().mSkipPerformSpellCheck;
+    public static boolean shouldSkipGetSurroundingText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipGetSurroundingText;
     }
 
-    private static boolean readSkipSetImeConsumesInput(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT, false);
+    public static final boolean DEFAULT_SKIP_PERFORMSPELLCHECK = false;
+
+    private static boolean readSkipPerformSpellCheck(final SharedPreferenceManager prefs,
+                                                     int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_PERFORMSPELLCHECK);
     }
 
-    public static boolean shouldSkipSetImeConsumesInput() {
-        return getInstance().mSkipSetImeConsumesInput;
+    public static boolean shouldSkipPerformSpellCheck(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipPerformSpellCheck;
     }
 
-    private static boolean readSkipCommitContent(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_COMMITCONTENT, false);
+    public static final boolean DEFAULT_SKIP_SETIMECONSUMESINPUT = false;
+
+    private static boolean readSkipSetImeConsumesInput(final SharedPreferenceManager prefs,
+                                                       int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_SETIMECONSUMESINPUT);
     }
 
-    public static boolean shouldSkipCommitContent() {
-        return getInstance().mSkipCommitContent;
+    public static boolean shouldSkipSetImeConsumesInput(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipSetImeConsumesInput;
     }
 
-    private static boolean readSkipCloseConnection(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION, false);
+    public static final boolean DEFAULT_SKIP_COMMITCONTENT = false;
+
+    private static boolean readSkipCommitContent(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_COMMITCONTENT_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_COMMITCONTENT);
     }
 
-    public static boolean shouldSkipCloseConnection() {
-        return getInstance().mSkipCloseConnection;
+    public static boolean shouldSkipCommitContent(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipCommitContent;
     }
+
+    public static final boolean DEFAULT_SKIP_CLOSECONNECTION = false;
+
+    private static boolean readSkipCloseConnection(final SharedPreferenceManager prefs,
+                                                   int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_CLOSECONNECTION);
+    }
+
+    public static boolean shouldSkipCloseConnection(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipCloseConnection;
+    }
+
+    public static final boolean DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS = false;
 
     private static boolean readSkipDeleteSurroundingTextInCodePoints(
-            final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS, false);
+            final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX + getSuffix(fieldId), DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
     }
 
-    public static boolean shouldSkipDeleteSurroundingTextInCodePoints() {
-        return getInstance().mSkipDeleteSurroundingTextInCodePoints;
+    public static boolean shouldSkipDeleteSurroundingTextInCodePoints(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipDeleteSurroundingTextInCodePoints;
     }
 
-    private static boolean readSkipRequestCursorUpdates(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES, false);
+    public static final boolean DEFAULT_SKIP_REQUESTCURSORUPDATES = false;
+
+    private static boolean readSkipRequestCursorUpdates(final SharedPreferenceManager prefs,
+                                                        int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_REQUESTCURSORUPDATES);
     }
 
-    public static boolean shouldSkipRequestCursorUpdates() {
-        return getInstance().mSkipRequestCursorUpdates;
+    public static boolean shouldSkipRequestCursorUpdates(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipRequestCursorUpdates;
     }
 
-    private static boolean readSkipCommitCorrection(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION, false);
+    public static final boolean DEFAULT_SKIP_COMMITCORRECTION = false;
+
+    private static boolean readSkipCommitCorrection(final SharedPreferenceManager prefs,
+                                                    int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_COMMITCORRECTION);
     }
 
-    public static boolean shouldSkipCommitCorrection() {
-        return getInstance().mSkipCommitCorrection;
+    public static boolean shouldSkipCommitCorrection(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipCommitCorrection;
     }
 
-    private static boolean readSkipGetSelectedText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT, false);
+    public static final boolean DEFAULT_SKIP_GETSELECTEDTEXT = false;
+
+    private static boolean readSkipGetSelectedText(final SharedPreferenceManager prefs,
+                                                   int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_GETSELECTEDTEXT);
     }
 
-    public static boolean shouldSkipGetSelectedText() {
-        return getInstance().mSkipGetSelectedText;
+    public static boolean shouldSkipGetSelectedText(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipGetSelectedText;
     }
 
-    private static boolean readSkipSetComposingRegion(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION, false);
+    public static final boolean DEFAULT_SKIP_SETCOMPOSINGREGION = false;
+
+    private static boolean readSkipSetComposingRegion(final SharedPreferenceManager prefs,
+                                                      int fieldId) {
+        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION_PREFIX + getSuffix(fieldId),
+                DEFAULT_SKIP_SETCOMPOSINGREGION);
     }
 
-    public static boolean shouldSkipSetComposingRegion() {
-        return getInstance().mSkipSetComposingRegion;
+    public static boolean shouldSkipSetComposingRegion(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+                .mSkipSetComposingRegion;
     }
 
-    private static int readUpdateDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_UPDATE_DELAY, 0);
+    private static boolean readOverrideSystemBehavior(final SharedPreferenceManager prefs,
+                                                      int fieldId) {
+        return prefs.getBoolean(
+                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX + getSuffix(fieldId),
+                false);
     }
 
-    public static int getUpdateDelay() {
-        return getInstance().mUpdateDelay;
+    public static final int DEFAULT_UPDATE_DELAY = 0;
+
+    private static int readUpdateDelay(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getInt(PREF_UPDATE_DELAY_PREFIX + getSuffix(fieldId), DEFAULT_UPDATE_DELAY);
     }
 
-    private static int readFinishComposingTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY, 0);
+    public static int getUpdateDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mUpdateDelay;
     }
 
-    public static int getFinishComposingTextDelay() {
-        return getInstance().mFinishComposingTextDelay;
+    public static final int DEFAULT_FINISHCOMPOSINGTEXT_DELAY = 0;
+
+    private static int readFinishComposingTextDelay(final SharedPreferenceManager prefs,
+                                                    int fieldId) {
+        return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_FINISHCOMPOSINGTEXT_DELAY);
     }
 
-    private static int readGetSurroundingTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY, 0);
+    public static int getFinishComposingTextDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mFinishComposingTextDelay;
     }
 
-    public static int getGetSurroundingTextDelay() {
-        return getInstance().mGetSurroundingTextDelay;
+    public static final int DEFAULT_GETSURROUNDINGTEXT_DELAY = 0;
+
+    private static int readGetSurroundingTextDelay(final SharedPreferenceManager prefs,
+                                                   int fieldId) {
+        return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_GETSURROUNDINGTEXT_DELAY);
     }
 
-    private static int readGetTextBeforeCursorDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY, 0);
+    public static int getGetSurroundingTextDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mGetSurroundingTextDelay;
     }
 
-    public static int getGetTextBeforeCursorDelay() {
-        return getInstance().mGetTextBeforeCursorDelay;
+    public static final int DEFAULT_GETTEXTBEFORECURSOR_DELAY = 0;
+
+    private static int readGetTextBeforeCursorDelay(final SharedPreferenceManager prefs,
+                                                    int fieldId) {
+        return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_GETTEXTBEFORECURSOR_DELAY);
     }
 
-    private static int readGetSelectedTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY, 0);
+    public static int getGetTextBeforeCursorDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mGetTextBeforeCursorDelay;
     }
 
-    public static int getGetSelectedTextDelay() {
-        return getInstance().mGetSelectedTextDelay;
+    public static final int DEFAULT_GETSELECTEDTEXT_DELAY = 0;
+
+    private static int readGetSelectedTextDelay(final SharedPreferenceManager prefs,
+                                                int fieldId) {
+        return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_GETSELECTEDTEXT_DELAY);
     }
 
-    private static int readGetTextAfterCursorDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY, 0);
+    public static int getGetSelectedTextDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mGetSelectedTextDelay;
     }
 
-    public static int getGetTextAfterCursorDelay() {
-        return getInstance().mGetTextAfterCursorDelay;
+    public static final int DEFAULT_GETTEXTAFTERCURSOR_DELAY = 0;
+
+    private static int readGetTextAfterCursorDelay(final SharedPreferenceManager prefs,
+                                                   int fieldId) {
+        return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_GETTEXTAFTERCURSOR_DELAY);
     }
 
-    private static int readGetCursorCapsModeDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY, 0);
+    public static int getGetTextAfterCursorDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mGetTextAfterCursorDelay;
     }
 
-    public static int getGetCursorCapsModeDelay() {
-        return getInstance().mGetCursorCapsModeDelay;
+    public static final int DEFAULT_GETCURSORCAPSMODE_DELAY = 0;
+
+    private static int readGetCursorCapsModeDelay(final SharedPreferenceManager prefs,
+                                                  int fieldId) {
+        return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_GETCURSORCAPSMODE_DELAY);
     }
 
-    private static int readGetExtractedTextDelay(final SharedPreferenceManager prefs) {
-        return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY, 0);
+    public static int getGetCursorCapsModeDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mGetCursorCapsModeDelay;
     }
 
-    public static int getGetExtractedTextDelay() {
-        return getInstance().mGetExtractedTextDelay;
+    public static final int DEFAULT_GETEXTRACTEDTEXT_DELAY = 0;
+    
+    private static int readGetExtractedTextDelay(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY_PREFIX + getSuffix(fieldId),
+                DEFAULT_GETEXTRACTEDTEXT_DELAY);
+    }
+
+    public static int getGetExtractedTextDelay(int fieldId) {
+        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+                .mGetExtractedTextDelay;
     }
 
     private static int[] readTestFieldIds(final SharedPreferenceManager prefs) {
@@ -1092,46 +1401,94 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static void removeTestFieldPrefs(Editor editor, int idToRemove) {
         final String[] testFieldPrefKeyPrefixes = new String[]{
-                PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
-                PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
-                PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX,
-                PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX,
-                PREF_TEST_FIELD_SEND_TEXT_PREFIX,
-                PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_ID_PREFIX,
-                PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX,
-                PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX,
-                PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX,
-                PREF_TEST_FIELD_MAX_LENGTH_PREFIX,
-                PREF_TEST_FIELD_ALLOW_UNDO_PREFIX,
-                PREF_TEST_FIELD_TEXT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX,
-                PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX,
-                PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX
+                PREF_INPUT_TYPE_CLASS_PREFIX,
+                PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
+                PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
+                PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
+                PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
+                PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
+                PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                PREF_CREATE_INPUT_CONNECTION_PREFIX,
+                PREF_SEND_SELECTION_INFO_PREFIX,
+                PREF_SEND_TEXT_PREFIX,
+                PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                PREF_ALLOW_SETTING_SELECTION_PREFIX,
+                PREF_IME_OPTIONS_ACTION_PREFIX,
+                PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
+                PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
+                PREF_IME_ACTION_ID_PREFIX,
+                PREF_IME_ACTION_LABEL_PREFIX,
+                PREF_PRIVATE_IME_OPTIONS_PREFIX,
+                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
+                PREF_MAX_LENGTH_PREFIX,
+                PREF_ALLOW_UNDO_PREFIX,
+                PREF_TEXT_LOCALES_PREFIX,
+                PREF_IME_HINT_LOCALES_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX,
+
+                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
+                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
+                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
+                PREF_RESTRICT_TO_INCLUDE_PREFIX,
+                PREF_RESTRICT_SPECIFIC_PREFIX,
+                PREF_RESTRICT_RANGE_PREFIX,
+                PREF_TRANSLATE_SPECIFIC_PREFIX,
+                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+                PREF_SHIFT_CODEPOINT_PREFIX,
+
+                PREF_OVERRIDE_TEXT_RETURN_PREFIX,
+                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+                PREF_EXTRACT_FULL_TEXT_PREFIX,
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
+                PREF_LIMIT_RETURNED_TEXT_PREFIX,
+
+                PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
+                PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
+                PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
+
+                PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
+                PREF_SKIP_TAKESNAPSHOT_PREFIX,
+                PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
+                PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
+                PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
+                PREF_SKIP_COMMITCONTENT_PREFIX,
+                PREF_SKIP_CLOSECONNECTION_PREFIX,
+                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
+                PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
+                PREF_SKIP_COMMITCORRECTION_PREFIX,
+                PREF_SKIP_GETSELECTEDTEXT_PREFIX,
+                PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
+
+                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
+                PREF_UPDATE_DELAY_PREFIX,
+                PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
+                PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
+                PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
+                PREF_GETSELECTEDTEXT_DELAY_PREFIX,
+                PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
+                PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
+                PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
-            editor.remove(prefKeyPrefix + idToRemove);
+            editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);
         }
     }
 
@@ -1154,7 +1511,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readTestFieldInputType(final SharedPreferenceManager prefs, int fieldId) {
-        String inputTypeClass = prefs.getString(PREF_TEST_FIELD_INPUT_TYPE_CLASS_PREFIX + fieldId,
+        String inputTypeClass = prefs.getString(
+                PREF_INPUT_TYPE_CLASS_PREFIX + FIELD_INFIX + fieldId,
                 "TYPE_CLASS_TEXT");
         String variation;
         int inputType;
@@ -1165,7 +1523,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "TYPE_CLASS_DATETIME":
                 inputType = InputType.TYPE_CLASS_DATETIME;
                 variation = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_DATETIME_VARIATION_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX + FIELD_INFIX + fieldId,
                         "TYPE_DATETIME_VARIATION_NORMAL");
                 switch (variation) {
                     case "TYPE_DATETIME_VARIATION_NORMAL":
@@ -1185,7 +1543,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "TYPE_CLASS_NUMBER":
                 inputType = InputType.TYPE_CLASS_NUMBER;
                 variation = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_NUMBER_VARIATION_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX + FIELD_INFIX + fieldId,
                         "TYPE_NUMBER_VARIATION_NORMAL");
                 switch (variation) {
                     case "TYPE_NUMBER_VARIATION_NORMAL":
@@ -1199,12 +1557,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_SIGNED;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_DECIMAL;
                 }
@@ -1215,7 +1573,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "TYPE_CLASS_TEXT":
                 inputType = InputType.TYPE_CLASS_TEXT;
                 variation = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_VARIATION_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX + FIELD_INFIX + fieldId,
                         "TYPE_TEXT_VARIATION_NORMAL");
                 switch (variation) {
                     case "TYPE_TEXT_VARIATION_NORMAL":
@@ -1268,7 +1626,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 String multiLineFlag = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX + FIELD_INFIX + fieldId,
                         "");
                 switch (multiLineFlag) {
                     case "TYPE_TEXT_FLAG_MULTI_LINE":
@@ -1279,7 +1637,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 String capFlag = prefs.getString(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX + FIELD_INFIX + fieldId,
                         "");
                 switch (capFlag) {
                     case "TYPE_TEXT_FLAG_CAP_CHARACTERS":
@@ -1293,17 +1651,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
                 }
                 if (prefs.getBoolean(
-                        PREF_TEST_FIELD_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX + fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX + FIELD_INFIX + fieldId,
                         false)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                 }
@@ -1324,7 +1682,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
                                                                int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_NULL_INPUT_TYPE_MULTILINE_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX + FIELD_INFIX + fieldId,
                 DEFAULT_NULL_INPUT_TYPE_MULTILINE);
     }
 
@@ -1343,7 +1701,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultCreateInputConnection(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_CREATE_INPUT_CONNECTION_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_CREATE_INPUT_CONNECTION_PREFIX + FIELD_INFIX + fieldId,
                 defaultCreateInputConnection(inputType));
     }
 
@@ -1363,7 +1721,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultCreateInputConnection(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_SEND_SELECTION_INFO_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_SEND_SELECTION_INFO_PREFIX + FIELD_INFIX + fieldId,
                 defaultCreateInputConnection(inputType));
     }
 
@@ -1382,7 +1740,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultSendText(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_SEND_TEXT_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_SEND_TEXT_PREFIX + FIELD_INFIX + fieldId,
                 defaultSendText(inputType));
     }
 
@@ -1415,7 +1773,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return defaultComposingTextBehavior(inputType);
         }
         String behavior =
-                prefs.getString(PREF_TEST_FIELD_COMPOSING_TEXT_BEHAVIOR_PREFIX + fieldId, "");
+                prefs.getString(PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX + FIELD_INFIX + fieldId, "");
         switch (behavior) {
             case "INVISIBLE":
                 return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
@@ -1451,7 +1809,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultAllowDeleteSurroundingText(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + FIELD_INFIX + fieldId,
                 defaultAllowDeleteSurroundingText(inputType));
     }
 
@@ -1476,7 +1834,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (inputType != EditorInfo.TYPE_NULL) {
             return defaultAllowSettingSelection(inputType);
         }
-        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_SETTING_SELECTION_PREFIX + fieldId,
+        return prefs.getBoolean(PREF_ALLOW_SETTING_SELECTION_PREFIX + FIELD_INFIX + fieldId,
                 defaultAllowSettingSelection(inputType));
     }
 
@@ -1486,7 +1844,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
         String imeOptionsAction = prefs.getString(
-                PREF_TEST_FIELD_IME_OPTIONS_ACTION_PREFIX + fieldId,
+                PREF_IME_OPTIONS_ACTION_PREFIX + FIELD_INFIX + fieldId,
                 "IME_ACTION_UNSPECIFIED");
         int imeOptions;
         switch (imeOptionsAction) {
@@ -1519,37 +1877,37 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 imeOptions = EditorInfo.IME_NULL;
                 break;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_FORCE_ASCII;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_NEXT;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
         }
         if (prefs.getBoolean(
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX + fieldId,
+                PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ACCESSORY_ACTION;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ENTER_ACTION;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_EXTRACT_UI;
         }
-        if (prefs.getBoolean(PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX + fieldId,
+        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX + FIELD_INFIX + fieldId,
                 false)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_FULLSCREEN;
         }
         if (prefs.getBoolean(
-                PREF_TEST_FIELD_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX + fieldId,
+                PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX + FIELD_INFIX + fieldId,
                 false)
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
@@ -1562,7 +1920,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readTestFieldImeActionId(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_TEST_FIELD_IME_ACTION_ID_PREFIX + fieldId, 0);
+        return prefs.getInt(PREF_IME_ACTION_ID_PREFIX + FIELD_INFIX + fieldId, 0);
     }
 
     public static int getTestFieldImeActionId(int fieldIndex) {
@@ -1571,7 +1929,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static String readTestFieldImeActionLabel(final SharedPreferenceManager prefs,
                                                       int fieldId) {
-        return prefs.getString(PREF_TEST_FIELD_IME_ACTION_LABEL_PREFIX + fieldId, null);
+        return prefs.getString(PREF_IME_ACTION_LABEL_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static String getTestFieldImeActionLabel(int fieldIndex) {
@@ -1580,7 +1938,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static String readTestFieldPrivateImeOptions(final SharedPreferenceManager prefs,
                                                          int fieldId) {
-        return prefs.getString(PREF_TEST_FIELD_PRIVATE_IME_OPTIONS_PREFIX + fieldId, null);
+        return prefs.getString(PREF_PRIVATE_IME_OPTIONS_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static String getTestFieldPrivateImeOptions(int fieldIndex) {
@@ -1589,7 +1947,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readTestFieldSelectAllOnFocus(final SharedPreferenceManager prefs,
                                                          int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_SELECT_ALL_ON_FOCUS_PREFIX + fieldId, false);
+        return prefs.getBoolean(PREF_SELECT_ALL_ON_FOCUS_PREFIX + FIELD_INFIX + fieldId, false);
     }
 
     public static boolean shouldTestFieldSelectAllOnFocus(int fieldIndex) {
@@ -1597,7 +1955,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int readTestFieldMaxLength(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_TEST_FIELD_MAX_LENGTH_PREFIX + fieldId, -1);
+        return prefs.getInt(PREF_MAX_LENGTH_PREFIX + FIELD_INFIX + fieldId, -1);
     }
 
     public static int getTestFieldMaxLength(int fieldIndex) {
@@ -1606,7 +1964,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static boolean readTestFieldAllowUndo(final SharedPreferenceManager prefs,
                                                   int fieldId) {
-        return prefs.getBoolean(PREF_TEST_FIELD_ALLOW_UNDO_PREFIX + fieldId, true);
+        return prefs.getBoolean(PREF_ALLOW_UNDO_PREFIX + FIELD_INFIX + fieldId, true);
     }
 
     public static boolean shouldTestFieldAllowUndo(int fieldIndex) {
@@ -1616,7 +1974,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static Locale[] readTestFieldTextLocales(final SharedPreferenceManager prefs,
                                                      int fieldId) {
         return (new LocaleEntryListPreference.Reader(prefs,
-                PREF_TEST_FIELD_TEXT_LOCALES_PREFIX + fieldId)).readValue();
+                PREF_TEXT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
     public static Locale[] getTestFieldTextLocales(int fieldIndex) {
@@ -1626,7 +1984,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static Locale[] readTestFieldImeHintLocales(final SharedPreferenceManager prefs,
                                                         int fieldId) {
         return (new LocaleEntryListPreference.Reader(prefs,
-                PREF_TEST_FIELD_IME_HINT_LOCALES_PREFIX + fieldId)).readValue();
+                PREF_IME_HINT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
     public static Locale[] getTestFieldImeHintLocales(int fieldIndex) {
@@ -1635,7 +1993,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static CharSequence readTestFieldDefaultText(final SharedPreferenceManager prefs,
                                                          int fieldId) {
-        return prefs.getCharSequence(PREF_TEST_FIELD_IME_DEFAULT_TEXT_PREFIX + fieldId, null);
+        return prefs.getCharSequence(PREF_IME_DEFAULT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static CharSequence getTestFieldDefaultText(int fieldIndex) {
@@ -1644,14 +2002,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static CharSequence readTestFieldHintText(final SharedPreferenceManager prefs,
                                                       int fieldId) {
-        return prefs.getCharSequence(PREF_TEST_FIELD_IME_HINT_TEXT_PREFIX + fieldId, null);
+        return prefs.getCharSequence(PREF_IME_HINT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static CharSequence getTestFieldHintText(int fieldIndex) {
         return getInstance().mTestFields.get(fieldIndex).mHintText;
     }
 
-    private static class TestField {
+    private static class TestField extends AppLevelDefaults {
         private final int mId;
 
         private int mInputType;
@@ -1674,9 +2032,56 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private CharSequence mDefaultText;
         private CharSequence mHintText;
 
+        private boolean mOverrideTextInputModification;
+        private boolean mOverrideTextReturn;
+        private boolean mOverrideTextComposition;
+        private boolean mOverrideTargetVersion;
+        private boolean mOverrideSystemBehavior;
+
         public TestField(int id) {
             mId = id;
         }
+    }
+
+    private static class AppLevelDefaults {
+        boolean mModifyCommittedText;
+        boolean mModifyComposedText;
+        boolean mConsiderComposedChangesFromEnd;
+        boolean mModifyComposedChangesOnly;
+        boolean mRestrictToInclude;
+        String[] mRestrictSpecific;
+        IntRange mRestrictRange;
+        TranslateText[] mTranslateSpecific;
+        boolean mTranslateFullMatchOnly;
+        int mShiftCodepoint;
+        boolean mSkipExtractingText;
+        boolean mIgnoreExtractedTextMonitor;
+        boolean mUpdateSelectionBeforeExtractedText;
+        boolean mUpdateExtractedTextOnlyOnNetChanges;
+        boolean mExtractFullText;
+        int mExtractMonitorTextLimit;
+        int mReturnedTextLimit;
+        boolean mDeleteThroughComposingText;
+        boolean mKeepEmptyComposingPosition;
+        boolean mSkipTakeSnapshot;
+        boolean mSkipGetSurroundingText;
+        boolean mSkipPerformSpellCheck;
+        boolean mSkipSetImeConsumesInput;
+        boolean mSkipCommitContent;
+        boolean mSkipCloseConnection;
+        boolean mSkipDeleteSurroundingTextInCodePoints;
+        boolean mSkipRequestCursorUpdates;
+        boolean mSkipCommitCorrection;
+        boolean mSkipGetSelectedText;
+        boolean mSkipSetComposingRegion;
+        int mUpdateDelay;
+        int mFinishComposingTextDelay;
+        int mGetSurroundingTextDelay;
+        int mGetTextBeforeCursorDelay;
+        int mGetSelectedTextDelay;
+        int mGetTextAfterCursorDelay;
+        int mGetCursorCapsModeDelay;
+        int mGetExtractedTextDelay;
     }
 
     public static EditorSettings getTestFieldSettings(int fieldIndex) {
@@ -1691,6 +2096,49 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         int composingTextBehavior();
         boolean allowDeleteSurroundingText();
         boolean allowSettingSelection();
+
+        boolean shouldModifyCommittedText();
+        boolean shouldModifyComposedText();
+        boolean shouldModifyComposedChangesOnly();
+        boolean shouldConsiderComposedChangesFromEnd();
+        boolean shouldRestrictToInclude();
+        String[] getRestrictSpecific();
+        @Nullable IntRange getRestrictRange();
+        TranslateText[] getTranslateSpecific();
+        boolean shouldTranslateFullMatchOnly();
+        int getCodepointShift();
+
+        boolean shouldSkipExtractingText();
+        boolean shouldIgnoreExtractedTextMonitor();
+        boolean shouldUpdateSelectionBeforeExtractedText();
+        boolean shouldUpdateExtractedTextOnlyOnNetChanges();
+        boolean shouldExtractFullText();
+        int getExtractMonitorTextLimit();
+        int getReturnedTextLimit();
+
+        boolean shouldDeleteThroughComposingText();
+        boolean shouldKeepEmptyComposingPosition();
+
+        boolean shouldSkipTakeSnapshot();
+        boolean shouldSkipGetSurroundingText();
+        boolean shouldSkipPerformSpellCheck();
+        boolean shouldSkipSetImeConsumesInput();
+        boolean shouldSkipCommitContent();
+        boolean shouldSkipCloseConnection();
+        boolean shouldSkipDeleteSurroundingTextInCodePoints();
+        boolean shouldSkipRequestCursorUpdates();
+        boolean shouldSkipCommitCorrection();
+        boolean shouldSkipGetSelectedText();
+        boolean shouldSkipSetComposingRegion();
+
+        int getUpdateDelay();
+        int getFinishComposingTextDelay();
+        int getGetSurroundingTextDelay();
+        int getGetTextBeforeCursorDelay();
+        int getGetSelectedTextDelay();
+        int getGetTextAfterCursorDelay();
+        int getGetCursorCapsModeDelay();
+        int getGetExtractedTextDelay();
     }
 
     public static class FieldPrefEditorSettings implements EditorSettings {
@@ -1734,5 +2182,211 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         public boolean allowSettingSelection() {
             return Settings.getTestFieldAllowSettingSelection(mIndex);
         }
+
+        @Override
+        public boolean shouldModifyCommittedText() {
+            return Settings.shouldModifyCommittedText(mIndex);
+        }
+
+        @Override
+        public boolean shouldModifyComposedText() {
+            return Settings.shouldModifyComposedText(mIndex);
+        }
+
+        @Override
+        public boolean shouldModifyComposedChangesOnly() {
+            return Settings.shouldModifyComposedChangesOnly(mIndex);
+        }
+
+        @Override
+        public boolean shouldConsiderComposedChangesFromEnd() {
+            return Settings.shouldConsiderComposedChangesFromEnd(mIndex);
+        }
+
+        @Override
+        public boolean shouldRestrictToInclude() {
+            return Settings.shouldRestrictToInclude(mIndex);
+        }
+
+        @Override
+        public String[] getRestrictSpecific() {
+            return Settings.getRestrictSpecific(mIndex);
+        }
+
+        @Override
+        public @Nullable IntRange getRestrictRange() {
+            return Settings.getRestrictRange(mIndex);
+        }
+
+        @Override
+        public TranslateText[] getTranslateSpecific() {
+            return Settings.getTranslateSpecific(mIndex);
+        }
+
+        @Override
+        public boolean shouldTranslateFullMatchOnly() {
+            return Settings.shouldTranslateFullMatchOnly(mIndex);
+        }
+
+        @Override
+        public int getCodepointShift() {
+            return Settings.getShiftCodepoint(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipExtractingText() {
+            return Settings.shouldSkipExtractingText(mIndex);
+        }
+
+        @Override
+        public boolean shouldIgnoreExtractedTextMonitor() {
+            return Settings.shouldIgnoreExtractedTextMonitor(mIndex);
+        }
+
+        @Override
+        public boolean shouldUpdateSelectionBeforeExtractedText() {
+            return Settings.shouldUpdateSelectionBeforeExtractedText(mIndex);
+        }
+
+        @Override
+        public boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
+            return Settings.shouldUpdateExtractedTextOnlyOnNetChanges(mIndex);
+        }
+
+        @Override
+        public boolean shouldExtractFullText() {
+            return Settings.shouldExtractFullText(mIndex);
+        }
+
+        @Override
+        public int getExtractMonitorTextLimit() {
+            return Settings.getExtractMonitorTextLimit(mIndex);
+        }
+
+        @Override
+        public int getReturnedTextLimit() {
+            return Settings.getReturnedTextLimit(mIndex);
+        }
+
+        @Override
+        public boolean shouldDeleteThroughComposingText() {
+            return Settings.shouldDeleteThroughComposingText(mIndex);
+        }
+
+        @Override
+        public boolean shouldKeepEmptyComposingPosition() {
+            return Settings.shouldKeepEmptyComposingPosition(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipTakeSnapshot() {
+            return Settings.shouldSkipTakeSnapshot(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipGetSurroundingText() {
+            return Settings.shouldSkipGetSurroundingText(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipPerformSpellCheck() {
+            return Settings.shouldSkipPerformSpellCheck(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipSetImeConsumesInput() {
+            return Settings.shouldSkipSetImeConsumesInput(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipCommitContent() {
+            return Settings.shouldSkipCommitContent(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipCloseConnection() {
+            return Settings.shouldSkipCloseConnection(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipDeleteSurroundingTextInCodePoints() {
+            return Settings.shouldSkipDeleteSurroundingTextInCodePoints(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipRequestCursorUpdates() {
+            return Settings.shouldSkipRequestCursorUpdates(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipCommitCorrection() {
+            return Settings.shouldSkipCommitCorrection(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipGetSelectedText() {
+            return Settings.shouldSkipGetSelectedText(mIndex);
+        }
+
+        @Override
+        public boolean shouldSkipSetComposingRegion() {
+            return Settings.shouldSkipSetComposingRegion(mIndex);
+        }
+
+        @Override
+        public int getUpdateDelay() {
+            return Settings.getUpdateDelay(mIndex);
+        }
+
+        @Override
+        public int getFinishComposingTextDelay() {
+            return Settings.getFinishComposingTextDelay(mIndex);
+        }
+
+        @Override
+        public int getGetSurroundingTextDelay() {
+            return Settings.getGetSurroundingTextDelay(mIndex);
+        }
+
+        @Override
+        public int getGetTextBeforeCursorDelay() {
+            return Settings.getGetTextBeforeCursorDelay(mIndex);
+        }
+
+        @Override
+        public int getGetSelectedTextDelay() {
+            return Settings.getGetSelectedTextDelay(mIndex);
+        }
+
+        @Override
+        public int getGetTextAfterCursorDelay() {
+            return Settings.getGetTextAfterCursorDelay(mIndex);
+        }
+
+        @Override
+        public int getGetCursorCapsModeDelay() {
+            return Settings.getGetCursorCapsModeDelay(mIndex);
+        }
+
+        @Override
+        public int getGetExtractedTextDelay() {
+            return Settings.getGetExtractedTextDelay(mIndex);
+        }
+    }
+
+    // copied from java.util.function.Predicate to support older versions because that requires
+    // API level 24
+    /**
+     * Represents a predicate (boolean-valued function) of one argument.
+     * @param <T> the type of the input to the predicate
+     */
+    public interface Predicate<T> {
+        /**
+         * Evaluates this predicate on the given argument.
+         * @param t the input argument
+         * @return {@code true} if the input argument matches the predicate,
+         * otherwise {@code false}
+         */
+        boolean test(T t);
     }
 }

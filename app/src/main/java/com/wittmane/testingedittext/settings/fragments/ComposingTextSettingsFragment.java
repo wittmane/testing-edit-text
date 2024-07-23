@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,15 +17,18 @@
 package com.wittmane.testingedittext.settings.fragments;
 
 import android.os.Bundle;
-import android.preference.PreferenceFragment;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.Settings;
 
-public class ComposingTextSettingsFragment extends PreferenceFragment {
+public class ComposingTextSettingsFragment extends PerTestFieldSettingsFragment {
+    private static final String TAG = ComposingTextSettingsFragment.class.getSimpleName();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_composing_text);
+
+        manageOverrideToggle(Settings.PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
     }
 }

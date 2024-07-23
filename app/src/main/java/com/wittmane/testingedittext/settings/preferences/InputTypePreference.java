@@ -25,43 +25,43 @@ import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.fragments.TestFieldInputTypeSettingsFragment;
+import com.wittmane.testingedittext.settings.fragments.InputTypeSettingsFragment;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestFieldInputTypePreference extends SingleFieldPreference {
-    private static final String TAG = TestFieldInputTypePreference.class.getSimpleName();
+public class InputTypePreference extends PerTestFieldPreference {
+    private static final String TAG = InputTypePreference.class.getSimpleName();
 
-    public TestFieldInputTypePreference(Context context) {
+    public InputTypePreference(Context context) {
         super(context);
         init();
     }
 
-    public TestFieldInputTypePreference(Context context, int fieldIndex) {
+    public InputTypePreference(Context context, int fieldIndex) {
         super(context, fieldIndex);
         init();
     }
 
-    public TestFieldInputTypePreference(Context context, AttributeSet attrs) {
+    public InputTypePreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public TestFieldInputTypePreference(Context context, AttributeSet attrs, int defStyleAttr) {
+    public InputTypePreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public TestFieldInputTypePreference(Context context, AttributeSet attrs, int defStyleAttr,
-                                        int defStyleRes) {
+    public InputTypePreference(Context context, AttributeSet attrs, int defStyleAttr,
+                               int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init();
     }
 
     private void init() {
-        setFragment(TestFieldInputTypeSettingsFragment.class.getName());
+        setFragment(InputTypeSettingsFragment.class.getName());
     }
 
     @Override

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -15,25 +15,19 @@
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--documented variable functionality-->
-    <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment"
+    <com.wittmane.testingedittext.settings.preferences.ModifyTextPreference
         android:title="@string/modify_text_input_screen" />
 
-    <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFragment"
+    <com.wittmane.testingedittext.settings.preferences.ReturningTextPreference
         android:title="@string/returning_text_screen" />
 
-    <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.ComposingTextSettingsFragment"
+    <com.wittmane.testingedittext.settings.preferences.ComposingTextPreference
         android:title="@string/composing_text_screen" />
 
-    <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.TargetVersionSettingsFragment"
+    <com.wittmane.testingedittext.settings.preferences.TargetVersionPreference
         android:title="@string/simulate_old_target_versions_screen" />
 
-    <PreferenceScreen
-        android:fragment="com.wittmane.testingedittext.settings.fragments.SystemBehaviorSettingsFragment"
+    <com.wittmane.testingedittext.settings.preferences.SystemBehaviorPreference
         android:title="@string/simulate_system_behavior_screen" />
 
     <PreferenceScreen

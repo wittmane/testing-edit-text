@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -38,10 +38,10 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.DraggableListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.preferences.SingleFieldPreference;
-import com.wittmane.testingedittext.settings.preferences.TestFieldImeActionPreference;
-import com.wittmane.testingedittext.settings.preferences.TestFieldImeOptionsPreference;
-import com.wittmane.testingedittext.settings.preferences.TestFieldInputTypePreference;
+import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
+import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
+import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
+import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,7 +89,7 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
             Settings.addTestField();
             final PreferenceGroup group = getPreferenceScreen();
             Preference newPref =
-                    new MainSingleFieldPreference(getActivity(), group.getPreferenceCount());
+                    new IndividualTestFieldPreference(getActivity(), group.getPreferenceCount());
             group.addPreference(newPref);
             // launch sub setting screen for the new field preference
             ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
@@ -165,7 +165,7 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
         group.removeAll();
 
         for (int i = 0; i < Settings.getTestFieldCount(); i++) {
-            group.addPreference(new MainSingleFieldPreference(context, i));
+            group.addPreference(new IndividualTestFieldPreference(context, i));
         }
     }
 
@@ -186,14 +186,14 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
     /**
      * Preference to link to the main settings screen for a specific test field.
      */
-    private static class MainSingleFieldPreference extends SingleFieldPreference {
+    private static class IndividualTestFieldPreference extends PerTestFieldPreference {
 
         /**
          * Create a new preference for a test field.
          * @param context the context for this application.
          * @param fieldIndex the index of the field in the UI.
          */
-        public MainSingleFieldPreference(final Context context, final int fieldIndex) {
+        public IndividualTestFieldPreference(final Context context, final int fieldIndex) {
             super(context, fieldIndex);
 
             setFragment(TestFieldSettingsFragment.class.getName());
@@ -206,16 +206,18 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
             setTitle(getFieldTitle(context, fieldIndex));
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
-                            TestFieldInputTypePreference.getInputTypeDescription(fieldIndex,
-                                    context), context),
+                            InputTypePreference.getInputTypeDescription(fieldIndex, context),
+                            context),
                     getLabeledProperty(R.string.ime_options,
-                            TestFieldImeOptionsPreference.getImeOptionsDescription(
-                                    Settings.getTestFieldImeOptions(fieldIndex), context), context),
+                            ImeOptionsPreference.getImeOptionsDescription(
+                                    Settings.getTestFieldImeOptions(fieldIndex), context),
+                            context),
                     getLabeledProperty(R.string.ime_action,
-                            TestFieldImeActionPreference.getImeActionDescription(
+                            ImeActionPreference.getImeActionDescription(
                                     Settings.getTestFieldImeActionId(fieldIndex),
                                     Settings.getTestFieldImeActionLabel(fieldIndex),
-                                    context), context),
+                                    context),
+                            context),
                     getLabeledPrivateImeOptions(
                             Settings.getTestFieldPrivateImeOptions(fieldIndex), context),
                     Settings.shouldTestFieldSelectAllOnFocus(fieldIndex)
