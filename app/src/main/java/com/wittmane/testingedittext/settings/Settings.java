@@ -1362,6 +1362,35 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
+    public static int getTestFieldGroupCount() {
+        //TODO: (EW) add a real implementation
+        return 1;
+    }
+
+    public static int getTestFieldCount(int groupIndex) {
+        //TODO: (EW) add a real implementation
+        int fieldCount = getTestFieldCount();
+        int groupCount = getTestFieldGroupCount();
+        return fieldCount / groupCount + (fieldCount % groupCount > groupIndex ? 1 : 0);
+    }
+
+    public static String getTestFieldGroupName(int groupIndex) {
+        //TODO: (EW) add a real implementation
+        return "example tab " + groupIndex;
+    }
+
+    public static int getTestFieldId(int groupIndex, int fieldIndex) {
+        return getInstance().mTestFields.get(getTestFieldFlatIndex(groupIndex, fieldIndex)).mId;
+    }
+
+    public static int getTestFieldFlatIndex(int groupIndex, int fieldIndex) {
+        //TODO: (EW) add a real implementation or remove the need for this
+        int fieldCount = getTestFieldCount();
+        int groupCount = getTestFieldGroupCount();
+        return fieldCount / groupCount * groupIndex
+                + Math.min(fieldCount % groupCount, groupIndex) + fieldIndex;
+    }
+
     public static int getTestFieldCount() {
         return getInstance().mTestFields.size();
     }

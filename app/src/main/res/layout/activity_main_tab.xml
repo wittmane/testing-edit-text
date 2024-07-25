@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -20,35 +20,42 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
-
-    <TabHost
-        android:id="@+id/tabHost"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+        <LinearLayout
+            android:id="@+id/testFieldContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <HorizontalScrollView
+                android:orientation="horizontal">
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <TabWidget
-                        android:id="@android:id/tabs"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <TextView
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-
-                </HorizontalScrollView>
-
-                <FrameLayout
-                    android:id="@android:id/tabcontent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/framework_edittext"/>
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-                </FrameLayout>
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/custom_edittext"/>
+                </LinearLayout>
             </LinearLayout>
 
-    </TabHost>
+            <!-- text fields will be added programmatically -->
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

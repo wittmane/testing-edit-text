@@ -27,6 +27,7 @@ import android.text.InputType;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -34,7 +35,11 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.TabHost;
+import android.widget.TabHost.TabContentFactory;
+import android.widget.TabWidget;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -48,10 +53,13 @@ import com.wittmane.testingedittext.settings.SettingsActivity;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity
+        implements TabContentFactory, TabHost.OnTabChangeListener {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
     // the built-in EditText will look different from this custom one by being styled more like
     // modern versions (custom colored cursor, controllers, and bottom line, thicker cursor,
@@ -79,8 +87,11 @@ public class MainActivity extends Activity {
     // supported in the settings.
     private static final boolean USE_DEBUG_SCREEN = false;
 
-    private LinearLayout mTestFieldContainer;
-    private TestField[] mTestFields;
+    private static final String TAB_TAG_PREFIX = "tab_";
+
+    private TestField[][] mTestFields;
+    private int mCurrentTabIndex = -1;
+    private final Map<Integer, View> mTabViews = new HashMap<>();
 
     private static class TestField {
         private final int mId;
@@ -195,64 +206,127 @@ public class MainActivity extends Activity {
             });
         } else {
             setContentView(R.layout.activity_main);
-
-            mTestFieldContainer = findViewById(R.id.testFieldContainer);
-
-            updateFields();
+            final TabHost tabHost = findViewById(R.id.tabHost);
+            tabHost.setup();
+            int groupCount = Settings.getTestFieldGroupCount();
+            for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+                TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
+                spec.setIndicator(Settings.getTestFieldGroupName(groupIndex));
+                spec.setContent(this);
+                tabHost.addTab(spec);
+            }
+            tabHost.setOnTabChangedListener(this);
         }
     }
 
+    @Override
+    public View createTabContent(String tag) {
+        mCurrentTabIndex = getGroupIndex(tag);
+
+        final FrameLayout tabContent = findViewById(android.R.id.tabcontent);
+        View view = LayoutInflater.from(this).inflate(R.layout.activity_main_tab, tabContent, false);
+        mTabViews.put(mCurrentTabIndex, view);
+
+        return view;
+    }
+
+    @Override
+    public void onTabChanged(String tabId) {
+        mCurrentTabIndex = getGroupIndex(tabId);
+        updateFields();
+    }
+
+    private int getGroupIndex(String tabId) {
+
+        if (tabId != null && tabId.startsWith(TAB_TAG_PREFIX)) {
+            try {
+                return Integer.parseInt(tabId.substring(TAB_TAG_PREFIX.length()));
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "Failed to parse group index from " + tabId);
+            }
+        } else {
+            Log.e(TAG, "Unexpected tab ID: " + tabId);
+        }
+        return -1;
+
+    }
+
     private void updateFields() {
-        if (USE_DEBUG_SCREEN) {
+        if (USE_DEBUG_SCREEN || mCurrentTabIndex < 0) {
             return;
         }
 
+        final TabWidget tabs = findViewById(android.R.id.tabs);
+        tabs.setVisibility(Settings.getTestFieldGroupCount() < 2 ? View.GONE : View.VISIBLE);
+
+        View currentView = mTabViews.get(mCurrentTabIndex);
+        if (currentView == null) {
+            return;
+        }
+        LinearLayout testFieldContainer = currentView.findViewById(R.id.testFieldContainer);
+
         // build or rebuild the list of fields in case any were added or removed and update the ui
-        TestField[] testFields = new TestField[Settings.getTestFieldCount()];
-        int firstChangedFieldIndex = -1;
-        for (int curFieldIndex = 0; curFieldIndex < testFields.length; curFieldIndex++) {
-            TestField testField = null;
-            int id = Settings.getTestFieldId(curFieldIndex);
-            // see if the field already existed to be able to keep using it
-            if (mTestFields != null) {
-                for (int oldFieldIndex = 0; oldFieldIndex < mTestFields.length; oldFieldIndex++) {
-                    TestField existingField = mTestFields[oldFieldIndex];
-                    if (existingField.mId == id) {
-                        testField = existingField;
-                        if (firstChangedFieldIndex < 0 && curFieldIndex != oldFieldIndex) {
+        TestField[][] testFields = new TestField[Settings.getTestFieldGroupCount()][];
+        for (int curGroupIndex = 0; curGroupIndex < testFields.length; curGroupIndex++) {
+            if (curGroupIndex == mCurrentTabIndex) {
+
+                TestField[] groupTestFields = new TestField[Settings.getTestFieldCount(curGroupIndex)];
+                int firstChangedFieldIndex = -1;
+                for (int curFieldIndex = 0; curFieldIndex < groupTestFields.length; curFieldIndex++) {
+                    TestField testField = null;
+                    int id = Settings.getTestFieldId(curGroupIndex, curFieldIndex);
+                    // see if the field already existed to be able to keep using it
+                    if (mTestFields != null && mTestFields[curGroupIndex] != null) {
+                        for (int oldFieldIndex = 0; oldFieldIndex < mTestFields[curGroupIndex].length; oldFieldIndex++) {
+                            TestField existingField = mTestFields[curGroupIndex][oldFieldIndex];
+                            if (existingField.mId == id) {
+                                testField = existingField;
+                                if (firstChangedFieldIndex < 0 && curFieldIndex != oldFieldIndex) {
+                                    firstChangedFieldIndex = curFieldIndex;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    if (testField == null) {
+                        testField = new TestField(id, this);
+                        if (firstChangedFieldIndex < 0) {
                             firstChangedFieldIndex = curFieldIndex;
                         }
-                        break;
+                    }
+                    groupTestFields[curFieldIndex] = testField;
+                }
+
+                // only add/remove fields starting where there was a change to avoid messing with
+                // things like focus
+                if (firstChangedFieldIndex >= 0) {
+                    if (mTestFields != null && mTestFields[curGroupIndex] != null) {
+                        for (int i = firstChangedFieldIndex; i < mTestFields[curGroupIndex].length; i++) {
+                            testFieldContainer.removeView(mTestFields[curGroupIndex][i].mLayout);
+                        }
+                    }
+                    for (int i = firstChangedFieldIndex; i < groupTestFields.length; i++) {
+                        testFieldContainer.addView(groupTestFields[i].mLayout);
+                        groupTestFields[i].mCustomEditText.mCustomEditText.setSettings(
+                                Settings.getTestFieldSettings(i));
                     }
                 }
-            }
-            if (testField == null) {
-                testField = new TestField(id, this);
-                if (firstChangedFieldIndex < 0) {
-                    firstChangedFieldIndex = curFieldIndex;
-                }
-            }
-            testFields[curFieldIndex] = testField;
-        }
-        // only add/remove fields starting where there was a change to avoid messing with things
-        // like focus
-        if (firstChangedFieldIndex >= 0) {
-            if (mTestFields != null) {
-                for (int i = firstChangedFieldIndex; i < mTestFields.length; i++) {
-                    mTestFieldContainer.removeView(mTestFields[i].mLayout);
-                }
-            }
-            mTestFields = testFields;
-            for (int i = firstChangedFieldIndex; i < mTestFields.length; i++) {
-                mTestFieldContainer.addView(mTestFields[i].mLayout);
-                mTestFields[i].mCustomEditText.mCustomEditText.setSettings(
-                        Settings.getTestFieldSettings(i));
-            }
-        }
 
-        for (int i = 0; i < mTestFields.length; i++) {
-            updateField(mTestFields[i].mFrameworkEditText, i);
-            updateField(mTestFields[i].mCustomEditText, i);
+                testFields[curGroupIndex] = groupTestFields;
+
+            } else {
+                if (mTestFields != null && curGroupIndex < mTestFields.length) {
+                    testFields[curGroupIndex] = mTestFields[curGroupIndex];
+                }
+            }
+        }
+        mTestFields = testFields;
+
+        for (int i = 0; i < mTestFields[mCurrentTabIndex].length; i++) {
+            updateField(mTestFields[mCurrentTabIndex][i].mFrameworkEditText,
+                    Settings.getTestFieldFlatIndex(mCurrentTabIndex, i));
+            updateField(mTestFields[mCurrentTabIndex][i].mCustomEditText,
+                    Settings.getTestFieldFlatIndex(mCurrentTabIndex, i));
         }
     }
 
