@@ -181,6 +181,8 @@
     <string name="getextractedtext_delay_title">Delay getExtractedText</string>
     <string name="getextractedtext_delay_summary">Documentation for InputConnection#getExtractedText mentions that this method may fail and return 0 if it takes too long to respond with the text. Force a delay when processing this call to simulate either a slow system or text editor.</string>
 
+    <string name="test_group_default_name">Group <xliff:g id="INDEX">%d</xliff:g></string>
+
     <string name="test_field_list_screen">Test fields</string>
     <string name="add_field">Add field</string>
     <string name="reorder_fields">Reorder fields</string>

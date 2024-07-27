@@ -211,7 +211,11 @@ public class MainActivity extends Activity
             int groupCount = Settings.getTestFieldGroupCount();
             for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
                 TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
-                spec.setIndicator(Settings.getTestFieldGroupName(groupIndex));
+                String groupName = Settings.getTestFieldGroupName(groupIndex);
+                if (groupName == null) {
+                    groupName = getString(R.string.test_group_default_name, (groupIndex + 1));
+                }
+                spec.setIndicator(groupName);
                 spec.setContent(this);
                 tabHost.addTab(spec);
             }
