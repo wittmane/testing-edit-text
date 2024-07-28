@@ -38,11 +38,6 @@ public class InputTypePreference extends PerTestFieldPreference {
         init();
     }
 
-    public InputTypePreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public InputTypePreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();

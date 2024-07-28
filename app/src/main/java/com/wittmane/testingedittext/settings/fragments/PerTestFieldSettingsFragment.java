@@ -23,7 +23,6 @@ import static com.wittmane.testingedittext.settings.Settings.FIELD_INFIX;
 
 import android.os.Bundle;
 import android.preference.Preference;
-import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.util.Log;
@@ -33,7 +32,7 @@ import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager.OnPreferencesChangedListener;
 import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 
-public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
+public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsFragment {
     private static final String TAG = PerTestFieldSettingsFragment.class.getSimpleName();
 
     public static final String FIELD_INDEX_BUNDLE_KEY = "FIELD_INDEX";
@@ -44,35 +43,21 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        final Bundle args = getArguments();
-        if (args != null) {
-            String fieldIndex = args.getString(FIELD_INDEX_BUNDLE_KEY);
-            if (fieldIndex != null) {
-                try {
-                    mFieldIndex = Integer.parseInt(fieldIndex);
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "Failed to parse the index: " + e.getMessage());
-                    getFragmentManager().popBackStack();
-                }
-                if (mFieldIndex < 0 || mFieldIndex >= Settings.getTestFieldCount()) {
-                    Log.e(TAG, "Invalid index: " + mFieldIndex);
-                    getFragmentManager().popBackStack();
-                }
-            } else {
-                mFieldIndex = BASE_FIELD_INDEX;
-            }
-        } else {
-            Log.e(TAG, "No bundle for the index");
-            getFragmentManager().popBackStack();
-        }
+        mFieldIndex = getIndexFromArgs(FIELD_INDEX_BUNDLE_KEY, Settings.getTestFieldCount(),
+                BASE_FIELD_INDEX);
     }
 
     @Override
     public void addPreferencesFromResource(int preferencesResId) {
+        int groupIndex = getGroupIndex();
+        int fieldIndex = getFieldId();
         // make sure we already got a valid field index from onCreate
-        if (mFieldIndex != BASE_FIELD_INDEX
-                && (mFieldIndex < 0 || mFieldIndex >= Settings.getTestFieldCount())) {
-            Log.e(TAG, "Invalid index: " + mFieldIndex);
+        if ((groupIndex != BASE_FIELD_INDEX
+                && (groupIndex < 0 || groupIndex >= Settings.getTestFieldGroupCount()))
+                || (fieldIndex != BASE_FIELD_INDEX
+                        && (fieldIndex < 0
+                                || fieldIndex >= Settings.getTestFieldCount(getGroupIndex())))) {
+            Log.e(TAG, "Invalid index: group=" + groupIndex + ", field=" + fieldIndex);
             getFragmentManager().popBackStack();
         }
 
@@ -121,7 +106,7 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
                 }
                 if (pref instanceof PerTestFieldPreference) {
                     // set the index for launching sub preference screens
-                    ((PerTestFieldPreference)pref).setFieldIndex(mFieldIndex);
+                    ((PerTestFieldPreference)pref).setFieldIndex(getGroupIndex(), getFieldIndex());
                 }
             }
         }
@@ -145,9 +130,9 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
     }
 
     private int getFieldId() {
-        return mFieldIndex == BASE_FIELD_INDEX
+        return getGroupIndex() == BASE_FIELD_INDEX && getFieldIndex() == BASE_FIELD_INDEX
                 ? BASE_FIELD_ID
-                : Settings.getTestFieldId(mFieldIndex);
+                : Settings.getTestFieldId(getGroupIndex(), getFieldIndex());
     }
 
     protected String getPrefKey(String prefKeyPrefix) {
@@ -180,7 +165,7 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
                 updateEnabledState(prefsChecked[0], overridePrefKey);
             }
         });
-        if (getFieldIndex() == BASE_FIELD_INDEX) {
+        if (getGroupIndex() == BASE_FIELD_INDEX && getFieldIndex() == BASE_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference pref = findPreference(overridePrefKey);
             preferenceScreen.removePreference(pref);
@@ -189,7 +174,7 @@ public abstract class PerTestFieldSettingsFragment extends PreferenceFragment {
 
     private void updateEnabledState(boolean overrideDefaults, String overridePrefKey) {
         boolean enableSettings;
-        if (overrideDefaults || getFieldIndex() < 0) {
+        if (overrideDefaults || getGroupIndex() < 0 || getFieldIndex() < 0) {
             enableSettings = true;
         } else {
             enableSettings = false;

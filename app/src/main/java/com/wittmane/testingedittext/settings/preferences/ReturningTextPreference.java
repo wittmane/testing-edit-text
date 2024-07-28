@@ -30,11 +30,6 @@ public class ReturningTextPreference extends PerTestFieldPreference {
         init();
     }
 
-    public ReturningTextPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public ReturningTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();

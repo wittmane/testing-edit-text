@@ -75,8 +75,10 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
     public boolean onOptionsItemSelected(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_remove_field) {
+            //TODO: (EW) add a confirmation before just deleting the field
+
             // remove the field and go back to the field list
-            Settings.removeTestField(getFieldIndex());
+            Settings.removeTestField(getGroupIndex(), getFieldIndex());
             getFragmentManager().popBackStackImmediate();
         }
         return super.onOptionsItemSelected(item);

@@ -32,11 +32,6 @@ public class ImeActionPreference extends PerTestFieldPreference {
         init();
     }
 
-    public ImeActionPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public ImeActionPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();

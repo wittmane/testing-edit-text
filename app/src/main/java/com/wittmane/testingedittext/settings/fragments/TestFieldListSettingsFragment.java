@@ -16,15 +16,18 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.Settings.PREF_TEST_GROUP_NAME_PREFIX;
+
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.Preference;
-import android.preference.PreferenceFragment;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -42,12 +45,18 @@ import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
 import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
+import com.wittmane.testingedittext.settings.preferences.TextDialogPreference;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class TestFieldListSettingsFragment extends PreferenceFragment {
+//TODO: (EW) consider renaming TestFieldGroupSettingsFragment
+public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment {
+    private static final String TAG = TestFieldListSettingsFragment.class.getSimpleName();
+
+    private static final String PREF_KEY_TEST_GROUP_TEST_FIELDS = "pref_key_test_group_test_fields";
+
     private View mView;
 
     @Override
@@ -86,10 +95,11 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_add_field) {
             // add a preference for a new field
-            Settings.addTestField();
-            final PreferenceGroup group = getPreferenceScreen();
-            Preference newPref =
-                    new IndividualTestFieldPreference(getActivity(), group.getPreferenceCount());
+            Settings.addTestField(getGroupIndex());
+            final PreferenceGroup group = (PreferenceGroup) getPreferenceScreen().findPreference(
+                    PREF_KEY_TEST_GROUP_TEST_FIELDS);
+            Preference newPref = new IndividualTestFieldPreference(getActivity(),
+                    getGroupIndex(), group.getPreferenceCount());
             group.addPreference(newPref);
             // launch sub setting screen for the new field preference
             ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
@@ -104,8 +114,8 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
                             titleView.setText(item.mTitle);
                         }
                     });
-            for (int i = 0; i < Settings.getTestFieldCount(); i++) {
-                adapter.add(new TestField(getActivity(), i));
+            for (int i = 0; i < Settings.getTestFieldCount(getGroupIndex()); i++) {
+                adapter.add(new TestField(getActivity(), getGroupIndex(), i));
             }
             content.setAdapter(adapter);
 
@@ -117,11 +127,12 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
                                 @Override
                                 public void onClick(DialogInterface dialog,
                                                     int which) {
-                                    int[] testFields = new int[adapter.getCount()];
-                                    for (int i = 0; i < adapter.getCount(); i++) {
-                                        testFields[i] = adapter.getItem(i).getId();
+                                    int[] testFields;
+                                    testFields = new int[adapter.getCount()];
+                                    for (int fieldIndex = 0; fieldIndex < adapter.getCount(); fieldIndex++) {
+                                        testFields[fieldIndex] = adapter.getItem(fieldIndex).getId();
                                     }
-                                    Settings.setTestFieldIds(testFields);
+                                    Settings.setTestGroupFields(getGroupIndex(), testFields);
                                     buildContent();
                                 }
                             })
@@ -134,17 +145,23 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
                             })
                     .create();
             dialog.show();
+        } else if (itemId == R.id.action_remove_group) {
+            //TODO: (EW) add a confirmation before just deleting the group
+
+            // remove the group and go back to the field list
+            Settings.removeTestFieldGroup(getGroupIndex());
+            getFragmentManager().popBackStackImmediate();
         }
         return super.onOptionsItemSelected(item);
     }
 
     private static class TestField {
-        private CharSequence mTitle;
-        private int mId;
+        private final CharSequence mTitle;
+        private final int mId;
 
-        public TestField(Context context, int index) {
-            mTitle = getFieldTitle(context, index);
-            mId = Settings.getTestFieldId(index);
+        public TestField(Context context, int groupIndex, int fieldIndex) {
+            mTitle = getFieldTitle(context, groupIndex, fieldIndex);
+            mId = Settings.getTestFieldId(groupIndex, fieldIndex);
         }
 
         public int getId() {
@@ -164,17 +181,31 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
         final PreferenceGroup group = getPreferenceScreen();
         group.removeAll();
 
-        for (int i = 0; i < Settings.getTestFieldCount(); i++) {
-            group.addPreference(new IndividualTestFieldPreference(context, i));
+        TextDialogPreference namePref = new TextDialogPreference(context, null);
+        namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + getGroupIndex());
+        namePref.setTitle(context.getString(R.string.group_name));
+        namePref.setDialogTitle(context.getString(R.string.group_name));
+        group.addPreference(namePref);
+
+        PreferenceCategory testFieldPrefCategory = new PreferenceCategory(context);
+        testFieldPrefCategory.setTitle(R.string.test_field_list_screen);
+        testFieldPrefCategory.setKey(PREF_KEY_TEST_GROUP_TEST_FIELDS);
+        group.addPreference(testFieldPrefCategory);
+
+        for (int i = 0; i < Settings.getTestFieldCount(getGroupIndex()); i++) {
+            testFieldPrefCategory.addPreference(
+                    new IndividualTestFieldPreference(context, getGroupIndex(), i));
         }
     }
 
-    private static CharSequence getFieldTitle(final Context context, final int fieldIndex) {
-        CharSequence defaultText = Settings.getTestFieldDefaultText(fieldIndex);
+    private static CharSequence getFieldTitle(final Context context, final int groupIndex,
+                                              final int fieldIndex) {
+        int flatIndex = Settings.getTestFieldFlatIndex(groupIndex, fieldIndex);
+        CharSequence defaultText = Settings.getTestFieldDefaultText(flatIndex);
         if (!TextUtils.isEmpty(defaultText)) {
             return defaultText;
         } else {
-            CharSequence hintText = Settings.getTestFieldHintText(fieldIndex);
+            CharSequence hintText = Settings.getTestFieldHintText(flatIndex);
             if (!TextUtils.isEmpty(hintText)) {
                 return hintText;
             } else {
@@ -191,10 +222,13 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
         /**
          * Create a new preference for a test field.
          * @param context the context for this application.
+         * @param groupIndex the index of the group in the UI.
          * @param fieldIndex the index of the field in the UI.
          */
-        public IndividualTestFieldPreference(final Context context, final int fieldIndex) {
-            super(context, fieldIndex);
+        public IndividualTestFieldPreference(final Context context, final int groupIndex,
+                                             final int fieldIndex) {
+            super(context);
+            setFieldIndex(groupIndex, fieldIndex);
 
             setFragment(TestFieldSettingsFragment.class.getName());
         }
@@ -202,33 +236,35 @@ public class TestFieldListSettingsFragment extends PreferenceFragment {
         @Override
         protected void updateSummary() {
             Context context = getContext();
+            int groupIndex = getGroupIndex();
             int fieldIndex = getFieldIndex();
-            setTitle(getFieldTitle(context, fieldIndex));
+            setTitle(getFieldTitle(context, groupIndex, fieldIndex));
+            int flatIndex = Settings.getTestFieldFlatIndex(groupIndex, fieldIndex);
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
-                            InputTypePreference.getInputTypeDescription(fieldIndex, context),
+                            InputTypePreference.getInputTypeDescription(flatIndex, context),
                             context),
                     getLabeledProperty(R.string.ime_options,
                             ImeOptionsPreference.getImeOptionsDescription(
-                                    Settings.getTestFieldImeOptions(fieldIndex), context),
+                                    Settings.getTestFieldImeOptions(flatIndex), context),
                             context),
                     getLabeledProperty(R.string.ime_action,
                             ImeActionPreference.getImeActionDescription(
-                                    Settings.getTestFieldImeActionId(fieldIndex),
-                                    Settings.getTestFieldImeActionLabel(fieldIndex),
+                                    Settings.getTestFieldImeActionId(flatIndex),
+                                    Settings.getTestFieldImeActionLabel(flatIndex),
                                     context),
                             context),
                     getLabeledPrivateImeOptions(
-                            Settings.getTestFieldPrivateImeOptions(fieldIndex), context),
-                    Settings.shouldTestFieldSelectAllOnFocus(fieldIndex)
+                            Settings.getTestFieldPrivateImeOptions(flatIndex), context),
+                    Settings.shouldTestFieldSelectAllOnFocus(flatIndex)
                             ? context.getString(R.string.select_all_on_focus) : null,
-                    getLabeledMaxLength(Settings.getTestFieldMaxLength(fieldIndex), context),
-                    Settings.shouldTestFieldAllowUndo(fieldIndex)
+                    getLabeledMaxLength(Settings.getTestFieldMaxLength(flatIndex), context),
+                    Settings.shouldTestFieldAllowUndo(flatIndex)
                             ? context.getString(R.string.allow_undo) : null,
                     getLabeledTextLocales(
-                            Settings.getTestFieldTextLocales(fieldIndex), context),
+                            Settings.getTestFieldTextLocales(flatIndex), context),
                     getLabeledImeHintLocales(
-                            Settings.getTestFieldImeHintLocales(fieldIndex), context)
+                            Settings.getTestFieldImeHintLocales(flatIndex), context)
             };
             StringBuilder sb = new StringBuilder();
             for (String summaryPiece : summaryInfo) {

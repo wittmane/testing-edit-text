@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext;
 
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.getGroupDisplayName;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -91,6 +93,7 @@ public class MainActivity extends Activity
 
     private TestField[][] mTestFields;
     private int mCurrentTabIndex = -1;
+    private String[] mCurrentTabTitles;
     private final Map<Integer, View> mTabViews = new HashMap<>();
 
     private static class TestField {
@@ -208,19 +211,27 @@ public class MainActivity extends Activity
             setContentView(R.layout.activity_main);
             final TabHost tabHost = findViewById(R.id.tabHost);
             tabHost.setup();
-            int groupCount = Settings.getTestFieldGroupCount();
-            for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
-                TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
-                String groupName = Settings.getTestFieldGroupName(groupIndex);
-                if (groupName == null) {
-                    groupName = getString(R.string.test_group_default_name, (groupIndex + 1));
-                }
-                spec.setIndicator(groupName);
-                spec.setContent(this);
-                tabHost.addTab(spec);
-            }
-            tabHost.setOnTabChangedListener(this);
+            setTabs(tabHost);
         }
+    }
+
+    private void setTabs(final TabHost tabHost) {
+        tabHost.setOnTabChangedListener(null);
+        tabHost.clearAllTabs();
+        mTabViews.clear();
+        mTestFields = null;
+        int groupCount = Settings.getTestFieldGroupCount();
+        mCurrentTabTitles = new String[groupCount];
+        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+            TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
+            String groupName = getGroupDisplayName(this, groupIndex);
+            spec.setIndicator(groupName);
+            spec.setContent(this);
+            tabHost.addTab(spec);
+            mCurrentTabTitles[groupIndex] = groupName;
+        }
+        mCurrentTabIndex = 0;
+        tabHost.setOnTabChangedListener(this);
     }
 
     @Override
@@ -260,8 +271,26 @@ public class MainActivity extends Activity
             return;
         }
 
+        final TabHost tabHost = findViewById(R.id.tabHost);
         final TabWidget tabs = findViewById(android.R.id.tabs);
-        tabs.setVisibility(Settings.getTestFieldGroupCount() < 2 ? View.GONE : View.VISIBLE);
+        int groupCount = Settings.getTestFieldGroupCount();
+
+        boolean tabsChanged = false;
+        if (mCurrentTabTitles.length != groupCount) {
+            tabsChanged = true;
+        } else {
+            for (int i = 0; i < groupCount; i++) {
+                if (!TextUtils.equals(mCurrentTabTitles[i], getGroupDisplayName(this, i))) {
+                    tabsChanged = true;
+                    break;
+                }
+            }
+        }
+        if (tabsChanged) {
+            setTabs(tabHost);
+        }
+
+        tabs.setVisibility(groupCount < 2 ? View.GONE : View.VISIBLE);
 
         View currentView = mTabViews.get(mCurrentTabIndex);
         if (currentView == null) {
@@ -270,7 +299,7 @@ public class MainActivity extends Activity
         LinearLayout testFieldContainer = currentView.findViewById(R.id.testFieldContainer);
 
         // build or rebuild the list of fields in case any were added or removed and update the ui
-        TestField[][] testFields = new TestField[Settings.getTestFieldGroupCount()][];
+        TestField[][] testFields = new TestField[groupCount][];
         for (int curGroupIndex = 0; curGroupIndex < testFields.length; curGroupIndex++) {
             if (curGroupIndex == mCurrentTabIndex) {
 
