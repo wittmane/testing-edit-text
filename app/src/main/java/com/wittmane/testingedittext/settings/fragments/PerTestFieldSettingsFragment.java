@@ -18,6 +18,7 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_ID;
 import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
+import static com.wittmane.testingedittext.settings.Settings.BASE_GROUP_INDEX;
 import static com.wittmane.testingedittext.settings.Settings.BASE_SUFFIX;
 import static com.wittmane.testingedittext.settings.Settings.FIELD_INFIX;
 
@@ -50,9 +51,9 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
     @Override
     public void addPreferencesFromResource(int preferencesResId) {
         int groupIndex = getGroupIndex();
-        int fieldIndex = getFieldId();
+        int fieldIndex = getFieldIndex();
         // make sure we already got a valid field index from onCreate
-        if ((groupIndex != BASE_FIELD_INDEX
+        if ((groupIndex != BASE_GROUP_INDEX
                 && (groupIndex < 0 || groupIndex >= Settings.getTestFieldGroupCount()))
                 || (fieldIndex != BASE_FIELD_INDEX
                         && (fieldIndex < 0
