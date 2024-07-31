@@ -437,11 +437,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             try {
                 id = Integer.parseInt(prefKey.substring(prefixLength + FIELD_INFIX.length()));
             } catch (NumberFormatException ignored) {
+                Log.e(TAG, "Failed to parse field ID for pref " + prefKey);
                 return;
             }
             if (!mTestFields.containsKey(id) && !mPrefs.contains(prefKey)) {
                 // this is most likely from deleting an old preference when the field is deleted, so
                 // we don't need to bother loading this value
+                return;
+            }
+            if (!isFieldIdValid(id)) {
+                Log.e(TAG, "Field " + id + " for pref " + prefKey + " doesn't exist");
                 return;
             }
             String prefKeyPrefix = prefKey.substring(0, prefixLength);
@@ -460,9 +465,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadTestFieldSetting(String prefKeyPrefix, int fieldId) {
         TestField testField = getField(fieldId);
-        if (testField == null) {
-            return;
-        }
         switch (prefKeyPrefix) {
             case PREF_INPUT_TYPE_CLASS_PREFIX:
             case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
@@ -734,15 +736,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static AppLevelDefaults getTestFieldOrBase(int groupIndex, int fieldIndex,
                                                        Predicate<TestField> override) {
-        TestField testField;
-        //TODO: (EW) consider moving this index check into getField since this is the only caller
-        if (groupIndex < 0 || groupIndex >= getTestFieldGroupCount()
-                || fieldIndex < 0 || fieldIndex >= getTestFieldCount(groupIndex)) {
-            testField = null;
-        } else {
-            testField = getField(groupIndex, fieldIndex);
-        }
-        if (testField == null || !override.test(testField)) {
+        TestField testField = getField(groupIndex, fieldIndex);
+        if (!override.test(testField)) {
             return getInstance().mTestFieldDefaults;
         }
         return testField;
@@ -1569,18 +1564,42 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static TestField getField(int groupIndex, int fieldIndex) {
-        return getInstance().mTestFields.get(
-                getInstance().mTestGroups.get(groupIndex).mFieldIds[fieldIndex]);
+        int fieldId = getTestFieldId(groupIndex, fieldIndex);
+        TestField field = getField(getTestFieldId(groupIndex, fieldIndex));
+        if (field == null) {
+            Log.e(TAG, "The object for field " + fieldId + " (group " + groupIndex
+                    + ", field " + fieldIndex + ") is missing");
+            // we know the field should exist, so add it
+            field = new TestField(fieldId);
+            getInstance().mTestFields.put(fieldId, field);
+        }
+        return field;
     }
 
     private static TestField getField(int fieldId) {
-        if (!getInstance().mTestFields.containsKey(fieldId)) {
-            //TODO: (EW) consider just crashing similar to the index out of bounds in the other
-            // overload (or make that fail gracefully to match this)
-            Log.e(TAG, "Tried to get field " + fieldId + ", which doesn't exist");
-            return null;
+        if (!isFieldIdValid(fieldId)) {
+            throw new IllegalArgumentException(
+                    "Tried to get field " + fieldId + ", which doesn't exist");
         }
         return getInstance().mTestFields.get(fieldId);
+    }
+
+    private static boolean isFieldIdValid(int fieldId) {
+        if (getInstance().mTestFields.containsKey(fieldId)) {
+            return true;
+        }
+        // double check that the ID doesn't exist in any of the groups
+        for (TestGroup group : getInstance().mTestGroups) {
+            for (int id : group.mFieldIds) {
+                if (id == fieldId) {
+                    Log.e(TAG, "The object for field " + fieldId + " is missing");
+                    // add the missing field
+                    getInstance().mTestFields.put(fieldId, new TestField(fieldId));
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static void addTestFieldGroup() {
@@ -2315,6 +2334,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private boolean mOverrideSystemBehavior;
 
         public TestField(int id) {
+            if (id == BASE_FIELD_ID) {
+                throw new IllegalArgumentException(
+                        "The id can't be BASE_FIELD_ID (" + BASE_FIELD_ID + ")");
+            }
             mId = id;
         }
     }
