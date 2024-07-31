@@ -732,13 +732,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return fieldId == BASE_FIELD_ID ? BASE_SUFFIX : (FIELD_INFIX + fieldId);
     }
 
-    //TODO: (EW) remove this overload and force specifying the group index everywhere
-    private static AppLevelDefaults getTestFieldOrBase(int flatIndex,
-                                                       Predicate<TestField> override) {
-        FieldIndex fieldIndex = new FieldIndex(flatIndex);
-        return getTestFieldOrBase(fieldIndex.groupIndex, fieldIndex.fieldIndex, override);
-    }
-
     private static AppLevelDefaults getTestFieldOrBase(int groupIndex, int fieldIndex,
                                                        Predicate<TestField> override) {
         TestField testField;
@@ -755,6 +748,36 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return testField;
     }
 
+    private static AppLevelDefaults getTestFieldOrBaseForTextInputModification(int groupIndex,
+                                                                               int fieldIndex) {
+        return getTestFieldOrBase(groupIndex, fieldIndex,
+            testField -> testField.mOverrideTextInputModification);
+    }
+
+    private static AppLevelDefaults getTestFieldOrBaseForTextReturn(int groupIndex,
+                                                                    int fieldIndex) {
+        return getTestFieldOrBase(groupIndex, fieldIndex,
+                testField -> testField.mOverrideTextReturn);
+    }
+
+    private static AppLevelDefaults getTestFieldOrBaseForTextComposition(int groupIndex,
+                                                                         int fieldIndex) {
+        return getTestFieldOrBase(groupIndex, fieldIndex,
+                testField -> testField.mOverrideTextComposition);
+    }
+
+    private static AppLevelDefaults getTestFieldOrBaseForTargetVersion(int groupIndex,
+                                                                       int fieldIndex) {
+        return getTestFieldOrBase(groupIndex, fieldIndex,
+                testField -> testField.mOverrideTargetVersion);
+    }
+
+    private static AppLevelDefaults getTestFieldOrBaseForSystemBehavior(int groupIndex,
+                                                                        int fieldIndex) {
+        return getTestFieldOrBase(groupIndex, fieldIndex,
+                testField -> testField.mOverrideSystemBehavior);
+    }
+
     private static boolean readOverrideTextInputModification(final SharedPreferenceManager prefs,
                                                              int fieldId) {
         return prefs.getBoolean(PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX + getSuffix(fieldId),
@@ -769,8 +792,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_MODIFY_COMMITTED_TEXT);
     }
 
-    public static boolean shouldModifyCommittedText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static boolean shouldModifyCommittedText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mModifyCommittedText;
     }
 
@@ -782,8 +805,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_MODIFY_COMPOSED_TEXT);
     }
 
-    public static boolean shouldModifyComposedText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static boolean shouldModifyComposedText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mModifyComposedText;
     }
 
@@ -795,8 +818,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY);
     }
 
-    public static boolean shouldModifyComposedChangesOnly(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static boolean shouldModifyComposedChangesOnly(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mModifyComposedChangesOnly;
     }
 
@@ -808,8 +831,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END);
     }
 
-    public static boolean shouldConsiderComposedChangesFromEnd(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static boolean shouldConsiderComposedChangesFromEnd(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mConsiderComposedChangesFromEnd;
     }
 
@@ -820,8 +843,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_RESTRICT_TO_INCLUDE);
     }
 
-    public static boolean shouldRestrictToInclude(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static boolean shouldRestrictToInclude(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mRestrictToInclude;
     }
 
@@ -841,8 +864,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return result;
     }
 
-    public static String[] getRestrictSpecific(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static String[] getRestrictSpecific(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mRestrictSpecific;
     }
 
@@ -935,8 +958,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .readValue();
     }
 
-    public static @Nullable IntRange getRestrictRange(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static @Nullable IntRange getRestrictRange(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mRestrictRange;
     }
 
@@ -960,8 +983,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return result;
     }
 
-    public static TranslateText[] getTranslateSpecific(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static TranslateText[] getTranslateSpecific(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mTranslateSpecific;
     }
 
@@ -973,8 +996,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_TRANSLATE_FULL_MATCH_ONLY);
     }
 
-    public static boolean shouldTranslateFullMatchOnly(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static boolean shouldTranslateFullMatchOnly(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mTranslateFullMatchOnly;
     }
 
@@ -985,8 +1008,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_CODEPOINT_SHIFT);
     }
 
-    public static int getShiftCodepoint(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextInputModification)
+    public static int getShiftCodepoint(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mShiftCodepoint;
     }
 
@@ -1003,8 +1026,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_EXTRACTING_TEXT);
     }
 
-    public static boolean shouldSkipExtractingText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static boolean shouldSkipExtractingText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mSkipExtractingText;
     }
 
@@ -1016,8 +1039,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR);
     }
 
-    public static boolean shouldIgnoreExtractedTextMonitor(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static boolean shouldIgnoreExtractedTextMonitor(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mIgnoreExtractedTextMonitor;
     }
 
@@ -1030,8 +1053,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT);
     }
 
-    public static boolean shouldUpdateSelectionBeforeExtractedText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static boolean shouldUpdateSelectionBeforeExtractedText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mUpdateSelectionBeforeExtractedText;
     }
 
@@ -1044,8 +1067,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES);
     }
 
-    public static boolean shouldUpdateExtractedTextOnlyOnNetChanges(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static boolean shouldUpdateExtractedTextOnlyOnNetChanges(int groupIndex,
+                                                                    int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mUpdateExtractedTextOnlyOnNetChanges;
     }
 
@@ -1056,8 +1080,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_EXTRACT_FULL_TEXT);
     }
 
-    public static boolean shouldExtractFullText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static boolean shouldExtractFullText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mExtractFullText;
     }
 
@@ -1069,8 +1093,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT);
     }
 
-    public static int getExtractMonitorTextLimit(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static int getExtractMonitorTextLimit(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mExtractMonitorTextLimit;
     }
 
@@ -1081,8 +1105,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_RETURNED_TEXT_LIMIT);
     }
 
-    public static int getReturnedTextLimit(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextReturn)
+    public static int getReturnedTextLimit(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mReturnedTextLimit;
     }
 
@@ -1099,8 +1123,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_DELETE_THROUGH_COMPOSING_TEXT);
     }
 
-    public static boolean shouldDeleteThroughComposingText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextComposition)
+    public static boolean shouldDeleteThroughComposingText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextComposition(groupIndex, fieldIndex)
                 .mDeleteThroughComposingText;
     }
 
@@ -1112,8 +1136,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_KEEP_EMPTY_COMPOSING_POSITION);
     }
 
-    public static boolean shouldKeepEmptyComposingPosition(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTextComposition)
+    public static boolean shouldKeepEmptyComposingPosition(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTextComposition(groupIndex, fieldIndex)
                 .mKeepEmptyComposingPosition;
     }
 
@@ -1130,8 +1154,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_TAKESNAPSHOT);
     }
 
-    public static boolean shouldSkipTakeSnapshot(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipTakeSnapshot(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipTakeSnapshot;
     }
 
@@ -1143,8 +1167,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_GETSURROUNDINGTEXT);
     }
 
-    public static boolean shouldSkipGetSurroundingText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipGetSurroundingText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipGetSurroundingText;
     }
 
@@ -1156,8 +1180,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_PERFORMSPELLCHECK);
     }
 
-    public static boolean shouldSkipPerformSpellCheck(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipPerformSpellCheck(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipPerformSpellCheck;
     }
 
@@ -1169,8 +1193,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_SETIMECONSUMESINPUT);
     }
 
-    public static boolean shouldSkipSetImeConsumesInput(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipSetImeConsumesInput(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipSetImeConsumesInput;
     }
 
@@ -1181,8 +1205,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_COMMITCONTENT);
     }
 
-    public static boolean shouldSkipCommitContent(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipCommitContent(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipCommitContent;
     }
 
@@ -1194,8 +1218,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_CLOSECONNECTION);
     }
 
-    public static boolean shouldSkipCloseConnection(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipCloseConnection(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipCloseConnection;
     }
 
@@ -1206,8 +1230,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX + getSuffix(fieldId), DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
     }
 
-    public static boolean shouldSkipDeleteSurroundingTextInCodePoints(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipDeleteSurroundingTextInCodePoints(int groupIndex,
+                                                                      int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipDeleteSurroundingTextInCodePoints;
     }
 
@@ -1219,8 +1244,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_REQUESTCURSORUPDATES);
     }
 
-    public static boolean shouldSkipRequestCursorUpdates(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipRequestCursorUpdates(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipRequestCursorUpdates;
     }
 
@@ -1232,8 +1257,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_COMMITCORRECTION);
     }
 
-    public static boolean shouldSkipCommitCorrection(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipCommitCorrection(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipCommitCorrection;
     }
 
@@ -1245,8 +1270,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_GETSELECTEDTEXT);
     }
 
-    public static boolean shouldSkipGetSelectedText(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipGetSelectedText(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipGetSelectedText;
     }
 
@@ -1258,8 +1283,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_SKIP_SETCOMPOSINGREGION);
     }
 
-    public static boolean shouldSkipSetComposingRegion(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideTargetVersion)
+    public static boolean shouldSkipSetComposingRegion(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipSetComposingRegion;
     }
 
@@ -1276,8 +1301,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getInt(PREF_UPDATE_DELAY_PREFIX + getSuffix(fieldId), DEFAULT_UPDATE_DELAY);
     }
 
-    public static int getUpdateDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getUpdateDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mUpdateDelay;
     }
 
@@ -1289,8 +1314,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_FINISHCOMPOSINGTEXT_DELAY);
     }
 
-    public static int getFinishComposingTextDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getFinishComposingTextDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mFinishComposingTextDelay;
     }
 
@@ -1302,8 +1327,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_GETSURROUNDINGTEXT_DELAY);
     }
 
-    public static int getGetSurroundingTextDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getGetSurroundingTextDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetSurroundingTextDelay;
     }
 
@@ -1315,8 +1340,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_GETTEXTBEFORECURSOR_DELAY);
     }
 
-    public static int getGetTextBeforeCursorDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getGetTextBeforeCursorDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetTextBeforeCursorDelay;
     }
 
@@ -1328,8 +1353,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_GETSELECTEDTEXT_DELAY);
     }
 
-    public static int getGetSelectedTextDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getGetSelectedTextDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetSelectedTextDelay;
     }
 
@@ -1341,8 +1366,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_GETTEXTAFTERCURSOR_DELAY);
     }
 
-    public static int getGetTextAfterCursorDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getGetTextAfterCursorDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetTextAfterCursorDelay;
     }
 
@@ -1354,8 +1379,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_GETCURSORCAPSMODE_DELAY);
     }
 
-    public static int getGetCursorCapsModeDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getGetCursorCapsModeDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetCursorCapsModeDelay;
     }
 
@@ -1366,8 +1391,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_GETEXTRACTEDTEXT_DELAY);
     }
 
-    public static int getGetExtractedTextDelay(int fieldId) {
-        return getTestFieldOrBase(fieldId, testField -> testField.mOverrideSystemBehavior)
+    public static int getGetExtractedTextDelay(int groupIndex, int fieldIndex) {
+        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetExtractedTextDelay;
     }
 
@@ -1543,42 +1568,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getInstance().mTestGroups.get(groupIndex).mFieldIds[fieldIndex];
     }
 
-    //TODO: (EW) consider removing the need for this
-    public static int getTestFieldFlatIndex(int groupIndex, int fieldIndex) {
-        int flatIndex = 0;
-        for (int i = 0; i < groupIndex; i++) {
-            flatIndex += getInstance().mTestGroups.get(i).mFieldIds.length;
-        }
-        flatIndex += fieldIndex;
-        return flatIndex;
-    }
-
-    //TODO: (EW) remove the need for this (or at least the flat index converting constructor)
-    private static class FieldIndex {
-        public final int groupIndex;
-        public final int fieldIndex;
-        public FieldIndex(int flatIndex) {
-            int groupIndex = 0;
-            int fieldIndex = flatIndex;
-            while (groupIndex < getInstance().mTestGroups.size()
-                    && getInstance().mTestGroups.get(groupIndex).mFieldIds.length <= fieldIndex) {
-                fieldIndex -= getInstance().mTestGroups.get(groupIndex).mFieldIds.length;
-                groupIndex++;
-            }
-            this.groupIndex = groupIndex;
-            this.fieldIndex = fieldIndex;
-        }
-    }
-
-    //TODO: (EW) consider removing the need for this
-    public static int getTestFieldCount() {
-        int totalTestFieldCount = 0;
-        for (TestGroup group : getInstance().mTestGroups) {
-            totalTestFieldCount += group.mFieldIds.length;
-        }
-        return totalTestFieldCount;
-    }
-
     private static TestField getField(int groupIndex, int fieldIndex) {
         return getInstance().mTestFields.get(
                 getInstance().mTestGroups.get(groupIndex).mFieldIds[fieldIndex]);
@@ -1592,13 +1581,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return null;
         }
         return getInstance().mTestFields.get(fieldId);
-    }
-
-    //TODO: (EW) consider removing the need for this
-    public static int getTestFieldId(int flatIndex) {
-        FieldIndex fieldIndex = new FieldIndex(flatIndex);
-        return getInstance().mTestGroups.get(fieldIndex.groupIndex)
-                .mFieldIds[fieldIndex.fieldIndex];
     }
 
     public static void addTestFieldGroup() {
@@ -1943,8 +1925,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return inputType;
     }
 
-    public static int getTestFieldInputType(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mInputType;
+    public static int getTestFieldInputType(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mInputType;
     }
 
     public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
@@ -1955,8 +1937,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 DEFAULT_NULL_INPUT_TYPE_MULTILINE);
     }
 
-    public static boolean getTestFieldNullInputTypeMultiline(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mNullInputTypeMultiline;
+    public static boolean getTestFieldNullInputTypeMultiline(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mNullInputTypeMultiline;
     }
 
     public static boolean defaultCreateInputConnection(int inputType) {
@@ -1974,8 +1956,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 defaultCreateInputConnection(inputType));
     }
 
-    public static boolean getTestFieldCreateInputConnection(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mCreateInputConnection;
+    public static boolean getTestFieldCreateInputConnection(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mCreateInputConnection;
     }
 
     public static boolean defaultSendSelectionInfo(int inputType) {
@@ -1994,8 +1976,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 defaultCreateInputConnection(inputType));
     }
 
-    public static boolean getTestFieldSendSelectionInfo(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mSendSelectionInfo;
+    public static boolean getTestFieldSendSelectionInfo(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mSendSelectionInfo;
     }
 
     public static boolean defaultSendText(int inputType) {
@@ -2013,8 +1995,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 defaultSendText(inputType));
     }
 
-    public static boolean getTestFieldSendText(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mSendText;
+    public static boolean getTestFieldSendText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mSendText;
     }
 
     public static final int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
@@ -2057,8 +2039,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
-    public static int getTestFieldComposingTextBehavior(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mComposingTextBehavior;
+    public static int getTestFieldComposingTextBehavior(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mComposingTextBehavior;
     }
 
     public static boolean defaultAllowDeleteSurroundingText(int inputType) {
@@ -2082,8 +2064,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 defaultAllowDeleteSurroundingText(inputType));
     }
 
-    public static boolean getTestFieldAllowDeleteSurroundingText(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mAllowDeleteSurroundingText;
+    public static boolean getTestFieldAllowDeleteSurroundingText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mAllowDeleteSurroundingText;
     }
 
     public static boolean defaultAllowSettingSelection(int inputType) {
@@ -2107,8 +2089,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 defaultAllowSettingSelection(inputType));
     }
 
-    public static boolean getTestFieldAllowSettingSelection(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mAllowSettingSelection;
+    public static boolean getTestFieldAllowSettingSelection(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mAllowSettingSelection;
     }
 
     private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
@@ -2184,16 +2166,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return imeOptions;
     }
 
-    public static int getTestFieldImeOptions(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mImeOptions;
+    public static int getTestFieldImeOptions(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mImeOptions;
     }
 
     private static int readTestFieldImeActionId(final SharedPreferenceManager prefs, int fieldId) {
         return prefs.getInt(PREF_IME_ACTION_ID_PREFIX + FIELD_INFIX + fieldId, 0);
     }
 
-    public static int getTestFieldImeActionId(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mImeActionId;
+    public static int getTestFieldImeActionId(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mImeActionId;
     }
 
     private static String readTestFieldImeActionLabel(final SharedPreferenceManager prefs,
@@ -2201,8 +2183,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getString(PREF_IME_ACTION_LABEL_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
-    public static String getTestFieldImeActionLabel(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mImeActionLabel;
+    public static String getTestFieldImeActionLabel(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mImeActionLabel;
     }
 
     private static String readTestFieldPrivateImeOptions(final SharedPreferenceManager prefs,
@@ -2210,8 +2192,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getString(PREF_PRIVATE_IME_OPTIONS_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
-    public static String getTestFieldPrivateImeOptions(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mPrivateImeOptions;
+    public static String getTestFieldPrivateImeOptions(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mPrivateImeOptions;
     }
 
     private static boolean readTestFieldSelectAllOnFocus(final SharedPreferenceManager prefs,
@@ -2219,16 +2201,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getBoolean(PREF_SELECT_ALL_ON_FOCUS_PREFIX + FIELD_INFIX + fieldId, false);
     }
 
-    public static boolean shouldTestFieldSelectAllOnFocus(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mSelectAllOnFocus;
+    public static boolean shouldTestFieldSelectAllOnFocus(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mSelectAllOnFocus;
     }
 
     private static int readTestFieldMaxLength(final SharedPreferenceManager prefs, int fieldId) {
         return prefs.getInt(PREF_MAX_LENGTH_PREFIX + FIELD_INFIX + fieldId, -1);
     }
 
-    public static int getTestFieldMaxLength(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mMaxLength;
+    public static int getTestFieldMaxLength(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mMaxLength;
     }
 
     private static boolean readTestFieldAllowUndo(final SharedPreferenceManager prefs,
@@ -2236,8 +2218,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getBoolean(PREF_ALLOW_UNDO_PREFIX + FIELD_INFIX + fieldId, true);
     }
 
-    public static boolean shouldTestFieldAllowUndo(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mAllowUndo;
+    public static boolean shouldTestFieldAllowUndo(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mAllowUndo;
     }
 
     private static Locale[] readTestFieldTextLocales(final SharedPreferenceManager prefs,
@@ -2246,8 +2228,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_TEXT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
-    public static Locale[] getTestFieldTextLocales(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mTextLocales;
+    public static Locale[] getTestFieldTextLocales(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mTextLocales;
     }
 
     private static Locale[] readTestFieldImeHintLocales(final SharedPreferenceManager prefs,
@@ -2256,8 +2238,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_IME_HINT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
-    public static Locale[] getTestFieldImeHintLocales(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mImeHintLocales;
+    public static Locale[] getTestFieldImeHintLocales(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mImeHintLocales;
     }
 
     private static CharSequence readTestFieldDefaultText(final SharedPreferenceManager prefs,
@@ -2265,8 +2247,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getCharSequence(PREF_IME_DEFAULT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
-    public static CharSequence getTestFieldDefaultText(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mDefaultText;
+    public static CharSequence getTestFieldDefaultText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mDefaultText;
     }
 
     private static CharSequence readTestFieldHintText(final SharedPreferenceManager prefs,
@@ -2274,8 +2256,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return prefs.getCharSequence(PREF_IME_HINT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
-    public static CharSequence getTestFieldHintText(int fieldIndex) {
-        return getField(getTestFieldId(fieldIndex)).mHintText;
+    public static CharSequence getTestFieldHintText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mHintText;
     }
 
     public static class TestGroup {
@@ -2378,8 +2360,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         int mGetExtractedTextDelay;
     }
 
-    public static EditorSettings getTestFieldSettings(int fieldIndex) {
-        return new FieldPrefEditorSettings(fieldIndex);
+    public static EditorSettings getTestFieldSettings(int groupIndex, int fieldIndex) {
+        return new FieldPrefEditorSettings(groupIndex, fieldIndex);
     }
 
     public interface EditorSettings {
@@ -2436,235 +2418,238 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static class FieldPrefEditorSettings implements EditorSettings {
-        private final int mIndex;
+        //TODO: (EW) would it be better to use the field ID instead of the index?
+        private final int mGroupIndex;
+        private final int mFieldIndex;
 
-        private FieldPrefEditorSettings(int fieldIndex) {
-            mIndex = fieldIndex;
+        private FieldPrefEditorSettings(int groupIndex, int fieldIndex) {
+            mGroupIndex = groupIndex;
+            mFieldIndex = fieldIndex;
         }
 
         @Override
         public boolean nullInputTypeMultiline() {
-            return Settings.getTestFieldNullInputTypeMultiline(mIndex);
+            return Settings.getTestFieldNullInputTypeMultiline(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldCreateInputConnection() {
-            return Settings.getTestFieldCreateInputConnection(mIndex);
+            return Settings.getTestFieldCreateInputConnection(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSendSelectionInfo() {
-            return Settings.getTestFieldSendSelectionInfo(mIndex);
+            return Settings.getTestFieldSendSelectionInfo(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSendText() {
-            return Settings.getTestFieldSendText(mIndex);
+            return Settings.getTestFieldSendText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int composingTextBehavior() {
-            return Settings.getTestFieldComposingTextBehavior(mIndex);
+            return Settings.getTestFieldComposingTextBehavior(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean allowDeleteSurroundingText() {
-            return Settings.getTestFieldAllowDeleteSurroundingText(mIndex);
+            return Settings.getTestFieldAllowDeleteSurroundingText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean allowSettingSelection() {
-            return Settings.getTestFieldAllowSettingSelection(mIndex);
+            return Settings.getTestFieldAllowSettingSelection(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldModifyCommittedText() {
-            return Settings.shouldModifyCommittedText(mIndex);
+            return Settings.shouldModifyCommittedText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldModifyComposedText() {
-            return Settings.shouldModifyComposedText(mIndex);
+            return Settings.shouldModifyComposedText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldModifyComposedChangesOnly() {
-            return Settings.shouldModifyComposedChangesOnly(mIndex);
+            return Settings.shouldModifyComposedChangesOnly(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldConsiderComposedChangesFromEnd() {
-            return Settings.shouldConsiderComposedChangesFromEnd(mIndex);
+            return Settings.shouldConsiderComposedChangesFromEnd(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldRestrictToInclude() {
-            return Settings.shouldRestrictToInclude(mIndex);
+            return Settings.shouldRestrictToInclude(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public String[] getRestrictSpecific() {
-            return Settings.getRestrictSpecific(mIndex);
+            return Settings.getRestrictSpecific(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public @Nullable IntRange getRestrictRange() {
-            return Settings.getRestrictRange(mIndex);
+            return Settings.getRestrictRange(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public TranslateText[] getTranslateSpecific() {
-            return Settings.getTranslateSpecific(mIndex);
+            return Settings.getTranslateSpecific(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldTranslateFullMatchOnly() {
-            return Settings.shouldTranslateFullMatchOnly(mIndex);
+            return Settings.shouldTranslateFullMatchOnly(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getCodepointShift() {
-            return Settings.getShiftCodepoint(mIndex);
+            return Settings.getShiftCodepoint(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipExtractingText() {
-            return Settings.shouldSkipExtractingText(mIndex);
+            return Settings.shouldSkipExtractingText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldIgnoreExtractedTextMonitor() {
-            return Settings.shouldIgnoreExtractedTextMonitor(mIndex);
+            return Settings.shouldIgnoreExtractedTextMonitor(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldUpdateSelectionBeforeExtractedText() {
-            return Settings.shouldUpdateSelectionBeforeExtractedText(mIndex);
+            return Settings.shouldUpdateSelectionBeforeExtractedText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
-            return Settings.shouldUpdateExtractedTextOnlyOnNetChanges(mIndex);
+            return Settings.shouldUpdateExtractedTextOnlyOnNetChanges(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldExtractFullText() {
-            return Settings.shouldExtractFullText(mIndex);
+            return Settings.shouldExtractFullText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getExtractMonitorTextLimit() {
-            return Settings.getExtractMonitorTextLimit(mIndex);
+            return Settings.getExtractMonitorTextLimit(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getReturnedTextLimit() {
-            return Settings.getReturnedTextLimit(mIndex);
+            return Settings.getReturnedTextLimit(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldDeleteThroughComposingText() {
-            return Settings.shouldDeleteThroughComposingText(mIndex);
+            return Settings.shouldDeleteThroughComposingText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldKeepEmptyComposingPosition() {
-            return Settings.shouldKeepEmptyComposingPosition(mIndex);
+            return Settings.shouldKeepEmptyComposingPosition(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipTakeSnapshot() {
-            return Settings.shouldSkipTakeSnapshot(mIndex);
+            return Settings.shouldSkipTakeSnapshot(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipGetSurroundingText() {
-            return Settings.shouldSkipGetSurroundingText(mIndex);
+            return Settings.shouldSkipGetSurroundingText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipPerformSpellCheck() {
-            return Settings.shouldSkipPerformSpellCheck(mIndex);
+            return Settings.shouldSkipPerformSpellCheck(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipSetImeConsumesInput() {
-            return Settings.shouldSkipSetImeConsumesInput(mIndex);
+            return Settings.shouldSkipSetImeConsumesInput(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipCommitContent() {
-            return Settings.shouldSkipCommitContent(mIndex);
+            return Settings.shouldSkipCommitContent(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipCloseConnection() {
-            return Settings.shouldSkipCloseConnection(mIndex);
+            return Settings.shouldSkipCloseConnection(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipDeleteSurroundingTextInCodePoints() {
-            return Settings.shouldSkipDeleteSurroundingTextInCodePoints(mIndex);
+            return Settings.shouldSkipDeleteSurroundingTextInCodePoints(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipRequestCursorUpdates() {
-            return Settings.shouldSkipRequestCursorUpdates(mIndex);
+            return Settings.shouldSkipRequestCursorUpdates(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipCommitCorrection() {
-            return Settings.shouldSkipCommitCorrection(mIndex);
+            return Settings.shouldSkipCommitCorrection(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipGetSelectedText() {
-            return Settings.shouldSkipGetSelectedText(mIndex);
+            return Settings.shouldSkipGetSelectedText(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public boolean shouldSkipSetComposingRegion() {
-            return Settings.shouldSkipSetComposingRegion(mIndex);
+            return Settings.shouldSkipSetComposingRegion(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getUpdateDelay() {
-            return Settings.getUpdateDelay(mIndex);
+            return Settings.getUpdateDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getFinishComposingTextDelay() {
-            return Settings.getFinishComposingTextDelay(mIndex);
+            return Settings.getFinishComposingTextDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getGetSurroundingTextDelay() {
-            return Settings.getGetSurroundingTextDelay(mIndex);
+            return Settings.getGetSurroundingTextDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getGetTextBeforeCursorDelay() {
-            return Settings.getGetTextBeforeCursorDelay(mIndex);
+            return Settings.getGetTextBeforeCursorDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getGetSelectedTextDelay() {
-            return Settings.getGetSelectedTextDelay(mIndex);
+            return Settings.getGetSelectedTextDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getGetTextAfterCursorDelay() {
-            return Settings.getGetTextAfterCursorDelay(mIndex);
+            return Settings.getGetTextAfterCursorDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getGetCursorCapsModeDelay() {
-            return Settings.getGetCursorCapsModeDelay(mIndex);
+            return Settings.getGetCursorCapsModeDelay(mGroupIndex, mFieldIndex);
         }
 
         @Override
         public int getGetExtractedTextDelay() {
-            return Settings.getGetExtractedTextDelay(mIndex);
+            return Settings.getGetExtractedTextDelay(mGroupIndex, mFieldIndex);
         }
     }
 

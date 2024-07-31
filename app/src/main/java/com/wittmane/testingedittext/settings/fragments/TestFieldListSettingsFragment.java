@@ -200,12 +200,11 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
 
     private static CharSequence getFieldTitle(final Context context, final int groupIndex,
                                               final int fieldIndex) {
-        int flatIndex = Settings.getTestFieldFlatIndex(groupIndex, fieldIndex);
-        CharSequence defaultText = Settings.getTestFieldDefaultText(flatIndex);
+        CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
         if (!TextUtils.isEmpty(defaultText)) {
             return defaultText;
         } else {
-            CharSequence hintText = Settings.getTestFieldHintText(flatIndex);
+            CharSequence hintText = Settings.getTestFieldHintText(groupIndex, fieldIndex);
             if (!TextUtils.isEmpty(hintText)) {
                 return hintText;
             } else {
@@ -239,32 +238,32 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
             int groupIndex = getGroupIndex();
             int fieldIndex = getFieldIndex();
             setTitle(getFieldTitle(context, groupIndex, fieldIndex));
-            int flatIndex = Settings.getTestFieldFlatIndex(groupIndex, fieldIndex);
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
-                            InputTypePreference.getInputTypeDescription(flatIndex, context),
+                            InputTypePreference.getInputTypeDescription(groupIndex, fieldIndex,
+                                    context),
                             context),
                     getLabeledProperty(R.string.ime_options,
-                            ImeOptionsPreference.getImeOptionsDescription(
-                                    Settings.getTestFieldImeOptions(flatIndex), context),
+                            ImeOptionsPreference.getImeOptionsDescription(groupIndex, fieldIndex,
+                                    context),
                             context),
                     getLabeledProperty(R.string.ime_action,
-                            ImeActionPreference.getImeActionDescription(
-                                    Settings.getTestFieldImeActionId(flatIndex),
-                                    Settings.getTestFieldImeActionLabel(flatIndex),
+                            ImeActionPreference.getImeActionDescription(groupIndex, fieldIndex,
                                     context),
                             context),
                     getLabeledPrivateImeOptions(
-                            Settings.getTestFieldPrivateImeOptions(flatIndex), context),
-                    Settings.shouldTestFieldSelectAllOnFocus(flatIndex)
+                            Settings.getTestFieldPrivateImeOptions(groupIndex, fieldIndex),
+                            context),
+                    Settings.shouldTestFieldSelectAllOnFocus(groupIndex, fieldIndex)
                             ? context.getString(R.string.select_all_on_focus) : null,
-                    getLabeledMaxLength(Settings.getTestFieldMaxLength(flatIndex), context),
-                    Settings.shouldTestFieldAllowUndo(flatIndex)
+                    getLabeledMaxLength(Settings.getTestFieldMaxLength(groupIndex, fieldIndex),
+                            context),
+                    Settings.shouldTestFieldAllowUndo(groupIndex, fieldIndex)
                             ? context.getString(R.string.allow_undo) : null,
                     getLabeledTextLocales(
-                            Settings.getTestFieldTextLocales(flatIndex), context),
+                            Settings.getTestFieldTextLocales(groupIndex, fieldIndex), context),
                     getLabeledImeHintLocales(
-                            Settings.getTestFieldImeHintLocales(flatIndex), context)
+                            Settings.getTestFieldImeHintLocales(groupIndex, fieldIndex), context)
             };
             StringBuilder sb = new StringBuilder();
             for (String summaryPiece : summaryInfo) {

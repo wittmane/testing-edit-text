@@ -44,7 +44,8 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mFieldIndex = getIndexFromArgs(FIELD_INDEX_BUNDLE_KEY, Settings.getTestFieldCount(),
+        mFieldIndex = getIndexFromArgs(FIELD_INDEX_BUNDLE_KEY,
+                Settings.getTestFieldCount(getGroupIndex()),
                 BASE_FIELD_INDEX);
     }
 

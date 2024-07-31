@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,5 +31,10 @@ public class IntRange {
 
     public int getEnd() {
         return mEnd;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + mStart + ", " + mEnd + "]";
     }
 }

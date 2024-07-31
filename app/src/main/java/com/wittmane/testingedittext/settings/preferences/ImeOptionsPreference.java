@@ -59,11 +59,11 @@ public class ImeOptionsPreference extends PerTestFieldPreference {
 
     @Override
     protected void updateSummary() {
-        setSummary(getImeOptionsDescription(Settings.getTestFieldImeOptions(getFieldIndex()),
-                getContext()));
+        setSummary(getImeOptionsDescription(getGroupIndex(), getFieldIndex(), getContext()));
     }
 
-    public static String getImeOptionsDescription(int imeOptions, Context context) {
+    public static String getImeOptionsDescription(int groupIndex, int fieldIndex, Context context) {
+        int imeOptions = Settings.getTestFieldImeOptions(groupIndex, fieldIndex);
         int imeOptionsAction = imeOptions & EditorInfo.IME_MASK_ACTION;
         String imeOptionsActionBaseDisplay;
         List<String> imeOptionsActionDetails = new ArrayList<>();

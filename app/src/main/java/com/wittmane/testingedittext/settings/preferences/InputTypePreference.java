@@ -61,30 +61,30 @@ public class InputTypePreference extends PerTestFieldPreference {
 
     @Override
     protected void updateSummary() {
-        setSummary(getInputTypeDescription(getFieldIndex(), getContext()));
+        setSummary(getInputTypeDescription(getGroupIndex(), getFieldIndex(), getContext()));
     }
 
-    public static String getInputTypeDescription(int fieldIndex, Context context) {
-        int inputType = Settings.getTestFieldInputType(fieldIndex);
+    public static String getInputTypeDescription(int groupIndex, int fieldIndex, Context context) {
+        int inputType = Settings.getTestFieldInputType(groupIndex, fieldIndex);
 
         if (inputType == InputType.TYPE_NULL) {
             List<String> extraDetails = new ArrayList<>();
-            if (Settings.getTestFieldNullInputTypeMultiline(fieldIndex)) {
+            if (Settings.getTestFieldNullInputTypeMultiline(groupIndex, fieldIndex)) {
                 extraDetails.add(context.getString(
                         R.string.input_type_text_flag_multi_line));
             }
-            if (Settings.getTestFieldSendSelectionInfo(fieldIndex)) {
+            if (Settings.getTestFieldSendSelectionInfo(groupIndex, fieldIndex)) {
                 extraDetails.add(context.getString(
                         R.string.send_selection_info_title));
             }
-            if (Settings.getTestFieldCreateInputConnection(fieldIndex)) {
+            if (Settings.getTestFieldCreateInputConnection(groupIndex, fieldIndex)) {
                 extraDetails.add(context.getString(
                         R.string.create_input_connection_title));
-                if (Settings.getTestFieldSendText(fieldIndex)) {
+                if (Settings.getTestFieldSendText(groupIndex, fieldIndex)) {
                     extraDetails.add(context.getString(
                             R.string.send_text_title));
                 }
-                switch (Settings.getTestFieldComposingTextBehavior(fieldIndex)) {
+                switch (Settings.getTestFieldComposingTextBehavior(groupIndex, fieldIndex)) {
                     case Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE:
                         extraDetails.add(context.getString(
                                 R.string.composing_text_behavior_compose));
@@ -94,11 +94,11 @@ public class InputTypePreference extends PerTestFieldPreference {
                                 R.string.composing_text_behavior_commit));
                         break;
                 }
-                if (Settings.getTestFieldAllowDeleteSurroundingText(fieldIndex)) {
+                if (Settings.getTestFieldAllowDeleteSurroundingText(groupIndex, fieldIndex)) {
                     extraDetails.add(context.getString(
                             R.string.allow_delete_surrounding_text_title));
                 }
-                if (Settings.getTestFieldAllowSettingSelection(fieldIndex)) {
+                if (Settings.getTestFieldAllowSettingSelection(groupIndex, fieldIndex)) {
                     extraDetails.add(context.getString(R.string.allow_setting_selection_title));
                 }
             }

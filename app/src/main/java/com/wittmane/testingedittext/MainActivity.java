@@ -338,10 +338,10 @@ public class MainActivity extends Activity
                             testFieldContainer.removeView(mTestFields[curGroupIndex][i].mLayout);
                         }
                     }
-                    for (int i = firstChangedFieldIndex; i < groupTestFields.length; i++) {
-                        testFieldContainer.addView(groupTestFields[i].mLayout);
-                        groupTestFields[i].mCustomEditText.mCustomEditText.setSettings(
-                                Settings.getTestFieldSettings(i));
+                    for (int fieldIndex = firstChangedFieldIndex; fieldIndex < groupTestFields.length; fieldIndex++) {
+                        testFieldContainer.addView(groupTestFields[fieldIndex].mLayout);
+                        groupTestFields[fieldIndex].mCustomEditText.mCustomEditText.setSettings(
+                                Settings.getTestFieldSettings(curGroupIndex, fieldIndex));
                     }
                 }
 
@@ -356,14 +356,15 @@ public class MainActivity extends Activity
         mTestFields = testFields;
 
         for (int i = 0; i < mTestFields[mCurrentTabIndex].length; i++) {
-            updateField(mTestFields[mCurrentTabIndex][i].mFrameworkEditText,
-                    Settings.getTestFieldFlatIndex(mCurrentTabIndex, i));
-            updateField(mTestFields[mCurrentTabIndex][i].mCustomEditText,
-                    Settings.getTestFieldFlatIndex(mCurrentTabIndex, i));
+            updateField(mTestFields[mCurrentTabIndex][i].mFrameworkEditText, mCurrentTabIndex, i);
+            updateField(mTestFields[mCurrentTabIndex][i].mCustomEditText, mCurrentTabIndex, i);
         }
     }
 
-    private static void updateField(EditTextProxy editText, int fieldIndex) {
+    private static void updateField(EditTextProxy editText, int groupIndex, int fieldIndex) {
+        //TODO: (EW) use the settings object tied to the text field, rather than look up the value
+        // by the index in order to consolidate logic
+
         // since we have a custom setting for making a null input type field still allow multiple
         // lines (which is normally handled as part of the input type), we'll need to trigger
         // setting the input type (even if that didn't change) to trigger a change in the field
@@ -371,8 +372,9 @@ public class MainActivity extends Activity
         // set to exactly what we try to set it to, we need to check if the setting for the input
         // type matches what we last requested (rather than what it actually is) to avoid trying to
         // set again unnecessarily.
-        int inputType = Settings.getTestFieldInputType(fieldIndex);
-        boolean nullInputTypeSingleLine = !Settings.getTestFieldNullInputTypeMultiline(fieldIndex);
+        int inputType = Settings.getTestFieldInputType(groupIndex, fieldIndex);
+        boolean nullInputTypeSingleLine =
+                !Settings.getTestFieldNullInputTypeMultiline(groupIndex, fieldIndex);
         if (editText.getRequestedInputType() != inputType
                 || (inputType == InputType.TYPE_NULL
                         && editText.isSingleLine() != nullInputTypeSingleLine
@@ -380,13 +382,13 @@ public class MainActivity extends Activity
             editText.setInputType(inputType);
         }
 
-        int imeOptions = Settings.getTestFieldImeOptions(fieldIndex);
+        int imeOptions = Settings.getTestFieldImeOptions(groupIndex, fieldIndex);
         if (editText.getImeOptions() != imeOptions) {
             editText.setImeOptions(imeOptions);
         }
 
-        int imeActionId = Settings.getTestFieldImeActionId(fieldIndex);
-        String imeActionLabel = Settings.getTestFieldImeActionLabel(fieldIndex);
+        int imeActionId = Settings.getTestFieldImeActionId(groupIndex, fieldIndex);
+        String imeActionLabel = Settings.getTestFieldImeActionLabel(groupIndex, fieldIndex);
         int currentImeActionId = editText.getImeActionId();
         CharSequence currentImeActionLabel = editText.getImeActionLabel();
         if (currentImeActionId != imeActionId
@@ -394,17 +396,17 @@ public class MainActivity extends Activity
             editText.setImeActionLabel(imeActionLabel, imeActionId);
         }
 
-        String privateImeOptions = Settings.getTestFieldPrivateImeOptions(fieldIndex);
+        String privateImeOptions = Settings.getTestFieldPrivateImeOptions(groupIndex, fieldIndex);
         if (!TextUtils.equals(editText.getPrivateImeOptions(), privateImeOptions)) {
             editText.setPrivateImeOptions(privateImeOptions);
         }
 
-        boolean selectAllOnFocus = Settings.shouldTestFieldSelectAllOnFocus(fieldIndex);
+        boolean selectAllOnFocus = Settings.shouldTestFieldSelectAllOnFocus(groupIndex, fieldIndex);
         if (editText.getSelectAllOnFocus() != selectAllOnFocus) {
             editText.setSelectAllOnFocus(selectAllOnFocus);
         }
 
-        int maxLength = Settings.getTestFieldMaxLength(fieldIndex);
+        int maxLength = Settings.getTestFieldMaxLength(groupIndex, fieldIndex);
         InputFilter[] filters = editText.getFilters();
         List<InputFilter> newFilters = new ArrayList<>();
         boolean filtersChanged = false;
@@ -441,12 +443,12 @@ public class MainActivity extends Activity
             editText.setFilters(newFilters.toArray(new InputFilter[0]));
         }
 
-        boolean allowUndo = Settings.shouldTestFieldAllowUndo(fieldIndex);
+        boolean allowUndo = Settings.shouldTestFieldAllowUndo(groupIndex, fieldIndex);
         if (editText.getAllowUndo() != allowUndo) {
             editText.setAllowUndo(allowUndo);
         }
 
-        Locale[] textLocales = Settings.getTestFieldTextLocales(fieldIndex);
+        Locale[] textLocales = Settings.getTestFieldTextLocales(groupIndex, fieldIndex);
         Locale[] currentTextLocales = editText.getTextLocales();
         if (textLocales.length > 0) {
             if (!equals(currentTextLocales, textLocales)) {
@@ -459,18 +461,18 @@ public class MainActivity extends Activity
             }
         }
 
-        Locale[] imeHintLocales = Settings.getTestFieldImeHintLocales(fieldIndex);
+        Locale[] imeHintLocales = Settings.getTestFieldImeHintLocales(groupIndex, fieldIndex);
         Locale[] currentImeHintLocales = editText.getImeHintLocales();
         if (!equals(currentImeHintLocales, imeHintLocales)) {
             editText.setImeHintLocales(imeHintLocales);
         }
 
-        CharSequence defaultText = Settings.getTestFieldDefaultText(fieldIndex);
+        CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
         if (!editText.wasTextSet(defaultText)) {
             editText.setText(defaultText);
         }
 
-        CharSequence hint = Settings.getTestFieldHintText(fieldIndex);
+        CharSequence hint = Settings.getTestFieldHintText(groupIndex, fieldIndex);
         if (!editText.wasHintSet(hint)) {
             editText.setHint(hint);
         }
