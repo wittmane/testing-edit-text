@@ -1450,6 +1450,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static int fieldCount(TestGroup[] testGroups) {
         int totalTestFieldCount = 0;
         for (TestGroup testGroup : testGroups) {
+            Log.d(TAG, "fieldCount: " + testGroup);
             totalTestFieldCount += testGroup.mFieldIds.length;
         }
         return totalTestFieldCount;

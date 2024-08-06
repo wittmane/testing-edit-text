@@ -198,7 +198,7 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
         }
     }
 
-    private static CharSequence getFieldTitle(final Context context, final int groupIndex,
+    static CharSequence getFieldTitle(final Context context, final int groupIndex,
                                               final int fieldIndex) {
         CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
         if (!TextUtils.isEmpty(defaultText)) {

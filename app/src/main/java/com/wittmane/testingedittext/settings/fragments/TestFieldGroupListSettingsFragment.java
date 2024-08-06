@@ -16,6 +16,9 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment.getFieldTitle;
+
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -30,11 +33,16 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.DraggableListAdapter;
+import com.wittmane.testingedittext.settings.DraggableGroupedListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.TestGroup;
@@ -89,32 +97,62 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
             ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
                     this, newPref);
         } else if (itemId == R.id.action_reorder_groups) {
-            ListView content = new ListView(getActivity());
-            DraggableListAdapter<TestFieldGroup> adapter = new DraggableListAdapter<>(getActivity(),
-                    new DraggableListAdapter.ListItemBuilder<TestFieldGroup>() {
+            LinearLayout layout = new LinearLayout(getActivity());
+            layout.setOrientation(LinearLayout.VERTICAL);
+            layout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
+            ListView listView = new ListView(getActivity());
+            listView.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, 0, 1));
+            DraggableGroupedListAdapter<GroupEntry, FieldEntry> adapter = new DraggableGroupedListAdapter<>(getActivity(),
+                    new DraggableGroupedListAdapter.ListItemBuilder<GroupEntry, FieldEntry>() {
                         @Override
-                        public void populateView(View view, TestFieldGroup item) {
+                        public void populateView(View view, GroupEntry group, FieldEntry field) {
                             TextView titleView = view.findViewById(R.id.title);
-                            titleView.setText(item.getDisplayName());
+                            titleView.setText(field != null
+                                    ? field.getDisplayName()
+                                    : group.getDisplayName());
                         }
                     });
-            for (int i = 0; i < Settings.getTestFieldGroupCount(); i++) {
-                adapter.add(new TestFieldGroup(getActivity(), i));
+            for (int groupIndex = 0; groupIndex < Settings.getTestFieldGroupCount(); groupIndex++) {
+                adapter.addGroup(new GroupEntry(getActivity(), groupIndex));
+                for (int fieldIndex = 0; fieldIndex < Settings.getTestFieldCount(groupIndex); fieldIndex++) {
+                    adapter.addItem(groupIndex,
+                            new FieldEntry(getActivity(), groupIndex, fieldIndex));
+                }
             }
-            content.setAdapter(adapter);
+            listView.setAdapter(adapter);
+            layout.addView(listView);
+
+            CheckBox checkBox = new CheckBox(getActivity());
+            checkBox.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, 0));
+            checkBox.setText(R.string.expand_groups);
+            checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    adapter.expandGroups(isChecked);
+                }
+            });
+            layout.addView(checkBox);
 
             AlertDialog dialog = new AlertDialog.Builder(getActivity())
                     .setTitle(R.string.reorder_groups)
-                    .setView(content)
+                    .setView(layout)
                     .setPositiveButton(android.R.string.ok,
                             new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog,
                                                     int which) {
-                                    TestGroup[] testGroups = new TestGroup[adapter.getCount()];
-                                    for (int i = 0; i < adapter.getCount(); i++) {
-                                        testGroups[i] = new TestGroup(adapter.getItem(i).getName(),
-                                                adapter.getItem(i).getFieldIds());
+                                    TestGroup[] testGroups = new TestGroup[adapter.getGroupCount()];
+                                    for (int i = 0; i < adapter.getGroupCount(); i++) {
+                                        int[] fieldIds = new int[adapter.getItemCount(i)];
+                                        for (int j = 0; j < adapter.getItemCount(i); j++) {
+                                            fieldIds[j] = adapter.getItem(i, j).getId();
+                                        }
+                                        testGroups[i] = new TestGroup(adapter.getGroup(i).getName(),
+                                                fieldIds);
                                     }
                                     Settings.setTestFieldGroups(testGroups);
                                     buildContent();
@@ -133,18 +171,19 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         return super.onOptionsItemSelected(item);
     }
 
-    private static class TestFieldGroup {
+    private static class GroupEntry {
+        private final int mGroupIndex;
         private String mName;
-        private String mDisplayName;
-        private int[] mFieldIds;
+        private final String mDisplayName;
 
-        public TestFieldGroup(Context context, int groupIndex) {
+        public GroupEntry(Context context, int groupIndex) {
+            mGroupIndex = groupIndex;
             mName = Settings.getTestFieldGroupName(groupIndex);
             mDisplayName = getGroupDisplayName(context, groupIndex, mName);
-            mFieldIds = new int[Settings.getTestFieldCount(groupIndex)];
-            for (int fieldIndex = 0; fieldIndex < Settings.getTestFieldCount(groupIndex); fieldIndex++) {
-                mFieldIds[fieldIndex] = Settings.getTestFieldId(groupIndex, fieldIndex);
-            }
+        }
+
+        public int getOriginalIndex() {
+            return mGroupIndex;
         }
 
         public String getName() {
@@ -154,9 +193,23 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         public String getDisplayName() {
             return mDisplayName;
         }
+    }
 
-        public int[] getFieldIds() {
-            return mFieldIds;
+    private static class FieldEntry {
+        int mFieldId;
+        private final String mDisplayName;
+
+        public FieldEntry(Context context, int groupIndex, int fieldIndex) {
+            mFieldId = getTestFieldId(groupIndex, fieldIndex);
+            mDisplayName = getFieldTitle(context, groupIndex, fieldIndex).toString();
+        }
+
+        public String getDisplayName() {
+            return mDisplayName;
+        }
+
+        public int getId() {
+            return mFieldId;
         }
     }
 
