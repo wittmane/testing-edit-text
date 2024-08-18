@@ -27,22 +27,22 @@ import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager.Editor;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = Settings.class.getSimpleName();
@@ -52,6 +52,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final int BASE_FIELD_ID = -1;
 
     public static final String BASE_SUFFIX = "_base";
+    public static final String GROUP_INFIX = "_group_";
     public static final String FIELD_INFIX = "_field_";
 
     public static final String PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX =
@@ -144,14 +145,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_GETEXTRACTEDTEXT_DELAY_PREFIX =
             "pref_key_getextractedtext_delay";
 
+    public static final String PREF_TEST_GROUP_IDS =
+            "pref_key_test_group_ids";
     public static final String PREF_TEST_FIELD_IDS =
             "pref_key_test_field_ids";
     public static final String PREF_TEST_GROUP_FIELD_COUNTS =
             "pref_key_test_group_field_count";
-    public static final String TEST_GROUP_PREF_PREFIX =
-            "pref_key_test_group_";
     public static final String PREF_TEST_GROUP_NAME_PREFIX =
-            "pref_key_test_group_name_";
+            "pref_key_test_group_name";
 
     public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
             "pref_key_input_type_class";
@@ -228,8 +229,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_IME_HINT_TEXT_PREFIX =
             "pref_key_hint_text";
 
-    //TODO: (EW) would it make sense for this to just be an array?
-    private final List<TestGroup> mTestGroups = new ArrayList<>();
+    private int[] mTestGroupIds;
+    private final Map<Integer, TestGroup> mTestGroups = new HashMap<>();
     private final Map<Integer, TestField> mTestFields = new HashMap<>();
     private final AppLevelDefaults mTestFieldDefaults = new AppLevelDefaults();
 
@@ -252,6 +253,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private void onCreate(final Context context) {
         mPrefs = new SharedPreferenceManager(
                 PreferenceManager.getDefaultSharedPreferences(context));
+        convertToUseGroupIds(mPrefs);
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
     }
@@ -276,15 +278,32 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             loadSetting(prefKey);
         }
         loadTestFieldSettings(BASE_FIELD_ID);
-        TestGroup[] testGroups = readTestFieldGroups(mPrefs);
+        mTestGroupIds = readTestFieldGroupIds(mPrefs);
         mTestGroups.clear();
-        Collections.addAll(mTestGroups, testGroups);
-        for (TestGroup group : testGroups) {
-            for (int id : group.mFieldIds) {
-                mTestFields.put(id, new TestField(id));
-                loadTestFieldSettings(id);
-            }
+        mTestFields.clear();
+        for (int groupId : mTestGroupIds) {
+            loadExistingGroup(groupId);
         }
+    }
+
+    private TestGroup loadExistingGroup(int groupId) {
+        String groupName = readTestGroupName(mPrefs, groupId);
+        int[] groupFieldIds = readTestGroupFieldIds(mPrefs, groupId);
+        TestGroup group = new TestGroup(groupId, groupName, groupFieldIds);
+        mTestGroups.put(groupId, group);
+
+        for (int fieldId : groupFieldIds) {
+            loadExistingField(fieldId);
+        }
+
+        return group;
+    }
+
+    private TestField loadExistingField(int fieldId) {
+        TestField field = new TestField(fieldId);
+        mTestFields.put(fieldId, field);
+        loadTestFieldSettings(fieldId);
+        return field;
     }
 
     private void loadTestFieldSettings(int fieldId) {
@@ -400,7 +419,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
 
             default:
-                // try loading as a specific field's setting
+                // try loading as a specific field or group's setting
                 loadPrefixedSetting(prefKey);
                 break;
         }
@@ -410,55 +429,73 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (prefKey == null) {
             return;
         }
-        if (prefKey.startsWith(TEST_GROUP_PREF_PREFIX)) {
-            int prefixEnd = prefKey.lastIndexOf("_");
-            if (prefixEnd < 0 || prefKey.length() - prefixEnd - 1 <= 0) {
-                return;
-            }
-            int index;
-            try {
-                index = Integer.parseInt(prefKey.substring(prefixEnd + 1));
-            } catch (NumberFormatException ignored) {
-                return;
-            }
-            if (index >= mTestGroups.size() && !mPrefs.contains(prefKey)) {
-                // this is most likely from deleting an old preference when the group is deleted, so
-                // we don't need to bother loading this value
-                return;
-            }
-            loadTestGroupSetting(prefKey.substring(0, prefixEnd + 1), index);
-        } else if (prefKey.endsWith(BASE_SUFFIX)) {
+        if (prefKey.endsWith(BASE_SUFFIX)) {
             loadTestFieldOrDefaultSetting(
                     prefKey.substring(0, prefKey.length() - BASE_SUFFIX.length()),
                     BASE_FIELD_ID);
-        } else if (prefKey.contains(FIELD_INFIX)) {
-            int prefixLength = prefKey.lastIndexOf(FIELD_INFIX);
-            int id;
-            try {
-                id = Integer.parseInt(prefKey.substring(prefixLength + FIELD_INFIX.length()));
-            } catch (NumberFormatException ignored) {
-                Log.e(TAG, "Failed to parse field ID for pref " + prefKey);
+        } else if (containsIdSuffix(prefKey, GROUP_INFIX)) {
+            PrefKeyPieces prefKeyPieces = PrefKeyPieces.parse(prefKey, GROUP_INFIX, mTestGroups,
+                    Settings::isGroupIdValid);
+            if (prefKeyPieces == null) {
                 return;
             }
-            if (!mTestFields.containsKey(id) && !mPrefs.contains(prefKey)) {
-                // this is most likely from deleting an old preference when the field is deleted, so
-                // we don't need to bother loading this value
+            loadTestGroupSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
+        } else if (containsIdSuffix(prefKey, FIELD_INFIX)) {
+            PrefKeyPieces prefKeyPieces = PrefKeyPieces.parse(prefKey, FIELD_INFIX, mTestFields,
+                    Settings::isFieldIdValid);
+            if (prefKeyPieces == null) {
                 return;
             }
-            if (!isFieldIdValid(id)) {
-                Log.e(TAG, "Field " + id + " for pref " + prefKey + " doesn't exist");
-                return;
-            }
-            String prefKeyPrefix = prefKey.substring(0, prefixLength);
-            loadTestFieldSetting(prefKeyPrefix, id);
-            loadTestFieldOrDefaultSetting(prefKeyPrefix, id);
+            loadTestFieldSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
+            loadTestFieldOrDefaultSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
         }
     }
 
-    private void loadTestGroupSetting(String prefKeyPrefix, int groupIndex) {
+    private static boolean containsIdSuffix(String prefKey, String infix) {
+        return prefKey.matches(".*" + Pattern.quote(infix) + "\\d+$");
+    }
+
+    private static class PrefKeyPieces {
+        public final String mPrefix;
+        public final String mInfix;
+        public final int mId;
+
+        public PrefKeyPieces(String prefix, String infix, int id) {
+            mPrefix = prefix;
+            mInfix = infix;
+            mId = id;
+        }
+
+        public static PrefKeyPieces parse(String prefKey, String infix, Map<Integer, ?> target,
+                                          Predicate<Integer> isIdValid) {
+            int prefixLength = prefKey.lastIndexOf(infix);
+            String infixName = infix.replaceAll("^_", "").replaceAll("_$", "").replaceAll("_", " ");
+            int id;
+            try {
+                id = Integer.parseInt(prefKey.substring(prefixLength + infix.length()));
+            } catch (NumberFormatException ignored) {
+                Log.e(TAG, "Failed to parse " + infixName + " ID for pref " + prefKey);
+                return null;
+            }
+            if (!target.containsKey(id) && !Settings.getInstance().mPrefs.contains(prefKey)) {
+                // this is most likely from deleting an old preference when the parent is deleted,
+                // so we don't need to bother loading this value
+                return null;
+            }
+            if (!isIdValid.test(id)) {
+                Log.e(TAG, "The " + infixName + " " + id + " for pref " + prefKey
+                        + " doesn't exist");
+                return null;
+            }
+            String prefKeyPrefix = prefKey.substring(0, prefixLength);
+            return new PrefKeyPieces(prefKeyPrefix, infix, id);
+        }
+    }
+
+    private void loadTestGroupSetting(String prefKeyPrefix, int groupId) {
         switch (prefKeyPrefix) {
             case PREF_TEST_GROUP_NAME_PREFIX:
-                mTestGroups.get(groupIndex).mName = readGroupName(mPrefs, groupIndex);
+                getGroupById(groupId).mName = readTestGroupName(mPrefs, groupId);
                 break;
         }
     }
@@ -1391,13 +1428,45 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mGetExtractedTextDelay;
     }
 
-    private static String readGroupName(final SharedPreferenceManager prefs, int groupIndex) {
-        //TODO: (EW) it probably would be cleaner to use an ID rather than an index
-        return prefs.getString(PREF_TEST_GROUP_NAME_PREFIX + groupIndex, null);
+    private static int[] readTestFieldGroupIds(final SharedPreferenceManager prefs) {
+        int[] groupIds = prefs.getIntArray(PREF_TEST_GROUP_IDS, new int[] { 0 });
+        if (groupIds == null || groupIds.length < 1) {
+            // there should always be at least 1 field
+            Log.e(TAG, "No test groups");
+            groupIds = new int[] { 0 };
+        }
+        return groupIds;
     }
 
-    private static TestGroup[] readTestFieldGroups(final SharedPreferenceManager prefs) {
+    private static String readTestGroupName(final SharedPreferenceManager prefs, int groupId) {
+        return prefs.getString(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId, null);
+    }
+
+    private static int[] readTestGroupFieldIds(final SharedPreferenceManager prefs, int groupId) {
+        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS + GROUP_INFIX + groupId,
+                new int[] { });
+        if (fieldIds == null) {
+            Log.e(TAG, "null field IDs for group " + groupId);
+            fieldIds = new int[] { };
+        }
+        if (fieldIds.length == 0 && getInstance().mTestGroupIds != null
+                && getInstance().mTestGroupIds.length == 1
+                && getInstance().mTestGroupIds[0] == groupId) {
+            // there should always be at least 1 field in the group if it is the only group
+            Log.e(TAG, "No test fields");
+            fieldIds = new int[] { };
+        }
+        return fieldIds;
+    }
+
+    private static void convertToUseGroupIds(final SharedPreferenceManager prefs) {
+        // only convert if new preference data doesn't exist
+        if (prefs.contains(PREF_TEST_GROUP_IDS)) {
+            return;
+        }
+
         int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS, new int[] { 0 });
+        Log.d(TAG, "Read " + PREF_TEST_FIELD_IDS + ": " + Arrays.toString(fieldIds));
         if (fieldIds == null || fieldIds.length < 1) {
             // there should always be at least 1 field
             Log.e(TAG, "No test fields");
@@ -1406,6 +1475,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         int[] groupFieldCounts = prefs.getIntArray(PREF_TEST_GROUP_FIELD_COUNTS,
                 new int[] { fieldIds.length });
+        Log.d(TAG, "Read " + PREF_TEST_GROUP_FIELD_COUNTS + ": "
+                + Arrays.toString(groupFieldCounts));
         if (groupFieldCounts == null || groupFieldCounts.length < 1) {
             // there should always be at least 1 group
             Log.e(TAG, "No test field groups");
@@ -1438,141 +1509,234 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
 
         int groupCount = groupFieldCounts.length;
-        TestGroup[] testGroups = new TestGroup[groupCount];
-        for (int i = 0; i < testGroups.length; i++) {
-            String name = prefs.getString(PREF_TEST_GROUP_NAME_PREFIX + i, null);
-            testGroups[i] = new TestGroup(name, groupFieldIds[i]);
-        }
+        int[] groupIds = new int[groupCount];
+        for (int i = 0; i < groupCount; i++) {
+            groupIds[i] = i;
+            String oldGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + "_" + i;
+            String name = prefs.getString(oldGroupNamePrefKey, null);
+            String newGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + i;
+            prefs.setString(newGroupNamePrefKey, name);
+            Log.d(TAG, "Write " + newGroupNamePrefKey + ": " + name);
+            String fieldIdsPrefKey = PREF_TEST_FIELD_IDS + GROUP_INFIX + i;
+            prefs.setIntArray(fieldIdsPrefKey, groupFieldIds[i]);
+            Log.d(TAG, "Write " + fieldIdsPrefKey + ": " + Arrays.toString(groupFieldIds[i]));
 
-        return testGroups;
+            prefs.remove(oldGroupNamePrefKey);
+            Log.d(TAG, "Delete " + oldGroupNamePrefKey);
+        }
+        prefs.setIntArray(PREF_TEST_GROUP_IDS, groupIds);
+
+        prefs.remove(PREF_TEST_FIELD_IDS);
+        Log.d(TAG, "Delete " + PREF_TEST_FIELD_IDS);
+        prefs.remove(PREF_TEST_GROUP_FIELD_COUNTS);
+        Log.d(TAG, "Delete " + PREF_TEST_GROUP_FIELD_COUNTS);
     }
 
-    private static int fieldCount(TestGroup[] testGroups) {
-        int totalTestFieldCount = 0;
-        for (TestGroup testGroup : testGroups) {
-            Log.d(TAG, "fieldCount: " + testGroup);
-            totalTestFieldCount += testGroup.mFieldIds.length;
-        }
-        return totalTestFieldCount;
+    public static int getTestGroupId(int groupIndex) {
+        return getInstance().mTestGroupIds[groupIndex];
     }
 
-    public static void setTestGroupFields(int groupIndex, int[] fieldIds) {
-        TestGroup[] testGroups = new TestGroup[Settings.getTestFieldGroupCount()];
-        for (int i = 0; i < testGroups.length; i++) {
-            if (i == groupIndex) {
-                testGroups[i] = new TestGroup(getInstance().mTestGroups.get(i).mName,
-                        deepCopy(fieldIds));
-            } else {
-                //TODO: (EW) probably don't need the deep copy
-                testGroups[i] = getInstance().mTestGroups.get(i).copy();
+    private static TestGroup getGroupByIndex(int groupIndex) {
+        int groupId = getTestGroupId(groupIndex);
+        TestGroup group = getGroupById(groupId);
+        if (group == null) {
+            Log.e(TAG, "The object for group " + groupId + " (index " + groupIndex
+                    + ") is missing");
+            // we know the group should exist, so add it
+            group = getInstance().loadExistingGroup(groupId);
+            //TODO: (EW) remove - here for now to catch any issues
+            throw new RuntimeException("The object for group " + groupId + " (index " + groupIndex
+                    + ") is missing");
+        }
+        return group;
+    }
+
+    private static TestGroup getGroupById(int groupId) {
+        if (!isGroupIdValid(groupId)) {
+            throw new IllegalArgumentException(
+                    "Tried to get group " + groupId + ", which doesn't exist");
+        }
+        return getInstance().mTestGroups.get(groupId);
+    }
+
+    private static boolean isGroupIdValid(int groupId) {
+        if (getInstance().mTestGroups.containsKey(groupId)) {
+            return true;
+        }
+        // double check that the ID doesn't exist
+        for (int id : getInstance().mTestGroupIds) {
+            if (id == groupId) {
+                Log.e(TAG, "The object for group " + groupId + " is missing");
+                // add the missing group
+                getInstance().loadExistingGroup(groupId);
+                //TODO: (EW) remove - here for now to catch any issues
+                throw new RuntimeException("The object for group " + groupId + " is missing");
+//                return true;
             }
         }
-        Settings.setTestFieldGroups(testGroups);
+        return false;
     }
 
-    public static void setTestFieldGroups(TestGroup[] testGroups) {
-        // flatten the group/field data for saving preferences
-        int[] testFieldIds = new int[fieldCount(testGroups)];
-        int[] testGroupFieldCounts = new int[testGroups.length];
-        String[] testGroupNames = new String[testGroups.length];
-        Set<Integer> updatedTestFieldIds = new HashSet<>();
-        int fieldIndex = 0;
-        for (int i = 0; i < testGroups.length; i++) {
-            System.arraycopy(testGroups[i].mFieldIds, 0, testFieldIds, fieldIndex,
-                    testGroups[i].mFieldIds.length);
-            // set the next unset field
-            fieldIndex += testGroups[i].mFieldIds.length;
+    private static void setTestGroupIds(Editor editor, int[] groupIds) {
+        editor.putIntArray(PREF_TEST_GROUP_IDS, groupIds);
+        getInstance().mTestGroupIds = deepCopy(groupIds);
+    }
 
-            testGroupFieldCounts[i] = testGroups[i].mFieldIds.length;
-            testGroupNames[i] = testGroups[i].mName;
+    private static void setTestGroupFieldIds(Editor editor, int groupId, int[] fieldIds) {
+        editor.putIntArray(PREF_TEST_FIELD_IDS + GROUP_INFIX + groupId,
+                fieldIds);
+        getGroupById(groupId).mFieldIds = deepCopy(fieldIds);
+    }
 
-            for (int fieldId : testGroups[i].mFieldIds) {
-                updatedTestFieldIds.add(fieldId);
-            }
+    public static class FieldIdGroup {
+        public final int mGroupId;
+        public final int[] mFieldIds;
+
+        public FieldIdGroup(int groupId, int[] fieldIds) {
+            mGroupId = groupId;
+            mFieldIds = fieldIds;
         }
 
+        @Override
+        public String toString() {
+            return "{ groupId=" + mGroupId + ", fieldIds=" + Arrays.toString(mFieldIds) + "}";
+        }
+    }
+
+    private static Set<Integer> getRemovedIds(Set<Integer> originalIds, Set<Integer> updatedIds) {
+        return getItemsUniqueToA(originalIds, updatedIds);
+    }
+
+    private static Set<Integer> getAddedIds(Set<Integer> originalIds, Set<Integer> updatedIds) {
+        return getItemsUniqueToA(updatedIds, originalIds);
+    }
+
+    private static <T> Set<T> getItemsUniqueToA(Set<T> a, Set<T> b) {
+        Set<T> itemsUniqueToA = new HashSet<>();
+        for (T id : a) {
+            if (!b.contains(id)) {
+                itemsUniqueToA.add(id);
+            }
+        }
+        return itemsUniqueToA;
+    }
+
+    private static void manageChangedTestGroups(Editor editor, FieldIdGroup[] newTestGroups) {
         Settings settings = getInstance();
 
-        Editor editor = settings.mPrefs.edit();
-
-        // delete any fields that are getting removed
-        for (int fieldId : settings.mTestFields.keySet().toArray(new Integer[0])) {
-            if (!updatedTestFieldIds.contains(fieldId)) {
-                // remove the old field
-                settings.mTestFields.remove(fieldId);
-                // clear all of the now orphaned test field preferences to avoid bloat
-                removeTestFieldPrefs(editor, fieldId);
+        Set<Integer> oldGroupIds = settings.mTestGroups.keySet();
+        Set<Integer> newGroupIds = new HashSet<>();
+        Set<Integer> oldFieldIds = settings.mTestFields.keySet();
+        Set<Integer> newFieldIds = new HashSet<>();
+        for (FieldIdGroup group : newTestGroups) {
+            newGroupIds.add(group.mGroupId);
+            for (int fieldIndex = 0; fieldIndex < group.mFieldIds.length; fieldIndex++) {
+                newFieldIds.add(group.mFieldIds[fieldIndex]);
             }
         }
 
-        // add any new fields
-        List<Integer> addedFieldIds = new ArrayList<>();
-        for (int fieldId : updatedTestFieldIds) {
-            if (settings.mTestFields.containsKey(fieldId)) {
-                continue;
-            }
-            settings.mTestFields.put(fieldId, new TestField(fieldId));
-            addedFieldIds.add(fieldId);
-        }
+        Set<Integer> removedGroupIds = getRemovedIds(oldGroupIds, newGroupIds);
+        Set<Integer> addedGroupIds = getAddedIds(oldGroupIds, newGroupIds);
+        Set<Integer> removedFieldIds = getRemovedIds(oldFieldIds, newFieldIds);
+        Set<Integer> addedFieldIds = getAddedIds(oldFieldIds, newFieldIds);
 
         // delete any groups that are getting removed
-        for (int i = 0; i < settings.mTestFields.size() - testGroups.length; i++) {
-            removeTestGroupPrefs(editor, testGroups.length + i);
+        for (int groupId : removedGroupIds) {
+            removeTestGroupPrefs(editor, groupId);
         }
 
-        // update the groups
-        settings.mTestGroups.clear();
-        for (TestGroup testGroup : testGroups) {
-            settings.mTestGroups.add(testGroup.copy());
+        // delete any fields that are getting removed
+        for (int fieldId : removedFieldIds) {
+            removeTestFieldPrefs(editor, fieldId);
         }
 
-        editor.putIntArray(PREF_TEST_FIELD_IDS, testFieldIds);
-        editor.putIntArray(PREF_TEST_GROUP_FIELD_COUNTS, testGroupFieldCounts);
-        for (int i = 0; i < testGroupNames.length; i++) {
-            editor.putString(PREF_TEST_GROUP_NAME_PREFIX + i, testGroupNames[i]);
+        // load the default values for any new groups
+        for (int groupId : addedGroupIds) {
+            settings.loadExistingGroup(groupId);
         }
-
-        editor.apply();
 
         // load the default values for any new fields
         for (int fieldId : addedFieldIds) {
-            settings.loadTestFieldSettings(fieldId);
-            getField(fieldId).mHintText = "field " + fieldId;
+            settings.loadExistingField(fieldId);
         }
     }
 
-    //TODO: (EW) update this function to force adding a field to a specific group
-    public static void setTestFieldIds(int[] testFieldIds) {
-        setTestFieldGroups(new TestGroup[] {
-                new TestGroup(null, testFieldIds)
-        });
+    public static void setTestGroupAndFieldIds(FieldIdGroup[] testGroups) {
+        Editor editor = getInstance().mPrefs.edit();
+
+        manageChangedTestGroups(editor, testGroups);
+
+        int[] groupIds = new int[testGroups.length];
+        for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
+            groupIds[groupIndex] = testGroups[groupIndex].mGroupId;
+            setTestGroupFieldIds(editor, testGroups[groupIndex].mGroupId,
+                    testGroups[groupIndex].mFieldIds);
+        }
+        setTestGroupIds(editor, groupIds);
+
+        editor.apply();
+    }
+
+    public static void setTestGroupIds(int[] groupIds) {
+        Editor editor = getInstance().mPrefs.edit();
+
+        FieldIdGroup[] testGroups = new FieldIdGroup[groupIds.length];
+        for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
+            testGroups[groupIndex] = new FieldIdGroup(groupIds[groupIndex],
+                    isGroupIdValid(groupIds[groupIndex])
+                            ? getGroupById(groupIds[groupIndex]).mFieldIds
+                            : new int[0]);
+        }
+        manageChangedTestGroups(editor, testGroups);
+
+        setTestGroupIds(editor, groupIds);
+
+        editor.apply();
+    }
+
+    public static void setTestGroupFieldIds(int groupIndex, int[] fieldIds) {
+        Editor editor = getInstance().mPrefs.edit();
+
+        FieldIdGroup[] testGroups = new FieldIdGroup[getTestFieldGroupCount()];
+        for (int i = 0; i < testGroups.length; i++) {
+            TestGroup group = getGroupByIndex(i);
+            testGroups[i] = new FieldIdGroup(group.mId,
+                    i == groupIndex ? fieldIds : group.mFieldIds);
+        }
+        manageChangedTestGroups(editor, testGroups);
+
+        setTestGroupFieldIds(editor, getTestGroupId(groupIndex), fieldIds);
+
+        editor.apply();
     }
 
     public static int getTestFieldGroupCount() {
-        return getInstance().mTestGroups.size();
+        return getInstance().mTestGroupIds.length;
     }
 
     public static int getTestFieldCount(int groupIndex) {
-        return getInstance().mTestGroups.get(groupIndex).mFieldIds.length;
+        return getGroupByIndex(groupIndex).mFieldIds.length;
     }
 
     public static String getTestFieldGroupName(int groupIndex) {
-        return getInstance().mTestGroups.get(groupIndex).mName;
+        return getGroupByIndex(groupIndex).mName;
     }
 
     public static int getTestFieldId(int groupIndex, int fieldIndex) {
-        return getInstance().mTestGroups.get(groupIndex).mFieldIds[fieldIndex];
+        return getGroupByIndex(groupIndex).mFieldIds[fieldIndex];
     }
 
     private static TestField getField(int groupIndex, int fieldIndex) {
         int fieldId = getTestFieldId(groupIndex, fieldIndex);
-        TestField field = getField(getTestFieldId(groupIndex, fieldIndex));
+        TestField field = getField(fieldId);
         if (field == null) {
             Log.e(TAG, "The object for field " + fieldId + " (group " + groupIndex
                     + ", field " + fieldIndex + ") is missing");
             // we know the field should exist, so add it
-            field = new TestField(fieldId);
-            getInstance().mTestFields.put(fieldId, field);
+            field = getInstance().loadExistingField(fieldId);
+            //TODO: (EW) remove - here for now to catch any issues
+            throw new RuntimeException("The object for field " + fieldId + " (group " + groupIndex
+                    + ", field " + fieldIndex + ") is missing");
         }
         return field;
     }
@@ -1590,13 +1754,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return true;
         }
         // double check that the ID doesn't exist in any of the groups
-        for (TestGroup group : getInstance().mTestGroups) {
-            for (int id : group.mFieldIds) {
+        for (int groupIndex = 0; groupIndex < getTestFieldGroupCount(); groupIndex++) {
+            for (int id : getGroupByIndex(groupIndex).mFieldIds) {
                 if (id == fieldId) {
                     Log.e(TAG, "The object for field " + fieldId + " is missing");
                     // add the missing field
-                    getInstance().mTestFields.put(fieldId, new TestField(fieldId));
-                    return true;
+                    getInstance().loadExistingField(fieldId);
+                    //TODO: (EW) remove - here for now to catch any issues
+                    throw new RuntimeException("The object for field " + fieldId + " is missing");
+//                    return true;
                 }
             }
         }
@@ -1605,68 +1771,33 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static void addTestFieldGroup() {
         Settings settings = getInstance();
-        TestGroup[] testGroups = new TestGroup[settings.mTestGroups.size() + 1];
-        for (int i = 0; i < settings.mTestGroups.size(); i++) {
-            //TODO: (EW) probably don't need the deep copy
-            testGroups[i] = settings.mTestGroups.get(i).copy();
-        }
-        testGroups[testGroups.length - 1] = new TestGroup(null, new int[0]);
-        setTestFieldGroups(testGroups);
+        setTestGroupIds(ArrayUtils.appendInt(settings.mTestGroupIds,
+                getNextId(settings.mTestGroups.keySet()), true));
     }
 
     public static void removeTestFieldGroup(int groupIndex) {
         Settings settings = getInstance();
-        TestGroup[] testGroups = new TestGroup[settings.mTestGroups.size() - 1];
-        for (int i = 0; i < settings.mTestGroups.size(); i++) {
-            if (i == groupIndex) {
-                continue;
-            }
-            //TODO: (EW) probably don't need the deep copy
-            testGroups[i > groupIndex ? i + 1 : i] = settings.mTestGroups.get(i).copy();
-        }
-        setTestFieldGroups(testGroups);
+        setTestGroupIds(ArrayUtils.removeIntAt(settings.mTestGroupIds, groupIndex));
     }
 
     public static void addTestField(int groupIndex) {
         Settings settings = getInstance();
-        TestGroup[] testGroups = new TestGroup[settings.mTestGroups.size()];
-        for (int i = 0; i < testGroups.length; i++) {
-            testGroups[i] = settings.mTestGroups.get(i).copy();
-            if (i == groupIndex) {
-                // add a new field
-                int[] fieldIds = new int[testGroups[i].mFieldIds.length + 1];
-                System.arraycopy(testGroups[i].mFieldIds, 0, fieldIds, 0,
-                        testGroups[i].mFieldIds.length);
-                fieldIds[fieldIds.length - 1] = getNextId(settings.mTestFields.keySet());
-                testGroups[i].mFieldIds = fieldIds;
-            }
-        }
-        setTestFieldGroups(testGroups);
+        int fieldId = getNextId(settings.mTestFields.keySet());
+        setTestGroupFieldIds(groupIndex,
+                ArrayUtils.appendInt(getGroupByIndex(groupIndex).mFieldIds, fieldId, true));
     }
 
     public static void removeTestField(int groupIndex, int fieldIndex) {
-        Settings settings = getInstance();
-        TestGroup[] testGroups = new TestGroup[settings.mTestGroups.size()];
-        for (int i = 0; i < testGroups.length; i++) {
-            testGroups[i] = settings.mTestGroups.get(i).copy();
-            if (i == groupIndex) {
-                // remove a new field
-                int[] fieldIds = new int[testGroups[i].mFieldIds.length - 1];
-                System.arraycopy(testGroups[i].mFieldIds, 0, fieldIds, 0, fieldIndex);
-                System.arraycopy(testGroups[i].mFieldIds, fieldIndex + 1, fieldIds, fieldIndex,
-                        testGroups[i].mFieldIds.length - fieldIndex - 1);
-                testGroups[i].mFieldIds = fieldIds;
-            }
-        }
-        setTestFieldGroups(testGroups);
+        setTestGroupFieldIds(groupIndex,
+                ArrayUtils.removeIntAt(getGroupByIndex(groupIndex).mFieldIds,fieldIndex));
     }
 
-    private static void removeTestGroupPrefs(Editor editor, int index) {
+    private static void removeTestGroupPrefs(Editor editor, int groupId) {
         final String[] testGroupPrefKeyPrefixes = new String[]{
                 PREF_TEST_GROUP_NAME_PREFIX
         };
         for (String prefKeyPrefix : testGroupPrefKeyPrefixes) {
-            editor.remove(prefKeyPrefix + index);
+            editor.remove(prefKeyPrefix + GROUP_INFIX + groupId);
         }
     }
 
@@ -1763,19 +1894,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
-    private static int[] getTestFieldIds(List<TestField> fields) {
-        int[] fieldIds = new int[fields.size()];
-        for (int i = 0; i < fieldIds.length; i++) {
-            fieldIds[i] = fields.get(i).mId;
-        }
-        return fieldIds;
-    }
-
-    private static int getNextId(Collection<Integer> fieldIds) {
+    private static int getNextId(Collection<Integer> existingIds) {
         int max = -1;
-        for (int fieldId : fieldIds) {
-            if (fieldId > max) {
-                max = fieldId;
+        for (int id : existingIds) {
+            if (id > max) {
+                max = id;
             }
         }
         return max + 1;
@@ -2281,21 +2404,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static class TestGroup {
+        private final int mId;
+
         public String mName;
         public int[] mFieldIds;
-        public TestGroup(String name, int[] fieldIds) {
+        public TestGroup(int id, String name, int[] fieldIds) {
+            if (id < 0) {
+                throw new IllegalArgumentException(
+                        "The group id can't be negative (" + id + ")");
+            }
+            mId = id;
             mName = name;
             mFieldIds = fieldIds;
         }
 
         @Override
         public String toString() {
-            return "{ mName=" + (mName == null ? "null" : "\"" + mName + "\"")
+            return "{ mId=" + mId + ", mName=" + (mName == null ? "null" : "\"" + mName + "\"")
                     + ", mFieldIds=" + Arrays.toString(mFieldIds) + " }";
-        }
-
-        public TestGroup copy() {
-            return new TestGroup(mName, deepCopy(mFieldIds));
         }
     }
 
@@ -2335,9 +2461,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private boolean mOverrideSystemBehavior;
 
         public TestField(int id) {
-            if (id == BASE_FIELD_ID) {
+            if (id < 0) {
                 throw new IllegalArgumentException(
-                        "The id can't be BASE_FIELD_ID (" + BASE_FIELD_ID + ")");
+                        "The field id can't be negative (" + id + ")");
             }
             mId = id;
         }

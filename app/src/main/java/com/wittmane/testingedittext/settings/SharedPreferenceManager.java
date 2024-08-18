@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -316,6 +316,8 @@ public class SharedPreferenceManager implements SharedPreferences {
             String[] stringArray = StringArraySerializer.deserialize(serializedArrayInfo);
             if (stringArray == null) {
                 intArray = null;
+            } else if (stringArray.length == 1 && TextUtils.isEmpty(stringArray[0])) {
+                intArray = new int[0];
             } else {
                 intArray = new int[stringArray.length];
                 for (int i = 0; i < stringArray.length; i++) {

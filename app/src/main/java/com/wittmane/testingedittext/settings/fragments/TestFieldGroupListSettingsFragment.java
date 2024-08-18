@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -45,11 +46,12 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.DraggableGroupedListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.Settings.TestGroup;
+import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
 
 //TODO: (EW) reduce duplicate code with TestFieldListSettingsFragment
 public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
+    private static final String TAG = TestFieldGroupListSettingsFragment.class.getSimpleName();
     private View mView;
 
     @Override
@@ -145,16 +147,18 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
                                 @Override
                                 public void onClick(DialogInterface dialog,
                                                     int which) {
-                                    TestGroup[] testGroups = new TestGroup[adapter.getGroupCount()];
+                                    FieldIdGroup[] testGroups =
+                                            new FieldIdGroup[adapter.getGroupCount()];
                                     for (int i = 0; i < adapter.getGroupCount(); i++) {
                                         int[] fieldIds = new int[adapter.getItemCount(i)];
                                         for (int j = 0; j < adapter.getItemCount(i); j++) {
                                             fieldIds[j] = adapter.getItem(i, j).getId();
                                         }
-                                        testGroups[i] = new TestGroup(adapter.getGroup(i).getName(),
+                                        testGroups[i] = new FieldIdGroup(
+                                                adapter.getGroup(i).getId(),
                                                 fieldIds);
                                     }
-                                    Settings.setTestFieldGroups(testGroups);
+                                    Settings.setTestGroupAndFieldIds(testGroups);
                                     buildContent();
                                 }
                             })
@@ -172,22 +176,16 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     }
 
     private static class GroupEntry {
-        private final int mGroupIndex;
-        private String mName;
+        private final int mGroupId;
         private final String mDisplayName;
 
         public GroupEntry(Context context, int groupIndex) {
-            mGroupIndex = groupIndex;
-            mName = Settings.getTestFieldGroupName(groupIndex);
-            mDisplayName = getGroupDisplayName(context, groupIndex, mName);
+            mGroupId = Settings.getTestGroupId(groupIndex);
+            mDisplayName = getGroupDisplayName(context, groupIndex);
         }
 
-        public int getOriginalIndex() {
-            return mGroupIndex;
-        }
-
-        public String getName() {
-            return mName;
+        public int getId() {
+            return mGroupId;
         }
 
         public String getDisplayName() {
@@ -227,11 +225,7 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     }
 
     public static String getGroupDisplayName(final Context context, final int groupIndex) {
-        return getGroupDisplayName(context, groupIndex, Settings.getTestFieldGroupName(groupIndex));
-    }
-
-    private static String getGroupDisplayName(final Context context, final int groupIndex,
-                                              final String groupName) {
+        final String groupName = Settings.getTestFieldGroupName(groupIndex);
         if (groupName == null) {
             return context.getString(R.string.test_group_default_name, (groupIndex + 1));
         }

@@ -16,6 +16,7 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.Settings.GROUP_INFIX;
 import static com.wittmane.testingedittext.settings.Settings.PREF_TEST_GROUP_NAME_PREFIX;
 
 import android.app.ActionBar;
@@ -27,7 +28,6 @@ import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -132,7 +132,7 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
                                     for (int fieldIndex = 0; fieldIndex < adapter.getCount(); fieldIndex++) {
                                         testFields[fieldIndex] = adapter.getItem(fieldIndex).getId();
                                     }
-                                    Settings.setTestGroupFields(getGroupIndex(), testFields);
+                                    Settings.setTestGroupFieldIds(getGroupIndex(), testFields);
                                     buildContent();
                                 }
                             })
@@ -182,7 +182,8 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
         group.removeAll();
 
         TextDialogPreference namePref = new TextDialogPreference(context, null);
-        namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + getGroupIndex());
+        int groupId = Settings.getTestGroupId(getGroupIndex());
+        namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId);
         namePref.setTitle(context.getString(R.string.group_name));
         namePref.setDialogTitle(context.getString(R.string.group_name));
         group.addPreference(namePref);
