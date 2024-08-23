@@ -41,6 +41,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.DraggableListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.IndividualTestFieldGroupPreference;
 import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
@@ -55,14 +56,21 @@ import java.util.Locale;
 public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment {
     private static final String TAG = TestFieldListSettingsFragment.class.getSimpleName();
 
+    public static final String ARE_GROUPS_USED_BUNDLE_KEY = "ARE_GROUPS_USED";
+
     private static final String PREF_KEY_TEST_GROUP_TEST_FIELDS = "pref_key_test_group_test_fields";
 
     private View mView;
+    private boolean mAreGroupsUsed = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_empty);
+
+        final Bundle args = getArguments();
+        mAreGroupsUsed = args == null || args.getBoolean(ARE_GROUPS_USED_BUNDLE_KEY);
+
         setHasOptionsMenu(true);
     }
 
@@ -88,12 +96,32 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
         IconUtils.matchMenuIconColor(mView, addFieldMenuItem, actionBar);
         MenuItem reorderFieldsMenuItem = menu.findItem(R.id.action_reorder_fields);
         IconUtils.matchMenuIconColor(mView, reorderFieldsMenuItem, actionBar);
+        if (mAreGroupsUsed) {
+            menu.removeItem(R.id.action_add_group);
+            MenuItem removeGroupMenuItem = menu.findItem(R.id.action_remove_group);
+            IconUtils.matchMenuIconColor(mView, removeGroupMenuItem, actionBar);
+        } else {
+            menu.removeItem(R.id.action_remove_group);
+            MenuItem addGroupMenuItem = menu.findItem(R.id.action_add_group);
+            IconUtils.matchMenuIconColor(mView, addGroupMenuItem, actionBar);
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         final int itemId = item.getItemId();
-        if (itemId == R.id.action_add_field) {
+        if (itemId == R.id.action_add_group) {
+            // add a preference for a new group
+            Settings.addTestFieldGroup();
+            // exit this group before opening the new group
+            getFragmentManager().popBackStackImmediate();
+            // create the preference to manage launching the group preference screen
+            Preference newPref = new IndividualTestFieldGroupPreference(getActivity(),
+                    Settings.getTestFieldGroupCount() - 1);
+            // launch sub setting screen for the new field group preference
+            ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
+                    this, newPref);
+        } else if (itemId == R.id.action_add_field) {
             // add a preference for a new field
             Settings.addTestField(getGroupIndex());
             final PreferenceGroup group = (PreferenceGroup) getPreferenceScreen().findPreference(
@@ -181,12 +209,14 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
         final PreferenceGroup group = getPreferenceScreen();
         group.removeAll();
 
-        TextDialogPreference namePref = new TextDialogPreference(context, null);
-        int groupId = Settings.getTestGroupId(getGroupIndex());
-        namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId);
-        namePref.setTitle(context.getString(R.string.group_name));
-        namePref.setDialogTitle(context.getString(R.string.group_name));
-        group.addPreference(namePref);
+        if (mAreGroupsUsed) {
+            TextDialogPreference namePref = new TextDialogPreference(context, null);
+            int groupId = Settings.getTestGroupId(getGroupIndex());
+            namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId);
+            namePref.setTitle(context.getString(R.string.group_name));
+            namePref.setDialogTitle(context.getString(R.string.group_name));
+            group.addPreference(namePref);
+        }
 
         PreferenceCategory testFieldPrefCategory = new PreferenceCategory(context);
         testFieldPrefCategory.setTitle(R.string.test_field_list_screen);

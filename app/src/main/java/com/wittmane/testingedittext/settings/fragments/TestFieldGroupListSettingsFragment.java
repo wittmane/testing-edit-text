@@ -17,6 +17,7 @@
 package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment.getFieldTitle;
 
 import android.app.ActionBar;
@@ -52,11 +53,22 @@ import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
 //TODO: (EW) reduce duplicate code with TestFieldListSettingsFragment
 public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     private static final String TAG = TestFieldGroupListSettingsFragment.class.getSimpleName();
+
+    private static final String STATE_AUTO_LAUNCHED_ONLY_GROUP = "AUTO_LAUNCHED_ONLY_GROUP";
+
     private View mView;
+
+    private static boolean mUseGroups = false;
+    private boolean mAutoLaunchedOnlyGroup = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (savedInstanceState != null) {
+            mAutoLaunchedOnlyGroup = savedInstanceState.getBoolean(STATE_AUTO_LAUNCHED_ONLY_GROUP);
+        }
+
         addPreferencesFromResource(R.xml.preference_screen_empty);
         setHasOptionsMenu(true);
     }
@@ -65,13 +77,46 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
         mView = super.onCreateView(inflater, container, savedInstanceState);
+
+        if (!mUseGroups) {
+            if (Settings.getTestFieldGroupCount() == 1) {
+                // since there is only a single group and the user hasn't interacted with any groups
+                // since first opening this fragment, there isn't much value in showing a preference
+                // screen to show the single group
+                if (mAutoLaunchedOnlyGroup) {
+                    // we just backed out of the group preference that we auto-launched, so we go to
+                    // the previous fragment to continue skipping the unnecessary groups setting
+                    getFragmentManager().popBackStack();
+                } else {
+                    // jump directly into the only group
+                    mAutoLaunchedOnlyGroup = true;
+                    IndividualTestFieldGroupPreference pref =
+                            new IndividualTestFieldGroupPreference(getActivity(), 0);
+                    pref.setAreGroupsUsed(false);
+                    ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
+                            this, pref);
+                }
+            } else {
+                mUseGroups = true;
+            }
+        }
+
         return mView;
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        buildContent();
+        if (mUseGroups) {
+            buildContent();
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        savedInstanceState.putBoolean(STATE_AUTO_LAUNCHED_ONLY_GROUP, mAutoLaunchedOnlyGroup);
     }
 
     @Override
@@ -235,7 +280,8 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     /**
      * Preference to link to the main settings screen for a specific test field group.
      */
-    private static class IndividualTestFieldGroupPreference extends PerTestGroupPreference {
+    public static class IndividualTestFieldGroupPreference extends PerTestGroupPreference {
+        private boolean mAreGroupsUsed = true;
 
         /**
          * Create a new preference for a test field group.
@@ -255,6 +301,20 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
             setTitle(getGroupDisplayName(context, groupIndex));
             setSummary(context.getString(R.string.field_count,
                     Settings.getTestFieldCount(groupIndex)));
+        }
+
+        public void setAreGroupsUsed(boolean areGroupsUsed) {
+            mAreGroupsUsed = areGroupsUsed;
+        }
+
+        @Override
+        public Bundle getExtras() {
+            Bundle extras = super.getExtras();
+            if (extras == null) {
+                extras = new Bundle();
+            }
+            extras.putBoolean(ARE_GROUPS_USED_BUNDLE_KEY, mAreGroupsUsed);
+            return extras;
         }
     }
 }
