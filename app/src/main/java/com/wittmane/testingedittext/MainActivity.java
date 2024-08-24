@@ -303,8 +303,11 @@ public class MainActivity extends Activity
         for (int curGroupIndex = 0; curGroupIndex < testFields.length; curGroupIndex++) {
             if (curGroupIndex == mCurrentTabIndex) {
 
+                // find the first field that changed (added, removed, or reordered - not considering
+                // changes in the settings of the same field), and find all of the existing fields
+                // that are still part of the group
                 TestField[] groupTestFields = new TestField[Settings.getTestFieldCount(curGroupIndex)];
-                int firstChangedFieldIndex = -1;
+                int firstChangedFieldIndex = 0;
                 for (int curFieldIndex = 0; curFieldIndex < groupTestFields.length; curFieldIndex++) {
                     TestField testField = null;
                     int id = Settings.getTestFieldId(curGroupIndex, curFieldIndex);
@@ -314,8 +317,10 @@ public class MainActivity extends Activity
                             TestField existingField = mTestFields[curGroupIndex][oldFieldIndex];
                             if (existingField.mId == id) {
                                 testField = existingField;
-                                if (firstChangedFieldIndex < 0 && curFieldIndex != oldFieldIndex) {
-                                    firstChangedFieldIndex = curFieldIndex;
+                                if (curFieldIndex == oldFieldIndex
+                                        && firstChangedFieldIndex == curFieldIndex) {
+                                    // field is in the same spot, so this field didn't change
+                                    firstChangedFieldIndex++;
                                 }
                                 break;
                             }
@@ -323,9 +328,6 @@ public class MainActivity extends Activity
                     }
                     if (testField == null) {
                         testField = new TestField(id, this);
-                        if (firstChangedFieldIndex < 0) {
-                            firstChangedFieldIndex = curFieldIndex;
-                        }
                     }
                     groupTestFields[curFieldIndex] = testField;
                 }

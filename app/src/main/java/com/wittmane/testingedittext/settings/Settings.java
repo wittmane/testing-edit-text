@@ -254,6 +254,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         mPrefs = new SharedPreferenceManager(
                 PreferenceManager.getDefaultSharedPreferences(context));
         convertToUseGroupIds(mPrefs);
+        if (!mPrefs.contains(PREF_TEST_GROUP_IDS)) {
+            // create a default group and field the first time the app is opened
+            Log.d(TAG, "creating defaults");
+            mPrefs.setIntArray(PREF_TEST_GROUP_IDS, new int[] { 0 });
+            mPrefs.setIntArray(PREF_TEST_FIELD_IDS, new int[] { 0 });
+        }
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
     }
@@ -1429,11 +1435,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int[] readTestFieldGroupIds(final SharedPreferenceManager prefs) {
-        int[] groupIds = prefs.getIntArray(PREF_TEST_GROUP_IDS, new int[] { 0 });
-        if (groupIds == null || groupIds.length < 1) {
-            // there should always be at least 1 field
-            Log.e(TAG, "No test groups");
-            groupIds = new int[] { 0 };
+        int[] groupIds = prefs.getIntArray(PREF_TEST_GROUP_IDS, new int[0]);
+        if (groupIds == null) {
+            Log.e(TAG, "Group IDs is null");
+            groupIds = new int[0];
         }
         return groupIds;
     }
@@ -1443,18 +1448,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int[] readTestGroupFieldIds(final SharedPreferenceManager prefs, int groupId) {
-        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS + GROUP_INFIX + groupId,
-                new int[] { });
+        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS + GROUP_INFIX + groupId, new int[0]);
         if (fieldIds == null) {
             Log.e(TAG, "null field IDs for group " + groupId);
-            fieldIds = new int[] { };
-        }
-        if (fieldIds.length == 0 && getInstance().mTestGroupIds != null
-                && getInstance().mTestGroupIds.length == 1
-                && getInstance().mTestGroupIds[0] == groupId) {
-            // there should always be at least 1 field in the group if it is the only group
-            Log.e(TAG, "No test fields");
-            fieldIds = new int[] { };
+            fieldIds = new int[0];
         }
         return fieldIds;
     }
@@ -1794,6 +1791,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static void removeTestGroupPrefs(Editor editor, int groupId) {
         final String[] testGroupPrefKeyPrefixes = new String[]{
+                PREF_TEST_FIELD_IDS,
                 PREF_TEST_GROUP_NAME_PREFIX
         };
         for (String prefKeyPrefix : testGroupPrefKeyPrefixes) {
