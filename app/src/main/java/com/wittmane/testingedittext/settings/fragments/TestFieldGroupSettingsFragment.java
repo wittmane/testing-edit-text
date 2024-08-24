@@ -52,9 +52,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-//TODO: (EW) consider renaming TestFieldGroupSettingsFragment
-public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment {
-    private static final String TAG = TestFieldListSettingsFragment.class.getSimpleName();
+public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment {
+    private static final String TAG = TestFieldGroupSettingsFragment.class.getSimpleName();
 
     public static final String ARE_GROUPS_USED_BUNDLE_KEY = "ARE_GROUPS_USED";
 

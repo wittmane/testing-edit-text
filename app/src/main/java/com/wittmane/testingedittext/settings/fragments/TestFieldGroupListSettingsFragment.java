@@ -17,8 +17,8 @@
 package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldListSettingsFragment.getFieldTitle;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.getFieldTitle;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
@@ -50,7 +50,7 @@ import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
 
-//TODO: (EW) reduce duplicate code with TestFieldListSettingsFragment
+//TODO: (EW) reduce duplicate code with TestFieldGroupSettingsFragment
 public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     private static final String TAG = TestFieldGroupListSettingsFragment.class.getSimpleName();
 
@@ -291,7 +291,7 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         public IndividualTestFieldGroupPreference(final Context context, final int groupIndex) {
             super(context, groupIndex);
 
-            setFragment(TestFieldListSettingsFragment.class.getName());
+            setFragment(TestFieldGroupSettingsFragment.class.getName());
         }
 
         @Override
