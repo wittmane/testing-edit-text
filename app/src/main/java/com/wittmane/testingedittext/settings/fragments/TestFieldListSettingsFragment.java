@@ -174,11 +174,21 @@ public class TestFieldListSettingsFragment extends PerTestGroupSettingsFragment 
                     .create();
             dialog.show();
         } else if (itemId == R.id.action_remove_group) {
-            //TODO: (EW) add a confirmation before just deleting the group
+            new AlertDialog.Builder(getActivity())
+                    .setTitle(R.string.delete_group)
+                    .setMessage(R.string.delete_group_confirmation)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog,
+                                            int which) {
+                            // remove the group and go back to the field list
+                            Settings.removeTestFieldGroup(getGroupIndex());
+                            getFragmentManager().popBackStackImmediate();
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, null).show();
 
-            // remove the group and go back to the field list
-            Settings.removeTestFieldGroup(getGroupIndex());
-            getFragmentManager().popBackStackImmediate();
         }
         return super.onOptionsItemSelected(item);
     }

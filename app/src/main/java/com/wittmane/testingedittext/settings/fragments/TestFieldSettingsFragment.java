@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -75,11 +77,20 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
     public boolean onOptionsItemSelected(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_remove_field) {
-            //TODO: (EW) add a confirmation before just deleting the field
-
-            // remove the field and go back to the field list
-            Settings.removeTestField(getGroupIndex(), getFieldIndex());
-            getFragmentManager().popBackStackImmediate();
+            new AlertDialog.Builder(getActivity())
+                    .setTitle(R.string.delete_field)
+                    .setMessage(R.string.delete_field_confirmation)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog,
+                                            int which) {
+                            // remove the field and go back to the field list
+                            Settings.removeTestField(getGroupIndex(), getFieldIndex());
+                            getFragmentManager().popBackStackImmediate();
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, null).show();
         }
         return super.onOptionsItemSelected(item);
     }
