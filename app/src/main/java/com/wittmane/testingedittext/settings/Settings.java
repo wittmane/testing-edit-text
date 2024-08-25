@@ -25,6 +25,7 @@ import android.text.InputType;
 import android.util.Log;
 import android.view.inputmethod.EditorInfo;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
@@ -36,6 +37,7 @@ import com.wittmane.testingedittext.settings.preferences.TextTranslateListPrefer
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,6 +48,8 @@ import java.util.regex.Pattern;
 
 public class Settings implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = Settings.class.getSimpleName();
+
+    private static final boolean LIST_PREFS = false;
 
     public static final int BASE_GROUP_INDEX = -1;
     public static final int BASE_FIELD_INDEX = -1;
@@ -253,6 +257,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private void onCreate(final Context context) {
         mPrefs = new SharedPreferenceManager(
                 PreferenceManager.getDefaultSharedPreferences(context));
+
+        logPreferences();
+
         convertToUseGroupIds(mPrefs);
         if (!mPrefs.contains(PREF_TEST_GROUP_IDS)) {
             // create a default group and field the first time the app is opened
@@ -262,6 +269,93 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
+        //TODO: (EW) consider checking what preferences aren't used and log them (probably only if
+        // LIST_PREFS is true). probably have SharedPreferenceManager keep track of all get* calls'
+        // keys.
+    }
+
+    private void logPreferences() {
+        if (!LIST_PREFS) {
+            return;
+        }
+        Map<String, ?> allPrefs = mPrefs.getAll();
+        String[] prefKeys = allPrefs.keySet().toArray(new String[0]);
+        Arrays.sort(prefKeys, new Comparator<String>() {
+            @Override
+            public int compare(String a, String b) {
+                // sort nulls to the end (shouldn't ever be any)
+                if (a == null) {
+                    if (b == null) {
+                        return 0;
+                    }
+                    return 1;
+                }
+                if (b == null) {
+                    return -1;
+                }
+
+                // first sort keys in groupings of related things (groups, fields, etc)
+                int aCategory = getPrefKeyCategory(a);
+                int bCategory = getPrefKeyCategory(b);
+                if (aCategory != bCategory) {
+                    return aCategory - bCategory;
+                }
+
+                // then sort group and field preferences on their ID
+                if (aCategory == 3) {
+                    int aId = parseIntSuffix(a, GROUP_INFIX);
+                    int bId = parseIntSuffix(b, GROUP_INFIX);
+                    if (aId != bId) {
+                        return aId - bId;
+                    }
+                } else if (aCategory == 4) {
+                    int aId = parseIntSuffix(a, FIELD_INFIX);
+                    int bId = parseIntSuffix(b, FIELD_INFIX);
+                    if (aId != bId) {
+                        return aId - bId;
+                    }
+                }
+
+                // finally just sort based on the default string sort order
+                return a.compareTo(b);
+            }
+
+            private int getPrefKeyCategory(@NonNull String prefKey) {
+                if (prefKey.endsWith(BASE_SUFFIX)) {
+                    return 1;
+                } else if (prefKey.equals(PREF_TEST_GROUP_IDS)) {
+                    return 2;
+                } else if (containsIdSuffix(prefKey, GROUP_INFIX)) {
+                    return 3;
+                } else if (containsIdSuffix(prefKey, FIELD_INFIX)) {
+                    return 4;
+                }
+                return 0;
+            }
+
+            private int parseIntSuffix(String prefKey, String infix) {
+                int prefixLength = prefKey.lastIndexOf(infix);
+                try {
+                    return Integer.parseInt(prefKey.substring(prefixLength + infix.length()));
+                } catch (NumberFormatException ignored) {
+                    return -1;
+                }
+            }
+        });
+
+        Log.d(TAG, "existing preferences:");
+        for (String prefKey : prefKeys) {
+            Object value = allPrefs.get(prefKey);
+            String valueDisplay;
+            if (value instanceof int[]) {
+                valueDisplay = Arrays.toString((int[]) value);
+            } else if (value instanceof String[]) {
+                valueDisplay = Arrays.toString((String[]) value);
+            } else {
+                valueDisplay = "" + value;
+            }
+            Log.d(TAG, prefKey + ": " + valueDisplay);
+        }
     }
 
     public static void onDestroy() {
@@ -789,7 +883,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static AppLevelDefaults getTestFieldOrBaseForTextInputModification(int groupIndex,
                                                                                int fieldIndex) {
         return getTestFieldOrBase(groupIndex, fieldIndex,
-            testField -> testField.mOverrideTextInputModification);
+                testField -> testField.mOverrideTextInputModification);
     }
 
     private static AppLevelDefaults getTestFieldOrBaseForTextReturn(int groupIndex,
@@ -1423,7 +1517,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static final int DEFAULT_GETEXTRACTEDTEXT_DELAY = 0;
-    
+
     private static int readGetExtractedTextDelay(final SharedPreferenceManager prefs, int fieldId) {
         return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY_PREFIX + getSuffix(fieldId),
                 DEFAULT_GETEXTRACTEDTEXT_DELAY);
@@ -1649,12 +1743,27 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         // load the default values for any new groups
         for (int groupId : addedGroupIds) {
+            deleteLingeringPrefs(GROUP_INFIX + groupId);
+
             settings.loadExistingGroup(groupId);
         }
 
         // load the default values for any new fields
         for (int fieldId : addedFieldIds) {
+            deleteLingeringPrefs(FIELD_INFIX + fieldId);
+
             settings.loadExistingField(fieldId);
+        }
+    }
+
+    private static void deleteLingeringPrefs(String prefSuffix) {
+        SharedPreferenceManager prefs = getInstance().mPrefs;
+        Map<String, ?> allPrefs = prefs.getAll();
+        for (String prefKey : allPrefs.keySet()) {
+            if (prefKey.endsWith(prefSuffix)) {
+                Log.e(TAG, "cleaning up lingering preference: " + prefKey);
+                prefs.remove(prefKey);
+            }
         }
     }
 

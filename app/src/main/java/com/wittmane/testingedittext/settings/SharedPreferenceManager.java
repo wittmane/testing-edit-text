@@ -29,6 +29,7 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,9 +106,36 @@ public class SharedPreferenceManager implements SharedPreferences {
         return null;
     }
 
+    private static Object getParsedPrefValue(Object rawPrefValue, String key) {
+        if (rawPrefValue instanceof String) {
+            String rawPrefStringValue = (String) rawPrefValue;
+            if (rawPrefStringValue.startsWith(SPANNED_STRING_PREF_PREFIX)) {
+                String serializedSpannedInfo =
+                        rawPrefStringValue.substring(SPANNED_STRING_PREF_PREFIX.length());
+                return getSpannedInternal(serializedSpannedInfo, null, key);
+            }
+            if (rawPrefStringValue.startsWith(STRING_ARRAY_STRING_PREF_PREFIX)) {
+                String serializedStringArrayInfo =
+                        rawPrefStringValue.substring(STRING_ARRAY_STRING_PREF_PREFIX.length());
+                return getStringArrayInternal(serializedStringArrayInfo, null, key);
+            }
+            if (rawPrefStringValue.startsWith(INT_ARRAY_STRING_PREF_PREFIX)) {
+                String serializedIntArrayInfo =
+                        rawPrefStringValue.substring(INT_ARRAY_STRING_PREF_PREFIX.length());
+                return getIntArrayInternal(serializedIntArrayInfo, null, key);
+            }
+        }
+        return rawPrefValue;
+    }
+
     @Override
     public Map<String, ?> getAll() {
-        return mPrefs.getAll();
+        Map<String, ?> baseAllPrefs = mPrefs.getAll();
+        Map<String, Object> allPrefs = new HashMap<>();
+        for (String prefKey : baseAllPrefs.keySet()) {
+            allPrefs.put(prefKey, getParsedPrefValue(baseAllPrefs.get(prefKey), prefKey));
+        }
+        return allPrefs;
     }
 
     @Nullable
@@ -172,8 +200,8 @@ public class SharedPreferenceManager implements SharedPreferences {
         return getSpannedInternal(serializedSpannedInfo, defaultValue, key);
     }
 
-    private Spanned getSpannedInternal(String serializedSpannedInfo,
-                                       @Nullable Spanned defaultValue, String key) {
+    private static Spanned getSpannedInternal(String serializedSpannedInfo,
+                                              @Nullable Spanned defaultValue, String key) {
         if (TextUtils.isEmpty(serializedSpannedInfo)) {
             // this shouldn't be null due to needing to prefix it, but if it's an empty string, that
             // means that no info for the spanned was included, which means it was set to null
@@ -249,6 +277,11 @@ public class SharedPreferenceManager implements SharedPreferences {
             throw new ClassCastException(key + " does not contain a String[]");
         }
         String serializedArrayInfo = rawValue.substring(STRING_ARRAY_STRING_PREF_PREFIX.length());
+        return getStringArrayInternal(serializedArrayInfo, defaultValue, key);
+    }
+
+    private static String[] getStringArrayInternal(String serializedArrayInfo,
+                                                   @Nullable String[] defaultValue, String key) {
         if (TextUtils.isEmpty(serializedArrayInfo)) {
             // this shouldn't be null due to needing to prefix it, but if it's an empty string, that
             // means that no info for the array was included, which means it was set to null
@@ -306,6 +339,11 @@ public class SharedPreferenceManager implements SharedPreferences {
             throw new ClassCastException(key + " does not contain an int[]");
         }
         String serializedArrayInfo = rawValue.substring(INT_ARRAY_STRING_PREF_PREFIX.length());
+        return getIntArrayInternal(serializedArrayInfo, defaultValue, key);
+    }
+
+    private static int[] getIntArrayInternal(String serializedArrayInfo,
+                                             @Nullable int[] defaultValue, String key) {
         if (TextUtils.isEmpty(serializedArrayInfo)) {
             // this shouldn't be null due to needing to prefix it, but if it's an empty string, that
             // means that no info for the array was included, which means it was set to null
