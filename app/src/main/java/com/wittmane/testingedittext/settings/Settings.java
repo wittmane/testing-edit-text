@@ -269,9 +269,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
-        //TODO: (EW) consider checking what preferences aren't used and log them (probably only if
-        // LIST_PREFS is true). probably have SharedPreferenceManager keep track of all get* calls'
-        // keys.
+
+        if (LIST_PREFS) {
+            for (String prefKey : mPrefs.getPrefKeysNotLoaded()) {
+                Log.w(TAG, "Preference key " + prefKey + " has data but wasn't loaded");
+            }
+        }
     }
 
     private void logPreferences() {

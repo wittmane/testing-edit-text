@@ -30,6 +30,7 @@ import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerial
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +49,7 @@ public class SharedPreferenceManager implements SharedPreferences {
             createTypePrefix("99cc955a57ba4fc08ea6237afd4ba0b9");
 
     private final SharedPreferences mPrefs;
+    private final HashSet<String> mLoadedPrefKeys = new HashSet<>();
 
     public SharedPreferenceManager(SharedPreferences prefs) {
         mPrefs = prefs;
@@ -141,6 +143,7 @@ public class SharedPreferenceManager implements SharedPreferences {
     @Nullable
     @Override
     public String getString(String key, @Nullable String defaultValue) {
+        mLoadedPrefKeys.add(key);
         String value = mPrefs.getString(key, defaultValue);
         String specialTypeName = getSpecialTypeName(value);
         if (specialTypeName != null) {
@@ -155,26 +158,31 @@ public class SharedPreferenceManager implements SharedPreferences {
     @Nullable
     @Override
     public Set<String> getStringSet(String key, @Nullable Set<String> defaultValues) {
+        mLoadedPrefKeys.add(key);
         return mPrefs.getStringSet(key, defaultValues);
     }
 
     @Override
     public int getInt(String key, int defaultValue) {
+        mLoadedPrefKeys.add(key);
         return mPrefs.getInt(key, defaultValue);
     }
 
     @Override
     public long getLong(String key, long defaultValue) {
+        mLoadedPrefKeys.add(key);
         return mPrefs.getLong(key, defaultValue);
     }
 
     @Override
     public float getFloat(String key, float defaultValue) {
+        mLoadedPrefKeys.add(key);
         return mPrefs.getFloat(key, defaultValue);
     }
 
     @Override
     public boolean getBoolean(String key, boolean defaultValue) {
+        mLoadedPrefKeys.add(key);
         return mPrefs.getBoolean(key, defaultValue);
     }
 
@@ -189,6 +197,7 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public Spanned getSpanned(String key, @Nullable Spanned defaultValue) {
+        mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
         }
@@ -269,6 +278,7 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public String[] getStringArray(String key, @Nullable String[] defaultValue) {
+        mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
         }
@@ -331,6 +341,7 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public int[] getIntArray(String key, @Nullable int[] defaultValue) {
+        mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
         }
@@ -383,6 +394,7 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public CharSequence getCharSequence(String key, @Nullable CharSequence defaultValue) {
+        mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
         }
@@ -535,6 +547,16 @@ public class SharedPreferenceManager implements SharedPreferences {
             OnSharedPreferenceChangeListener onSharedPreferenceChangeListener) {
         mPrefs.unregisterOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
 
+    }
+
+    public Set<String> getPrefKeysNotLoaded() {
+        HashSet<String> prefKeysNotLoaded = new HashSet<>();
+        for (String key : getAll().keySet()) {
+            if (!mLoadedPrefKeys.contains(key)) {
+                prefKeysNotLoaded.add(key);
+            }
+        }
+        return prefKeysNotLoaded;
     }
 
     /**
