@@ -18,17 +18,15 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.getFieldTitle;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.getFieldDisplayName;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -37,8 +35,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -50,7 +46,6 @@ import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
 
-//TODO: (EW) reduce duplicate code with TestFieldGroupSettingsFragment
 public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     private static final String TAG = TestFieldGroupListSettingsFragment.class.getSimpleName();
 
@@ -124,10 +119,19 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         inflater.inflate(R.menu.test_field_group_list, menu);
 
         ActionBar actionBar = getActivity().getActionBar();
-        MenuItem addGroupMenuItem = menu.findItem(R.id.action_add_group);
-        IconUtils.matchMenuIconColor(mView, addGroupMenuItem, actionBar);
-        MenuItem reorderGroupsMenuItem = menu.findItem(R.id.action_reorder_groups);
-        IconUtils.matchMenuIconColor(mView, reorderGroupsMenuItem, actionBar);
+        IconUtils.matchMenuIconColor(mView, menu, actionBar);
+    }
+
+    static void openGroupPreference(PreferenceFragment currentFragment, int groupIndex) {
+        Preference newPref = new IndividualTestFieldGroupPreference(currentFragment.getActivity(),
+                groupIndex);
+        // launch sub setting screen for the new field group preference
+        launchPrefFragment(currentFragment, newPref);
+    }
+
+    static void launchPrefFragment(PreferenceFragment currentFragment, Preference pref) {
+        ((OnPreferenceStartFragmentCallback)currentFragment.getActivity())
+                .onPreferenceStartFragment(currentFragment, pref);
     }
 
     @Override
@@ -136,88 +140,70 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         if (itemId == R.id.action_add_group) {
             // add a preference for a new group
             Settings.addTestFieldGroup();
-            final PreferenceGroup group = getPreferenceScreen();
-            Preference newPref = new IndividualTestFieldGroupPreference(getActivity(),
-                    group.getPreferenceCount());
-            group.addPreference(newPref);
-            // launch sub setting screen for the new field group preference
-            ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
-                    this, newPref);
-        } else if (itemId == R.id.action_reorder_groups) {
-            LinearLayout layout = new LinearLayout(getActivity());
-            layout.setOrientation(LinearLayout.VERTICAL);
-            layout.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
-            ListView listView = new ListView(getActivity());
-            listView.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, 0, 1));
-            DraggableGroupedListAdapter<GroupEntry, FieldEntry> adapter = new DraggableGroupedListAdapter<>(getActivity(),
-                    new DraggableGroupedListAdapter.ListItemBuilder<GroupEntry, FieldEntry>() {
-                        @Override
-                        public void populateView(View view, GroupEntry group, FieldEntry field) {
+            openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
+        } else if (itemId == R.id.action_reorder_groups) {
+            showReorderGroupsDialog();
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showReorderGroupsDialog() {
+        LinearLayout layout = new LinearLayout(getActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setLayoutParams(new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
+        ListView listView = new ListView(getActivity());
+        listView.setLayoutParams(new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, 0, 1));
+        DraggableGroupedListAdapter<GroupEntry, FieldEntry> adapter =
+                new DraggableGroupedListAdapter<>(getActivity(),
+                        (view, group, field) -> {
                             TextView titleView = view.findViewById(R.id.title);
                             titleView.setText(field != null
                                     ? field.getDisplayName()
                                     : group.getDisplayName());
-                        }
-                    });
-            for (int groupIndex = 0; groupIndex < Settings.getTestFieldGroupCount(); groupIndex++) {
-                adapter.addGroup(new GroupEntry(getActivity(), groupIndex));
-                for (int fieldIndex = 0; fieldIndex < Settings.getTestFieldCount(groupIndex); fieldIndex++) {
-                    adapter.addItem(groupIndex,
-                            new FieldEntry(getActivity(), groupIndex, fieldIndex));
-                }
+                        });
+        for (int groupIndex = 0; groupIndex < Settings.getTestFieldGroupCount(); groupIndex++) {
+            adapter.addGroup(new GroupEntry(getActivity(), groupIndex));
+            int fieldCount = Settings.getTestFieldCount(groupIndex);
+            for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+                adapter.addItem(groupIndex,
+                        new FieldEntry(getActivity(), groupIndex, fieldIndex));
             }
-            listView.setAdapter(adapter);
-            layout.addView(listView);
-
-            CheckBox checkBox = new CheckBox(getActivity());
-            checkBox.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, 0));
-            checkBox.setText(R.string.expand_groups);
-            checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    adapter.expandGroups(isChecked);
-                }
-            });
-            layout.addView(checkBox);
-
-            AlertDialog dialog = new AlertDialog.Builder(getActivity())
-                    .setTitle(R.string.reorder_groups)
-                    .setView(layout)
-                    .setPositiveButton(android.R.string.ok,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                    FieldIdGroup[] testGroups =
-                                            new FieldIdGroup[adapter.getGroupCount()];
-                                    for (int i = 0; i < adapter.getGroupCount(); i++) {
-                                        int[] fieldIds = new int[adapter.getItemCount(i)];
-                                        for (int j = 0; j < adapter.getItemCount(i); j++) {
-                                            fieldIds[j] = adapter.getItem(i, j).getId();
-                                        }
-                                        testGroups[i] = new FieldIdGroup(
-                                                adapter.getGroup(i).getId(),
-                                                fieldIds);
-                                    }
-                                    Settings.setTestGroupAndFieldIds(testGroups);
-                                    buildContent();
-                                }
-                            })
-                    .setNegativeButton(android.R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                }
-                            })
-                    .create();
-            dialog.show();
         }
-        return super.onOptionsItemSelected(item);
+        listView.setAdapter(adapter);
+        layout.addView(listView);
+
+        CheckBox checkBox = new CheckBox(getActivity());
+        checkBox.setLayoutParams(new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, 0));
+        checkBox.setText(R.string.expand_groups);
+        checkBox.setOnCheckedChangeListener(
+                (buttonView, isChecked) -> adapter.expandGroups(isChecked));
+        layout.addView(checkBox);
+
+        new AlertDialog.Builder(getActivity())
+                .setTitle(R.string.reorder_groups)
+                .setView(layout)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    FieldIdGroup[] testGroups = new FieldIdGroup[adapter.getGroupCount()];
+                    for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
+                        int[] fieldIds = new int[adapter.getItemCount(groupIndex)];
+                        for (int fieldIndex = 0; fieldIndex < fieldIds.length; fieldIndex++) {
+                            fieldIds[fieldIndex] = adapter.getItem(groupIndex, fieldIndex).getId();
+                        }
+                        testGroups[groupIndex] = new FieldIdGroup(
+                                adapter.getGroup(groupIndex).getId(),
+                                fieldIds);
+                    }
+                    Settings.setTestGroupAndFieldIds(testGroups);
+                    buildContent();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+                .show();
     }
 
     private static class GroupEntry {
@@ -238,21 +224,21 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         }
     }
 
-    private static class FieldEntry {
+    static class FieldEntry {
         int mFieldId;
         private final String mDisplayName;
 
         public FieldEntry(Context context, int groupIndex, int fieldIndex) {
             mFieldId = getTestFieldId(groupIndex, fieldIndex);
-            mDisplayName = getFieldTitle(context, groupIndex, fieldIndex).toString();
-        }
-
-        public String getDisplayName() {
-            return mDisplayName;
+            mDisplayName = getFieldDisplayName(context, groupIndex, fieldIndex).toString();
         }
 
         public int getId() {
             return mFieldId;
+        }
+
+        public String getDisplayName() {
+            return mDisplayName;
         }
     }
 
@@ -280,7 +266,7 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     /**
      * Preference to link to the main settings screen for a specific test field group.
      */
-    public static class IndividualTestFieldGroupPreference extends PerTestGroupPreference {
+    private static class IndividualTestFieldGroupPreference extends PerTestGroupPreference {
         private boolean mAreGroupsUsed = true;
 
         /**

@@ -132,7 +132,7 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
     }
 
     private int getFieldId() {
-        return getGroupIndex() == BASE_FIELD_INDEX && getFieldIndex() == BASE_FIELD_INDEX
+        return getGroupIndex() == BASE_GROUP_INDEX && getFieldIndex() == BASE_FIELD_INDEX
                 ? BASE_FIELD_ID
                 : Settings.getTestFieldId(getGroupIndex(), getFieldIndex());
     }
@@ -167,7 +167,7 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
                 updateEnabledState(prefsChecked[0], overridePrefKey);
             }
         });
-        if (getGroupIndex() == BASE_FIELD_INDEX && getFieldIndex() == BASE_FIELD_INDEX) {
+        if (getGroupIndex() == BASE_GROUP_INDEX && getFieldIndex() == BASE_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference pref = findPreference(overridePrefKey);
             preferenceScreen.removePreference(pref);

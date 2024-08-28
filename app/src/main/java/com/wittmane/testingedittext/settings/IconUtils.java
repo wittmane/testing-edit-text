@@ -25,6 +25,8 @@ import android.content.res.TypedArray;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
@@ -39,15 +41,31 @@ public class IconUtils {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
 
     /**
-     * Set a menu item's icon to matching text color.
+     * Set all item icons in a menu to match the action bar's text color.
+     * @param view the view to use to look up the root view to find the action bar text.
+     * @param menu the menu item that should change colors.
+     * @param actionBar target ActionBar.
+     */
+    public static void matchMenuIconColor(final View view, final Menu menu,
+                                          final ActionBar actionBar) {
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            matchMenuIconColor(view, item, actionBar);
+        }
+    }
+
+    /**
+     * Set a menu item's icon to match the action bar's text color.
      * @param view the view to use to look up the root view to find the action bar text.
      * @param menuItem the menu item that should change colors.
      * @param actionBar target ActionBar.
      */
     public static void matchMenuIconColor(final View view, final MenuItem menuItem,
-                                           final ActionBar actionBar) {
+                                          final ActionBar actionBar) {
+        if (actionBar == null) {
+            return;
+        }
         ArrayList<View> views = new ArrayList<>();
-
         view.getRootView().findViewsWithText(views, actionBar.getTitle(),
                 View.FIND_VIEWS_WITH_TEXT);
         if (views.size() == 1 && views.get(0) instanceof TextView) {

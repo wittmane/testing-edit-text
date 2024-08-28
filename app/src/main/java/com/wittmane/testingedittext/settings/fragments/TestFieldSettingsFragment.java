@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
+
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Build;
@@ -69,28 +71,19 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
     public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field, menu);
 
-        MenuItem addFieldMenuItem = menu.findItem(R.id.action_remove_field);
-        IconUtils.matchMenuIconColor(mView, addFieldMenuItem, getActivity().getActionBar());
+        IconUtils.matchMenuIconColor(mView, menu, getActivity().getActionBar());
     }
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_remove_field) {
-            new AlertDialog.Builder(getActivity())
-                    .setTitle(R.string.delete_field)
-                    .setMessage(R.string.delete_field_confirmation)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog,
-                                            int which) {
-                            // remove the field and go back to the field list
-                            Settings.removeTestField(getGroupIndex(), getFieldIndex());
-                            getFragmentManager().popBackStackImmediate();
-                        }
-                    })
-                    .setNegativeButton(android.R.string.no, null).show();
+            showWarningConfirmationDialog(R.string.delete_field, R.string.delete_field_confirmation,
+                    () -> {
+                        // remove the field and go back to the field list
+                        Settings.removeTestField(getGroupIndex(), getFieldIndex());
+                        getFragmentManager().popBackStackImmediate();
+                    }, getActivity());
         }
         return super.onOptionsItemSelected(item);
     }

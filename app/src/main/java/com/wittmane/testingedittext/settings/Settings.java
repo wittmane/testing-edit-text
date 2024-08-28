@@ -1880,8 +1880,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static void addTestFieldGroup() {
         Settings settings = getInstance();
-        setTestGroupIds(ArrayUtils.appendInt(settings.mTestGroupIds,
-                getNextId(settings.mTestGroups.keySet()), true));
+        int groupId = getNextId(settings.mTestGroups.keySet());
+        setTestGroupIds(ArrayUtils.appendInt(settings.mTestGroupIds, groupId, true));
     }
 
     public static void removeTestFieldGroup(int groupIndex) {

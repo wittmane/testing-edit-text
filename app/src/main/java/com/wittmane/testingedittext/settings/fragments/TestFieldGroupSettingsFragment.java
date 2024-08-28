@@ -18,11 +18,12 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.GROUP_INFIX;
 import static com.wittmane.testingedittext.settings.Settings.PREF_TEST_GROUP_NAME_PREFIX;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
@@ -41,7 +42,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.DraggableListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.IndividualTestFieldGroupPreference;
+import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.FieldEntry;
 import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
@@ -56,8 +57,6 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
     private static final String TAG = TestFieldGroupSettingsFragment.class.getSimpleName();
 
     public static final String ARE_GROUPS_USED_BUNDLE_KEY = "ARE_GROUPS_USED";
-
-    private static final String PREF_KEY_TEST_GROUP_TEST_FIELDS = "pref_key_test_group_test_fields";
 
     private View mView;
     private boolean mAreGroupsUsed = true;
@@ -91,18 +90,12 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         inflater.inflate(R.menu.test_field_list, menu);
 
         ActionBar actionBar = getActivity().getActionBar();
-        MenuItem addFieldMenuItem = menu.findItem(R.id.action_add_field);
-        IconUtils.matchMenuIconColor(mView, addFieldMenuItem, actionBar);
-        MenuItem reorderFieldsMenuItem = menu.findItem(R.id.action_reorder_fields);
-        IconUtils.matchMenuIconColor(mView, reorderFieldsMenuItem, actionBar);
+        IconUtils.matchMenuIconColor(mView, menu, actionBar);
+
         if (mAreGroupsUsed) {
             menu.removeItem(R.id.action_add_group);
-            MenuItem removeGroupMenuItem = menu.findItem(R.id.action_remove_group);
-            IconUtils.matchMenuIconColor(mView, removeGroupMenuItem, actionBar);
         } else {
             menu.removeItem(R.id.action_remove_group);
-            MenuItem addGroupMenuItem = menu.findItem(R.id.action_add_group);
-            IconUtils.matchMenuIconColor(mView, addGroupMenuItem, actionBar);
         }
     }
 
@@ -112,102 +105,72 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         if (itemId == R.id.action_add_group) {
             // add a preference for a new group
             Settings.addTestFieldGroup();
-            // exit this group before opening the new group
+
+            // exit this group before opening the new group so backing out of the new group goes to
+            // the group list, rather than this other group
             getFragmentManager().popBackStackImmediate();
-            // create the preference to manage launching the group preference screen
-            Preference newPref = new IndividualTestFieldGroupPreference(getActivity(),
-                    Settings.getTestFieldGroupCount() - 1);
-            // launch sub setting screen for the new field group preference
-            ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
-                    this, newPref);
+
+            openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
         } else if (itemId == R.id.action_add_field) {
             // add a preference for a new field
             Settings.addTestField(getGroupIndex());
-            final PreferenceGroup group = (PreferenceGroup) getPreferenceScreen().findPreference(
-                    PREF_KEY_TEST_GROUP_TEST_FIELDS);
-            Preference newPref = new IndividualTestFieldPreference(getActivity(),
-                    getGroupIndex(), group.getPreferenceCount());
-            group.addPreference(newPref);
-            // launch sub setting screen for the new field preference
-            ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
-                    this, newPref);
-        } else if (itemId == R.id.action_reorder_fields) {
-            ListView content = new ListView(getActivity());
-            DraggableListAdapter<TestField> adapter = new DraggableListAdapter<>(getActivity(),
-                    new DraggableListAdapter.ListItemBuilder<TestField>() {
-                        @Override
-                        public void populateView(View view, TestField item) {
-                            TextView titleView = view.findViewById(R.id.title);
-                            titleView.setText(item.mTitle);
-                        }
-                    });
-            for (int i = 0; i < Settings.getTestFieldCount(getGroupIndex()); i++) {
-                adapter.add(new TestField(getActivity(), getGroupIndex(), i));
-            }
-            content.setAdapter(adapter);
 
-            AlertDialog dialog = new AlertDialog.Builder(getActivity())
-                    .setTitle(R.string.reorder_fields)
-                    .setView(content)
-                    .setPositiveButton(android.R.string.ok,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                    int[] testFields;
-                                    testFields = new int[adapter.getCount()];
-                                    for (int fieldIndex = 0; fieldIndex < adapter.getCount(); fieldIndex++) {
-                                        testFields[fieldIndex] = adapter.getItem(fieldIndex).getId();
-                                    }
-                                    Settings.setTestGroupFieldIds(getGroupIndex(), testFields);
-                                    buildContent();
-                                }
-                            })
-                    .setNegativeButton(android.R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                }
-                            })
-                    .create();
-            dialog.show();
+            Preference newPref = new IndividualTestFieldPreference(getActivity(),
+                    getGroupIndex(), Settings.getTestFieldCount(getGroupIndex()) - 1);
+            // launch sub setting screen for the new field preference
+            launchPrefFragment(this, newPref);
+        } else if (itemId == R.id.action_reorder_fields) {
+            showReorderFieldsDialog();
         } else if (itemId == R.id.action_remove_group) {
-            new AlertDialog.Builder(getActivity())
-                    .setTitle(R.string.delete_group)
-                    .setMessage(R.string.delete_group_confirmation)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog,
-                                            int which) {
-                            // remove the group and go back to the field list
-                            Settings.removeTestFieldGroup(getGroupIndex());
-                            getFragmentManager().popBackStackImmediate();
-                        }
-                    })
-                    .setNegativeButton(android.R.string.no, null).show();
+            showWarningConfirmationDialog(R.string.delete_group, R.string.delete_group_confirmation,
+                    () -> {
+                        // remove the group and go back to the field list
+                        Settings.removeTestFieldGroup(getGroupIndex());
+                        getFragmentManager().popBackStackImmediate();
+                    }, getActivity());
 
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private static class TestField {
-        private final CharSequence mTitle;
-        private final int mId;
-
-        public TestField(Context context, int groupIndex, int fieldIndex) {
-            mTitle = getFieldTitle(context, groupIndex, fieldIndex);
-            mId = Settings.getTestFieldId(groupIndex, fieldIndex);
+    private void showReorderFieldsDialog() {
+        ListView listView = new ListView(getActivity());
+        DraggableListAdapter<FieldEntry> adapter = new DraggableListAdapter<>(getActivity(),
+                (view, item) -> {
+                    TextView titleView = view.findViewById(R.id.title);
+                    titleView.setText(item.getDisplayName());
+                });
+        int fieldCount = Settings.getTestFieldCount(getGroupIndex());
+        for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+            adapter.add(new FieldEntry(getActivity(), getGroupIndex(), fieldIndex));
         }
+        listView.setAdapter(adapter);
 
-        public int getId() {
-            return mId;
-        }
+        new AlertDialog.Builder(getActivity())
+                .setTitle(R.string.reorder_fields)
+                .setView(listView)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    int[] testFields = new int[adapter.getCount()];
+                    for (int fieldIndex = 0; fieldIndex < testFields.length; fieldIndex++) {
+                        testFields[fieldIndex] = adapter.getItem(fieldIndex).getId();
+                    }
+                    Settings.setTestGroupFieldIds(getGroupIndex(), testFields);
+                    buildContent();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+                .show();
+    }
 
-        public CharSequence getTitle() {
-            return mTitle;
-        }
+    static void showWarningConfirmationDialog(int titleId, int messageId, Runnable onConfirm,
+                                              Context context) {
+        new AlertDialog.Builder(context)
+                .setTitle(titleId)
+                .setMessage(messageId)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
+                .setNegativeButton(android.R.string.no, null)
+                .show();
     }
 
     /**
@@ -229,7 +192,6 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
         PreferenceCategory testFieldPrefCategory = new PreferenceCategory(context);
         testFieldPrefCategory.setTitle(R.string.test_field_list_screen);
-        testFieldPrefCategory.setKey(PREF_KEY_TEST_GROUP_TEST_FIELDS);
         group.addPreference(testFieldPrefCategory);
 
         for (int i = 0; i < Settings.getTestFieldCount(getGroupIndex()); i++) {
@@ -238,8 +200,8 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         }
     }
 
-    static CharSequence getFieldTitle(final Context context, final int groupIndex,
-                                              final int fieldIndex) {
+    static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
+                                            final int fieldIndex) {
         CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
         if (!TextUtils.isEmpty(defaultText)) {
             return defaultText;
@@ -277,7 +239,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             Context context = getContext();
             int groupIndex = getGroupIndex();
             int fieldIndex = getFieldIndex();
-            setTitle(getFieldTitle(context, groupIndex, fieldIndex));
+            setTitle(getFieldDisplayName(context, groupIndex, fieldIndex));
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
                             InputTypePreference.getInputTypeDescription(groupIndex, fieldIndex,
