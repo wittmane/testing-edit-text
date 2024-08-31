@@ -248,8 +248,8 @@ public class DraggableGroupedListAdapter<TGroup, TItem> extends DraggableListAda
      */
     public interface ListItemBuilder<TGroup, TItem> {
         /**
-         * Configure a view (created from the {@link DraggableGroupedListAdapter}) to display a particular
-         * object in the list.
+         * Configure a view (created from the {@link DraggableGroupedListAdapter}) to display a
+         * particular object in the list.
          * @param view The view to display the item.
          * @param group The group object in the list to display with the view.
          * @param item The group's child object in the list to display with the view.

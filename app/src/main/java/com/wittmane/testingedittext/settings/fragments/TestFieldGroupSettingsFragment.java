@@ -112,11 +112,12 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
             openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
         } else if (itemId == R.id.action_add_field) {
+            int groupIndex = getGroupIndex();
             // add a preference for a new field
-            Settings.addTestField(getGroupIndex());
+            Settings.addTestField(groupIndex);
 
             Preference newPref = new IndividualTestFieldPreference(getActivity(),
-                    getGroupIndex(), Settings.getTestFieldCount(getGroupIndex()) - 1);
+                    groupIndex, Settings.getTestFieldCount(groupIndex) - 1);
             // launch sub setting screen for the new field preference
             launchPrefFragment(this, newPref);
         } else if (itemId == R.id.action_reorder_fields) {
@@ -181,9 +182,13 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         final PreferenceGroup group = getPreferenceScreen();
         group.removeAll();
 
+        int groupIndex = getGroupIndex();
+
+        // add the name for the group (only if there are multiple groups since it won't be shown
+        // otherwise)
         if (mAreGroupsUsed) {
             TextDialogPreference namePref = new TextDialogPreference(context, null);
-            int groupId = Settings.getTestGroupId(getGroupIndex());
+            int groupId = Settings.getTestGroupId(groupIndex);
             namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId);
             namePref.setTitle(context.getString(R.string.group_name));
             namePref.setDialogTitle(context.getString(R.string.group_name));
@@ -194,9 +199,10 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         testFieldPrefCategory.setTitle(R.string.test_field_list_screen);
         group.addPreference(testFieldPrefCategory);
 
-        for (int i = 0; i < Settings.getTestFieldCount(getGroupIndex()); i++) {
+        // add the test fields
+        for (int i = 0; i < Settings.getTestFieldCount(groupIndex); i++) {
             testFieldPrefCategory.addPreference(
-                    new IndividualTestFieldPreference(context, getGroupIndex(), i));
+                    new IndividualTestFieldPreference(context, groupIndex, i));
         }
     }
 
@@ -235,7 +241,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         }
 
         @Override
-        protected void updateSummary() {
+        protected void updateDisplayText() {
             Context context = getContext();
             int groupIndex = getGroupIndex();
             int fieldIndex = getFieldIndex();

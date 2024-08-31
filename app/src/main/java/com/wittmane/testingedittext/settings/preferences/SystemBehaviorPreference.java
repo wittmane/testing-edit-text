@@ -52,6 +52,6 @@ public class SystemBehaviorPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

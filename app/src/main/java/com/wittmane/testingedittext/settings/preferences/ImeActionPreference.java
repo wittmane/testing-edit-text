@@ -54,7 +54,7 @@ public class ImeActionPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
         setSummary(getImeActionDescription(getGroupIndex(), getFieldIndex(), getContext()));
     }
 

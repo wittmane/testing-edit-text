@@ -20,11 +20,8 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 
@@ -33,7 +30,6 @@ import java.util.List;
 
 import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
-import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettingsFragment.GROUP_INDEX_BUNDLE_KEY;
 
 /**
  * Preference to link to a test field specific settings screen.
@@ -42,7 +38,6 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
     private static final String TAG = PerTestFieldPreference.class.getSimpleName();
 
     private int mFieldIndex = -1;
-    private Bundle mExtras;
 
     public PerTestFieldPreference(Context context) {
         super(context);
@@ -68,8 +63,7 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
             return;
         }
         mFieldIndex = fieldIndex;
-        mExtras = null;
-        updateSummary();
+        updateDisplayText();
     }
 
     public int getFieldIndex() {
@@ -78,25 +72,11 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
 
     @Override
     public Bundle getExtras() {
-        if (mFieldIndex == BASE_FIELD_INDEX) {
-            return super.getExtras();
+        Bundle extras = super.getExtras();
+        if (mFieldIndex != BASE_FIELD_INDEX) {
+            extras.putString(FIELD_INDEX_BUNDLE_KEY, "" + getFieldIndex());
         }
-        if (mExtras == null) {
-            mExtras = new Bundle();
-            //TODO: (EW) should this call super to manage group index?
-            mExtras.putString(GROUP_INDEX_BUNDLE_KEY, "" + getGroupIndex());
-            mExtras.putString(FIELD_INDEX_BUNDLE_KEY, "" + getFieldIndex());
-        }
-        return mExtras;
-    }
-
-    @Override
-    public Bundle peekExtras() {
-        if (getGroupIndex() < 0 || getFieldIndex() < 0) {
-            Log.e(TAG, "No field index for extras");
-            return super.getExtras();
-        }
-        return mExtras;
+        return extras;
     }
 
     protected static String getDescription(String display, Context context) {

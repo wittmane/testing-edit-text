@@ -52,6 +52,6 @@ public class TargetVersionPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

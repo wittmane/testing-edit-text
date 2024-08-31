@@ -151,12 +151,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static final String PREF_TEST_GROUP_IDS =
             "pref_key_test_group_ids";
-    public static final String PREF_TEST_FIELD_IDS =
+
+    public static final String PREF_TEST_FIELD_IDS_PREFIX =
             "pref_key_test_field_ids";
-    public static final String PREF_TEST_GROUP_FIELD_COUNTS =
-            "pref_key_test_group_field_count";
     public static final String PREF_TEST_GROUP_NAME_PREFIX =
             "pref_key_test_group_name";
+
+    public static final String PREF_TEST_GROUP_FIELD_COUNTS =
+            "pref_key_test_group_field_count";
 
     public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
             "pref_key_input_type_class";
@@ -265,7 +267,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             // create a default group and field the first time the app is opened
             Log.d(TAG, "creating defaults");
             mPrefs.setIntArray(PREF_TEST_GROUP_IDS, new int[] { 0 });
-            mPrefs.setIntArray(PREF_TEST_FIELD_IDS, new int[] { 0 });
+            mPrefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX, new int[] { 0 });
         }
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
@@ -277,13 +279,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
-    private void logPreferences() {
-        if (!LIST_PREFS) {
-            return;
-        }
-        Map<String, ?> allPrefs = mPrefs.getAll();
-        String[] prefKeys = allPrefs.keySet().toArray(new String[0]);
-        Arrays.sort(prefKeys, new Comparator<String>() {
+    private String[] sortPrefKeys(Set<String> allPrefs) {
+        String[] sortedPrefKeys = allPrefs.toArray(new String[0]);
+        Arrays.sort(sortedPrefKeys, new Comparator<String>() {
             @Override
             public int compare(String a, String b) {
                 // sort nulls to the end (shouldn't ever be any)
@@ -345,6 +343,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 }
             }
         });
+
+        return sortedPrefKeys;
+    }
+
+    private void logPreferences() {
+        if (!LIST_PREFS) {
+            return;
+        }
+        Map<String, ?> allPrefs = mPrefs.getAll();
+        String[] prefKeys = sortPrefKeys(allPrefs.keySet());
 
         Log.d(TAG, "existing preferences:");
         for (String prefKey : prefKeys) {
@@ -515,8 +523,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSetting(String prefKey) {
         switch (prefKey) {
-            case PREF_TEST_FIELD_IDS:
-            case PREF_TEST_GROUP_FIELD_COUNTS:
+            case PREF_TEST_GROUP_IDS:
                 // internal state is updated while these are modified since they aren't managed by a
                 // simple Preference, so we don't need to do anything when these change
                 break;
@@ -551,6 +558,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             }
             loadTestFieldSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
             loadTestFieldOrDefaultSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
+        } else {
+            Log.w(TAG, "Preference " + prefKey + " couldn't be processed as a prefixed setting");
         }
     }
 
@@ -597,9 +606,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadTestGroupSetting(String prefKeyPrefix, int groupId) {
         switch (prefKeyPrefix) {
+            case PREF_TEST_FIELD_IDS_PREFIX:
+                // internal state is updated while these are modified since they aren't managed by a
+                // simple Preference, so we don't need to do anything when these change
+                break;
             case PREF_TEST_GROUP_NAME_PREFIX:
                 getGroupById(groupId).mName = readTestGroupName(mPrefs, groupId);
                 break;
+            default:
+                Log.w(TAG, "Preference " + prefKeyPrefix + GROUP_INFIX + groupId
+                        + " wasn't processed");
         }
     }
 
@@ -701,6 +717,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
                 testField.mOverrideSystemBehavior = readOverrideSystemBehavior(mPrefs, fieldId);
                 break;
+            default:
+                Log.w(TAG, "Preference " + prefKeyPrefix + FIELD_INFIX + fieldId
+                        + " wasn't processed");
         }
     }
 
@@ -1540,12 +1559,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return groupIds;
     }
 
-    private static String readTestGroupName(final SharedPreferenceManager prefs, int groupId) {
-        return prefs.getString(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId, null);
+    private static void setTestFieldGroupIds(Editor editor, int[] groupIds) {
+        editor.putIntArray(PREF_TEST_GROUP_IDS, groupIds);
+        getInstance().mTestGroupIds = deepCopy(groupIds);
     }
 
     private static int[] readTestGroupFieldIds(final SharedPreferenceManager prefs, int groupId) {
-        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS + GROUP_INFIX + groupId, new int[0]);
+        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId, new int[0]);
         if (fieldIds == null) {
             Log.e(TAG, "null field IDs for group " + groupId);
             fieldIds = new int[0];
@@ -1553,166 +1573,63 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return fieldIds;
     }
 
-    private static void convertToUseGroupIds(final SharedPreferenceManager prefs) {
-        // only convert if new preference data doesn't exist
-        if (prefs.contains(PREF_TEST_GROUP_IDS)) {
-            return;
-        }
-
-        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS, new int[] { 0 });
-        Log.d(TAG, "Read " + PREF_TEST_FIELD_IDS + ": " + Arrays.toString(fieldIds));
-        if (fieldIds == null || fieldIds.length < 1) {
-            // there should always be at least 1 field
-            Log.e(TAG, "No test fields");
-            fieldIds = new int[] { 0 };
-        }
-
-        int[] groupFieldCounts = prefs.getIntArray(PREF_TEST_GROUP_FIELD_COUNTS,
-                new int[] { fieldIds.length });
-        Log.d(TAG, "Read " + PREF_TEST_GROUP_FIELD_COUNTS + ": "
-                + Arrays.toString(groupFieldCounts));
-        if (groupFieldCounts == null || groupFieldCounts.length < 1) {
-            // there should always be at least 1 group
-            Log.e(TAG, "No test field groups");
-            groupFieldCounts = new int[] { fieldIds.length };
-        }
-        int[][] groupFieldIds = new int[groupFieldCounts.length][];
-        int fieldIndex = 0;
-        for (int i = 0; i < groupFieldCounts.length; i++) {
-            // determine how many fields should be part of the group
-            int remainingFields = fieldIds.length - fieldIndex;
-            if (i == groupFieldCounts.length - 1) {
-                // put all of the remaining fields in the last group
-                groupFieldIds[i] = new int[remainingFields];
-            } else {
-                // make sure the group doesn't have a negative field count and that it isn't trying
-                // to claim more fields than are actually left
-                groupFieldIds[i] = new int[
-                        Math.min(remainingFields, Math.max(0, groupFieldCounts[i]))];
-            }
-            if (groupFieldIds[i].length != groupFieldCounts[i]) {
-                Log.e(TAG, "Group " + i + " was configured with " + groupFieldCounts[i]
-                        + " fields but actually received " + groupFieldIds[i].length + " fields");
-            }
-
-            // add the fields to the group
-            System.arraycopy(fieldIds, fieldIndex, groupFieldIds[i], 0, groupFieldIds[i].length);
-
-            // set the next unused field
-            fieldIndex += groupFieldIds[i].length;
-        }
-
-        int groupCount = groupFieldCounts.length;
-        int[] groupIds = new int[groupCount];
-        for (int i = 0; i < groupCount; i++) {
-            groupIds[i] = i;
-            String oldGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + "_" + i;
-            String name = prefs.getString(oldGroupNamePrefKey, null);
-            String newGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + i;
-            prefs.setString(newGroupNamePrefKey, name);
-            Log.d(TAG, "Write " + newGroupNamePrefKey + ": " + name);
-            String fieldIdsPrefKey = PREF_TEST_FIELD_IDS + GROUP_INFIX + i;
-            prefs.setIntArray(fieldIdsPrefKey, groupFieldIds[i]);
-            Log.d(TAG, "Write " + fieldIdsPrefKey + ": " + Arrays.toString(groupFieldIds[i]));
-
-            prefs.remove(oldGroupNamePrefKey);
-            Log.d(TAG, "Delete " + oldGroupNamePrefKey);
-        }
-        prefs.setIntArray(PREF_TEST_GROUP_IDS, groupIds);
-
-        prefs.remove(PREF_TEST_FIELD_IDS);
-        Log.d(TAG, "Delete " + PREF_TEST_FIELD_IDS);
-        prefs.remove(PREF_TEST_GROUP_FIELD_COUNTS);
-        Log.d(TAG, "Delete " + PREF_TEST_GROUP_FIELD_COUNTS);
-    }
-
-    public static int getTestGroupId(int groupIndex) {
-        return getInstance().mTestGroupIds[groupIndex];
-    }
-
-    private static TestGroup getGroupByIndex(int groupIndex) {
-        int groupId = getTestGroupId(groupIndex);
-        TestGroup group = getGroupById(groupId);
-        if (group == null) {
-            Log.e(TAG, "The object for group " + groupId + " (index " + groupIndex
-                    + ") is missing");
-            // we know the group should exist, so add it
-            group = getInstance().loadExistingGroup(groupId);
-            //TODO: (EW) remove - here for now to catch any issues
-            throw new RuntimeException("The object for group " + groupId + " (index " + groupIndex
-                    + ") is missing");
-        }
-        return group;
-    }
-
-    private static TestGroup getGroupById(int groupId) {
-        if (!isGroupIdValid(groupId)) {
-            throw new IllegalArgumentException(
-                    "Tried to get group " + groupId + ", which doesn't exist");
-        }
-        return getInstance().mTestGroups.get(groupId);
-    }
-
-    private static boolean isGroupIdValid(int groupId) {
-        if (getInstance().mTestGroups.containsKey(groupId)) {
-            return true;
-        }
-        // double check that the ID doesn't exist
-        for (int id : getInstance().mTestGroupIds) {
-            if (id == groupId) {
-                Log.e(TAG, "The object for group " + groupId + " is missing");
-                // add the missing group
-                getInstance().loadExistingGroup(groupId);
-                //TODO: (EW) remove - here for now to catch any issues
-                throw new RuntimeException("The object for group " + groupId + " is missing");
-//                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void setTestGroupIds(Editor editor, int[] groupIds) {
-        editor.putIntArray(PREF_TEST_GROUP_IDS, groupIds);
-        getInstance().mTestGroupIds = deepCopy(groupIds);
-    }
-
     private static void setTestGroupFieldIds(Editor editor, int groupId, int[] fieldIds) {
-        editor.putIntArray(PREF_TEST_FIELD_IDS + GROUP_INFIX + groupId,
+        editor.putIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId,
                 fieldIds);
         getGroupById(groupId).mFieldIds = deepCopy(fieldIds);
     }
 
-    public static class FieldIdGroup {
-        public final int mGroupId;
-        public final int[] mFieldIds;
-
-        public FieldIdGroup(int groupId, int[] fieldIds) {
-            mGroupId = groupId;
-            mFieldIds = fieldIds;
-        }
-
-        @Override
-        public String toString() {
-            return "{ groupId=" + mGroupId + ", fieldIds=" + Arrays.toString(mFieldIds) + "}";
-        }
+    private static String readTestGroupName(final SharedPreferenceManager prefs, int groupId) {
+        return prefs.getString(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId, null);
     }
 
-    private static Set<Integer> getRemovedIds(Set<Integer> originalIds, Set<Integer> updatedIds) {
-        return getItemsUniqueToA(originalIds, updatedIds);
-    }
+    public static void setTestGroupAndFieldIds(FieldIdGroup[] testGroups) {
+        Editor editor = getInstance().mPrefs.edit();
 
-    private static Set<Integer> getAddedIds(Set<Integer> originalIds, Set<Integer> updatedIds) {
-        return getItemsUniqueToA(updatedIds, originalIds);
-    }
+        manageChangedTestGroups(editor, testGroups);
 
-    private static <T> Set<T> getItemsUniqueToA(Set<T> a, Set<T> b) {
-        Set<T> itemsUniqueToA = new HashSet<>();
-        for (T id : a) {
-            if (!b.contains(id)) {
-                itemsUniqueToA.add(id);
-            }
+        int[] groupIds = new int[testGroups.length];
+        for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
+            groupIds[groupIndex] = testGroups[groupIndex].mGroupId;
+            setTestGroupFieldIds(editor, testGroups[groupIndex].mGroupId,
+                    testGroups[groupIndex].mFieldIds);
         }
-        return itemsUniqueToA;
+        setTestFieldGroupIds(editor, groupIds);
+
+        editor.apply();
+    }
+
+    public static void setTestFieldGroupIds(int[] groupIds) {
+        Editor editor = getInstance().mPrefs.edit();
+
+        FieldIdGroup[] testGroups = new FieldIdGroup[groupIds.length];
+        for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
+            testGroups[groupIndex] = new FieldIdGroup(groupIds[groupIndex],
+                    isGroupIdValid(groupIds[groupIndex])
+                            ? getGroupById(groupIds[groupIndex]).mFieldIds
+                            : new int[0]);
+        }
+        manageChangedTestGroups(editor, testGroups);
+
+        setTestFieldGroupIds(editor, groupIds);
+
+        editor.apply();
+    }
+
+    public static void setTestGroupFieldIds(int groupIndex, int[] fieldIds) {
+        Editor editor = getInstance().mPrefs.edit();
+
+        FieldIdGroup[] testGroups = new FieldIdGroup[getTestFieldGroupCount()];
+        for (int i = 0; i < testGroups.length; i++) {
+            TestGroup group = getGroupByIndex(i);
+            testGroups[i] = new FieldIdGroup(group.mId,
+                    i == groupIndex ? fieldIds : group.mFieldIds);
+        }
+        manageChangedTestGroups(editor, testGroups);
+
+        setTestGroupFieldIds(editor, getTestGroupId(groupIndex), fieldIds);
+
+        editor.apply();
     }
 
     private static void manageChangedTestGroups(Editor editor, FieldIdGroup[] newTestGroups) {
@@ -1759,6 +1676,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
+    private static Set<Integer> getRemovedIds(Set<Integer> originalIds, Set<Integer> updatedIds) {
+        return getItemsUniqueToA(originalIds, updatedIds);
+    }
+
+    private static Set<Integer> getAddedIds(Set<Integer> originalIds, Set<Integer> updatedIds) {
+        return getItemsUniqueToA(updatedIds, originalIds);
+    }
+
+    private static <T> Set<T> getItemsUniqueToA(Set<T> a, Set<T> b) {
+        Set<T> itemsUniqueToA = new HashSet<>();
+        for (T id : a) {
+            if (!b.contains(id)) {
+                itemsUniqueToA.add(id);
+            }
+        }
+        return itemsUniqueToA;
+    }
+
     private static void deleteLingeringPrefs(String prefSuffix) {
         SharedPreferenceManager prefs = getInstance().mPrefs;
         Map<String, ?> allPrefs = prefs.getAll();
@@ -1770,53 +1705,59 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
-    public static void setTestGroupAndFieldIds(FieldIdGroup[] testGroups) {
-        Editor editor = getInstance().mPrefs.edit();
+    public static class FieldIdGroup {
+        public final int mGroupId;
+        public final int[] mFieldIds;
 
-        manageChangedTestGroups(editor, testGroups);
-
-        int[] groupIds = new int[testGroups.length];
-        for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
-            groupIds[groupIndex] = testGroups[groupIndex].mGroupId;
-            setTestGroupFieldIds(editor, testGroups[groupIndex].mGroupId,
-                    testGroups[groupIndex].mFieldIds);
+        public FieldIdGroup(int groupId, int[] fieldIds) {
+            mGroupId = groupId;
+            mFieldIds = fieldIds;
         }
-        setTestGroupIds(editor, groupIds);
 
-        editor.apply();
+        @Override
+        public String toString() {
+            return "{ groupId=" + mGroupId + ", fieldIds=" + Arrays.toString(mFieldIds) + "}";
+        }
     }
 
-    public static void setTestGroupIds(int[] groupIds) {
-        Editor editor = getInstance().mPrefs.edit();
-
-        FieldIdGroup[] testGroups = new FieldIdGroup[groupIds.length];
-        for (int groupIndex = 0; groupIndex < testGroups.length; groupIndex++) {
-            testGroups[groupIndex] = new FieldIdGroup(groupIds[groupIndex],
-                    isGroupIdValid(groupIds[groupIndex])
-                            ? getGroupById(groupIds[groupIndex]).mFieldIds
-                            : new int[0]);
-        }
-        manageChangedTestGroups(editor, testGroups);
-
-        setTestGroupIds(editor, groupIds);
-
-        editor.apply();
+    public static int getTestGroupId(int groupIndex) {
+        return getInstance().mTestGroupIds[groupIndex];
     }
 
-    public static void setTestGroupFieldIds(int groupIndex, int[] fieldIds) {
-        Editor editor = getInstance().mPrefs.edit();
-
-        FieldIdGroup[] testGroups = new FieldIdGroup[getTestFieldGroupCount()];
-        for (int i = 0; i < testGroups.length; i++) {
-            TestGroup group = getGroupByIndex(i);
-            testGroups[i] = new FieldIdGroup(group.mId,
-                    i == groupIndex ? fieldIds : group.mFieldIds);
+    private static TestGroup getGroupByIndex(int groupIndex) {
+        int groupId = getTestGroupId(groupIndex);
+        TestGroup group = getGroupById(groupId);
+        if (group == null) {
+            Log.e(TAG, "The object for group " + groupId + " (index " + groupIndex
+                    + ") is missing");
+            // we know the group should exist, so add it
+            group = getInstance().loadExistingGroup(groupId);
         }
-        manageChangedTestGroups(editor, testGroups);
+        return group;
+    }
 
-        setTestGroupFieldIds(editor, getTestGroupId(groupIndex), fieldIds);
+    private static TestGroup getGroupById(int groupId) {
+        if (!isGroupIdValid(groupId)) {
+            throw new IllegalArgumentException(
+                    "Tried to get group " + groupId + ", which doesn't exist");
+        }
+        return getInstance().mTestGroups.get(groupId);
+    }
 
-        editor.apply();
+    private static boolean isGroupIdValid(int groupId) {
+        if (getInstance().mTestGroups.containsKey(groupId)) {
+            return true;
+        }
+        // double check that the ID doesn't exist
+        for (int id : getInstance().mTestGroupIds) {
+            if (id == groupId) {
+                Log.e(TAG, "The object for group " + groupId + " is missing");
+                // add the missing group
+                getInstance().loadExistingGroup(groupId);
+                return true;
+            }
+        }
+        return false;
     }
 
     public static int getTestFieldGroupCount() {
@@ -1843,9 +1784,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     + ", field " + fieldIndex + ") is missing");
             // we know the field should exist, so add it
             field = getInstance().loadExistingField(fieldId);
-            //TODO: (EW) remove - here for now to catch any issues
-            throw new RuntimeException("The object for field " + fieldId + " (group " + groupIndex
-                    + ", field " + fieldIndex + ") is missing");
         }
         return field;
     }
@@ -1869,9 +1807,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     Log.e(TAG, "The object for field " + fieldId + " is missing");
                     // add the missing field
                     getInstance().loadExistingField(fieldId);
-                    //TODO: (EW) remove - here for now to catch any issues
-                    throw new RuntimeException("The object for field " + fieldId + " is missing");
-//                    return true;
+                    return true;
                 }
             }
         }
@@ -1881,12 +1817,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static void addTestFieldGroup() {
         Settings settings = getInstance();
         int groupId = getNextId(settings.mTestGroups.keySet());
-        setTestGroupIds(ArrayUtils.appendInt(settings.mTestGroupIds, groupId, true));
+        setTestFieldGroupIds(ArrayUtils.appendInt(settings.mTestGroupIds, groupId, true));
     }
 
     public static void removeTestFieldGroup(int groupIndex) {
         Settings settings = getInstance();
-        setTestGroupIds(ArrayUtils.removeIntAt(settings.mTestGroupIds, groupIndex));
+        setTestFieldGroupIds(ArrayUtils.removeIntAt(settings.mTestGroupIds, groupIndex));
     }
 
     public static void addTestField(int groupIndex) {
@@ -1903,7 +1839,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static void removeTestGroupPrefs(Editor editor, int groupId) {
         final String[] testGroupPrefKeyPrefixes = new String[]{
-                PREF_TEST_FIELD_IDS,
+                PREF_TEST_FIELD_IDS_PREFIX,
                 PREF_TEST_GROUP_NAME_PREFIX
         };
         for (String prefKeyPrefix : testGroupPrefKeyPrefixes) {
@@ -2513,7 +2449,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getField(groupIndex, fieldIndex).mHintText;
     }
 
-    public static class TestGroup {
+    private static class TestGroup {
         private final int mId;
 
         public String mName;
@@ -2927,5 +2863,78 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
          * otherwise {@code false}
          */
         boolean test(T t);
+    }
+
+    private static void convertToUseGroupIds(final SharedPreferenceManager prefs) {
+        // only convert if new preference data doesn't exist
+        if (prefs.contains(PREF_TEST_GROUP_IDS)) {
+            return;
+        }
+
+        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS_PREFIX, new int[] { 0 });
+        Log.d(TAG, "Read " + PREF_TEST_FIELD_IDS_PREFIX + ": " + Arrays.toString(fieldIds));
+        if (fieldIds == null || fieldIds.length < 1) {
+            // there should always be at least 1 field
+            Log.e(TAG, "No test fields");
+            fieldIds = new int[] { 0 };
+        }
+
+        int[] groupFieldCounts = prefs.getIntArray(PREF_TEST_GROUP_FIELD_COUNTS,
+                new int[] { fieldIds.length });
+        Log.d(TAG, "Read " + PREF_TEST_GROUP_FIELD_COUNTS + ": "
+                + Arrays.toString(groupFieldCounts));
+        if (groupFieldCounts == null || groupFieldCounts.length < 1) {
+            // there should always be at least 1 group
+            Log.e(TAG, "No test field groups");
+            groupFieldCounts = new int[] { fieldIds.length };
+        }
+        int[][] groupFieldIds = new int[groupFieldCounts.length][];
+        int fieldIndex = 0;
+        for (int i = 0; i < groupFieldCounts.length; i++) {
+            // determine how many fields should be part of the group
+            int remainingFields = fieldIds.length - fieldIndex;
+            if (i == groupFieldCounts.length - 1) {
+                // put all of the remaining fields in the last group
+                groupFieldIds[i] = new int[remainingFields];
+            } else {
+                // make sure the group doesn't have a negative field count and that it isn't trying
+                // to claim more fields than are actually left
+                groupFieldIds[i] = new int[
+                        Math.min(remainingFields, Math.max(0, groupFieldCounts[i]))];
+            }
+            if (groupFieldIds[i].length != groupFieldCounts[i]) {
+                Log.e(TAG, "Group " + i + " was configured with " + groupFieldCounts[i]
+                        + " fields but actually received " + groupFieldIds[i].length + " fields");
+            }
+
+            // add the fields to the group
+            System.arraycopy(fieldIds, fieldIndex, groupFieldIds[i], 0, groupFieldIds[i].length);
+
+            // set the next unused field
+            fieldIndex += groupFieldIds[i].length;
+        }
+
+        int groupCount = groupFieldCounts.length;
+        int[] groupIds = new int[groupCount];
+        for (int i = 0; i < groupCount; i++) {
+            groupIds[i] = i;
+            String oldGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + "_" + i;
+            String name = prefs.getString(oldGroupNamePrefKey, null);
+            String newGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + i;
+            prefs.setString(newGroupNamePrefKey, name);
+            Log.d(TAG, "Write " + newGroupNamePrefKey + ": " + name);
+            String fieldIdsPrefKey = PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + i;
+            prefs.setIntArray(fieldIdsPrefKey, groupFieldIds[i]);
+            Log.d(TAG, "Write " + fieldIdsPrefKey + ": " + Arrays.toString(groupFieldIds[i]));
+
+            prefs.remove(oldGroupNamePrefKey);
+            Log.d(TAG, "Delete " + oldGroupNamePrefKey);
+        }
+        prefs.setIntArray(PREF_TEST_GROUP_IDS, groupIds);
+
+        prefs.remove(PREF_TEST_FIELD_IDS_PREFIX);
+        Log.d(TAG, "Delete " + PREF_TEST_FIELD_IDS_PREFIX);
+        prefs.remove(PREF_TEST_GROUP_FIELD_COUNTS);
+        Log.d(TAG, "Delete " + PREF_TEST_GROUP_FIELD_COUNTS);
     }
 }

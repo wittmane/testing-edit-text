@@ -272,7 +272,6 @@ public class ArrayUtils {
         return ret;
     }
 
-
     // (EW) from libcore.util
     public static final class EmptyArray {
         private EmptyArray() {}

@@ -52,6 +52,6 @@ public class ModifyTextPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

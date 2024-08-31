@@ -60,7 +60,7 @@ public class InputTypePreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
         setSummary(getInputTypeDescription(getGroupIndex(), getFieldIndex(), getContext()));
     }
 

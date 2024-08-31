@@ -26,7 +26,6 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
-import android.util.Log;
 
 /**
  * Preference to link to a test field group specific settings screen.
@@ -35,7 +34,6 @@ public abstract class PerTestGroupPreference extends Preference {
     private static final String TAG = PerTestGroupPreference.class.getSimpleName();
 
     private int mGroupIndex = -1;
-    private Bundle mExtras;
 
     public PerTestGroupPreference(Context context) {
         super(context);
@@ -65,7 +63,7 @@ public abstract class PerTestGroupPreference extends Preference {
         super.onAttachedToHierarchy(preferenceManager);
 
         if (mGroupIndex >= 0) {
-            updateSummary();
+            updateDisplayText();
         }
     }
 
@@ -74,7 +72,6 @@ public abstract class PerTestGroupPreference extends Preference {
             return;
         }
         mGroupIndex = groupIndex;
-        mExtras = null;
     }
 
     public int getGroupIndex() {
@@ -83,25 +80,12 @@ public abstract class PerTestGroupPreference extends Preference {
 
     @Override
     public Bundle getExtras() {
-        if (mGroupIndex == BASE_GROUP_INDEX) {
-            return super.getExtras();
+        Bundle extras = super.getExtras();
+        if (mGroupIndex != BASE_GROUP_INDEX) {
+            extras.putString(GROUP_INDEX_BUNDLE_KEY, "" + getGroupIndex());
         }
-        if (mExtras == null) {
-            mExtras = new Bundle();
-            mExtras.putString(GROUP_INDEX_BUNDLE_KEY, "" + mGroupIndex);
-        }
-        return mExtras;
+        return extras;
     }
 
-    @Override
-    public Bundle peekExtras() {
-        if (mGroupIndex < 0) {
-            Log.e(TAG, "No group index for extras");
-            return super.getExtras();
-        }
-        return mExtras;
-    }
-
-    //TODO: (EW) consider renaming since implementations update both the title and summary
-    protected abstract void updateSummary();
+    protected abstract void updateDisplayText();
 }

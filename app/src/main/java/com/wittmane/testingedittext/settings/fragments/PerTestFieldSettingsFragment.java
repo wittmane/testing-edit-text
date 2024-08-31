@@ -58,7 +58,7 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
                 && (groupIndex < 0 || groupIndex >= Settings.getTestFieldGroupCount()))
                 || (fieldIndex != BASE_FIELD_INDEX
                         && (fieldIndex < 0
-                                || fieldIndex >= Settings.getTestFieldCount(getGroupIndex())))) {
+                                || fieldIndex >= Settings.getTestFieldCount(groupIndex)))) {
             Log.e(TAG, "Invalid index: group=" + groupIndex + ", field=" + fieldIndex);
             getFragmentManager().popBackStack();
         }
@@ -132,9 +132,11 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
     }
 
     private int getFieldId() {
-        return getGroupIndex() == BASE_GROUP_INDEX && getFieldIndex() == BASE_FIELD_INDEX
+        int groupIndex = getGroupIndex();
+        int fieldIndex = getFieldIndex();
+        return groupIndex == BASE_GROUP_INDEX && fieldIndex == BASE_FIELD_INDEX
                 ? BASE_FIELD_ID
-                : Settings.getTestFieldId(getGroupIndex(), getFieldIndex());
+                : Settings.getTestFieldId(groupIndex, fieldIndex);
     }
 
     protected String getPrefKey(String prefKeyPrefix) {

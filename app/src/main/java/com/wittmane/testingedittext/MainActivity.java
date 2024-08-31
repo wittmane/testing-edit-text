@@ -239,7 +239,8 @@ public class MainActivity extends Activity
         mCurrentTabIndex = getGroupIndex(tag);
 
         final FrameLayout tabContent = findViewById(android.R.id.tabcontent);
-        View view = LayoutInflater.from(this).inflate(R.layout.activity_main_tab, tabContent, false);
+        View view = LayoutInflater.from(this)
+                .inflate(R.layout.activity_main_tab, tabContent, false);
         mTabViews.put(mCurrentTabIndex, view);
 
         return view;

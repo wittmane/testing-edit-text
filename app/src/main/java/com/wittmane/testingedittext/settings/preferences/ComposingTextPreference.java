@@ -52,6 +52,6 @@ public class ComposingTextPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

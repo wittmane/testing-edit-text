@@ -281,7 +281,7 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         }
 
         @Override
-        protected void updateSummary() {
+        protected void updateDisplayText() {
             Context context = getContext();
             int groupIndex = getGroupIndex();
             setTitle(getGroupDisplayName(context, groupIndex));
