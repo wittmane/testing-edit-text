@@ -157,9 +157,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_TEST_GROUP_NAME_PREFIX =
             "pref_key_test_group_name";
 
-    public static final String PREF_TEST_GROUP_FIELD_COUNTS =
-            "pref_key_test_group_field_count";
-
     public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
             "pref_key_input_type_class";
     public static final String PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX =
@@ -262,7 +259,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         logPreferences();
 
-        convertToUseGroupIds(mPrefs);
         if (!mPrefs.contains(PREF_TEST_GROUP_IDS)) {
             // create a default group and field the first time the app is opened
             Log.d(TAG, "creating defaults");
@@ -2863,78 +2859,5 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
          * otherwise {@code false}
          */
         boolean test(T t);
-    }
-
-    private static void convertToUseGroupIds(final SharedPreferenceManager prefs) {
-        // only convert if new preference data doesn't exist
-        if (prefs.contains(PREF_TEST_GROUP_IDS)) {
-            return;
-        }
-
-        int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS_PREFIX, new int[] { 0 });
-        Log.d(TAG, "Read " + PREF_TEST_FIELD_IDS_PREFIX + ": " + Arrays.toString(fieldIds));
-        if (fieldIds == null || fieldIds.length < 1) {
-            // there should always be at least 1 field
-            Log.e(TAG, "No test fields");
-            fieldIds = new int[] { 0 };
-        }
-
-        int[] groupFieldCounts = prefs.getIntArray(PREF_TEST_GROUP_FIELD_COUNTS,
-                new int[] { fieldIds.length });
-        Log.d(TAG, "Read " + PREF_TEST_GROUP_FIELD_COUNTS + ": "
-                + Arrays.toString(groupFieldCounts));
-        if (groupFieldCounts == null || groupFieldCounts.length < 1) {
-            // there should always be at least 1 group
-            Log.e(TAG, "No test field groups");
-            groupFieldCounts = new int[] { fieldIds.length };
-        }
-        int[][] groupFieldIds = new int[groupFieldCounts.length][];
-        int fieldIndex = 0;
-        for (int i = 0; i < groupFieldCounts.length; i++) {
-            // determine how many fields should be part of the group
-            int remainingFields = fieldIds.length - fieldIndex;
-            if (i == groupFieldCounts.length - 1) {
-                // put all of the remaining fields in the last group
-                groupFieldIds[i] = new int[remainingFields];
-            } else {
-                // make sure the group doesn't have a negative field count and that it isn't trying
-                // to claim more fields than are actually left
-                groupFieldIds[i] = new int[
-                        Math.min(remainingFields, Math.max(0, groupFieldCounts[i]))];
-            }
-            if (groupFieldIds[i].length != groupFieldCounts[i]) {
-                Log.e(TAG, "Group " + i + " was configured with " + groupFieldCounts[i]
-                        + " fields but actually received " + groupFieldIds[i].length + " fields");
-            }
-
-            // add the fields to the group
-            System.arraycopy(fieldIds, fieldIndex, groupFieldIds[i], 0, groupFieldIds[i].length);
-
-            // set the next unused field
-            fieldIndex += groupFieldIds[i].length;
-        }
-
-        int groupCount = groupFieldCounts.length;
-        int[] groupIds = new int[groupCount];
-        for (int i = 0; i < groupCount; i++) {
-            groupIds[i] = i;
-            String oldGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + "_" + i;
-            String name = prefs.getString(oldGroupNamePrefKey, null);
-            String newGroupNamePrefKey = PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + i;
-            prefs.setString(newGroupNamePrefKey, name);
-            Log.d(TAG, "Write " + newGroupNamePrefKey + ": " + name);
-            String fieldIdsPrefKey = PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + i;
-            prefs.setIntArray(fieldIdsPrefKey, groupFieldIds[i]);
-            Log.d(TAG, "Write " + fieldIdsPrefKey + ": " + Arrays.toString(groupFieldIds[i]));
-
-            prefs.remove(oldGroupNamePrefKey);
-            Log.d(TAG, "Delete " + oldGroupNamePrefKey);
-        }
-        prefs.setIntArray(PREF_TEST_GROUP_IDS, groupIds);
-
-        prefs.remove(PREF_TEST_FIELD_IDS_PREFIX);
-        Log.d(TAG, "Delete " + PREF_TEST_FIELD_IDS_PREFIX);
-        prefs.remove(PREF_TEST_GROUP_FIELD_COUNTS);
-        Log.d(TAG, "Delete " + PREF_TEST_GROUP_FIELD_COUNTS);
     }
 }
