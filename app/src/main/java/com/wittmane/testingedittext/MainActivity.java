@@ -91,6 +91,7 @@ public class MainActivity extends Activity
     // copying from AOSP and making sure the xml generation works right or with other attributes not
     // supported in the settings.
     private static final boolean USE_DEBUG_SCREEN = false;
+    private static final int DEBUG_SCREEN_GROUP_ID = Integer.MIN_VALUE;
 
     private static final String TAB_TAG_PREFIX = "tab_";
 
@@ -155,8 +156,72 @@ public class MainActivity extends Activity
         super.onCreate(savedInstanceState);
         Settings.init(this);
 
-        if (USE_DEBUG_SCREEN) {
-            setContentView(R.layout.activity_main_debug);
+        setContentView(R.layout.activity_main);
+        final TabHost tabHost = findViewById(R.id.tabHost);
+        tabHost.setup();
+        setTabs(tabHost);
+    }
+
+    private void setTabs(final TabHost tabHost) {
+        int testFieldGroupCount = Settings.getTestFieldGroupCount();
+
+        int initialSelectedTabIndex = 0;
+        if (mCurrentTabIndex >= 0) {
+            if (mGroups[mCurrentTabIndex].mId == DEBUG_SCREEN_GROUP_ID) {
+                // the debug screen is added as an extra tab
+                initialSelectedTabIndex = testFieldGroupCount;
+            } else {
+                for (int groupIndex = 0; groupIndex < testFieldGroupCount; groupIndex++) {
+                    if (Settings.getTestGroupId(groupIndex) == mGroups[mCurrentTabIndex].mId) {
+                        initialSelectedTabIndex = groupIndex;
+                    }
+                }
+            }
+        }
+
+        tabHost.setOnTabChangedListener(null);
+        tabHost.clearAllTabs();
+        mTabViews.clear();
+        // add the debug screen as an extra tab
+        mGroups = new Group[USE_DEBUG_SCREEN ? testFieldGroupCount + 1 : testFieldGroupCount];
+        for (int groupIndex = 0; groupIndex < mGroups.length; groupIndex++) {
+            TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
+            int groupId;
+            String groupName;
+            if (USE_DEBUG_SCREEN && groupIndex >= testFieldGroupCount) {
+                groupId = DEBUG_SCREEN_GROUP_ID;
+                groupName = getString(R.string.debug_screen_title);
+            } else {
+                groupId = Settings.getTestGroupId(groupIndex);
+                // the display name preference is hidden when there is only 1 group since that
+                // normally wouldn't be shown, so if we're showing the debug screen, we'll also need
+                // to specify a name that isn't numbered
+                groupName = USE_DEBUG_SCREEN && testFieldGroupCount == 1
+                        ? getString(R.string.main_screen_title)
+                        : getGroupDisplayName(this, groupIndex);
+            }
+            spec.setIndicator(groupName);
+            spec.setContent(this);
+            tabHost.addTab(spec);
+            mGroups[groupIndex] = new Group(groupId, groupName);
+        }
+        mCurrentTabIndex = 0;
+        tabHost.setOnTabChangedListener(this);
+
+        if (initialSelectedTabIndex != mCurrentTabIndex) {
+            tabHost.setCurrentTab(initialSelectedTabIndex);
+        }
+    }
+
+    @Override
+    public View createTabContent(String tag) {
+        mCurrentTabIndex = getGroupIndex(tag);
+
+        final FrameLayout tabContent = findViewById(android.R.id.tabcontent);
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        View view;
+        if (USE_DEBUG_SCREEN && mCurrentTabIndex == mGroups.length - 1) {
+            view = layoutInflater.inflate(R.layout.activity_main_debug, tabContent, false);
 
             InputFilter filter = new InputFilter() {
                 @Override
@@ -174,18 +239,19 @@ public class MainActivity extends Activity
                 }
             };
 
-            android.widget.EditText frameworkEditText1 = findViewById(R.id.frameworkEditTextDebug1);
+            android.widget.EditText frameworkEditText1 =
+                    view.findViewById(R.id.frameworkEditTextDebug1);
             frameworkEditText1.setFilters(new InputFilter[]{filter});
             com.wittmane.testingedittext.aosp.widget.EditText customEditText1 =
-                    findViewById(R.id.customEditTextDebug1);
+                    view.findViewById(R.id.customEditTextDebug1);
             customEditText1.setFilters(new InputFilter[]{filter});
 
 
             android.widget.EditText doNotScrollFrameworkEditText =
-                    findViewById(R.id.ellipsizeFrameworkEditText);
+                    view.findViewById(R.id.ellipsizeFrameworkEditText);
             doNotScrollFrameworkEditText.setKeyListener(null);
             com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText =
-                    findViewById(R.id.ellipsizeCustomEditText);
+                    view.findViewById(R.id.ellipsizeCustomEditText);
             //TODO: (EW) it seems that the key listener shouldn't matter if the field is already
             // disabled (I can't focus or scroll the field). figure out why this is actually
             // necessary to allow ellipsize to work and see if that can be handled better without
@@ -196,7 +262,7 @@ public class MainActivity extends Activity
             // disabled), rather than forcing this manual call.
             doNotScrollEditText.setKeyListener(null);
 
-            Button testButton1 = findViewById(R.id.testButton1);
+            Button testButton1 = view.findViewById(R.id.testButton1);
             testButton1.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -210,7 +276,7 @@ public class MainActivity extends Activity
                 }
             });
 
-            Button testButton2 = findViewById(R.id.testButton2);
+            Button testButton2 = view.findViewById(R.id.testButton2);
             testButton2.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -224,50 +290,8 @@ public class MainActivity extends Activity
                 }
             });
         } else {
-            setContentView(R.layout.activity_main);
-            final TabHost tabHost = findViewById(R.id.tabHost);
-            tabHost.setup();
-            setTabs(tabHost);
+            view = layoutInflater.inflate(R.layout.activity_main_tab, tabContent, false);
         }
-    }
-
-    private void setTabs(final TabHost tabHost) {
-        int initialSelectedTabIndex = 0;
-        if (mCurrentTabIndex >= 0) {
-            for (int groupIndex = 0; groupIndex < Settings.getTestFieldGroupCount(); groupIndex++) {
-                if (Settings.getTestGroupId(groupIndex) == mGroups[mCurrentTabIndex].mId) {
-                    initialSelectedTabIndex = groupIndex;
-                }
-            }
-        }
-
-        tabHost.setOnTabChangedListener(null);
-        tabHost.clearAllTabs();
-        mTabViews.clear();
-        mGroups = new Group[Settings.getTestFieldGroupCount()];
-        for (int groupIndex = 0; groupIndex < mGroups.length; groupIndex++) {
-            TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
-            String groupName = getGroupDisplayName(this, groupIndex);
-            spec.setIndicator(groupName);
-            spec.setContent(this);
-            tabHost.addTab(spec);
-            mGroups[groupIndex] = new Group(Settings.getTestGroupId(groupIndex), groupName);
-        }
-        mCurrentTabIndex = 0;
-        tabHost.setOnTabChangedListener(this);
-
-        if (initialSelectedTabIndex != mCurrentTabIndex) {
-            tabHost.setCurrentTab(initialSelectedTabIndex);
-        }
-    }
-
-    @Override
-    public View createTabContent(String tag) {
-        mCurrentTabIndex = getGroupIndex(tag);
-
-        final FrameLayout tabContent = findViewById(android.R.id.tabcontent);
-        View view = LayoutInflater.from(this)
-                .inflate(R.layout.activity_main_tab, tabContent, false);
         mTabViews.put(mCurrentTabIndex, view);
 
         return view;
@@ -295,19 +319,23 @@ public class MainActivity extends Activity
     }
 
     private void updateFields() {
-        if (USE_DEBUG_SCREEN || mCurrentTabIndex < 0) {
+        if (mCurrentTabIndex < 0) {
             return;
         }
 
         final TabHost tabHost = findViewById(R.id.tabHost);
         final TabWidget tabs = findViewById(android.R.id.tabs);
-        int groupCount = Settings.getTestFieldGroupCount();
+        int testFieldGroupCount = Settings.getTestFieldGroupCount();
+        int tabCount = USE_DEBUG_SCREEN ? testFieldGroupCount + 1 : testFieldGroupCount;
 
         boolean tabsChanged = false;
-        if (mGroups.length != groupCount) {
+        if (mGroups.length != tabCount) {
             tabsChanged = true;
-        } else {
-            for (int i = 0; i < groupCount; i++) {
+        } else if (testFieldGroupCount > 1) {
+            // check if the tab names change (including if groups were reordered). this isn't
+            // relevant for a single group since we don't actually show the name from the
+            // preference.
+            for (int i = 0; i < testFieldGroupCount; i++) {
                 if (!TextUtils.equals(mGroups[i].mTitle, getGroupDisplayName(this, i))) {
                     tabsChanged = true;
                     break;
@@ -318,7 +346,11 @@ public class MainActivity extends Activity
             setTabs(tabHost);
         }
 
-        tabs.setVisibility(groupCount < 2 ? View.GONE : View.VISIBLE);
+        tabs.setVisibility(mGroups.length < 2 ? View.GONE : View.VISIBLE);
+
+        if (mCurrentTabIndex >= testFieldGroupCount) {
+            return;
+        }
 
         View currentView = mTabViews.get(mCurrentTabIndex);
         if (currentView == null) {
