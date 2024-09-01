@@ -120,6 +120,10 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
 
         ActionBar actionBar = getActivity().getActionBar();
         IconUtils.matchMenuIconColor(mView, menu, actionBar);
+
+        if (Settings.getTestFieldGroupCount() < 2) {
+            menu.removeItem(R.id.action_reorder_groups);
+        }
     }
 
     static void openGroupPreference(PreferenceFragment currentFragment, int groupIndex) {

@@ -97,6 +97,10 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         } else {
             menu.removeItem(R.id.action_remove_group);
         }
+
+        if (Settings.getTestFieldCount(getGroupIndex()) < 2) {
+            menu.removeItem(R.id.action_reorder_fields);
+        }
     }
 
     @Override
