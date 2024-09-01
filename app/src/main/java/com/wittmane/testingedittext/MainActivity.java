@@ -35,6 +35,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -56,9 +57,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class MainActivity extends Activity
         implements TabContentFactory, TabHost.OnTabChangeListener {
@@ -91,10 +94,20 @@ public class MainActivity extends Activity
 
     private static final String TAB_TAG_PREFIX = "tab_";
 
-    private TestField[][] mTestFields;
+    private Group[] mGroups = new Group[0];
+    private final Set<TestField> mAllTestFields = new HashSet<>();
     private int mCurrentTabIndex = -1;
-    private String[] mCurrentTabTitles;
     private final Map<Integer, View> mTabViews = new HashMap<>();
+
+    private static class Group {
+        private final int mId;
+        private final String mTitle;
+        private final List<TestField> mTestFields = new ArrayList<TestField>();
+        public Group(int id, String title) {
+            mId = id;
+            mTitle = title;
+        }
+    }
 
     private static class TestField {
         private final int mId;
@@ -133,6 +146,9 @@ public class MainActivity extends Activity
             customEditTextWrapper.addView(customEditText);
         }
     }
+
+    //TODO: (EW) retain the current group when rotating screen
+    //TODO: (EW) retain field text when rotating screen
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -216,22 +232,33 @@ public class MainActivity extends Activity
     }
 
     private void setTabs(final TabHost tabHost) {
+        int initialSelectedTabIndex = 0;
+        if (mCurrentTabIndex >= 0) {
+            for (int groupIndex = 0; groupIndex < Settings.getTestFieldGroupCount(); groupIndex++) {
+                if (Settings.getTestGroupId(groupIndex) == mGroups[mCurrentTabIndex].mId) {
+                    initialSelectedTabIndex = groupIndex;
+                }
+            }
+        }
+
         tabHost.setOnTabChangedListener(null);
         tabHost.clearAllTabs();
         mTabViews.clear();
-        mTestFields = null;
-        int groupCount = Settings.getTestFieldGroupCount();
-        mCurrentTabTitles = new String[groupCount];
-        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+        mGroups = new Group[Settings.getTestFieldGroupCount()];
+        for (int groupIndex = 0; groupIndex < mGroups.length; groupIndex++) {
             TabHost.TabSpec spec = tabHost.newTabSpec(TAB_TAG_PREFIX + groupIndex);
             String groupName = getGroupDisplayName(this, groupIndex);
             spec.setIndicator(groupName);
             spec.setContent(this);
             tabHost.addTab(spec);
-            mCurrentTabTitles[groupIndex] = groupName;
+            mGroups[groupIndex] = new Group(Settings.getTestGroupId(groupIndex), groupName);
         }
         mCurrentTabIndex = 0;
         tabHost.setOnTabChangedListener(this);
+
+        if (initialSelectedTabIndex != mCurrentTabIndex) {
+            tabHost.setCurrentTab(initialSelectedTabIndex);
+        }
     }
 
     @Override
@@ -277,11 +304,11 @@ public class MainActivity extends Activity
         int groupCount = Settings.getTestFieldGroupCount();
 
         boolean tabsChanged = false;
-        if (mCurrentTabTitles.length != groupCount) {
+        if (mGroups.length != groupCount) {
             tabsChanged = true;
         } else {
             for (int i = 0; i < groupCount; i++) {
-                if (!TextUtils.equals(mCurrentTabTitles[i], getGroupDisplayName(this, i))) {
+                if (!TextUtils.equals(mGroups[i].mTitle, getGroupDisplayName(this, i))) {
                     tabsChanged = true;
                     break;
                 }
@@ -299,69 +326,125 @@ public class MainActivity extends Activity
         }
         LinearLayout testFieldContainer = currentView.findViewById(R.id.testFieldContainer);
 
-        // build or rebuild the list of fields in case any were added or removed and update the ui
-        TestField[][] testFields = new TestField[groupCount][];
-        for (int curGroupIndex = 0; curGroupIndex < testFields.length; curGroupIndex++) {
-            if (curGroupIndex == mCurrentTabIndex) {
+        // build or rebuild the list of fields for the current tab in case any were added or removed
+        // and update the ui. don't bother updating fields for the other tabs since we might never
+        // go to them or they may change before we do.
+        updateFields(mCurrentTabIndex, testFieldContainer);
+    }
 
-                // find the first field that changed (added, removed, or reordered - not considering
-                // changes in the settings of the same field), and find all of the existing fields
-                // that are still part of the group
-                TestField[] groupTestFields = new TestField[Settings.getTestFieldCount(curGroupIndex)];
-                int firstChangedFieldIndex = 0;
-                for (int curFieldIndex = 0; curFieldIndex < groupTestFields.length; curFieldIndex++) {
-                    TestField testField = null;
-                    int id = Settings.getTestFieldId(curGroupIndex, curFieldIndex);
-                    // see if the field already existed to be able to keep using it
-                    if (mTestFields != null && mTestFields[curGroupIndex] != null) {
-                        for (int oldFieldIndex = 0; oldFieldIndex < mTestFields[curGroupIndex].length; oldFieldIndex++) {
-                            TestField existingField = mTestFields[curGroupIndex][oldFieldIndex];
-                            if (existingField.mId == id) {
-                                testField = existingField;
-                                if (curFieldIndex == oldFieldIndex
-                                        && firstChangedFieldIndex == curFieldIndex) {
-                                    // field is in the same spot, so this field didn't change
-                                    firstChangedFieldIndex++;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    if (testField == null) {
-                        testField = new TestField(id, this);
-                    }
-                    groupTestFields[curFieldIndex] = testField;
+    private void updateFields(int groupIndex, LinearLayout testFieldContainer) {
+        //TODO: (EW) see if we can determine which field has focus and assuming it still exists,
+        // ensure that it doesn't get removed and just insert/shift fields around it
+
+        List<TestField> fieldsOnLayout = mGroups[groupIndex].mTestFields;
+
+        int groupFieldCount = Settings.getTestFieldCount(groupIndex);
+        final List<TestField> newFields = new ArrayList<>();
+
+        // compare the current fields listed in the settings to the fields that are already in the
+        // layout. starting at the point that the fields differ (added, removed, or reordered - not
+        // considering changes in the settings of the same field), try to find the new field
+        // (somewhere else in the group, in another group, or orphaned from lazy loading) or crate a
+        // new field
+        boolean hasChanges = false;
+        for (int fieldIndex = 0; fieldIndex < groupFieldCount; fieldIndex++) {
+            TestField testField = null;
+            int fieldId = Settings.getTestFieldId(groupIndex, fieldIndex);
+
+            // see if the field already existed to be able to keep using it
+            FieldPosition position = findFieldId(fieldId, groupIndex);
+            if (position != null) {
+                testField = mGroups[position.groupIndex].mTestFields.get(position.fieldIndex);
+                if (groupIndex != position.groupIndex || fieldIndex != position.fieldIndex) {
+                    hasChanges = true;
                 }
-
-                // only add/remove fields starting where there was a change to avoid messing with
-                // things like focus
-                if (firstChangedFieldIndex >= 0) {
-                    if (mTestFields != null && mTestFields[curGroupIndex] != null) {
-                        for (int i = firstChangedFieldIndex; i < mTestFields[curGroupIndex].length; i++) {
-                            testFieldContainer.removeView(mTestFields[curGroupIndex][i].mLayout);
-                        }
+                if (groupIndex != position.groupIndex) {
+                    // remove from other group
+                    ViewGroup parent = (ViewGroup)testField.mLayout.getParent();
+                    if (parent != null) {
+                        parent.removeView(testField.mLayout);
                     }
-                    for (int fieldIndex = firstChangedFieldIndex; fieldIndex < groupTestFields.length; fieldIndex++) {
-                        testFieldContainer.addView(groupTestFields[fieldIndex].mLayout);
-                        groupTestFields[fieldIndex].mCustomEditText.mCustomEditText.setSettings(
-                                Settings.getTestFieldSettings(curGroupIndex, fieldIndex));
-                    }
+                    mGroups[position.groupIndex].mTestFields.remove(position.fieldIndex);
                 }
-
-                testFields[curGroupIndex] = groupTestFields;
-
             } else {
-                if (mTestFields != null && curGroupIndex < mTestFields.length) {
-                    testFields[curGroupIndex] = mTestFields[curGroupIndex];
+                hasChanges = true;
+                // check if the field already exists (got removed from some group and wasn't loaded
+                // yet for the group it moved to due to lazy loading)
+                for (TestField field : mAllTestFields) {
+                    if (field.mId == fieldId) {
+                        testField = field;
+                        ViewGroup parent = (ViewGroup)testField.mLayout.getParent();
+                        if (parent != null) {
+                            parent.removeView(testField.mLayout);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (testField == null) {
+                testField = new TestField(fieldId, this);
+                mAllTestFields.add(testField);
+                hasChanges = true;
+            }
+
+            if (hasChanges) {
+                newFields.add(testField);
+            }
+        }
+
+        // only add/remove fields starting where there was a change to avoid messing with things
+        // like focus
+        int changeStartIndex = groupFieldCount - newFields.size();
+        while (fieldsOnLayout.size() > changeStartIndex) {
+            int fieldIndex = fieldsOnLayout.size() - 1;
+            testFieldContainer.removeView(fieldsOnLayout.get(fieldIndex).mLayout);
+            fieldsOnLayout.remove(fieldIndex);
+        }
+        for (TestField testField : newFields) {
+            testFieldContainer.addView(testField.mLayout);
+            fieldsOnLayout.add(testField);
+
+            int fieldIndex = fieldsOnLayout.size() - 1;
+            testField.mCustomEditText.mCustomEditText.setSettings(
+                    Settings.getTestFieldSettings(groupIndex, fieldIndex));
+        }
+
+        // update the settings for the individual fields
+        for (int fieldIndex = 0; fieldIndex < fieldsOnLayout.size(); fieldIndex++) {
+            TestField testField = fieldsOnLayout.get(fieldIndex);
+            updateField(testField.mFrameworkEditText, groupIndex, fieldIndex);
+            updateField(testField.mCustomEditText, groupIndex, fieldIndex);
+        }
+    }
+
+    private static class FieldPosition {
+        public final int groupIndex;
+        public final int fieldIndex;
+        public FieldPosition(int groupIndex, int fieldIndex) {
+            this.groupIndex = groupIndex;
+            this.fieldIndex = fieldIndex;
+        }
+    }
+
+    private FieldPosition findFieldId(int fieldId, int startGroupIndex) {
+        for (int i = 0; i < mGroups.length; i++) {
+            int groupIndex;
+            if (i == 0) {
+                groupIndex = startGroupIndex;
+            } else if (i <= startGroupIndex) {
+                groupIndex = i - 1;
+            } else {
+                groupIndex = i;
+            }
+            List<TestField> fields = mGroups[groupIndex].mTestFields;
+            for (int fieldIndex = 0; fieldIndex < fields.size(); fieldIndex++) {
+                if (fields.get(fieldIndex).mId == fieldId) {
+                    return new FieldPosition(groupIndex, fieldIndex);
                 }
             }
         }
-        mTestFields = testFields;
-
-        for (int i = 0; i < mTestFields[mCurrentTabIndex].length; i++) {
-            updateField(mTestFields[mCurrentTabIndex][i].mFrameworkEditText, mCurrentTabIndex, i);
-            updateField(mTestFields[mCurrentTabIndex][i].mCustomEditText, mCurrentTabIndex, i);
-        }
+        return null;
     }
 
     private static void updateField(EditTextProxy editText, int groupIndex, int fieldIndex) {
