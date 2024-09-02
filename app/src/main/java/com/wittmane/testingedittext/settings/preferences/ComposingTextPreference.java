@@ -30,11 +30,6 @@ public class ComposingTextPreference extends PerTestFieldPreference {
         init();
     }
 
-    public ComposingTextPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public ComposingTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -57,6 +52,6 @@ public class ComposingTextPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

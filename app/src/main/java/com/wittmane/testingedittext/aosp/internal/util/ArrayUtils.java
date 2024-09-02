@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -201,6 +201,75 @@ public class ArrayUtils {
         }
         result[end] = element;
         return result;
+    }
+
+    /**
+     * Adds value to given array.
+     */
+    public static @NonNull int[] appendInt(@Nullable int[] cur, int val,
+                                           boolean allowDuplicates) {
+        if (cur == null) {
+            return new int[] { val };
+        }
+        final int N = cur.length;
+        if (!allowDuplicates) {
+            for (int i = 0; i < N; i++) {
+                if (cur[i] == val) {
+                    return cur;
+                }
+            }
+        }
+        int[] ret = new int[N + 1];
+        System.arraycopy(cur, 0, ret, 0, N);
+        ret[N] = val;
+        return ret;
+    }
+
+    /**
+     * Adds value to given array if not already present, providing set-like
+     * behavior.
+     */
+    public static @NonNull int[] appendInt(@Nullable int[] cur, int val) {
+        return appendInt(cur, val, false);
+    }
+
+    /**
+     * Removes value from given array if present, providing set-like behavior.
+     */
+    public static @Nullable int[] removeInt(@Nullable int[] cur, int val) {
+        if (cur == null) {
+            return null;
+        }
+        final int N = cur.length;
+        for (int i = 0; i < N; i++) {
+            if (cur[i] == val) {
+                int[] ret = new int[N - 1];
+                if (i > 0) {
+                    System.arraycopy(cur, 0, ret, 0, i);
+                }
+                if (i < (N - 1)) {
+                    System.arraycopy(cur, i + 1, ret, i, N - i - 1);
+                }
+                return ret;
+            }
+        }
+        return cur;
+    }
+
+    // (EW) custom
+    /**
+     * Removes the value from a given array at a specific index.
+     */
+    public static int[] removeIntAt(int[] cur, int index) {
+        final int N = cur.length;
+        int[] ret = new int[N - 1];
+        if (index > 0) {
+            System.arraycopy(cur, 0, ret, 0, index);
+        }
+        if (index < (N - 1)) {
+            System.arraycopy(cur, index + 1, ret, index, N - index - 1);
+        }
+        return ret;
     }
 
     // (EW) from libcore.util

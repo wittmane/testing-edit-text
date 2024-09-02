@@ -1,0 +1,333 @@
+/*
+ * Copyright (C) 2022-2024 Eli Wittman
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+package com.wittmane.testingedittext.settings.fragments;
+
+import static com.wittmane.testingedittext.settings.Settings.GROUP_INFIX;
+import static com.wittmane.testingedittext.settings.Settings.PREF_TEST_GROUP_NAME_PREFIX;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
+
+import android.app.ActionBar;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.PreferenceCategory;
+import android.preference.PreferenceGroup;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ListView;
+import android.widget.TextView;
+
+import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.DraggableListAdapter;
+import com.wittmane.testingedittext.settings.IconUtils;
+import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.FieldEntry;
+import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
+import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
+import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
+import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
+import com.wittmane.testingedittext.settings.preferences.TextDialogPreference;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment {
+    private static final String TAG = TestFieldGroupSettingsFragment.class.getSimpleName();
+
+    public static final String ARE_GROUPS_USED_BUNDLE_KEY = "ARE_GROUPS_USED";
+
+    private View mView;
+    private boolean mAreGroupsUsed = true;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        addPreferencesFromResource(R.xml.preference_screen_empty);
+
+        final Bundle args = getArguments();
+        mAreGroupsUsed = args == null || args.getBoolean(ARE_GROUPS_USED_BUNDLE_KEY);
+
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+                             final Bundle savedInstanceState) {
+        mView = super.onCreateView(inflater, container, savedInstanceState);
+        return mView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        buildContent();
+    }
+
+    @Override
+    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+        inflater.inflate(R.menu.test_field_list, menu);
+
+        ActionBar actionBar = getActivity().getActionBar();
+        IconUtils.matchMenuIconColor(mView, menu, actionBar);
+
+        if (mAreGroupsUsed) {
+            menu.removeItem(R.id.action_add_group);
+        } else {
+            menu.removeItem(R.id.action_remove_group);
+        }
+
+        if (Settings.getTestFieldCount(getGroupIndex()) < 2) {
+            menu.removeItem(R.id.action_reorder_fields);
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(final MenuItem item) {
+        final int itemId = item.getItemId();
+        if (itemId == R.id.action_add_group) {
+            // add a preference for a new group
+            Settings.addTestFieldGroup();
+
+            // exit this group before opening the new group so backing out of the new group goes to
+            // the group list, rather than this other group
+            getFragmentManager().popBackStackImmediate();
+
+            openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
+        } else if (itemId == R.id.action_add_field) {
+            int groupIndex = getGroupIndex();
+            // add a preference for a new field
+            Settings.addTestField(groupIndex);
+
+            Preference newPref = new IndividualTestFieldPreference(getActivity(),
+                    groupIndex, Settings.getTestFieldCount(groupIndex) - 1);
+            // launch sub setting screen for the new field preference
+            launchPrefFragment(this, newPref);
+        } else if (itemId == R.id.action_reorder_fields) {
+            showReorderFieldsDialog();
+        } else if (itemId == R.id.action_remove_group) {
+            showWarningConfirmationDialog(R.string.delete_group, R.string.delete_group_confirmation,
+                    () -> {
+                        // remove the group and go back to the field list
+                        Settings.removeTestFieldGroup(getGroupIndex());
+                        getFragmentManager().popBackStackImmediate();
+                    }, getActivity());
+
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showReorderFieldsDialog() {
+        ListView listView = new ListView(getActivity());
+        DraggableListAdapter<FieldEntry> adapter = new DraggableListAdapter<>(getActivity(),
+                (view, item) -> {
+                    TextView titleView = view.findViewById(R.id.title);
+                    titleView.setText(item.getDisplayName());
+                });
+        int fieldCount = Settings.getTestFieldCount(getGroupIndex());
+        for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+            adapter.add(new FieldEntry(getActivity(), getGroupIndex(), fieldIndex));
+        }
+        listView.setAdapter(adapter);
+
+        new AlertDialog.Builder(getActivity())
+                .setTitle(R.string.reorder_fields)
+                .setView(listView)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    int[] testFields = new int[adapter.getCount()];
+                    for (int fieldIndex = 0; fieldIndex < testFields.length; fieldIndex++) {
+                        testFields[fieldIndex] = adapter.getItem(fieldIndex).getId();
+                    }
+                    Settings.setTestGroupFieldIds(getGroupIndex(), testFields);
+                    buildContent();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+                .show();
+    }
+
+    static void showWarningConfirmationDialog(int titleId, int messageId, Runnable onConfirm,
+                                              Context context) {
+        new AlertDialog.Builder(context)
+                .setTitle(titleId)
+                .setMessage(messageId)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
+                .setNegativeButton(android.R.string.no, null)
+                .show();
+    }
+
+    /**
+     * Build the preferences and them to this settings screen.
+     */
+    private void buildContent() {
+        final Context context = getActivity();
+        final PreferenceGroup group = getPreferenceScreen();
+        group.removeAll();
+
+        int groupIndex = getGroupIndex();
+
+        // add the name for the group (only if there are multiple groups since it won't be shown
+        // otherwise)
+        if (mAreGroupsUsed) {
+            TextDialogPreference namePref = new TextDialogPreference(context, null);
+            int groupId = Settings.getTestGroupId(groupIndex);
+            namePref.setKey(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId);
+            namePref.setTitle(context.getString(R.string.group_name));
+            namePref.setDialogTitle(context.getString(R.string.group_name));
+            group.addPreference(namePref);
+        }
+
+        PreferenceCategory testFieldPrefCategory = new PreferenceCategory(context);
+        testFieldPrefCategory.setTitle(R.string.test_field_list_screen);
+        group.addPreference(testFieldPrefCategory);
+
+        // add the test fields
+        for (int i = 0; i < Settings.getTestFieldCount(groupIndex); i++) {
+            testFieldPrefCategory.addPreference(
+                    new IndividualTestFieldPreference(context, groupIndex, i));
+        }
+    }
+
+    static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
+                                            final int fieldIndex) {
+        CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
+        if (!TextUtils.isEmpty(defaultText)) {
+            return defaultText;
+        } else {
+            CharSequence hintText = Settings.getTestFieldHintText(groupIndex, fieldIndex);
+            if (!TextUtils.isEmpty(hintText)) {
+                return hintText;
+            } else {
+                return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
+            }
+        }
+    }
+
+    /**
+     * Preference to link to the main settings screen for a specific test field.
+     */
+    private static class IndividualTestFieldPreference extends PerTestFieldPreference {
+
+        /**
+         * Create a new preference for a test field.
+         * @param context the context for this application.
+         * @param groupIndex the index of the group in the UI.
+         * @param fieldIndex the index of the field in the UI.
+         */
+        public IndividualTestFieldPreference(final Context context, final int groupIndex,
+                                             final int fieldIndex) {
+            super(context);
+            setFieldIndex(groupIndex, fieldIndex);
+
+            setFragment(TestFieldSettingsFragment.class.getName());
+        }
+
+        @Override
+        protected void updateDisplayText() {
+            Context context = getContext();
+            int groupIndex = getGroupIndex();
+            int fieldIndex = getFieldIndex();
+            setTitle(getFieldDisplayName(context, groupIndex, fieldIndex));
+            String[] summaryInfo = new String[] {
+                    getLabeledProperty(R.string.input_type,
+                            InputTypePreference.getInputTypeDescription(groupIndex, fieldIndex,
+                                    context),
+                            context),
+                    getLabeledProperty(R.string.ime_options,
+                            ImeOptionsPreference.getImeOptionsDescription(groupIndex, fieldIndex,
+                                    context),
+                            context),
+                    getLabeledProperty(R.string.ime_action,
+                            ImeActionPreference.getImeActionDescription(groupIndex, fieldIndex,
+                                    context),
+                            context),
+                    getLabeledPrivateImeOptions(
+                            Settings.getTestFieldPrivateImeOptions(groupIndex, fieldIndex),
+                            context),
+                    Settings.shouldTestFieldSelectAllOnFocus(groupIndex, fieldIndex)
+                            ? context.getString(R.string.select_all_on_focus) : null,
+                    getLabeledMaxLength(Settings.getTestFieldMaxLength(groupIndex, fieldIndex),
+                            context),
+                    Settings.shouldTestFieldAllowUndo(groupIndex, fieldIndex)
+                            ? context.getString(R.string.allow_undo) : null,
+                    getLabeledTextLocales(
+                            Settings.getTestFieldTextLocales(groupIndex, fieldIndex), context),
+                    getLabeledImeHintLocales(
+                            Settings.getTestFieldImeHintLocales(groupIndex, fieldIndex), context)
+            };
+            StringBuilder sb = new StringBuilder();
+            for (String summaryPiece : summaryInfo) {
+                if (summaryPiece == null) {
+                    continue;
+                }
+                if (sb.length() > 0) {
+                    sb.append('\n');
+                }
+                sb.append(summaryPiece);
+            }
+            setSummary(sb);
+        }
+
+        private static String getLabeledProperty(int titleRes, String description,
+                                                 Context context) {
+            if (TextUtils.isEmpty(description)) {
+                return null;
+            }
+            return context.getString(R.string.test_field_property_description,
+                    context.getString(titleRes), description);
+        }
+
+        private static String getLabeledPrivateImeOptions(String privateImeOptions,
+                                                          Context context) {
+            return getLabeledProperty(R.string.private_ime_options, privateImeOptions, context);
+        }
+
+        private static String getLabeledMaxLength(int maxLength, Context context) {
+            return maxLength >= 0
+                    ? getLabeledProperty(R.string.max_length, "" + maxLength, context)
+                    : null;
+        }
+
+        private static String getLabeledTextLocales(Locale[] textLocales, Context context) {
+            return getLabeledLocales(R.string.text_locales, textLocales, context);
+        }
+
+        private static String getLabeledImeHintLocales(Locale[] imeHintLocales, Context context) {
+            return getLabeledLocales(R.string.ime_hint_locales, imeHintLocales, context);
+        }
+
+        private static String getLabeledLocales(int titleRes, Locale[] locales, Context context) {
+            if (locales == null || locales.length < 1) {
+                return null;
+            }
+            List<String> localeDisplayNames = new ArrayList<>();
+            for (Locale locale : locales) {
+                localeDisplayNames.add(locale.getDisplayName());
+            }
+            return getLabeledProperty(titleRes, getDescription(localeDisplayNames, context),
+                    context);
+        }
+    }
+}

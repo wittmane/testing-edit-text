@@ -30,11 +30,6 @@ public class SystemBehaviorPreference extends PerTestFieldPreference {
         init();
     }
 
-    public SystemBehaviorPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public SystemBehaviorPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -57,6 +52,6 @@ public class SystemBehaviorPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

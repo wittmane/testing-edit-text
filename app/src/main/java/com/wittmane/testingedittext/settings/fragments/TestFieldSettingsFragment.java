@@ -16,6 +16,10 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -67,17 +71,19 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
     public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field, menu);
 
-        MenuItem addFieldMenuItem = menu.findItem(R.id.action_remove_field);
-        IconUtils.matchMenuIconColor(mView, addFieldMenuItem, getActivity().getActionBar());
+        IconUtils.matchMenuIconColor(mView, menu, getActivity().getActionBar());
     }
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_remove_field) {
-            // remove the field and go back to the field list
-            Settings.removeTestField(getFieldIndex());
-            getFragmentManager().popBackStackImmediate();
+            showWarningConfirmationDialog(R.string.delete_field, R.string.delete_field_confirmation,
+                    () -> {
+                        // remove the field and go back to the field list
+                        Settings.removeTestField(getGroupIndex(), getFieldIndex());
+                        getFragmentManager().popBackStackImmediate();
+                    }, getActivity());
         }
         return super.onOptionsItemSelected(item);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,14 +40,14 @@ import com.wittmane.testingedittext.settings.PlainTextFilter;
 public class TextDialogPreference extends DialogPreferenceBase {
     private static final String TAG = TextDialogPreference.class.getSimpleName();
 
-    private static final int INPUT_TYPE_CLASS_MASK = 0x0000000F;
-    private static final int INPUT_TYPE_FLAG_MASK = 0x000000F0;
-    private static final int INPUT_TYPE_CLASS_TEXT = 0x00000000;
-    private static final int INPUT_TYPE_CLASS_NUMBER = 0x00000001;
-    private static final int INPUT_TYPE_TEXT_FLAG_MULTI_LINE = 0x00000010;
-    private static final int INPUT_TYPE_TEXT_FLAG_STYLED = 0x00000020;
-    private static final int INPUT_TYPE_NUMBER_FLAG_SIGNED = 0x00000011;
-    private static final int INPUT_TYPE_NUMBER_FLAG_DECIMAL = 0x00000021;
+    public static final int INPUT_TYPE_CLASS_MASK = 0x0000000F;
+    public static final int INPUT_TYPE_FLAG_MASK = 0x000000F0;
+    public static final int INPUT_TYPE_CLASS_TEXT = 0x00000000;
+    public static final int INPUT_TYPE_CLASS_NUMBER = 0x00000001;
+    public static final int INPUT_TYPE_TEXT_FLAG_MULTI_LINE = 0x00000010;
+    public static final int INPUT_TYPE_TEXT_FLAG_STYLED = 0x00000020;
+    public static final int INPUT_TYPE_NUMBER_FLAG_SIGNED = 0x00000011;
+    public static final int INPUT_TYPE_NUMBER_FLAG_DECIMAL = 0x00000021;
 
     private static final int DATA_TYPE_STRING = 0;
     private static final int DATA_TYPE_SPANNED = 1;
@@ -55,7 +55,7 @@ public class TextDialogPreference extends DialogPreferenceBase {
     private static final int DATA_TYPE_FLOAT = 3;
 
     private android.widget.EditText mEditText;
-    private final int mInputType;
+    private int mInputType;
     private int mDefaultIntValue;
     private float mDefaultFloatValue;
     private String mDefaultStringValue;
@@ -98,6 +98,26 @@ public class TextDialogPreference extends DialogPreferenceBase {
         a.recycle();
 
         setDialogLayoutResource(R.layout.text_dialog);
+    }
+
+    public void setInputType(int inputType) {
+        mInputType = inputType;
+    }
+
+    public void setDefaultIntValue(int value) {
+        mDefaultIntValue = value;
+    }
+
+    public void setDefaultFloatValue(float value) {
+        mDefaultFloatValue = value;
+    }
+
+    public void setDefaultStringValue(String value) {
+        mDefaultStringValue = value;
+    }
+
+    public void setDefaultSpannedValue(Spanned value) {
+        mDefaultSpannedValue = value;
     }
 
     private int getDataType() {

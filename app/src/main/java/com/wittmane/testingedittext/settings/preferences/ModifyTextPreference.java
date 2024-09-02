@@ -30,11 +30,6 @@ public class ModifyTextPreference extends PerTestFieldPreference {
         init();
     }
 
-    public ModifyTextPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public ModifyTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -57,6 +52,6 @@ public class ModifyTextPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }

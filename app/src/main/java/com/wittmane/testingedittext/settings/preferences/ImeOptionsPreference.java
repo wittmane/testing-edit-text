@@ -36,11 +36,6 @@ public class ImeOptionsPreference extends PerTestFieldPreference {
         init();
     }
 
-    public ImeOptionsPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public ImeOptionsPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -63,12 +58,12 @@ public class ImeOptionsPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
-        setSummary(getImeOptionsDescription(Settings.getTestFieldImeOptions(getFieldIndex()),
-                getContext()));
+    protected void updateDisplayText() {
+        setSummary(getImeOptionsDescription(getGroupIndex(), getFieldIndex(), getContext()));
     }
 
-    public static String getImeOptionsDescription(int imeOptions, Context context) {
+    public static String getImeOptionsDescription(int groupIndex, int fieldIndex, Context context) {
+        int imeOptions = Settings.getTestFieldImeOptions(groupIndex, fieldIndex);
         int imeOptionsAction = imeOptions & EditorInfo.IME_MASK_ACTION;
         String imeOptionsActionBaseDisplay;
         List<String> imeOptionsActionDetails = new ArrayList<>();

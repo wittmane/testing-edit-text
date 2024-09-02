@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,6 +14,20 @@
      limitations under the License.
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- this will be removed if multiple groups are used -->
+    <item
+        android:id="@+id/action_add_group"
+        android:icon="@drawable/ic_add_group_white_24"
+        android:title="@string/add_group"
+        android:showAsAction="ifRoom" />
+
+    <!-- this will be removed if multiple groups are not used used -->
+    <item
+        android:id="@+id/action_remove_group"
+        android:icon="@drawable/ic_delete_white_24"
+        android:title="@string/delete_group"
+        android:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/action_reorder_fields"
         android:icon="@drawable/ic_reorder_white_24"

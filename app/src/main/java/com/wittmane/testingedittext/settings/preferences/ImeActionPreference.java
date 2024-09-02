@@ -32,11 +32,6 @@ public class ImeActionPreference extends PerTestFieldPreference {
         init();
     }
 
-    public ImeActionPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public ImeActionPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -59,14 +54,14 @@ public class ImeActionPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
-        int fieldIndex = getFieldIndex();
-        setSummary(getImeActionDescription(Settings.getTestFieldImeActionId(fieldIndex),
-                Settings.getTestFieldImeActionLabel(fieldIndex), getContext()));
+    protected void updateDisplayText() {
+        setSummary(getImeActionDescription(getGroupIndex(), getFieldIndex(), getContext()));
     }
 
-    public static String getImeActionDescription(int imeActionId, String imeActionLabel,
-                                                  Context context) {
+    public static String getImeActionDescription(int groupIndex, int fieldIndex, Context context) {
+
+        int imeActionId = Settings.getTestFieldImeActionId(groupIndex, fieldIndex);
+        String imeActionLabel = Settings.getTestFieldImeActionLabel(groupIndex, fieldIndex);
         if (imeActionId == 0 && TextUtils.isEmpty(imeActionLabel)) {
             return "";
         }

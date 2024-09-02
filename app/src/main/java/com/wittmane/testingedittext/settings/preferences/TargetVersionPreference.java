@@ -30,11 +30,6 @@ public class TargetVersionPreference extends PerTestFieldPreference {
         init();
     }
 
-    public TargetVersionPreference(Context context, int fieldIndex) {
-        super(context, fieldIndex);
-        init();
-    }
-
     public TargetVersionPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -57,6 +52,6 @@ public class TargetVersionPreference extends PerTestFieldPreference {
     }
 
     @Override
-    protected void updateSummary() {
+    protected void updateDisplayText() {
     }
 }
