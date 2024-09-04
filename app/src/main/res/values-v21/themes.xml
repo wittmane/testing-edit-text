@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
      Copyright (C) 2014 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,18 @@
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_light</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+        <!-- (EW) for some reason this theme defaults to some almost white color that makes the
+             white text/icons in the status bar barely visible. I don't see it set in
+             Theme.DeviceDefault.Light, but Theme.DeviceDefault.ResolverCommon (in the same
+             themes_device_defaults.xml file, so maybe it's getting used in some way I don't
+             recognize) has it set to @color/transparent, which seems basically the same as if that
+             was set here other than some shadow at the bottom of the status bar/top of the
+             activity, but maybe something else is causing that shadow. Theme.Material.Light, which
+             Theme.DeviceDefault.Light inherits from, uses ?attr/colorPrimaryDark, so we'll just use
+             that here. the Theme.Material.Light does look a bit different, but I'm not sure what's
+             causing that, and although these probably should match, we'll just deal with this
+             because it still looks fine. -->
+        <item name="android:statusBarColor">?attr/colorPrimaryDark</item>
     </style>
 
     <style name="Theme.Material" parent="@android:style/Theme.Material">

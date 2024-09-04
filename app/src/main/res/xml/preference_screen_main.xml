@@ -34,4 +34,7 @@
         android:fragment="com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment"
         android:title="@string/test_field_list_screen" />
 
+    <com.wittmane.testingedittext.settings.preferences.DisplayPreference
+        android:title="@string/display_screen" />
+
 </PreferenceScreen>

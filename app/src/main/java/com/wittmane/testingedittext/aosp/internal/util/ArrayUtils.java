@@ -272,6 +272,61 @@ public class ArrayUtils {
         return ret;
     }
 
+    /**
+     * Removes value from given array if present, providing set-like behavior.
+     */
+    public static @Nullable String[] removeString(@Nullable String[] cur, String val) {
+        if (cur == null) {
+            return null;
+        }
+        final int N = cur.length;
+        for (int i = 0; i < N; i++) {
+            if (Objects.equals(cur[i], val)) {
+                String[] ret = new String[N - 1];
+                if (i > 0) {
+                    System.arraycopy(cur, 0, ret, 0, i);
+                }
+                if (i < (N - 1)) {
+                    System.arraycopy(cur, i + 1, ret, i, N - i - 1);
+                }
+                return ret;
+            }
+        }
+        return cur;
+    }
+
+    // (EW) custom
+    /**
+     * Removes the value from a given array at a specific index.
+     */
+    public static String[] removeStringAt(String[] cur, int index) {
+        final int N = cur.length;
+        String[] ret = new String[N - 1];
+        if (index > 0) {
+            System.arraycopy(cur, 0, ret, 0, index);
+        }
+        if (index < (N - 1)) {
+            System.arraycopy(cur, index + 1, ret, index, N - index - 1);
+        }
+        return ret;
+    }
+
+    // (EW) custom
+    /**
+     * Removes the value from a given array at a specific index.
+     */
+    public static CharSequence[] removeCharSequenceAt(CharSequence[] cur, int index) {
+        final int N = cur.length;
+        CharSequence[] ret = new CharSequence[N - 1];
+        if (index > 0) {
+            System.arraycopy(cur, 0, ret, 0, index);
+        }
+        if (index < (N - 1)) {
+            System.arraycopy(cur, index + 1, ret, index, N - index - 1);
+        }
+        return ret;
+    }
+
     // (EW) from libcore.util
     public static final class EmptyArray {
         private EmptyArray() {}

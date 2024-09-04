@@ -143,4 +143,19 @@
         <item>IME_ACTION_PREVIOUS</item>
     </string-array>
 
+    <string-array name="themes" translatable="false">
+        <item>@string/theme_system_default</item>
+        <item>@string/theme_material_dark</item>
+        <item>@string/theme_material_light</item>
+        <item>@string/theme_holo_dark</item>
+        <item>@string/theme_holo_light</item>
+    </string-array>
+    <string-array name="theme_values" translatable="false">
+        <item>THEME_SYSTEM_DEFAULT</item>
+        <item>THEME_MATERIAL_DARK</item>
+        <item>THEME_MATERIAL_LIGHT</item>
+        <item>THEME_HOLO_DARK</item>
+        <item>THEME_HOLO_LIGHT</item>
+    </string-array>
+
 </resources>

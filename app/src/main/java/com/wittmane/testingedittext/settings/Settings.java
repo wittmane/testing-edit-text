@@ -19,6 +19,7 @@ package com.wittmane.testingedittext.settings;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.text.InputType;
@@ -28,6 +29,7 @@ import android.view.inputmethod.EditorInfo;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager.Editor;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
@@ -232,10 +234,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_IME_HINT_TEXT_PREFIX =
             "pref_key_hint_text";
 
+    public static final String PREF_THEME =
+            "pref_key_theme";
+
     private int[] mTestGroupIds;
     private final Map<Integer, TestGroup> mTestGroups = new HashMap<>();
     private final Map<Integer, TestField> mTestFields = new HashMap<>();
     private final AppLevelDefaults mTestFieldDefaults = new AppLevelDefaults();
+
+    private String mTheme;
 
     private SharedPreferenceManager mPrefs;
 
@@ -250,6 +257,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static void init(final Context context) {
+        if (sInstance.mPrefs != null) {
+            // already initialized
+            return;
+        }
         sInstance.onCreate(context);
     }
 
@@ -380,6 +391,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSettings() {
         final String[] prefKeys = new String[] {
+                PREF_THEME
         };
         for (String prefKey : prefKeys) {
             loadSetting(prefKey);
@@ -523,7 +535,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 // internal state is updated while these are modified since they aren't managed by a
                 // simple Preference, so we don't need to do anything when these change
                 break;
-
+            case PREF_THEME:
+                mTheme = readTheme(mPrefs);
+                break;
             default:
                 // try loading as a specific field or group's setting
                 loadPrefixedSetting(prefKey);
@@ -2443,6 +2457,59 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static CharSequence getTestFieldHintText(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mHintText;
+    }
+
+    public static final String THEME_SYSTEM_DEFAULT = "THEME_SYSTEM_DEFAULT";
+    public static final String THEME_MATERIAL_DARK = "THEME_MATERIAL_DARK";
+    public static final String THEME_MATERIAL_LIGHT = "THEME_MATERIAL_LIGHT";
+    public static final String THEME_HOLO_DARK = "THEME_HOLO_DARK";
+    public static final String THEME_HOLO_LIGHT = "THEME_HOLO_LIGHT";
+
+    private static String readTheme(final SharedPreferenceManager prefs) {
+        return prefs.getString(PREF_THEME, THEME_SYSTEM_DEFAULT);
+    }
+
+    public static int getThemeId(final Context context) {
+        return getThemeId(getInstance().mTheme, context);
+    }
+
+    public static int getThemeId(String theme, final Context context) {
+        switch (theme) {
+            case THEME_MATERIAL_DARK:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    return R.style.Theme_Material;
+                }
+                break;
+            case THEME_MATERIAL_LIGHT:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    return R.style.Theme_Material_Light;
+                }
+                break;
+            case THEME_HOLO_DARK:
+                return R.style.Theme_Holo;
+            case THEME_HOLO_LIGHT:
+                return R.style.Theme_Holo_Light;
+        }
+        return isDarkModeEnabled(context)
+                ? R.style.Theme_DeviceDefault
+                : R.style.Theme_DeviceDefault_Light;
+    }
+
+    public static boolean isHoloTheme(int themeId) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return true;
+        }
+        return themeId == R.style.Theme_Holo || themeId == R.style.Theme_Holo_Light;
+    }
+
+    private static boolean isDarkModeEnabled(final Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            // prior to Lollipop Android just used a dark theme
+            return true;
+        }
+        int nightModeFlags = context.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES;
     }
 
     private static class TestGroup {

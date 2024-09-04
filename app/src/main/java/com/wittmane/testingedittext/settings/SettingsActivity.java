@@ -24,8 +24,10 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
+import android.util.Log;
 import android.view.MenuItem;
 
+import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFragment;
@@ -40,9 +42,11 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFra
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 
 public class SettingsActivity extends PreferenceActivity {
+    private static final String TAG = SettingsActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(final Bundle savedState) {
+        setTheme(Settings.getThemeId(this));
         super.onCreate(savedState);
         final ActionBar actionBar = getActionBar();
         if (actionBar != null) {
@@ -96,6 +100,7 @@ public class SettingsActivity extends PreferenceActivity {
                 || TestFieldSettingsFragment.class.getName().equals(fragmentName)
                 || InputTypeSettingsFragment.class.getName().equals(fragmentName)
                 || ImeOptionsSettingsFragment.class.getName().equals(fragmentName)
-                || ImeActionSettingsFragment.class.getName().equals(fragmentName);
+                || ImeActionSettingsFragment.class.getName().equals(fragmentName)
+                || DisplaySettingsFragment.class.getName().equals(fragmentName);
     }
 }

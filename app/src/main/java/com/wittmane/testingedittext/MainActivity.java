@@ -18,7 +18,6 @@ package com.wittmane.testingedittext;
 
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.getGroupDisplayName;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -49,6 +48,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
@@ -63,27 +63,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class MainActivity extends Activity
+public class MainActivity extends ThemedActivity
         implements TabContentFactory, TabHost.OnTabChangeListener {
-    // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
-    // the built-in EditText will look different from this custom one by being styled more like
-    // modern versions (custom colored cursor, controllers, and bottom line, thicker cursor,
-    // straight line bottom bar, and gray hint text). Based on digging through the code, this seems
-    // to be because AppCompatViewInflater#createView injects AppCompatEditText in the place of a
-    // defined EditText. AppCompatEditText uses a TintContextWrapper, which automatically recolors
-    // the cursor and controllers' drawables (R.drawable.abc_text_cursor_material,
-    // R.drawable.abc_text_select_handle_left_mtrl, R.drawable.abc_text_select_handle_middle_mtrl,
-    // and R.drawable.abc_text_select_handle_right_mtrl) (see AppCompatDrawableManager).
-    // Interestingly, AppCompatViewInflater looks for "EditText" to be the tag in the xml, so
-    // specifying "android.widget.EditText" wouldn't get replaced. It seems that there is no way to
-    // automatically tie this custom copy of the EditText into the same tint handling. If we want
-    // that, we'd have to add custom handling around loading the drawables, which would deviate from
-    // the AOSP version that this copies from, and it would force this custom EditText to be used
-    // with AppCompat, so in order to keep it more generic, we'll skip that and just style to match
-    // the android version, rather than have a consistent view between versions of this app. I
-    // didn't look into the hint color much, but it also seems to be coming from the replaced
-    // EditText.
-
     private static final String TAG = MainActivity.class.getSimpleName();
 
     // Use the ugly view with a bunch of random fields built in xml for quickly comparing various
@@ -154,7 +135,6 @@ public class MainActivity extends Activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Settings.init(this);
 
         setContentView(R.layout.activity_main);
         final TabHost tabHost = findViewById(R.id.tabHost);
