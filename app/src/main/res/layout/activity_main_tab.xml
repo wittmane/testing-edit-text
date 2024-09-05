@@ -30,6 +30,7 @@
             android:orientation="vertical">
 
             <LinearLayout
+                android:id="@+id/edittext_type_column_labels"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="horizontal">

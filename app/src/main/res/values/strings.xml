@@ -320,6 +320,7 @@
     <string name="theme_material_light">Material Light</string>
     <string name="theme_holo_dark">Holo Dark</string>
     <string name="theme_holo_light">Holo Light</string>
+    <string name="show_reference_edittext">Show a reference framework EditText for each field</string>
 
     <!-- Error shown by TextView/EditText when cut/copy operation fails because text is too long to copy into the clipboard. -->
     <string name="failed_to_copy_to_clipboard">Failed to copy to clipboard</string>

@@ -236,6 +236,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static final String PREF_THEME =
             "pref_key_theme";
+    public static final String PREF_SHOW_REFERENCE_EDITTEXT =
+            "pref_key_show_reference_edittext";
 
     private int[] mTestGroupIds;
     private final Map<Integer, TestGroup> mTestGroups = new HashMap<>();
@@ -243,6 +245,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private final AppLevelDefaults mTestFieldDefaults = new AppLevelDefaults();
 
     private String mTheme;
+    private boolean mShowReferenceEditText;
 
     private SharedPreferenceManager mPrefs;
 
@@ -391,7 +394,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private void loadSettings() {
         final String[] prefKeys = new String[] {
-                PREF_THEME
+                PREF_THEME,
+                PREF_SHOW_REFERENCE_EDITTEXT
         };
         for (String prefKey : prefKeys) {
             loadSetting(prefKey);
@@ -537,6 +541,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case PREF_THEME:
                 mTheme = readTheme(mPrefs);
+                break;
+            case PREF_SHOW_REFERENCE_EDITTEXT:
+                mShowReferenceEditText = readShowReferenceEditText(mPrefs);
                 break;
             default:
                 // try loading as a specific field or group's setting
@@ -2510,6 +2517,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         int nightModeFlags = context.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK;
         return nightModeFlags == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private static boolean readShowReferenceEditText(final SharedPreferenceManager prefs) {
+        return prefs.getBoolean(PREF_SHOW_REFERENCE_EDITTEXT, false);
+    }
+
+    public static boolean getShowReferenceEditText() {
+        return getInstance().mShowReferenceEditText;
     }
 
     private static class TestGroup {

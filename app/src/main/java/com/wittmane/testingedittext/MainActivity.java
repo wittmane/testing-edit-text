@@ -336,18 +336,18 @@ public class MainActivity extends ThemedActivity
         if (currentView == null) {
             return;
         }
-        LinearLayout testFieldContainer = currentView.findViewById(R.id.testFieldContainer);
 
         // build or rebuild the list of fields for the current tab in case any were added or removed
         // and update the ui. don't bother updating fields for the other tabs since we might never
         // go to them or they may change before we do.
-        updateFields(mCurrentTabIndex, testFieldContainer);
+        updateFields(mCurrentTabIndex, currentView);
     }
 
-    private void updateFields(int groupIndex, LinearLayout testFieldContainer) {
+    private void updateFields(int groupIndex, View currentView) {
         //TODO: (EW) see if we can determine which field has focus and assuming it still exists,
         // ensure that it doesn't get removed and just insert/shift fields around it
 
+        LinearLayout testFieldContainer = currentView.findViewById(R.id.testFieldContainer);
         List<TestField> fieldsOnLayout = mGroups[groupIndex].mTestFields;
 
         int groupFieldCount = Settings.getTestFieldCount(groupIndex);
@@ -422,10 +422,17 @@ public class MainActivity extends ThemedActivity
                     Settings.getTestFieldSettings(groupIndex, fieldIndex));
         }
 
+        boolean showReferenceEditText = Settings.getShowReferenceEditText();
+        currentView.findViewById(R.id.edittext_type_column_labels)
+                .setVisibility(showReferenceEditText ? View.VISIBLE : View.GONE);
+
         // update the settings for the individual fields
         for (int fieldIndex = 0; fieldIndex < fieldsOnLayout.size(); fieldIndex++) {
             TestField testField = fieldsOnLayout.get(fieldIndex);
             updateField(testField.mFrameworkEditText, groupIndex, fieldIndex);
+            ((ViewGroup)testField.mFrameworkEditText.getView().getParent())
+                    .setVisibility(showReferenceEditText ? View.VISIBLE : View.GONE);
+
             updateField(testField.mCustomEditText, groupIndex, fieldIndex);
         }
     }
@@ -653,6 +660,14 @@ public class MainActivity extends ThemedActivity
             mFrameworkEditText = null;
             mRequestedInputType = editText.getInputType();
             mDefaultTextLocales = getTextLocales();
+        }
+
+        public View getView() {
+            if (mFrameworkEditText != null) {
+                return mFrameworkEditText;
+            } else {
+                return mCustomEditText;
+            }
         }
 
         public boolean isCustom() {

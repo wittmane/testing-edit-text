@@ -21,4 +21,8 @@
         android:entries="@array/themes"
         android:entryValues="@array/theme_values"/>
 
+    <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+        android:key="pref_key_show_reference_edittext"
+        android:title="@string/show_reference_edittext" />
+
 </PreferenceScreen>
