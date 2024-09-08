@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
      Copyright (C) 2006 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,22 +61,5 @@
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
         <!-- (EW) see comment in Theme.Holo -->
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
-    </style>
-
-
-    <!-- Base application theme. -->
-    <style name="Theme.TestingEditText" parent="Theme.DeviceDefault">
-<!--    <style name="Theme.TestingEditText" parent="Theme.DeviceDefault.Light">-->
-<!--    <style name="Theme.TestingEditText" parent="Theme.Material">-->
-<!--    <style name="Theme.TestingEditText" parent="Theme.Material.Light">-->
-<!--    <style name="Theme.TestingEditText" parent="Theme.Holo">-->
-<!--    <style name="Theme.TestingEditText" parent="Theme.Holo.Light">-->
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <!-- Status bar color. -->
-<!--        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>-->
-        <!-- Customize your theme here. -->
-
-        <item name="android:colorAccent">#03A9F4</item>
     </style>
 </resources>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@ import android.text.TextDirectionHeuristic;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
 import android.text.style.ReplacementSpan;
-import androidx.core.util.Pools.SynchronizedPool;
+import com.wittmane.testingedittext.aosp.util.Pools.SynchronizedPool;
 
 import java.util.Arrays;
 

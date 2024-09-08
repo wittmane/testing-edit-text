@@ -44,7 +44,7 @@
              that here. the Theme.Material.Light does look a bit different, but I'm not sure what's
              causing that, and although these probably should match, we'll just deal with this
              because it still looks fine. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryDark</item>
+        <item name="android:statusBarColor">?android:attr/colorPrimaryDark</item>
     </style>
 
     <style name="Theme.Material" parent="@android:style/Theme.Material">
