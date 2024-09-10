@@ -310,6 +310,7 @@
     <string name="locale_country">Country</string>
     <string name="locale_variant">Variant</string>
 
+    <string name="label_text">Label</string>
     <string name="default_text">Default text</string>
     <string name="hint_text">Hint text</string>
 

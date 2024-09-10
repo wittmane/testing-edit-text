@@ -212,17 +212,22 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
                                             final int fieldIndex) {
+        CharSequence labelText = Settings.getTestFieldLabelText(groupIndex, fieldIndex);
+        if (!TextUtils.isEmpty(labelText)) {
+            return labelText;
+        }
+
         CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
         if (!TextUtils.isEmpty(defaultText)) {
             return defaultText;
-        } else {
-            CharSequence hintText = Settings.getTestFieldHintText(groupIndex, fieldIndex);
-            if (!TextUtils.isEmpty(hintText)) {
-                return hintText;
-            } else {
-                return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
-            }
         }
+
+        CharSequence hintText = Settings.getTestFieldHintText(groupIndex, fieldIndex);
+        if (!TextUtils.isEmpty(hintText)) {
+            return hintText;
+        }
+
+        return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
     }
 
     /**

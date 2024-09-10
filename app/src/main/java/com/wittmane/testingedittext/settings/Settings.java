@@ -159,6 +159,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_TEST_GROUP_NAME_PREFIX =
             "pref_key_test_group_name";
 
+    public static final String PREF_IME_LABEL_TEXT_PREFIX =
+            "pref_key_label_text";
+    public static final String PREF_IME_DEFAULT_TEXT_PREFIX =
+            "pref_key_default_text";
+    public static final String PREF_IME_HINT_TEXT_PREFIX =
+            "pref_key_hint_text";
     public static final String PREF_INPUT_TYPE_CLASS_PREFIX =
             "pref_key_input_type_class";
     public static final String PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX =
@@ -229,10 +235,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_text_locales";
     public static final String PREF_IME_HINT_LOCALES_PREFIX =
             "pref_key_ime_hint_locales";
-    public static final String PREF_IME_DEFAULT_TEXT_PREFIX =
-            "pref_key_default_text";
-    public static final String PREF_IME_HINT_TEXT_PREFIX =
-            "pref_key_hint_text";
 
     public static final String PREF_THEME =
             "pref_key_theme";
@@ -434,6 +436,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         // all would just read all of them multiple times. leaving them commented out here for
         // visibility.
         final String[] testFieldPrefKeyPrefixes = new String[]{
+                PREF_IME_LABEL_TEXT_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX,
                 PREF_INPUT_TYPE_CLASS_PREFIX,
                 //PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
                 //PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
@@ -469,8 +474,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_ALLOW_UNDO_PREFIX,
                 PREF_TEXT_LOCALES_PREFIX,
                 PREF_IME_HINT_LOCALES_PREFIX,
-                PREF_IME_DEFAULT_TEXT_PREFIX,
-                PREF_IME_HINT_TEXT_PREFIX,
 
                 PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
                 PREF_OVERRIDE_TEXT_RETURN_PREFIX,
@@ -639,6 +642,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private void loadTestFieldSetting(String prefKeyPrefix, int fieldId) {
         TestField testField = getField(fieldId);
         switch (prefKeyPrefix) {
+            case PREF_IME_LABEL_TEXT_PREFIX:
+                testField.mLabelText = readTestFieldLabelText(mPrefs, fieldId);
+                break;
+            case PREF_IME_DEFAULT_TEXT_PREFIX:
+                testField.mDefaultText = readTestFieldDefaultText(mPrefs, fieldId);
+                break;
+            case PREF_IME_HINT_TEXT_PREFIX:
+                testField.mHintText = readTestFieldHintText(mPrefs, fieldId);
+                break;
             case PREF_INPUT_TYPE_CLASS_PREFIX:
             case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
             case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
@@ -710,12 +722,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case PREF_IME_HINT_LOCALES_PREFIX:
                 testField.mImeHintLocales = readTestFieldImeHintLocales(mPrefs, fieldId);
-                break;
-            case PREF_IME_DEFAULT_TEXT_PREFIX:
-                testField.mDefaultText = readTestFieldDefaultText(mPrefs, fieldId);
-                break;
-            case PREF_IME_HINT_TEXT_PREFIX:
-                testField.mHintText = readTestFieldHintText(mPrefs, fieldId);
                 break;
 
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
@@ -1866,6 +1872,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static void removeTestFieldPrefs(Editor editor, int idToRemove) {
         final String[] testFieldPrefKeyPrefixes = new String[]{
+                PREF_IME_LABEL_TEXT_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX,
                 PREF_INPUT_TYPE_CLASS_PREFIX,
                 PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
                 PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
@@ -1901,8 +1910,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 PREF_ALLOW_UNDO_PREFIX,
                 PREF_TEXT_LOCALES_PREFIX,
                 PREF_IME_HINT_LOCALES_PREFIX,
-                PREF_IME_DEFAULT_TEXT_PREFIX,
-                PREF_IME_HINT_TEXT_PREFIX,
 
                 PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
                 PREF_MODIFY_COMMITTED_TEXT_PREFIX,
@@ -1965,6 +1972,33 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             }
         }
         return max + 1;
+    }
+
+    private static CharSequence readTestFieldLabelText(final SharedPreferenceManager prefs,
+                                                       int fieldId) {
+        return prefs.getCharSequence(PREF_IME_LABEL_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
+    }
+
+    public static CharSequence getTestFieldLabelText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mLabelText;
+    }
+
+    private static CharSequence readTestFieldDefaultText(final SharedPreferenceManager prefs,
+                                                         int fieldId) {
+        return prefs.getCharSequence(PREF_IME_DEFAULT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
+    }
+
+    public static CharSequence getTestFieldDefaultText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mDefaultText;
+    }
+
+    private static CharSequence readTestFieldHintText(final SharedPreferenceManager prefs,
+                                                      int fieldId) {
+        return prefs.getCharSequence(PREF_IME_HINT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
+    }
+
+    public static CharSequence getTestFieldHintText(int groupIndex, int fieldIndex) {
+        return getField(groupIndex, fieldIndex).mHintText;
     }
 
     private static int readTestFieldInputType(final SharedPreferenceManager prefs, int fieldId) {
@@ -2448,24 +2482,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getField(groupIndex, fieldIndex).mImeHintLocales;
     }
 
-    private static CharSequence readTestFieldDefaultText(final SharedPreferenceManager prefs,
-                                                         int fieldId) {
-        return prefs.getCharSequence(PREF_IME_DEFAULT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
-    }
-
-    public static CharSequence getTestFieldDefaultText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mDefaultText;
-    }
-
-    private static CharSequence readTestFieldHintText(final SharedPreferenceManager prefs,
-                                                      int fieldId) {
-        return prefs.getCharSequence(PREF_IME_HINT_TEXT_PREFIX + FIELD_INFIX + fieldId, null);
-    }
-
-    public static CharSequence getTestFieldHintText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mHintText;
-    }
-
     public static final String THEME_SYSTEM_DEFAULT = "THEME_SYSTEM_DEFAULT";
     public static final String THEME_MATERIAL_DARK = "THEME_MATERIAL_DARK";
     public static final String THEME_MATERIAL_LIGHT = "THEME_MATERIAL_LIGHT";
@@ -2575,6 +2591,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private boolean mAllowUndo;
         private Locale[] mTextLocales;
         private Locale[] mImeHintLocales;
+        private CharSequence mLabelText;
         private CharSequence mDefaultText;
         private CharSequence mHintText;
 

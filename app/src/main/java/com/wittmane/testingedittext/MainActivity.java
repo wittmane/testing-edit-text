@@ -93,6 +93,7 @@ public class MainActivity extends ThemedActivity
 
     private static class TestField {
         private final int mId;
+        private final TextView mLabel;
         private final EditTextProxy mFrameworkEditText;
         private final EditTextProxy mCustomEditText;
         private final LinearLayout mLayout;
@@ -100,14 +101,23 @@ public class MainActivity extends ThemedActivity
             mId = id;
 
             mLayout = new LinearLayout(context);
-            mLayout.setOrientation(LinearLayout.HORIZONTAL);
+            mLayout.setOrientation(LinearLayout.VERTICAL);
             mLayout.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
+            mLabel = new TextView(context);
+            mLayout.addView(mLabel);
+
+            LinearLayout textFieldWrapperLayout = new LinearLayout(context);
+            textFieldWrapperLayout.setOrientation(LinearLayout.HORIZONTAL);
+            textFieldWrapperLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+            mLayout.addView(textFieldWrapperLayout);
 
             LinearLayout frameworkEditTextWrapper = new LinearLayout(context);
             frameworkEditTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
-            mLayout.addView(frameworkEditTextWrapper);
+            textFieldWrapperLayout.addView(frameworkEditTextWrapper);
 
             android.widget.EditText frameworkEditText = new android.widget.EditText(context);
             frameworkEditText.setLayoutParams(new LinearLayout.LayoutParams(
@@ -118,7 +128,7 @@ public class MainActivity extends ThemedActivity
             LinearLayout customEditTextWrapper = new LinearLayout(context);
             customEditTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
-            mLayout.addView(customEditTextWrapper);
+            textFieldWrapperLayout.addView(customEditTextWrapper);
 
             com.wittmane.testingedittext.aosp.widget.EditText customEditText =
                     new com.wittmane.testingedittext.aosp.widget.EditText(context);
@@ -429,6 +439,11 @@ public class MainActivity extends ThemedActivity
         // update the settings for the individual fields
         for (int fieldIndex = 0; fieldIndex < fieldsOnLayout.size(); fieldIndex++) {
             TestField testField = fieldsOnLayout.get(fieldIndex);
+
+            CharSequence labelText = Settings.getTestFieldLabelText(groupIndex, fieldIndex);
+            testField.mLabel.setText(labelText);
+            testField.mLabel.setVisibility(TextUtils.isEmpty(labelText) ? View.GONE : View.VISIBLE);
+
             updateField(testField.mFrameworkEditText, groupIndex, fieldIndex);
             ((ViewGroup)testField.mFrameworkEditText.getView().getParent())
                     .setVisibility(showReferenceEditText ? View.VISIBLE : View.GONE);

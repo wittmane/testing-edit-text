@@ -17,6 +17,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
+        android:key="pref_key_label_text"
+        android:title="@string/label_text"
+        app:defaultText=""
+        app:inputType="textMultiLine|textStyled" />
+
+    <com.wittmane.testingedittext.settings.preferences.TextDialogPreference
         android:key="pref_key_default_text"
         android:title="@string/default_text"
         app:defaultText=""
