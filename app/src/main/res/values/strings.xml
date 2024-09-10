@@ -20,6 +20,9 @@
     <string name="framework_edittext">Framework EditText</string>
     <string name="custom_edittext">Custom EditText</string>
 
+    <string name="import_settings">Import settings</string>
+    <string name="export_settings">Export settings</string>
+
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
     <string name="button_default">Default</string>
