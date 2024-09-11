@@ -22,6 +22,9 @@
 
     <string name="import_settings">Import settings</string>
     <string name="export_settings">Export settings</string>
+    <string name="failed_to_access_file">Failed to access file</string>
+    <string name="failed_to_import_settings">Failed to import settings</string>
+    <string name="failed_to_export_settings">Failed to export settings</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
