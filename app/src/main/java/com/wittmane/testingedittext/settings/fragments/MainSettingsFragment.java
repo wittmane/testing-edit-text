@@ -35,6 +35,10 @@ import android.widget.Toast;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -50,7 +54,7 @@ public class MainSettingsFragment extends PreferenceFragment {
 
     private static final int EXPORT_SETTINGS_FILE = 1;
     private static final int IMPORT_SETTINGS_FILE = 2;
-    private static final String SETTINGS_FILE_MIME_TYPE = "text/plain";
+    private static final String SETTINGS_FILE_MIME_TYPE = "application/json";
 
     private View mView;
 
@@ -90,7 +94,7 @@ public class MainSettingsFragment extends PreferenceFragment {
             intent.setType(SETTINGS_FILE_MIME_TYPE);
             String instant = new SimpleDateFormat("yyyyMMddhhmmss", Locale.US)
                     .format(Calendar.getInstance().getTime());
-            intent.putExtra(Intent.EXTRA_TITLE, "TestingEditTextSettings-" + instant + ".txt");
+            intent.putExtra(Intent.EXTRA_TITLE, "TestingEditTextSettings-" + instant + ".json");
             startActivityForResult(intent, EXPORT_SETTINGS_FILE);
         }
         return super.onOptionsItemSelected(item);
@@ -143,8 +147,25 @@ public class MainSettingsFragment extends PreferenceFragment {
             Log.e(TAG, "Failed to read file: " + e.getMessage());
             return false;
         }
-        //TODO: (EW) actually import the data
-        Log.d(TAG, "File contents: " + stringBuilder.toString());
+        return parseJsonSettings(stringBuilder.toString());
+    }
+
+    private boolean parseJsonSettings(String rawJson) {
+        Log.d(TAG, "Reading raw JSON: " + rawJson);
+        try {
+            //TODO: (EW) build real settings data
+            JSONObject jsonObject = new JSONObject(rawJson);
+            Log.d(TAG, "foo: " + jsonObject.getInt("foo"));
+            Log.d(TAG, "asdf: " + (jsonObject.has("asdf") ? jsonObject.getInt("asdf") : "null"));
+            JSONArray jsonArray = jsonObject.getJSONArray("bar");
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObjectNested = jsonArray.getJSONObject(i);
+                Log.d(TAG, "baz" + i + ": " + jsonObjectNested.getInt("baz"));
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to parse settings file: " + e.getMessage());
+            return false;
+        }
         return true;
     }
 
@@ -157,9 +178,11 @@ public class MainSettingsFragment extends PreferenceFragment {
             }
             try (FileOutputStream fileOutputStream =
                          new FileOutputStream(pfd.getFileDescriptor())) {
-                //TODO: (EW) export real data
-                fileOutputStream.write(
-                        ("Written at " + System.currentTimeMillis() + "\n").getBytes());
+                String data = buildJsonSettings();
+                if (data == null) {
+                    return false;
+                }
+                fileOutputStream.write(data.getBytes());
             }
         } catch (FileNotFoundException e) {
             Log.e(TAG, "File not found for exporting: " + e.getMessage());
@@ -169,5 +192,23 @@ public class MainSettingsFragment extends PreferenceFragment {
             return false;
         }
         return true;
+    }
+
+    private String buildJsonSettings() {
+        JSONObject jsonObject = new JSONObject();
+        try {
+            //TODO: (EW) get real settings data
+            jsonObject.put("foo", 42);
+            JSONArray jsonArray = new JSONArray();
+            JSONObject jsonObjectNested1 = new JSONObject();
+            jsonObjectNested1.put("baz", 12);
+            jsonArray.put(jsonObjectNested1);
+            jsonObject.put("bar", jsonArray);
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to build settings JSON: " + e.getMessage());
+            return null;
+        }
+        Log.d(TAG, "Writing raw JSON: " + jsonObject);
+        return jsonObject.toString();
     }
 }
