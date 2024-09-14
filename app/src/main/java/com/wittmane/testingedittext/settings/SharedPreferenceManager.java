@@ -24,6 +24,7 @@ import android.text.SpannedString;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
@@ -623,23 +624,7 @@ public class SharedPreferenceManager implements SharedPreferences {
             if (value == null) {
                 serializedSpannedInfo = "";
             } else {
-                String[] spannedInfo = null;
-                Object[] spans = value.getSpans(0, value.length(), Object.class);
-                if (spans.length > 0) {
-                    // save spans by converting it to html. this isn't guaranteed to save all spans,
-                    // but there doesn't seem to be a good way to persistently store and recover
-                    // random spans, so this may be the best option for now. we probably could also
-                    // store a list of the span types and their positions to try to recover specific
-                    // ones that don't get saved with the html if that becomes necessary.
-                    spannedInfo = new String[]{
-                            value.toString(),
-                            Html.toHtml(new SpannableStringBuilder(value))
-                    };
-                }
-                if (spannedInfo == null) {
-                    spannedInfo = new String[]{value.toString()};
-                }
-                serializedSpannedInfo = StringArraySerializer.serialize(spannedInfo);
+                serializedSpannedInfo = StringArraySerializer.serialize(getSpannedInfo(value));
             }
             mEditor.putString(key, SPANNED_STRING_PREF_PREFIX + serializedSpannedInfo);
             return this;
@@ -735,5 +720,25 @@ public class SharedPreferenceManager implements SharedPreferences {
         public void apply() {
             mEditor.apply();
         }
+    }
+
+    public static String[] getSpannedInfo(@NonNull Spanned value) {
+        String[] spannedInfo = null;
+        Object[] spans = value.getSpans(0, value.length(), Object.class);
+        if (spans.length > 0) {
+            // save spans by converting it to html. this isn't guaranteed to save all spans, but
+            // there doesn't seem to be a good way to persistently store and recover random spans,
+            // so this may be the best option for now. we probably could also store a list of the
+            // span types and their positions to try to recover specific ones that don't get saved
+            // with the html if that becomes necessary.
+            spannedInfo = new String[]{
+                    value.toString(),
+                    Html.toHtml(new SpannableStringBuilder(value))
+            };
+        }
+        if (spannedInfo == null) {
+            spannedInfo = new String[]{ value.toString() };
+        }
+        return spannedInfo;
     }
 }

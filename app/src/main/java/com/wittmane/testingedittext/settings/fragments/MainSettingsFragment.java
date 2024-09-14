@@ -34,6 +34,7 @@ import android.widget.Toast;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
+import com.wittmane.testingedittext.settings.Settings;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -178,7 +179,8 @@ public class MainSettingsFragment extends PreferenceFragment {
             }
             try (FileOutputStream fileOutputStream =
                          new FileOutputStream(pfd.getFileDescriptor())) {
-                String data = buildJsonSettings();
+                String data = Settings.getJson();
+                Log.d(TAG, "Writing raw JSON: " + data);
                 if (data == null) {
                     return false;
                 }
@@ -192,23 +194,5 @@ public class MainSettingsFragment extends PreferenceFragment {
             return false;
         }
         return true;
-    }
-
-    private String buildJsonSettings() {
-        JSONObject jsonObject = new JSONObject();
-        try {
-            //TODO: (EW) get real settings data
-            jsonObject.put("foo", 42);
-            JSONArray jsonArray = new JSONArray();
-            JSONObject jsonObjectNested1 = new JSONObject();
-            jsonObjectNested1.put("baz", 12);
-            jsonArray.put(jsonObjectNested1);
-            jsonObject.put("bar", jsonArray);
-        } catch (JSONException e) {
-            Log.e(TAG, "Failed to build settings JSON: " + e.getMessage());
-            return null;
-        }
-        Log.d(TAG, "Writing raw JSON: " + jsonObject);
-        return jsonObject.toString();
     }
 }

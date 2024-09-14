@@ -23,6 +23,7 @@ import android.content.res.Configuration;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.text.InputType;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.inputmethod.EditorInfo;
 
@@ -36,6 +37,10 @@ import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreferen
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,6 +62,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final int BASE_FIELD_INDEX = -1;
     public static final int BASE_FIELD_ID = -1;
 
+
+    private static final String PREF_KEY_PREFIX = "pref_key_";
     public static final String BASE_SUFFIX = "_base";
     public static final String GROUP_INFIX = "_group_";
     public static final String FIELD_INFIX = "_field_";
@@ -241,6 +248,226 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SHOW_REFERENCE_EDITTEXT =
             "pref_key_show_reference_edittext";
 
+    private static final String[] TEST_FIELD_PREF_KEY_PREFIXES = new String[]{
+            PREF_IME_LABEL_TEXT_PREFIX,
+            PREF_IME_DEFAULT_TEXT_PREFIX,
+            PREF_IME_HINT_TEXT_PREFIX,
+            PREF_INPUT_TYPE_CLASS_PREFIX,
+            PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
+            PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
+            PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
+            PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
+            PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
+            PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
+            PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
+            PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
+            PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
+            PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+            PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+            PREF_CREATE_INPUT_CONNECTION_PREFIX,
+            PREF_SEND_SELECTION_INFO_PREFIX,
+            PREF_SEND_TEXT_PREFIX,
+            PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+            PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+            PREF_ALLOW_SETTING_SELECTION_PREFIX,
+            PREF_IME_OPTIONS_ACTION_PREFIX,
+            PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
+            PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
+            PREF_IME_ACTION_ID_PREFIX,
+            PREF_IME_ACTION_LABEL_PREFIX,
+            PREF_PRIVATE_IME_OPTIONS_PREFIX,
+            PREF_SELECT_ALL_ON_FOCUS_PREFIX,
+            PREF_MAX_LENGTH_PREFIX,
+            PREF_ALLOW_UNDO_PREFIX,
+            PREF_TEXT_LOCALES_PREFIX,
+            PREF_IME_HINT_LOCALES_PREFIX,
+
+            PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
+            PREF_OVERRIDE_TEXT_RETURN_PREFIX,
+            PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
+            PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
+            PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
+    };
+
+    private static final String[] DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES = new String[]{
+            PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+            PREF_MODIFY_COMPOSED_TEXT_PREFIX,
+            PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
+            PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
+            PREF_RESTRICT_TO_INCLUDE_PREFIX,
+            PREF_RESTRICT_SPECIFIC_PREFIX,
+            PREF_RESTRICT_RANGE_PREFIX,
+            PREF_TRANSLATE_SPECIFIC_PREFIX,
+            PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+            PREF_SHIFT_CODEPOINT_PREFIX,
+
+            PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+            PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+            PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
+            PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+            PREF_EXTRACT_FULL_TEXT_PREFIX,
+            PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
+            PREF_LIMIT_RETURNED_TEXT_PREFIX,
+
+            PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
+            PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
+
+            PREF_SKIP_TAKESNAPSHOT_PREFIX,
+            PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
+            PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
+            PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
+            PREF_SKIP_COMMITCONTENT_PREFIX,
+            PREF_SKIP_CLOSECONNECTION_PREFIX,
+            PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
+            PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
+            PREF_SKIP_COMMITCORRECTION_PREFIX,
+            PREF_SKIP_GETSELECTEDTEXT_PREFIX,
+            PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
+
+            PREF_UPDATE_DELAY_PREFIX,
+            PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
+            PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
+            PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
+            PREF_GETSELECTEDTEXT_DELAY_PREFIX,
+            PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
+            PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
+            PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
+    };
+
+    private static final String[] TEST_GROUP_PREF_KEY_PREFIXES = new String[]{
+            PREF_TEST_FIELD_IDS_PREFIX,
+            PREF_TEST_GROUP_NAME_PREFIX
+    };
+
+    private static final String[] MISC_PREF_KEYS = new String[] {
+            PREF_THEME,
+            PREF_SHOW_REFERENCE_EDITTEXT
+    };
+
+    private static final int TYPE_UNKNOWN = 0;
+    private static final int TYPE_BOOLEAN = 1;
+    private static final int TYPE_INT = 2;
+    private static final int TYPE_LONG = 3;
+    private static final int TYPE_FLOAT = 4;
+    private static final int TYPE_STRING = 5;
+    private static final int TYPE_SPANNED = 6;
+    private static final int TYPE_CHAR_SEQUENCE = 7;
+    private static final int TYPE_INT_ARRAY = 8;
+    private static final int TYPE_STRING_ARRAY = 9;
+    private static final int TYPE_STRING_SET = 10;
+    private static final int TYPE_INT_RANGE = 11;
+    private static final int TYPE_LOCALE_ARRAY = 12;
+    private static final int TYPE_TEXT_LIST_STRING = 13;
+    private static final int TYPE_TEXT_LIST_TRANSLATE_TEXT = 14;
+
+    private static int prefDataType(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
+            case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
+            case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
+            case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
+            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
+            case PREF_RESTRICT_TO_INCLUDE_PREFIX:
+            case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
+            case PREF_OVERRIDE_TEXT_RETURN_PREFIX:
+            case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
+            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
+            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
+            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
+            case PREF_EXTRACT_FULL_TEXT_PREFIX:
+            case PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX:
+            case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
+            case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
+            case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
+            case PREF_SKIP_TAKESNAPSHOT_PREFIX:
+            case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
+            case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
+            case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
+            case PREF_SKIP_COMMITCONTENT_PREFIX:
+            case PREF_SKIP_CLOSECONNECTION_PREFIX:
+            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
+            case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
+            case PREF_SKIP_COMMITCORRECTION_PREFIX:
+            case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
+            case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
+            case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
+            case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
+            case PREF_CREATE_INPUT_CONNECTION_PREFIX:
+            case PREF_SEND_SELECTION_INFO_PREFIX:
+            case PREF_SEND_TEXT_PREFIX:
+            case PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
+            case PREF_ALLOW_SETTING_SELECTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
+            case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
+            case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
+            case PREF_ALLOW_UNDO_PREFIX:
+            case PREF_SHOW_REFERENCE_EDITTEXT:
+                return TYPE_BOOLEAN;
+            case PREF_IME_ACTION_ID_PREFIX:
+            case PREF_MAX_LENGTH_PREFIX:
+            case PREF_SHIFT_CODEPOINT_PREFIX:
+            case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
+            case PREF_LIMIT_RETURNED_TEXT_PREFIX:
+            case PREF_UPDATE_DELAY_PREFIX:
+            case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
+            case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
+            case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
+            case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
+            case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
+            case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
+            case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+                return TYPE_INT;
+            case PREF_TEST_GROUP_NAME_PREFIX:
+            case PREF_INPUT_TYPE_CLASS_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
+            case PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+            case PREF_IME_OPTIONS_ACTION_PREFIX:
+            case PREF_IME_ACTION_LABEL_PREFIX:
+            case PREF_PRIVATE_IME_OPTIONS_PREFIX:
+            case PREF_THEME:
+                return TYPE_STRING;
+            case PREF_IME_LABEL_TEXT_PREFIX:
+            case PREF_IME_DEFAULT_TEXT_PREFIX:
+            case PREF_IME_HINT_TEXT_PREFIX:
+                return TYPE_CHAR_SEQUENCE;
+            case PREF_TEST_GROUP_IDS:
+            case PREF_TEST_FIELD_IDS_PREFIX:
+                return TYPE_INT_ARRAY;
+            case PREF_RESTRICT_RANGE_PREFIX:
+                return TYPE_INT_RANGE;
+            case PREF_TEXT_LOCALES_PREFIX:
+            case PREF_IME_HINT_LOCALES_PREFIX:
+                return TYPE_LOCALE_ARRAY;
+            case PREF_RESTRICT_SPECIFIC_PREFIX:
+                return TYPE_TEXT_LIST_STRING;
+            case PREF_TRANSLATE_SPECIFIC_PREFIX:
+                return TYPE_TEXT_LIST_TRANSLATE_TEXT;
+            default:
+                return TYPE_UNKNOWN;
+        }
+    }
+
     private int[] mTestGroupIds;
     private final Map<Integer, TestGroup> mTestGroups = new HashMap<>();
     private final Map<Integer, TestField> mTestFields = new HashMap<>();
@@ -395,11 +622,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private void loadSettings() {
-        final String[] prefKeys = new String[] {
-                PREF_THEME,
-                PREF_SHOW_REFERENCE_EDITTEXT
-        };
-        for (String prefKey : prefKeys) {
+        for (String prefKey : MISC_PREF_KEYS) {
             loadSetting(prefKey);
         }
         loadTestFieldSettings(BASE_FIELD_ID);
@@ -487,51 +710,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             }
         }
 
-        final String[] testFieldWithDefaultPrefKeyPrefixes = new String[]{
-                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
-                PREF_MODIFY_COMPOSED_TEXT_PREFIX,
-                PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
-                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
-                PREF_RESTRICT_TO_INCLUDE_PREFIX,
-                PREF_RESTRICT_SPECIFIC_PREFIX,
-                PREF_RESTRICT_RANGE_PREFIX,
-                PREF_TRANSLATE_SPECIFIC_PREFIX,
-                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
-                PREF_SHIFT_CODEPOINT_PREFIX,
-
-                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
-                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
-                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
-                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
-                PREF_EXTRACT_FULL_TEXT_PREFIX,
-                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
-                PREF_LIMIT_RETURNED_TEXT_PREFIX,
-
-                PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
-                PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
-
-                PREF_SKIP_TAKESNAPSHOT_PREFIX,
-                PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
-                PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
-                PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
-                PREF_SKIP_COMMITCONTENT_PREFIX,
-                PREF_SKIP_CLOSECONNECTION_PREFIX,
-                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
-                PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
-                PREF_SKIP_COMMITCORRECTION_PREFIX,
-                PREF_SKIP_GETSELECTEDTEXT_PREFIX,
-                PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
-
-                PREF_UPDATE_DELAY_PREFIX,
-                PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
-                PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
-                PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
-                PREF_GETSELECTEDTEXT_DELAY_PREFIX,
-                PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
-                PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
-                PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
-        };
-        for (String prefKeyPrefix : testFieldWithDefaultPrefKeyPrefixes) {
+        for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
             loadTestFieldOrDefaultSetting(prefKeyPrefix, fieldId);
         }
     }
@@ -609,7 +788,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 Log.e(TAG, "Failed to parse " + infixName + " ID for pref " + prefKey);
                 return null;
             }
-            if (!target.containsKey(id) && !Settings.getInstance().mPrefs.contains(prefKey)) {
+            if (!target.containsKey(id) && !getInstance().mPrefs.contains(prefKey)) {
                 // this is most likely from deleting an old preference when the parent is deleted,
                 // so we don't need to bother loading this value
                 return null;
@@ -1861,105 +2040,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static void removeTestGroupPrefs(Editor editor, int groupId) {
-        final String[] testGroupPrefKeyPrefixes = new String[]{
-                PREF_TEST_FIELD_IDS_PREFIX,
-                PREF_TEST_GROUP_NAME_PREFIX
-        };
-        for (String prefKeyPrefix : testGroupPrefKeyPrefixes) {
+        for (String prefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
             editor.remove(prefKeyPrefix + GROUP_INFIX + groupId);
         }
     }
 
     private static void removeTestFieldPrefs(Editor editor, int idToRemove) {
-        final String[] testFieldPrefKeyPrefixes = new String[]{
-                PREF_IME_LABEL_TEXT_PREFIX,
-                PREF_IME_DEFAULT_TEXT_PREFIX,
-                PREF_IME_HINT_TEXT_PREFIX,
-                PREF_INPUT_TYPE_CLASS_PREFIX,
-                PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
-                PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
-                PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
-                PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
-                PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
-                PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
-                PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
-                PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
-                PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
-                PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
-                PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                PREF_CREATE_INPUT_CONNECTION_PREFIX,
-                PREF_SEND_SELECTION_INFO_PREFIX,
-                PREF_SEND_TEXT_PREFIX,
-                PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                PREF_ALLOW_SETTING_SELECTION_PREFIX,
-                PREF_IME_OPTIONS_ACTION_PREFIX,
-                PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
-                PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
-                PREF_IME_ACTION_ID_PREFIX,
-                PREF_IME_ACTION_LABEL_PREFIX,
-                PREF_PRIVATE_IME_OPTIONS_PREFIX,
-                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
-                PREF_MAX_LENGTH_PREFIX,
-                PREF_ALLOW_UNDO_PREFIX,
-                PREF_TEXT_LOCALES_PREFIX,
-                PREF_IME_HINT_LOCALES_PREFIX,
-
-                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
-                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
-                PREF_MODIFY_COMPOSED_TEXT_PREFIX,
-                PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
-                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX,
-                PREF_RESTRICT_TO_INCLUDE_PREFIX,
-                PREF_RESTRICT_SPECIFIC_PREFIX,
-                PREF_RESTRICT_RANGE_PREFIX,
-                PREF_TRANSLATE_SPECIFIC_PREFIX,
-                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
-                PREF_SHIFT_CODEPOINT_PREFIX,
-
-                PREF_OVERRIDE_TEXT_RETURN_PREFIX,
-                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
-                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
-                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
-                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
-                PREF_EXTRACT_FULL_TEXT_PREFIX,
-                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
-                PREF_LIMIT_RETURNED_TEXT_PREFIX,
-
-                PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
-                PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
-                PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
-
-                PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
-                PREF_SKIP_TAKESNAPSHOT_PREFIX,
-                PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
-                PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
-                PREF_SKIP_SETIMECONSUMESINPUT_PREFIX,
-                PREF_SKIP_COMMITCONTENT_PREFIX,
-                PREF_SKIP_CLOSECONNECTION_PREFIX,
-                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX,
-                PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
-                PREF_SKIP_COMMITCORRECTION_PREFIX,
-                PREF_SKIP_GETSELECTEDTEXT_PREFIX,
-                PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
-
-                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
-                PREF_UPDATE_DELAY_PREFIX,
-                PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
-                PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
-                PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX,
-                PREF_GETSELECTEDTEXT_DELAY_PREFIX,
-                PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
-                PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
-                PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
-        };
-        for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
+        for (String prefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
+            editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);
+        }
+        for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
             editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);
         }
     }
@@ -2942,6 +3032,236 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         public int getGetExtractedTextDelay() {
             return Settings.getGetExtractedTextDelay(mGroupIndex, mFieldIndex);
         }
+    }
+
+    private static final String GROUPS_JSON_PROP = "groups";
+    private static final String FIELDS_JSON_PROP = "fields";
+    private static final String TEXT_LIST_ESCAPE_CHARS_JSON_PROP = "escapeChars";
+    private static final String TEXT_LIST_DATA_ARRAY_JSON_PROP = "dataArray";
+    private static final String TRANSLATE_TEXT_ORIGINAL_JSON_PROP = "original";
+    private static final String TRANSLATE_TEXT_TRANSLATION_JSON_PROP = "translation";
+
+    public static String getJson() {
+        SharedPreferenceManager prefs = getInstance().mPrefs;
+        JSONObject jsonObject = new JSONObject();
+        try {
+            if (prefs.contains(PREF_TEST_GROUP_IDS)) {
+                int[] groupIds = readTestFieldGroupIds(prefs);
+                JSONArray groupsJsonArray = new JSONArray();
+
+                for (int groupId : groupIds) {
+                    groupsJsonArray.put(getGroupJson(groupId, prefs));
+                }
+
+                jsonObject.put(GROUPS_JSON_PROP, groupsJsonArray);
+            }
+
+            for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+                String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
+                addPrefData(jsonObject, defaultsPrefKeyPrefix, defaultsPrefKey, prefs);
+            }
+
+            for (String miscPrefKey : MISC_PREF_KEYS) {
+                addPrefData(jsonObject, miscPrefKey, miscPrefKey, prefs);
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to build settings JSON: " + e.getMessage());
+            return null;
+        }
+        return jsonObject.toString();
+    }
+
+    private static JSONObject getGroupJson(int groupId, SharedPreferenceManager prefs)
+            throws JSONException {
+        JSONObject groupJsonObject = new JSONObject();
+
+        for (String groupPrefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
+            String groupPrefKey = groupPrefKeyPrefix + GROUP_INFIX + groupId;
+
+            if (groupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
+                if (prefs.contains(groupPrefKey)) {
+                    int[] fieldIds = readTestGroupFieldIds(prefs, groupId);
+                    JSONArray fieldsJsonArray = new JSONArray();
+
+                    for (int fieldId : fieldIds) {
+                        fieldsJsonArray.put(getFieldJson(fieldId, prefs));
+                    }
+
+                    groupJsonObject.put(FIELDS_JSON_PROP, fieldsJsonArray);
+                }
+            } else {
+                addPrefData(groupJsonObject, groupPrefKeyPrefix, groupPrefKey, prefs);
+            }
+        }
+
+        return groupJsonObject;
+    }
+
+    private static JSONObject getFieldJson(int fieldId, SharedPreferenceManager prefs)
+            throws JSONException {
+        JSONObject fieldJsonObject = new JSONObject();
+
+        for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
+            String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
+            addPrefData(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey, prefs);
+        }
+        for (String fieldPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+            String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
+            addPrefData(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey, prefs);
+        }
+
+        return fieldJsonObject;
+    }
+
+    private static void addPrefData(JSONObject jsonObject, String prefKeyOrPrefix, String prefKey,
+                                    SharedPreferenceManager prefs) throws JSONException {
+        if (!prefs.contains(prefKey)) {
+            return;
+        }
+        String jsonPropName = prefKeyPrefixToJsonName(prefKeyOrPrefix);
+        int dataType = prefDataType(prefKeyOrPrefix);
+        // note that the default values don't matter because we already validate that there is a
+        // value
+        switch (dataType) {
+            case TYPE_BOOLEAN:
+                jsonObject.put(jsonPropName, prefs.getBoolean(prefKey, false));
+                break;
+            case TYPE_INT:
+                jsonObject.put(jsonPropName, prefs.getInt(prefKey, 0));
+                break;
+            case TYPE_LONG:
+                jsonObject.put(jsonPropName, prefs.getLong(prefKey, 0));
+                break;
+            case TYPE_FLOAT:
+                jsonObject.put(jsonPropName, prefs.getFloat(prefKey, 0));
+                break;
+            case TYPE_STRING:
+                addObject(jsonObject, jsonPropName, prefs.getString(prefKey, null));
+                break;
+            case TYPE_SPANNED:
+                Spanned spannedData = prefs.getSpanned(prefKey, null);
+                // get the data that SharedPreferenceManager uses to save spanned objects
+                addArray(jsonObject, jsonPropName, spannedData == null
+                        ? null
+                        : SharedPreferenceManager.getSpannedInfo(spannedData));
+                break;
+            case TYPE_CHAR_SEQUENCE:
+                CharSequence charSequenceData = prefs.getCharSequence(prefKey, null);
+                if (charSequenceData instanceof Spanned) {
+                    // get the data that SharedPreferenceManager uses to save spanned objects
+                    addArray(jsonObject, jsonPropName,
+                            SharedPreferenceManager.getSpannedInfo((Spanned) charSequenceData));
+                } else if (charSequenceData == null || charSequenceData instanceof String) {
+                    addObject(jsonObject, jsonPropName, charSequenceData);
+                } else {
+                    jsonObject.put(jsonPropName, charSequenceData.toString());
+                }
+                break;
+            case TYPE_INT_ARRAY:
+                addArray(jsonObject, jsonPropName, prefs.getIntArray(prefKey, null));
+                break;
+            case TYPE_STRING_ARRAY:
+                addArray(jsonObject, jsonPropName, prefs.getStringArray(prefKey, null));
+                break;
+            case TYPE_INT_RANGE:
+                //TODO: (EW) make more generic. the only use case for the int range currently is the
+                // codepoint range preference. maybe just convert this preference to use an int
+                // array and just have extra validation on the length when reading the data.
+                IntRange intRange =
+                        (new CodepointRangeDialogPreference.Reader(prefs, prefKey)).readValue();
+                addArray(jsonObject, jsonPropName, intRange == null
+                        ? null
+                        : new int[] { intRange.getStart(), intRange.getEnd() });
+                break;
+            case TYPE_LOCALE_ARRAY:
+                //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
+                // preference)
+                Locale[] locales =
+                        (new LocaleEntryListPreference.Reader(prefs, prefKey)).readValue();
+                String[] localeStrings = new String[locales.length];
+                for (int i = 0; i < locales.length; i++) {
+                    localeStrings[i] = LocaleEntryListPreference.getLocaleString(locales[i]);
+                }
+                addArray(jsonObject, jsonPropName, localeStrings);
+                break;
+            case TYPE_TEXT_LIST_STRING:
+                //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
+                // preference)
+                TextList<String> textListString =
+                        (new TextListPreference.Reader(prefs,prefKey)).readValue();
+                JSONObject textListStringJsonObject = new JSONObject();
+                textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
+                        textListString.escapeChars());
+                addArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
+                        textListString.getDataArray());
+                jsonObject.put(jsonPropName, textListStringJsonObject);
+                break;
+            case TYPE_TEXT_LIST_TRANSLATE_TEXT:
+                //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
+                // preference)
+                TextList<TranslateText> textListTranslateText =
+                        (new TextTranslateListPreference.Reader(prefs, prefKey)).readValue();
+                JSONObject translateTextJsonObject = new JSONObject();
+                translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
+                        textListTranslateText.escapeChars());
+                JSONObject[] translateTextArray =
+                        new JSONObject[textListTranslateText.getDataArray().length];
+                for (int i = 0 ; i < translateTextArray.length; i++) {
+                    translateTextArray[i] = new JSONObject();
+                    translateTextArray[i].put(TRANSLATE_TEXT_ORIGINAL_JSON_PROP,
+                            textListTranslateText.getDataArray()[i].getOriginal());
+                    translateTextArray[i].put(TRANSLATE_TEXT_TRANSLATION_JSON_PROP,
+                            textListTranslateText.getDataArray()[i].getTranslation());
+                }
+                addArray(translateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
+                        translateTextArray);
+                jsonObject.put(jsonPropName, translateTextJsonObject);
+                break;
+            case TYPE_UNKNOWN:
+            default:
+                //TODO: (EW) probably handle gracefully, but hard crash for now to catch issues
+                throw new RuntimeException("Unknown data type for " + prefKeyOrPrefix);
+        }
+    }
+
+    private static <T> void addArray(JSONObject jsonObject, String jsonPropName, T[] data)
+            throws JSONException {
+        if (data == null) {
+            jsonObject.put(jsonPropName, JSONObject.NULL);
+        } else {
+            JSONArray jsonArray = new JSONArray();
+            for (T value : data) {
+                jsonArray.put(value);
+            }
+            jsonObject.put(jsonPropName, jsonArray);
+        }
+    }
+
+    private static void addArray(JSONObject jsonObject, String jsonPropName, int[] data)
+            throws JSONException {
+        if (data == null) {
+            jsonObject.put(jsonPropName, JSONObject.NULL);
+        } else {
+            JSONArray jsonArray = new JSONArray();
+            for (int value : data) {
+                jsonArray.put(value);
+            }
+            jsonObject.put(jsonPropName, jsonArray);
+        }
+    }
+
+    private static void addObject(JSONObject jsonObject, String jsonPropName, Object data)
+            throws JSONException {
+        if (data == null) {
+            jsonObject.put(jsonPropName, JSONObject.NULL);
+        } else {
+            jsonObject.put(jsonPropName, data);
+        }
+    }
+
+    private static String prefKeyPrefixToJsonName(String prefKeyPrefix) {
+        int start = prefKeyPrefix.startsWith(PREF_KEY_PREFIX) ? PREF_KEY_PREFIX.length() : 0;
+        return prefKeyPrefix.substring(start);
     }
 
     // copied from java.util.function.Predicate to support older versions because that requires
