@@ -25,6 +25,21 @@
     <string name="failed_to_access_file">Failed to access file</string>
     <string name="failed_to_import_settings">Failed to import settings</string>
     <string name="failed_to_export_settings">Failed to export settings</string>
+    <string name="import_settings_successful">Settings successfully imported</string>
+    <string name="export_settings_successful">Settings successfully exported</string>
+    <string name="failed_to_find_file">Failed to find the file</string>
+    <string name="failed_to_read_file">Failed to read the file</string>
+    <string name="failed_to_open_file">Failed to open to the file</string>
+    <string name="failed_to_write_file">Failed to write to the file</string>
+    <string name="failed_to_generate_export_data">Failed to generate export data</string>
+    <string name="import_warnings">Import file contains problems</string>
+    <string name="failed_to_parse_import_file">Failed to parse settings import file.</string>
+    <string name="invalid_float_data"><xliff:g id="JSON_PATH">%s</xliff:g> has invalid float data.</string>
+    <string name="invalid_data"><xliff:g id="JSON_PATH">%s</xliff:g> has invalid data.</string>
+    <string name="invalid_data_type"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid data type.</string>
+    <string name="failed_to_parse_data">Failed to parse data for <xliff:g id="JSON_PATH">%s</xliff:g>.</string>
+    <string name="unexpected_property">Unexpected property: <xliff:g id="JSON_PATH">%s</xliff:g></string>
+    <string name="confirm_ignore_import_warnings">The following issues were encountered in the settings import file. Do you want to ignore the issues and continue importing what could be read?</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->

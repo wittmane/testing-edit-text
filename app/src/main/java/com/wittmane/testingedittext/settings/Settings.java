@@ -42,11 +42,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -3260,8 +3262,294 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static String prefKeyPrefixToJsonName(String prefKeyPrefix) {
+        //TODO: (EW) probably should require the prefix
         int start = prefKeyPrefix.startsWith(PREF_KEY_PREFIX) ? PREF_KEY_PREFIX.length() : 0;
         return prefKeyPrefix.substring(start);
+    }
+
+    private static String jsonNameToPrefKeyPrefix(String jsonPropName) {
+        return PREF_KEY_PREFIX + jsonPropName;
+    }
+
+    private static String findKeyOrKeyPrefixForProp(String[] keyOrPrefixArray, String jsonProp) {
+        for (String keyOrPrefix : keyOrPrefixArray) {
+            if (prefKeyPrefixToJsonName(keyOrPrefix).equals(jsonProp)) {
+                return keyOrPrefix;
+            }
+        }
+        return null;
+    }
+
+    public static class ImportFileInfo {
+        private String mError;
+        private final List<String> mWarnings = new ArrayList<>();
+        private final List<String> mUnexpectedProps = new ArrayList<>();
+
+        public String getError() {
+            return mError;
+        }
+
+        public List<String> getWarnings() {
+            return mWarnings;
+        }
+
+        public List<String> getUnexpectedProps() {
+            return mUnexpectedProps;
+        }
+    }
+
+    public static ImportFileInfo validateJson(String rawJson, Context context) {
+        ImportFileInfo info = new ImportFileInfo();
+
+        try {
+            JSONObject jsonObject = new JSONObject(rawJson);
+            Iterator<String> keys = jsonObject.keys();
+            while(keys.hasNext()) {
+                String key = keys.next();
+                if (key.equals(GROUPS_JSON_PROP)) {
+                    JSONArray groupsJsonArray = jsonObject.getJSONArray(key);
+                    for (int i = 0; i < groupsJsonArray.length(); i++) {
+                        JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
+                        if (!validateGroupJson(groupJsonObject, info, i, key + "[" + i + "]",
+                                context)) {
+                            return info;
+                        }
+                    }
+                    continue;
+                }
+                String defaultableTestFieldPrefKeyPrefix =
+                        findKeyOrKeyPrefixForProp(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES, key);
+                if (defaultableTestFieldPrefKeyPrefix != null) {
+                    if (!validatePrefData(jsonObject, key, null, info, context)) {
+                        return info;
+                    }
+                    continue;
+                }
+                String miscPrefKey = findKeyOrKeyPrefixForProp(MISC_PREF_KEYS, key);
+                if (miscPrefKey != null) {
+                    if (!validatePrefData(jsonObject, key, null, info, context)) {
+                        return info;
+                    }
+                    continue;
+                }
+                info.mUnexpectedProps.add(key);
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, e.getMessage());
+            info.mError = context.getString(R.string.failed_to_parse_import_file);
+            return info;
+        }
+
+        return info;
+    }
+
+    private static boolean validateGroupJson(JSONObject groupJsonObject, ImportFileInfo info,
+                                             int groupIndex, String path, Context context)
+            throws JSONException {
+        Iterator<String> keys = groupJsonObject.keys();
+        while(keys.hasNext()) {
+            String key = keys.next();
+            if (key.equals(FIELDS_JSON_PROP)) {
+                JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(key);
+                for (int i = 0; i < fieldsJsonArray.length(); i++) {
+                    JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
+                    if (!validateFieldJson(fieldJsonObject, info, groupIndex, i,
+                            path + "." + key + "[" + i + "]", context)) {
+                        return false;
+                    }
+                }
+                continue;
+            }
+            String testGroupPrefKeyPrefix =
+                    findKeyOrKeyPrefixForProp(TEST_GROUP_PREF_KEY_PREFIXES, key);
+            if (testGroupPrefKeyPrefix != null
+                    && !testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
+                if (!validatePrefData(groupJsonObject, key, path, info, context)) {
+                    return false;
+                }
+                continue;
+            }
+            info.mUnexpectedProps.add(path + "." + key);
+        }
+        return true;
+    }
+
+    private static boolean validateFieldJson(JSONObject fieldJsonObject, ImportFileInfo info,
+                                             int groupIndex, int fieldIndex, String path,
+                                             Context context) {
+        Iterator<String> keys = fieldJsonObject.keys();
+        while(keys.hasNext()) {
+            String key = keys.next();
+            String testGroupPrefKeyPrefix =
+                    findKeyOrKeyPrefixForProp(TEST_FIELD_PREF_KEY_PREFIXES, key);
+            if (testGroupPrefKeyPrefix != null) {
+                if (!validatePrefData(fieldJsonObject, key, path + "." + key, info, context)) {
+                    return false;
+                }
+                continue;
+            }
+            String defaultableTestFieldPrefKeyPrefix =
+                    findKeyOrKeyPrefixForProp(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES, key);
+            if (defaultableTestFieldPrefKeyPrefix != null) {
+                if (!validatePrefData(fieldJsonObject, key, path + "." + key, info, context)) {
+                    return false;
+                }
+                continue;
+            }
+            info.mUnexpectedProps.add(path + "." + key);
+        }
+        return true;
+    }
+
+    private static boolean validatePrefData(JSONObject jsonObject, String jsonPropName, String path,
+                                            ImportFileInfo info, Context context) {
+        String prefKeyOrPrefix = jsonNameToPrefKeyPrefix(jsonPropName);
+        String fullPath = (path == null ? "" : (path + ".")) + jsonPropName;
+        int dataType = prefDataType(prefKeyOrPrefix);
+        // just need to try getting the data for basic types to ensure the right data type is set
+        try {
+            switch (dataType) {
+                case TYPE_BOOLEAN:
+                    jsonObject.getBoolean(jsonPropName);
+                    break;
+                case TYPE_INT:
+                    //TODO: (EW) should this validate things for certain preferences?
+                    jsonObject.getInt(jsonPropName);
+                    break;
+                case TYPE_LONG:
+                    jsonObject.getLong(jsonPropName);
+                    break;
+                case TYPE_FLOAT:
+                    double doubleData = jsonObject.getDouble(jsonPropName);
+                    if (doubleData > Float.MAX_VALUE || doubleData < Float.MIN_VALUE) {
+                        Log.e(TAG, doubleData + " isn't a valid float for " + fullPath);
+                        info.mWarnings.add(
+                                context.getString(R.string.invalid_float_data, fullPath));
+                    }
+                    break;
+                case TYPE_STRING:
+                    //TODO: (EW) should this validate things for certain preferences?
+                    jsonObject.getString(jsonPropName);
+                    break;
+                case TYPE_SPANNED:
+                    getSpanned(jsonObject, jsonPropName);
+                    break;
+                case TYPE_CHAR_SEQUENCE:
+                    if (jsonObject.get(jsonPropName) instanceof String) {
+                        jsonObject.getString(jsonPropName);
+                    } else {
+                        getSpanned(jsonObject, jsonPropName);
+                    }
+                    break;
+                case TYPE_INT_ARRAY:
+                    getIntArray(jsonObject, jsonPropName);
+                    break;
+                case TYPE_STRING_ARRAY:
+                    getStringArray(jsonObject, jsonPropName);
+                    break;
+                case TYPE_INT_RANGE:
+                    int[] rangeArray = getIntArray(jsonObject, jsonPropName);
+                    if (rangeArray != null && rangeArray.length != 2) {
+                        Log.e(TAG, fullPath + " doesn't have exactly 2 values: "
+                                + Arrays.toString(rangeArray));
+                        info.mWarnings.add(context.getString(R.string.invalid_data, fullPath));
+                    }
+                    //TODO: (EW) should this validate things for certain preferences?
+                    break;
+                case TYPE_LOCALE_ARRAY:
+                    String[] localStringArray = getStringArray(jsonObject, jsonPropName);
+                    for (int i = 0; i < localStringArray.length; i++) {
+                        //TODO: (EW) this doesn't really validate anything
+                        LocaleEntryListPreference.constructLocaleFromString(localStringArray[i]);
+                    }
+                    break;
+                case TYPE_TEXT_LIST_STRING:
+                    JSONObject textListStringJsonObject = jsonObject.getJSONObject(jsonPropName);
+                    textListStringJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP);
+                    getStringArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP);
+                    //TODO: (EW) should this validate things for certain preferences?
+                    break;
+                case TYPE_TEXT_LIST_TRANSLATE_TEXT:
+                    JSONObject textListTranslateTextJsonObject =
+                            jsonObject.getJSONObject(jsonPropName);
+                    textListTranslateTextJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP);
+                    JSONObject[] translateTextJsonObjects = getJsonObjectArray(
+                            textListTranslateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP);
+                    for (int i = 0; i < translateTextJsonObjects.length; i++) {
+                        translateTextJsonObjects[i].getString(TRANSLATE_TEXT_ORIGINAL_JSON_PROP);
+                        translateTextJsonObjects[i].getString(TRANSLATE_TEXT_TRANSLATION_JSON_PROP);
+                    }
+                    //TODO: (EW) should this validate things for certain preferences?
+                    break;
+                case TYPE_UNKNOWN:
+                default:
+                    //TODO: (EW) probably handle gracefully, but hard crash for now to catch issues
+                    throw new RuntimeException("Unknown data type for " + prefKeyOrPrefix);
+            }
+        } catch (JSONException e) {
+            String message = e.getMessage();
+            Log.e(TAG, fullPath + ": " + message);
+            if (message != null && message.matches(
+                    "Value not a [\\w\\.]+ at \\w+ of type [\\w\\.]+ cannot be converted to [\\w\\.]+")) {
+                info.mWarnings.add(context.getString(R.string.invalid_data_type, fullPath));
+            } else {
+                info.mWarnings.add(context.getString(R.string.failed_to_parse_data, fullPath));
+            }
+        }
+        return true;
+    }
+
+    private static JSONObject[] getJsonObjectArray(JSONObject jsonObject, String jsonPropName)
+            throws JSONException {
+        if (jsonObject.isNull(jsonPropName)) {
+            return null;
+        }
+        JSONArray jsonArray = jsonObject.getJSONArray(jsonPropName);
+        JSONObject[] result = new JSONObject[jsonArray.length()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = jsonArray.getJSONObject(i);
+        }
+        return result;
+    }
+
+    private static String[] getStringArray(JSONObject jsonObject, String jsonPropName)
+            throws JSONException {
+        if (jsonObject.isNull(jsonPropName)) {
+            return null;
+        }
+        JSONArray jsonArray = jsonObject.getJSONArray(jsonPropName);
+        String[] result = new String[jsonArray.length()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = jsonArray.getString(i);
+        }
+        return result;
+    }
+
+    private static int[] getIntArray(JSONObject jsonObject, String jsonPropName)
+            throws JSONException {
+        if (jsonObject.isNull(jsonPropName)) {
+            return null;
+        }
+        JSONArray jsonArray = jsonObject.getJSONArray(jsonPropName);
+        int[] result = new int[jsonArray.length()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = jsonArray.getInt(i);
+        }
+        return result;
+    }
+
+    private static Spanned getSpanned(JSONObject jsonObject, String jsonPropName)
+            throws JSONException {
+        if (jsonObject.isNull(jsonPropName)) {
+            return null;
+        }
+        String[] spannedInfo = getStringArray(jsonObject, jsonPropName);
+        //TODO: (EW) figure out how to get validation issue from this
+        return SharedPreferenceManager.buildSpanned(spannedInfo);
+    }
+
+    public static void replaceSettings(String rawJson) {
+        //TODO: (EW) implement
     }
 
     // copied from java.util.function.Predicate to support older versions because that requires

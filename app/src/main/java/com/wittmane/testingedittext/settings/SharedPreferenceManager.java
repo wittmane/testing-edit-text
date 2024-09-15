@@ -225,47 +225,7 @@ public class SharedPreferenceManager implements SharedPreferences {
             // preference data is corrupt somehow. treat as if it was empty.
             return defaultValue;
         }
-        if (spannedInfo == null) {
-            return null;
-        }
-        if (spannedInfo.length < 1) {
-            // StringArraySerializer.deserialize may return an empty array when the text is blank
-            return new SpannedString("");
-        }
-        String baseText = spannedInfo[0];
-        if (spannedInfo.length == 1) {
-            // no html for building a spannable
-            return new SpannedString(baseText);
-        }
-        String html = spannedInfo[1];
-        SpannableStringBuilder spannedText = new SpannableStringBuilder(Html.fromHtml(html));
-        // for some reason converting to html and back to a spanned adds new lines at the end, so
-        // they need to be removed, and to be safe, this might as well just handle any other new
-        // line mismatches that might occur too
-        int i = 0;
-        while (i < baseText.length() || i < spannedText.length()) {
-            boolean baseCharIsNewLine = i < baseText.length() && baseText.charAt(i) == '\n';
-            boolean spannedCharIsNewLine =
-                    i < spannedText.length() && spannedText.charAt(i) == '\n';
-            if (baseCharIsNewLine && !spannedCharIsNewLine) {
-                // html dropped a newline, so it needs to be added
-                spannedText.insert(i, "\n");
-                i++;
-            } else if (!baseCharIsNewLine && spannedCharIsNewLine) {
-                // html inserted an extra newline, so it needs to be removed
-                spannedText.delete(i, i + 1);
-                // don't increment i because we may need to remove multiple adjacent new lines
-            } else {
-                i++;
-            }
-        }
-        if (!spannedText.toString().equals(baseText)) {
-            Log.e(TAG, "HTML spanned text doesn't match the base text: \nbase=\"" + baseText
-                    + "\"\nspanned=\"" + spannedText.toString() + "\"");
-            // prioritize accurate text over keeping spans
-            return new SpannedString(baseText);
-        }
-        return spannedText;
+        return buildSpanned(spannedInfo);
     }
 
     /**
@@ -740,5 +700,49 @@ public class SharedPreferenceManager implements SharedPreferences {
             spannedInfo = new String[]{ value.toString() };
         }
         return spannedInfo;
+    }
+
+    public static Spanned buildSpanned(String[] spannedInfo) {
+        if (spannedInfo == null) {
+            return null;
+        }
+        if (spannedInfo.length < 1) {
+            // StringArraySerializer.deserialize may return an empty array when the text is blank
+            return new SpannedString("");
+        }
+        String baseText = spannedInfo[0];
+        if (spannedInfo.length == 1) {
+            // no html for building a spannable
+            return new SpannedString(baseText);
+        }
+        String html = spannedInfo[1];
+        SpannableStringBuilder spannedText = new SpannableStringBuilder(Html.fromHtml(html));
+        // for some reason converting to html and back to a spanned adds new lines at the end, so
+        // they need to be removed, and to be safe, this might as well just handle any other new
+        // line mismatches that might occur too
+        int i = 0;
+        while (i < baseText.length() || i < spannedText.length()) {
+            boolean baseCharIsNewLine = i < baseText.length() && baseText.charAt(i) == '\n';
+            boolean spannedCharIsNewLine =
+                    i < spannedText.length() && spannedText.charAt(i) == '\n';
+            if (baseCharIsNewLine && !spannedCharIsNewLine) {
+                // html dropped a newline, so it needs to be added
+                spannedText.insert(i, "\n");
+                i++;
+            } else if (!baseCharIsNewLine && spannedCharIsNewLine) {
+                // html inserted an extra newline, so it needs to be removed
+                spannedText.delete(i, i + 1);
+                // don't increment i because we may need to remove multiple adjacent new lines
+            } else {
+                i++;
+            }
+        }
+        if (!spannedText.toString().equals(baseText)) {
+            Log.e(TAG, "HTML spanned text doesn't match the base text: \nbase=\"" + baseText
+                    + "\"\nspanned=\"" + spannedText.toString() + "\"");
+            // prioritize accurate text over keeping spans
+            return new SpannedString(baseText);
+        }
+        return spannedText;
     }
 }

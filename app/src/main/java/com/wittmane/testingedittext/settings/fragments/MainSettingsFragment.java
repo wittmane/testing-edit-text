@@ -16,8 +16,11 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
+
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -35,10 +38,7 @@ import android.widget.Toast;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.wittmane.testingedittext.settings.Settings.ImportFileInfo;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -111,27 +111,36 @@ public class MainSettingsFragment extends PreferenceFragment {
         if (resultData != null) {
             uri = resultData.getData();
         }
-        if (resultCode != Activity.RESULT_OK || uri == null) {
-            Toast.makeText(getActivity(), getActivity().getString(R.string.failed_to_access_file),
-                    Toast.LENGTH_LONG).show();
-        }
 
         if (requestCode == IMPORT_SETTINGS_FILE) {
-            if (!importSettings(uri)) {
-                Toast.makeText(getActivity(),
-                        getActivity().getString(R.string.failed_to_import_settings),
-                        Toast.LENGTH_LONG).show();
+            if (resultCode != Activity.RESULT_OK || uri == null) {
+                showErrorDialog(R.string.failed_to_import_settings, R.string.failed_to_access_file);
+            } else {
+                importSettings(uri);
             }
         } else if (requestCode == EXPORT_SETTINGS_FILE) {
-            if (!exportSettings(uri)) {
-                Toast.makeText(getActivity(),
-                        getActivity().getString(R.string.failed_to_export_settings),
-                        Toast.LENGTH_LONG).show();
+            if (resultCode != Activity.RESULT_OK || uri == null) {
+                showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_access_file);
+            } else {
+                exportSettings(uri);
             }
         }
     }
 
-    private boolean importSettings(Uri uri) {
+    private void showErrorDialog(int titleId, int messageId) {
+        showErrorDialog(titleId, getActivity().getString(messageId));
+    }
+
+    private void showErrorDialog(int titleId, String message) {
+        new AlertDialog.Builder(getActivity())
+                .setTitle(titleId)
+                .setMessage(message)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
+    private void importSettings(Uri uri) {
         StringBuilder stringBuilder = new StringBuilder();
         try (InputStream inputStream =
                      getActivity().getContentResolver().openInputStream(uri);
@@ -143,56 +152,77 @@ public class MainSettingsFragment extends PreferenceFragment {
             }
         } catch (FileNotFoundException e) {
             Log.e(TAG, "File not found for importing: " + e.getMessage());
-            return false;
+            showErrorDialog(R.string.failed_to_import_settings, R.string.failed_to_find_file);
+            return;
         } catch (IOException e) {
             Log.e(TAG, "Failed to read file: " + e.getMessage());
-            return false;
+            showErrorDialog(R.string.failed_to_import_settings, R.string.failed_to_read_file);
+            return;
         }
-        return parseJsonSettings(stringBuilder.toString());
-    }
-
-    private boolean parseJsonSettings(String rawJson) {
-        Log.d(TAG, "Reading raw JSON: " + rawJson);
-        try {
-            //TODO: (EW) build real settings data
-            JSONObject jsonObject = new JSONObject(rawJson);
-            Log.d(TAG, "foo: " + jsonObject.getInt("foo"));
-            Log.d(TAG, "asdf: " + (jsonObject.has("asdf") ? jsonObject.getInt("asdf") : "null"));
-            JSONArray jsonArray = jsonObject.getJSONArray("bar");
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObjectNested = jsonArray.getJSONObject(i);
-                Log.d(TAG, "baz" + i + ": " + jsonObjectNested.getInt("baz"));
+        String rawJson = stringBuilder.toString();
+        ImportFileInfo info = Settings.validateJson(rawJson, getActivity());
+        if (info.getError() != null) {
+            showErrorDialog(R.string.failed_to_import_settings, info.getError());
+            return;
+        }
+        StringBuilder message = new StringBuilder();
+        for (String warning : info.getWarnings()) {
+            message.append(warning).append("\n");
+        }
+        if (!info.getUnexpectedProps().isEmpty()) {
+            for (String unexpectedProp : info.getUnexpectedProps()) {
+                message.append(
+                        getActivity().getString(R.string.unexpected_property, unexpectedProp))
+                        .append("\n");
             }
-        } catch (JSONException e) {
-            Log.e(TAG, "Failed to parse settings file: " + e.getMessage());
-            return false;
         }
-        return true;
+        if (message.length() > 0) {
+            message.insert(0, "\n");
+            message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
+            showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
+                Settings.replaceSettings(rawJson);
+                Toast.makeText(getActivity(),
+                        getActivity().getString(R.string.import_settings_successful),
+                        Toast.LENGTH_LONG).show();
+            }, getActivity());
+        } else {
+            Settings.replaceSettings(rawJson);
+            Toast.makeText(getActivity(),
+                    getActivity().getString(R.string.import_settings_successful),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
-    private boolean exportSettings(Uri uri) {
+    private void exportSettings(Uri uri) {
         try (ParcelFileDescriptor pfd =
                      getActivity().getContentResolver(). openFileDescriptor(uri, "w")) {
             if (pfd == null) {
                 Log.e(TAG, "Parcel file descriptor is null");
-                return false;
+                showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_open_file);
+                return;
             }
             try (FileOutputStream fileOutputStream =
                          new FileOutputStream(pfd.getFileDescriptor())) {
                 String data = Settings.getJson();
                 Log.d(TAG, "Writing raw JSON: " + data);
                 if (data == null) {
-                    return false;
+                    showErrorDialog(R.string.failed_to_export_settings,
+                            R.string.failed_to_generate_export_data);
+                    return;
                 }
                 fileOutputStream.write(data.getBytes());
             }
         } catch (FileNotFoundException e) {
             Log.e(TAG, "File not found for exporting: " + e.getMessage());
-            return false;
+            showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_find_file);
+            return;
         } catch (IOException e) {
             Log.e(TAG, "Failed to write to file: " + e.getMessage());
-            return false;
+            showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_write_file);
+            return;
         }
-        return true;
+        Toast.makeText(getActivity(),
+                getActivity().getString(R.string.export_settings_successful),
+                Toast.LENGTH_LONG).show();
     }
 }

@@ -169,9 +169,14 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     static void showWarningConfirmationDialog(int titleId, int messageId, Runnable onConfirm,
                                               Context context) {
+        showWarningConfirmationDialog(titleId, context.getString(messageId), onConfirm, context);
+    }
+
+    static void showWarningConfirmationDialog(int titleId, String message, Runnable onConfirm,
+                                              Context context) {
         new AlertDialog.Builder(context)
                 .setTitle(titleId)
-                .setMessage(messageId)
+                .setMessage(message)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
                 .setNegativeButton(android.R.string.no, null)
