@@ -28,13 +28,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
+import com.wittmane.testingedittext.settings.TextList;
 import com.wittmane.testingedittext.settings.TranslateText;
-import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.Reader;
+import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.DataManager;
 
 import java.util.List;
 
 public class TextTranslateListPreference
-        extends TextEntryListPreferenceBase<TranslateText, Reader> {
+        extends TextEntryListPreferenceBase<TranslateText, DataManager> {
 
     public TextTranslateListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -84,23 +85,12 @@ public class TextTranslateListPreference
     }
 
     @Override
-    protected String[] flattenDataArray(final @NonNull TranslateText[] dataArray) {
-        String[] result = new String[dataArray.length * 2];
-        for (int i = 0; i < dataArray.length; i++) {
-            result[i * 2] = dataArray[i].getOriginal();
-            result[i * 2 + 1] = dataArray[i].getTranslation();
-        }
-        return result;
+    protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
+        return new DataManager(prefs, key);
     }
 
-    @Override
-    protected Reader createReader(SharedPreferenceManager prefs, String key) {
-        return new Reader(prefs, key);
-    }
-
-    public static class Reader
-            extends TextEntryListPreferenceBase.TextListReader<TranslateText> {
-        public Reader(SharedPreferenceManager prefs, String key) {
+    public static class DataManager extends TextListDataManager<TranslateText> {
+        public DataManager(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 
@@ -128,6 +118,18 @@ public class TextTranslateListPreference
         @Override
         protected TranslateText[] getDefaultDataArray() {
             return DEFAULT_TRANSLATE_SPECIFIC;
+        }
+
+        @NonNull
+        @Override
+        protected String[] flattenRowData(@NonNull TextList<TranslateText> fullData) {
+            TranslateText[] dataArray = fullData.getDataArray();
+            String[] result = new String[dataArray.length * 2];
+            for (int i = 0; i < dataArray.length; i++) {
+                result[i * 2] = dataArray[i].getOriginal();
+                result[i * 2 + 1] = dataArray[i].getTranslation();
+            }
+            return result;
         }
     }
 

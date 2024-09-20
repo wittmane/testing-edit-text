@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ import androidx.annotation.NonNull;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.EntryListPreference.ReaderBase;
+import com.wittmane.testingedittext.settings.preferences.EntryListPreference.DataManagerBase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,10 +55,10 @@ import java.util.List;
  * Preference for entering a list of items and possibly some extra data not tied to individual items
  * @param <TRowData> Type for the items in the list
  * @param <TFullData> Type for the full data containing the list of items and any extra data
- * @param <TReader> Type for reading the preference data
+ * @param <TDataManager> Type for reading and writing the preference data
  */
 public abstract class EntryListPreference<TRowData, TFullData,
-        TReader extends ReaderBase<TFullData>>
+        TDataManager extends DataManagerBase<TFullData>>
         extends DialogPreferenceBase {
     private static final String TAG = EntryListPreference.class.getSimpleName();
 
@@ -67,7 +67,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     protected final List<Row> mRows = new ArrayList<>();
     private int mMaxEntries;
 
-    protected TReader mReader;
+    protected TDataManager mDataManager;
 
     public EntryListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -83,7 +83,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
-        mReader = createReader(getPrefs(), getKey());
+        mDataManager = createDataManager(getPrefs(), getKey());
     }
 
     @Override
@@ -97,7 +97,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     protected void onBindDialogView(final View view) {
         super.onBindDialogView(view);
 
-        TFullData fullData = mReader.readValue();
+        TFullData fullData = mDataManager.readValue();
         mRows.clear();
         for (TRowData rowData : getRowData(fullData)) {
             if (isRowEmpty(rowData)) {
@@ -176,6 +176,10 @@ public abstract class EntryListPreference<TRowData, TFullData,
                 // see if an extra row should be added in case it was skipped before due to the max
                 // row limit since there is room now
                 addExtraRowIfNecessary();
+
+                // in case invalid data got removed, we should revalidate and potentially enable the
+                // accept button again
+                updateAcceptButtonState();
             }
         });
 
@@ -302,6 +306,15 @@ public abstract class EntryListPreference<TRowData, TFullData,
                 .setNeutralButton(R.string.button_clear, this);
     }
 
+    protected void updateAcceptButtonState() {
+        setAcceptButtonEnabled(isDataValid());
+    }
+
+    protected boolean isDataValid() {
+        // default doesn't need to validate anything
+        return true;
+    }
+
     @Override
     public void onClick(final DialogInterface dialog, final int which) {
         super.onClick(dialog, which);
@@ -309,7 +322,12 @@ public abstract class EntryListPreference<TRowData, TFullData,
             clearValue();
             updateValueSummary();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
-            writeValue(getUIData());
+            if (!isDataValid()) {
+                // this shouldn't happen since the button should be disabled
+                Log.e(TAG, "Attempting to save invalid data");
+                return;
+            }
+            mDataManager.writeValue(getUIData());
             updateValueSummary();
         }
     }
@@ -323,18 +341,18 @@ public abstract class EntryListPreference<TRowData, TFullData,
     @Override
     public void setKey(String key) {
         super.setKey(key);
-        if (mReader != null) {
-            mReader.mKey = key;
+        if (mDataManager != null) {
+            mDataManager.mKey = key;
         }
     }
 
-    protected abstract TReader createReader(SharedPreferenceManager prefs, String key);
+    protected abstract TDataManager createDataManager(SharedPreferenceManager prefs, String key);
 
-    protected static abstract class ReaderBase<T> {
+    protected static abstract class DataManagerBase<T> {
         protected final SharedPreferenceManager mPrefs;
         protected String mKey;
 
-        protected ReaderBase(SharedPreferenceManager prefs, String key) {
+        protected DataManagerBase(SharedPreferenceManager prefs, String key) {
             mPrefs = prefs;
             mKey = key;
         }
@@ -367,23 +385,23 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
         @NonNull
         protected abstract T readDefaultValue();
+
+        public void writeValue(@NonNull T fullData) {
+            String[] rowData = flattenRowData(fullData);
+            String[] extraData = flattenExtraData(fullData);
+            String[] dataForSave = new String[rowData.length + extraData.length];
+            System.arraycopy(extraData, 0, dataForSave, 0, extraData.length);
+            System.arraycopy(rowData, 0, dataForSave, extraData.length, rowData.length);
+
+            mPrefs.setStringArray(mKey, dataForSave);
+        }
+
+        @NonNull
+        protected abstract String[] flattenRowData(final @NonNull T fullData);
+
+        @NonNull
+        protected abstract String[] flattenExtraData(final @NonNull T fullData);
     }
-
-    private void writeValue(final @NonNull TFullData value) {
-        String[] rowData = flattenDataArray(getRowData(value));
-        String[] extraData = getFlattenedExtraData(value);
-        String[] dataForSave = new String[rowData.length + extraData.length];
-        System.arraycopy(extraData, 0, dataForSave, 0, extraData.length);
-        System.arraycopy(rowData, 0, dataForSave, extraData.length, rowData.length);
-
-        getPrefs().setStringArray(getKey(), dataForSave);
-    }
-
-    @NonNull
-    protected abstract String[] flattenDataArray(final @NonNull TRowData[] data);
-
-    @NonNull
-    protected abstract String[] getFlattenedExtraData(final TFullData fullData);
 
     public void clearValue() {
         getPrefs().remove(getKey());
@@ -393,7 +411,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
     @Override
     protected void updateValueSummary() {
-        updateValueSummary(getRowData(mReader.readValue()));
+        updateValueSummary(getRowData(mDataManager.readValue()));
     }
 
     /**

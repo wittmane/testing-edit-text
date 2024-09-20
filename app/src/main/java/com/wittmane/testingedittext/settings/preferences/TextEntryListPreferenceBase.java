@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import androidx.annotation.NonNull;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TextList;
-import com.wittmane.testingedittext.settings.preferences.TextEntryListPreferenceBase.TextListReader;
+import com.wittmane.testingedittext.settings.preferences.TextEntryListPreferenceBase.TextListDataManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,10 +36,10 @@ import java.util.List;
 /**
  * Preference for entering a list of raw text items with a flag for handling of special characters
  * @param <T> Type for the items in the list
- * @param <TReader> Type for reading the preference data
+ * @param <TDataManager> Type for reading and writing the preference data
  */
-public abstract class TextEntryListPreferenceBase<T, TReader extends TextListReader<T>>
-        extends EntryListPreference<T, TextList<T>, TReader> {
+public abstract class TextEntryListPreferenceBase<T, TDataManager extends TextListDataManager<T>>
+        extends EntryListPreference<T, TextList<T>, TDataManager> {
     private static final String TAG = TextEntryListPreferenceBase.class.getSimpleName();
 
     private CheckBox mEscapeCharactersCheckBox;
@@ -72,9 +72,9 @@ public abstract class TextEntryListPreferenceBase<T, TReader extends TextListRea
         mEscapeCharactersCheckBox.setChecked(data.escapeChars());
     }
 
-    protected static abstract class TextListReader<T> extends ReaderBase<TextList<T>> {
+    protected static abstract class TextListDataManager<T> extends DataManagerBase<TextList<T>> {
 
-        protected TextListReader(SharedPreferenceManager prefs, String key) {
+        protected TextListDataManager(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 
@@ -110,11 +110,11 @@ public abstract class TextEntryListPreferenceBase<T, TReader extends TextListRea
 
         @NonNull
         protected abstract T[] getDefaultDataArray();
-    }
 
-    @NonNull
-    protected String[] getFlattenedExtraData(final TextList<T> fullData) {
-        return new String[] { fullData.escapeChars() ? "1" : "0" };
+        @NonNull
+        protected String[] flattenExtraData(final @NonNull TextList<T> fullData) {
+            return new String[] { fullData.escapeChars() ? "1" : "0" };
+        }
     }
 
     @Override

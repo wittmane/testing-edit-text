@@ -40,12 +40,12 @@ import com.wittmane.testingedittext.settings.AlphaFilter;
 import com.wittmane.testingedittext.settings.AlphaNumericFilter;
 import com.wittmane.testingedittext.settings.LowerCaseFilter;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference.Reader;
+import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference.DataManager;
 
 import java.util.List;
 import java.util.Locale;
 
-public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale, Reader> {
+public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale, DataManager> {
 
     public LocaleEntryListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -95,6 +95,8 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
                 Locale locale = new Locale(languageView.getText().toString(),
                         countryView.getText().toString(), variantView.getText().toString());
                 localeNameView.setText(locale.getDisplayName());
+
+                updateAcceptButtonState();
             }
         };
         textWatcher.afterTextChanged(null);
@@ -142,6 +144,28 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         };
     }
 
+    @Override
+    protected boolean isDataValid() {
+        for (Locale locale : getUIData()) {
+            if (!isValidLocale(getLocaleString(locale))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean isValidLocale(String localeString) {
+        // based on the documentation for Locale
+        String languageRegex = "[a-zA-Z]{2,8}";
+        String countryRegex = "[a-zA-Z]{2}|[0-9]{3}";
+        String variantSubtagRegex = "[0-9][0-9a-zA-Z]{3}|[0-9a-zA-Z]{5,8}";
+        return localeString.matches(
+                "^" + languageRegex
+                        + "(?:_(?:" + countryRegex + ")?)?"
+                        + "(?:_(?:" + variantSubtagRegex + ")?)?"
+                        + "(?:[_-](?:" + variantSubtagRegex + "))*$");
+    }
+
     protected EditText createEditText(CharSequence text, int hintResId, boolean caps) {
         EditText editText = new EditText(getContext());
         editText.setSingleLine();
@@ -181,24 +205,14 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         return list.toArray(new Locale[0]);
     }
 
-    @NonNull
     @Override
-    protected String[] flattenDataArray(final @NonNull Locale[] dataArray) {
-        String[] result = new String[dataArray.length];
-        for (int i = 0; i < dataArray.length; i++) {
-            result[i] = getLocaleString(dataArray[i]);
-        }
-        return result;
+    protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
+        return new DataManager(prefs, key);
     }
 
-    @Override
-    protected Reader createReader(SharedPreferenceManager prefs, String key) {
-        return new Reader(prefs, key);
-    }
+    public static class DataManager extends SimpleDataManager<Locale> {
 
-    public static class Reader extends SimpleEntryListPreference.SimpleReader<Locale> {
-
-        public Reader(SharedPreferenceManager prefs, String key) {
+        public DataManager(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 
@@ -214,6 +228,16 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         @NonNull
         protected Locale[] readDefaultValue() {
             return new Locale[0];
+        }
+
+        @NonNull
+        @Override
+        protected String[] flattenRowData(final @NonNull Locale[] localeArray) {
+            String[] rowData = new String[localeArray.length];
+            for (int i = 0; i < localeArray.length; i++) {
+                rowData[i] = getLocaleString(localeArray[i]);
+            }
+            return rowData;
         }
     }
 

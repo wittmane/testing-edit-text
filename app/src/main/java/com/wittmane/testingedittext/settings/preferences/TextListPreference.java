@@ -27,11 +27,12 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.TextListPreference.Reader;
+import com.wittmane.testingedittext.settings.TextList;
+import com.wittmane.testingedittext.settings.preferences.TextListPreference.DataManager;
 
 import java.util.List;
 
-public class TextListPreference extends TextEntryListPreferenceBase<String, Reader> {
+public class TextListPreference extends TextEntryListPreferenceBase<String, DataManager> {
 
     public TextListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -60,17 +61,12 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Read
     }
 
     @Override
-    protected String[] flattenDataArray(final @NonNull String[] dataArray) {
-        return dataArray;
+    protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
+        return new DataManager(prefs, key);
     }
 
-    @Override
-    protected Reader createReader(SharedPreferenceManager prefs, String key) {
-        return new Reader(prefs, key);
-    }
-
-    public static class Reader extends TextEntryListPreferenceBase.TextListReader<String> {
-        public Reader(SharedPreferenceManager prefs, String key) {
+    public static class DataManager extends TextListDataManager<String> {
+        public DataManager(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 
@@ -83,6 +79,12 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Read
         @Override
         protected String[] getDefaultDataArray() {
             return DEFAULT_RESTRICT_SPECIFIC;
+        }
+
+        @NonNull
+        @Override
+        protected String[] flattenRowData(@NonNull TextList<String> fullData) {
+            return fullData.getDataArray();
         }
 
     }

@@ -31,7 +31,6 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -65,7 +64,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     private EditText mEndUnicodeView;
     private CheckBox mSplitUnicodeCheckbox;
 
-    private Reader mReader;
+    private DataManager mDataManager;
 
     public CodepointRangeDialogPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -76,7 +75,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
-        mReader = new Reader(getPrefs(), getKey());
+        mDataManager = new DataManager(getPrefs(), getKey());
     }
 
     @Override
@@ -408,10 +407,6 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
     }
 
-    private static boolean isValidCodepoint(int codepoint) {
-        return codepoint >= 0 && codepoint <= Character.MAX_CODE_POINT;
-    }
-
     private static int parseCodepointFromCharacter(CharSequence text) {
         if (CodePointUtils.codePointCount(text) != 1) {
             return NOT_A_CODEPOINT;
@@ -429,7 +424,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         } catch(NumberFormatException e) {
             return NOT_A_CODEPOINT;
         }
-        if (!isValidCodepoint(codepoint)) {
+        if (!Character.isValidCodePoint(codepoint)) {
             return NOT_A_CODEPOINT;
         }
         return codepoint;
@@ -595,21 +590,23 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         return codepoint1;
     }
 
-    private void afterCodepointFieldsChanged() {
+    private IntRange getCodepointRange() {
         int startCodepoint =
                 getCodepointFromFields(mStartCharacterView, mStartCodepointView, mStartUnicodeView);
         int endCodepoint =
                 getCodepointFromFields(mEndCharacterView, mEndCodepointView, mEndUnicodeView);
-        AlertDialog dialog = (AlertDialog)getDialog();
-        if (dialog == null) {
-            return;
+
+        if (startCodepoint > endCodepoint) {
+            int temp = startCodepoint;
+            startCodepoint = endCodepoint;
+            endCodepoint = temp;
         }
-        Button acceptButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        if (acceptButton == null) {
-            return;
-        }
-        acceptButton.setEnabled(
-                startCodepoint != NOT_A_CODEPOINT && endCodepoint != NOT_A_CODEPOINT);
+
+        return new IntRange(startCodepoint, endCodepoint);
+    }
+
+    private void afterCodepointFieldsChanged() {
+        setAcceptButtonEnabled(isValidRange(getCodepointRange()));
     }
 
     @Override
@@ -618,7 +615,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
 
         mSplitUnicodeCheckbox.setChecked(readSplitUnicodeForSurrogatePairsPref());
 
-        final IntRange value = mReader.readValue();
+        final IntRange value = mDataManager.readValue();
         if (value == null) {
             return;
         }
@@ -645,35 +642,27 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     public void onClick(final DialogInterface dialog, final int which) {
         super.onClick(dialog, which);
         if (which == DialogInterface.BUTTON_NEUTRAL) {
-            final IntRange value = mReader.readDefaultValue();
+            final IntRange value = mDataManager.readDefaultValue();
             updateValueSummary(value);
             clearValue();
         } else if (which == DialogInterface.BUTTON_POSITIVE) {
-            int startCodepoint = getCodepointFromFields(
-                    mStartCharacterView, mStartCodepointView, mStartUnicodeView);
-            int endCodepoint = getCodepointFromFields(
-                    mEndCharacterView, mEndCodepointView, mEndUnicodeView);
-
-            if (startCodepoint == NOT_A_CODEPOINT || endCodepoint == NOT_A_CODEPOINT) {
-                // this shouldn't happen
+            IntRange value = getCodepointRange();
+            if (!isValidRange(value)) {
+                // this shouldn't happen since the button should be disabled
+                Log.e(TAG, "Invalid range: " + value);
                 return;
             }
 
-            if (startCodepoint > endCodepoint) {
-                int temp = startCodepoint;
-                startCodepoint = endCodepoint;
-                endCodepoint = temp;
-            }
-
-            IntRange value = new IntRange(startCodepoint, endCodepoint);
             updateValueSummary(value);
-            writeValue(value);
+            mDataManager.writeValue(value);
         }
     }
 
-    public void writeValue(final @Nullable IntRange value) {
-        getPrefs().setString(getKey(),
-                value == null ? null : value.getStart() + "-" + value.getEnd());
+    public static boolean isValidRange(@Nullable IntRange value) {
+        return value == null
+                || (Character.isValidCodePoint(value.getStart())
+                        && Character.isValidCodePoint(value.getEnd())
+                        && value.getStart() <= value.getEnd());
     }
 
     public void clearValue() {
@@ -691,14 +680,14 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     public void setKey(String key) {
         super.setKey(key);
-        mReader.mKey = key;
+        mDataManager.mKey = key;
     }
 
-    public static class Reader {
+    public static class DataManager {
         private final SharedPreferenceManager mPrefs;
         private String mKey;
 
-        public Reader(SharedPreferenceManager prefs, String key) {
+        public DataManager(SharedPreferenceManager prefs, String key) {
             mPrefs = prefs;
             mKey = key;
         }
@@ -706,7 +695,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         @Nullable
         public IntRange readValue() {
             String rawValue = mPrefs.getString(mKey, null);
-            if (rawValue == null || rawValue.equals("")) {
+            if (TextUtils.isEmpty(rawValue)) {
                 return null;
             }
             String[] pieces = rawValue.split("-");
@@ -727,6 +716,11 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         private IntRange readDefaultValue() {
             return DEFAULT_RESTRICT_RANGE;
         }
+
+        public void writeValue(final @Nullable IntRange value) {
+            mPrefs.setString(mKey,
+                    value == null ? null : value.getStart() + "-" + value.getEnd());
+        }
     }
 
     public String getValueText(final @Nullable IntRange value) {
@@ -742,7 +736,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
 
     @Override
     protected void updateValueSummary() {
-        updateValueSummary(mReader.readValue());
+        updateValueSummary(mDataManager.readValue());
     }
 
     private void updateValueSummary(final IntRange value) {

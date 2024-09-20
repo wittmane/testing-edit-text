@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.SimpleEntryListPreference.SimpleReader;
+import com.wittmane.testingedittext.settings.preferences.SimpleEntryListPreference.SimpleDataManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,10 +31,10 @@ import java.util.List;
 /**
  * Preference for entering a list of items (all data tied to individual items)
  * @param <TRowData> Type for the items in the list
- * @param <TReader> Type for reading the preference data
+ * @param <TDataManager> Type for reading and writing the preference data
  */
-public abstract class SimpleEntryListPreference<TRowData, TReader extends SimpleReader<TRowData>>
-        extends EntryListPreference<TRowData, TRowData[], TReader> {
+public abstract class SimpleEntryListPreference<TRowData, TDataManager extends SimpleDataManager<TRowData>>
+        extends EntryListPreference<TRowData, TRowData[], TDataManager> {
 
     public SimpleEntryListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -76,14 +76,8 @@ public abstract class SimpleEntryListPreference<TRowData, TReader extends Simple
         return fullData;
     }
 
-    @NonNull
-    @Override
-    protected String[] getFlattenedExtraData(final TRowData[] fullData) {
-        return new String[0];
-    }
-
-    public static abstract class SimpleReader<T> extends ReaderBase<T[]> {
-        public SimpleReader(SharedPreferenceManager prefs, String key) {
+    public static abstract class SimpleDataManager<T> extends DataManagerBase<T[]> {
+        public SimpleDataManager(SharedPreferenceManager prefs, String key) {
             super(prefs, key);
         }
 
@@ -97,5 +91,10 @@ public abstract class SimpleEntryListPreference<TRowData, TReader extends Simple
         }
 
         protected abstract T[] buildRowData(String[] flatRowData);
+
+        @NonNull
+        protected String[] flattenExtraData(final @NonNull T[] fullData) {
+            return new String[0];
+        }
     }
 }

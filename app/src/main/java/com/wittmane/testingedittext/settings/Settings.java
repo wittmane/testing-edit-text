@@ -33,10 +33,10 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager.Editor;
+import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
-import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
-import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
+import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.DataManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -1209,7 +1209,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String[] DEFAULT_RESTRICT_SPECIFIC = new String[0];
 
     private static String[] readRestrictSpecific(final SharedPreferenceManager prefs, int fieldId) {
-        TextList<String> textList = (new TextListPreference.Reader(prefs,
+        TextList<String> textList = (new TextListPreference.DataManager(prefs,
                 PREF_RESTRICT_SPECIFIC_PREFIX + getSuffix(fieldId))).readValue();
         String[] result = new String[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
@@ -1311,7 +1311,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     @Nullable
     private static IntRange readRestrictRange(final SharedPreferenceManager prefs, int fieldId) {
-        return (new CodepointRangeDialogPreference.Reader(prefs,
+        return (new CodepointRangeDialogPreference.DataManager(prefs,
                 PREF_RESTRICT_RANGE_PREFIX + getSuffix(fieldId)))
                 .readValue();
     }
@@ -1326,7 +1326,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static TranslateText[] readTranslateSpecific(final SharedPreferenceManager prefs,
                                                          int fieldId) {
         TextList<TranslateText> textList =
-                (new TextTranslateListPreference.Reader(prefs,
+                (new DataManager(prefs,
                         PREF_TRANSLATE_SPECIFIC_PREFIX + getSuffix(fieldId)))
                         .readValue();
         TranslateText[] result = new TranslateText[textList.getDataArray().length];
@@ -2556,7 +2556,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static Locale[] readTestFieldTextLocales(final SharedPreferenceManager prefs,
                                                      int fieldId) {
-        return (new LocaleEntryListPreference.Reader(prefs,
+        return (new LocaleEntryListPreference.DataManager(prefs,
                 PREF_TEXT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
@@ -2566,7 +2566,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static Locale[] readTestFieldImeHintLocales(final SharedPreferenceManager prefs,
                                                         int fieldId) {
-        return (new LocaleEntryListPreference.Reader(prefs,
+        return (new LocaleEntryListPreference.DataManager(prefs,
                 PREF_IME_HINT_LOCALES_PREFIX + FIELD_INFIX + fieldId)).readValue();
     }
 
@@ -3170,7 +3170,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 // codepoint range preference. maybe just convert this preference to use an int
                 // array and just have extra validation on the length when reading the data.
                 IntRange intRange =
-                        (new CodepointRangeDialogPreference.Reader(prefs, prefKey)).readValue();
+                        (new CodepointRangeDialogPreference.DataManager(prefs, prefKey))
+                                .readValue();
                 addArray(jsonObject, jsonPropName, intRange == null
                         ? null
                         : new int[] { intRange.getStart(), intRange.getEnd() });
@@ -3179,7 +3180,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
                 // preference)
                 Locale[] locales =
-                        (new LocaleEntryListPreference.Reader(prefs, prefKey)).readValue();
+                        (new LocaleEntryListPreference.DataManager(prefs, prefKey)).readValue();
                 String[] localeStrings = new String[locales.length];
                 for (int i = 0; i < locales.length; i++) {
                     localeStrings[i] = LocaleEntryListPreference.getLocaleString(locales[i]);
@@ -3190,7 +3191,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
                 // preference)
                 TextList<String> textListString =
-                        (new TextListPreference.Reader(prefs,prefKey)).readValue();
+                        (new TextListPreference.DataManager(prefs,prefKey)).readValue();
                 JSONObject textListStringJsonObject = new JSONObject();
                 textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
                         textListString.escapeChars());
@@ -3202,7 +3203,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
                 // preference)
                 TextList<TranslateText> textListTranslateText =
-                        (new TextTranslateListPreference.Reader(prefs, prefKey)).readValue();
+                        (new DataManager(prefs, prefKey)).readValue();
                 JSONObject translateTextJsonObject = new JSONObject();
                 translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
                         textListTranslateText.escapeChars());
