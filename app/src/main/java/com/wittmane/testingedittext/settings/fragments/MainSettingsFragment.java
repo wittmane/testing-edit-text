@@ -35,6 +35,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
@@ -180,17 +181,31 @@ public class MainSettingsFragment extends PreferenceFragment {
             message.insert(0, "\n");
             message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
             showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
-                Settings.replaceSettings(rawJson);
-                Toast.makeText(getActivity(),
-                        getActivity().getString(R.string.import_settings_successful),
-                        Toast.LENGTH_LONG).show();
+                replaceSettings(info);
             }, getActivity());
         } else {
-            Settings.replaceSettings(rawJson);
-            Toast.makeText(getActivity(),
-                    getActivity().getString(R.string.import_settings_successful),
-                    Toast.LENGTH_LONG).show();
+            replaceSettings(info);
         }
+    }
+
+    private void replaceSettings(ImportFileInfo info) {
+        showWarningConfirmationDialog(R.string.import_settings,
+                R.string.replace_all_settings_confirmation,
+                () -> {
+                    int oldThemeId = Settings.getThemeId(getActivity());
+
+                    Settings.replaceSettings(info.getJsonObject(), getActivity());
+
+                    // handle theme changes
+                    int newThemeId = Settings.getThemeId(getActivity());
+                    ThemedActivity.recreateActivityOnThemeChange(getActivity(),
+                            oldThemeId, newThemeId);
+
+                    Toast.makeText(getActivity(),
+                            getActivity().getString(R.string.import_settings_successful),
+                            Toast.LENGTH_LONG).show();
+                },
+                getActivity());
     }
 
     private void exportSettings(Uri uri) {

@@ -34,12 +34,18 @@
     <string name="failed_to_generate_export_data">Failed to generate export data</string>
     <string name="import_warnings">Import file contains problems</string>
     <string name="failed_to_parse_import_file">Failed to parse settings import file.</string>
+    <string name="value_not_in_range"><xliff:g id="JSON_PATH">%s</xliff:g> has a value (<xliff:g id="VALUE">%d</xliff:g>) that is not in the range <xliff:g id="MIN_VALUE">%d</xliff:g> to <xliff:g id="MAX_VALUE">%d</xliff:g>.</string>
+    <string name="invalid_step_value"><xliff:g id="JSON_PATH">%s</xliff:g> doesn\'t fit into a step evenly.</string>
     <string name="invalid_float_data"><xliff:g id="JSON_PATH">%s</xliff:g> has invalid float data.</string>
     <string name="invalid_data"><xliff:g id="JSON_PATH">%s</xliff:g> has invalid data.</string>
+    <string name="invalid_value"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid value (<xliff:g id="VALUE">%s</xliff:g>).</string>
+    <string name="invalid_locale"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid locale (<xliff:g id="VALUE">%s</xliff:g>).</string>
     <string name="invalid_data_type"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid data type.</string>
+    <string name="null_data"><xliff:g id="JSON_PATH">%s</xliff:g> is null.</string>
     <string name="failed_to_parse_data">Failed to parse data for <xliff:g id="JSON_PATH">%s</xliff:g>.</string>
     <string name="unexpected_property">Unexpected property: <xliff:g id="JSON_PATH">%s</xliff:g></string>
     <string name="confirm_ignore_import_warnings">The following issues were encountered in the settings import file. Do you want to ignore the issues and continue importing what could be read?</string>
+    <string name="replace_all_settings_confirmation">This will replace all settings. Are you sure you want to continue?</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
