@@ -16,13 +16,13 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.getGroupDisplayName;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.getFieldDisplayName;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
 
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -35,20 +35,12 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 
 import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
+import com.wittmane.testingedittext.settings.ImportExportDialog;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldInfo;
 import com.wittmane.testingedittext.settings.Settings.GroupInfo;
@@ -198,187 +190,10 @@ public class MainSettingsFragment extends PreferenceFragment {
             message.insert(0, "\n");
             message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
             showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
-                new ImportDialog(getActivity(), info).show();
+                ImportExportDialog.promptImport(getActivity(), info, this::importSettings);
             }, getActivity());
         } else {
-            new ImportDialog(getActivity(), info).show();
-        }
-    }
-
-    private static final int IMPORT_FIELDS_ALL = 0;
-    private static final int IMPORT_FIELDS_SPECIFIC_GROUPS = 1;
-    private static final int IMPORT_FIELDS_SPECIFIC_FIELDS = 2;
-
-    private static class SpinnerEntry {
-        private final int mValue;
-        private final @NonNull String mDisplay;
-
-        public SpinnerEntry(int value, @NonNull String display) {
-            mValue = value;
-            mDisplay = display;
-        }
-
-        public int getValue() {
-            return mValue;
-        }
-
-        @Override
-        public @NonNull String toString() {
-            return mDisplay;
-        }
-    }
-
-    private class ImportDialog extends AlertDialog {
-        private final List<GroupInfo> mGroups;
-
-        public ImportDialog(Context context, ImportFileInfo info) {
-            super(context);
-            mGroups = info.getGroups();
-            // make sure all groups and fields are selected to be included by default
-            for (GroupInfo group : mGroups) {
-                group.mInclude = true;
-                for (FieldInfo field : group.mFields) {
-                    field.mInclude = true;
-                }
-            }
-            setCancelable(true);
-            setCanceledOnTouchOutside(true);
-            setTitle(R.string.import_settings);
-            setButton(DialogInterface.BUTTON_POSITIVE, context.getText(android.R.string.ok),
-                    (dialog, which) -> {
-                        CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
-                        CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
-                        Spinner testFieldImportOptionSpinner =
-                                findViewById(R.id.testFieldImportOption);
-                        int testFieldImportOption =
-                                ((SpinnerEntry) testFieldImportOptionSpinner.getSelectedItem())
-                                        .getValue();
-                        if (!testFieldsCheckbox.isChecked()) {
-                            // make sure no groups or fields are selected to be included
-                            for (GroupInfo group : mGroups) {
-                                group.mInclude = false;
-                                for (FieldInfo field : group.mFields) {
-                                    field.mInclude = false;
-                                }
-                            }
-                        } if (testFieldImportOption == IMPORT_FIELDS_ALL) {
-                            // replace all
-                            // make sure all groups and fields are selected to be included
-                            for (GroupInfo group : mGroups) {
-                                group.mInclude = true;
-                                for (FieldInfo field : group.mFields) {
-                                    field.mInclude = true;
-                                }
-                            }
-                        } else if (testFieldImportOption == IMPORT_FIELDS_SPECIFIC_GROUPS) {
-                            // add groups
-                            // make sure all fields in the selected groups (and only those fields)
-                            // are selected to be included
-                            for (GroupInfo group : mGroups) {
-                                for (FieldInfo field : group.mFields) {
-                                    field.mInclude = group.mInclude;
-                                }
-                            }
-                        } else if (testFieldImportOption == IMPORT_FIELDS_SPECIFIC_FIELDS) {
-                            // add fields
-                            // make sure no groups are selected to be included
-                            for (GroupInfo group : mGroups) {
-                                group.mInclude = false;
-                            }
-                        }
-                        CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
-                        importSettings(info.getJsonObject(),
-                                fieldDefaultsCheckbox.isChecked(),
-                                testFieldsCheckbox.isChecked() && testFieldImportOption == 0,
-                                mGroups,
-                                otherSettingsCheckbox.isChecked());
-                    });
-            setButton(DialogInterface.BUTTON_NEGATIVE, context.getText(android.R.string.cancel),
-                    (OnClickListener) null);
-            setView(LayoutInflater.from(context).inflate(R.layout.import_dialog, null));
-        }
-
-        @Override
-        protected void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
-            Spinner testFieldImportOptionSpinner = findViewById(R.id.testFieldImportOption);
-            LinearLayout testFieldDynamicDetails = findViewById(R.id.testFieldDynamicDetails);
-
-            testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                testFieldImportOptionSpinner.setEnabled(isChecked);
-                for (int i = 0; i < testFieldDynamicDetails.getChildCount(); i++) {
-                    testFieldDynamicDetails.getChildAt(i).setEnabled(isChecked);
-                }
-            });
-
-            final List<SpinnerEntry> spinnerEntries = new ArrayList<>();
-            spinnerEntries.add(new SpinnerEntry(IMPORT_FIELDS_ALL,
-                    getContext().getString(R.string.import_test_field_option_replace_all)));
-            spinnerEntries.add(new SpinnerEntry(IMPORT_FIELDS_SPECIFIC_GROUPS,
-                    getContext().getString(R.string.import_test_field_option_add_specific_groups)));
-            spinnerEntries.add(new SpinnerEntry(IMPORT_FIELDS_SPECIFIC_FIELDS,
-                    getContext().getString(R.string.import_test_field_option_add_specific_fields)));
-            ArrayAdapter<SpinnerEntry> adapter = new ArrayAdapter<>(getContext(),
-                    android.R.layout.simple_spinner_item, spinnerEntries);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            testFieldImportOptionSpinner.setAdapter(adapter);
-
-            testFieldImportOptionSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position,
-                                           long id) {
-                    SpinnerEntry item = (SpinnerEntry) testFieldImportOptionSpinner.getAdapter()
-                            .getItem(position);
-                    int option = item.getValue();
-                    testFieldDynamicDetails.removeAllViews();
-                    if (option == IMPORT_FIELDS_ALL) {
-                        // replace all - don't need to show individual groups/fields
-                        return;
-                    }
-                    for (GroupInfo group : mGroups) {
-                        if (option == IMPORT_FIELDS_SPECIFIC_GROUPS) {
-                            // add groups
-
-                            CheckBox groupCheckbox = new CheckBox(getContext());
-                            groupCheckbox.setText(group.mName);
-                            groupCheckbox.setChecked(group.mInclude);
-                            groupCheckbox.setOnCheckedChangeListener(
-                                    (buttonView, isChecked) -> group.mInclude = isChecked);
-
-                            testFieldDynamicDetails.addView(groupCheckbox);
-                        } else if (option == IMPORT_FIELDS_SPECIFIC_FIELDS) {
-                            // add fields
-
-                            // skip any groups that don't have any fields
-                            if (group.mFields == null || group.mFields.isEmpty()) {
-                                continue;
-                            }
-
-                            // show a label for the groups for organization
-                            TextView groupLabel = new TextView(getContext());
-                            groupLabel.setText(group.mName);
-
-                            testFieldDynamicDetails.addView(groupLabel);
-
-                            for (FieldInfo field : group.mFields) {
-                                CheckBox fieldCheckbox = new CheckBox(getContext());
-                                fieldCheckbox.setText(field.mName);
-                                fieldCheckbox.setChecked(field.mInclude);
-                                fieldCheckbox.setOnCheckedChangeListener(
-                                        (buttonView, isChecked) -> field.mInclude = isChecked);
-
-                                testFieldDynamicDetails.addView(fieldCheckbox);
-                            }
-                        }
-                    }
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {
-
-                }
-            });
+            ImportExportDialog.promptImport(getActivity(), info, this::importSettings);
         }
     }
 
@@ -419,35 +234,59 @@ public class MainSettingsFragment extends PreferenceFragment {
     }
 
     private void exportSettings(Uri uri) {
-        try (ParcelFileDescriptor pfd =
-                     getActivity().getContentResolver(). openFileDescriptor(uri, "w")) {
-            if (pfd == null) {
-                Log.e(TAG, "Parcel file descriptor is null");
-                showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_open_file);
-                return;
+        List<GroupInfo> groupInfoList = new ArrayList<>();
+        int groupCount = Settings.getTestFieldGroupCount();
+        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+            GroupInfo groupInfo = new GroupInfo();
+            //TODO: (EW) this method probably should be moved to Settings
+            groupInfo.mName = getGroupDisplayName(getActivity(), groupIndex);
+            groupInfo.mFields = new ArrayList<>();
+            int fieldCount = Settings.getTestFieldCount(groupIndex);
+            for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+                FieldInfo fieldInfo = new FieldInfo();
+                //TODO: (EW) this method probably should be moved to Settings
+                fieldInfo.mName =
+                        getFieldDisplayName(getActivity(), groupIndex, fieldIndex).toString();
+                groupInfo.mFields.add(fieldInfo);
             }
-            try (FileOutputStream fileOutputStream =
-                         new FileOutputStream(pfd.getFileDescriptor())) {
-                String data = Settings.getJson();
-                Log.d(TAG, "Writing raw JSON: " + data);
-                if (data == null) {
-                    showErrorDialog(R.string.failed_to_export_settings,
-                            R.string.failed_to_generate_export_data);
-                    return;
-                }
-                fileOutputStream.write(data.getBytes());
-            }
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "File not found for exporting: " + e.getMessage());
-            showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_find_file);
-            return;
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to write to file: " + e.getMessage());
-            showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_write_file);
-            return;
+            groupInfoList.add(groupInfo);
         }
-        Toast.makeText(getActivity(),
-                getActivity().getString(R.string.export_settings_successful),
-                Toast.LENGTH_LONG).show();
+        //TODO: (EW) should we prompt what to export before selecting the file to export it to?
+        ImportExportDialog.promptExport(getActivity(), groupInfoList,
+                (exportFieldDefaults, groupsForExport, exportOtherSettings) -> {
+                    try (ParcelFileDescriptor pfd =
+                                 getActivity().getContentResolver(). openFileDescriptor(uri, "w")) {
+                        if (pfd == null) {
+                            Log.e(TAG, "Parcel file descriptor is null");
+                            showErrorDialog(R.string.failed_to_export_settings,
+                                    R.string.failed_to_open_file);
+                            return;
+                        }
+                        try (FileOutputStream fileOutputStream =
+                                     new FileOutputStream(pfd.getFileDescriptor())) {
+                            String data = Settings.getJson(exportFieldDefaults, groupsForExport,
+                                    exportOtherSettings);
+                            if (data == null) {
+                                showErrorDialog(R.string.failed_to_export_settings,
+                                        R.string.failed_to_generate_export_data);
+                                return;
+                            }
+                            fileOutputStream.write(data.getBytes());
+                        }
+                    } catch (FileNotFoundException e) {
+                        Log.e(TAG, "File not found for exporting: " + e.getMessage());
+                        showErrorDialog(R.string.failed_to_export_settings,
+                                R.string.failed_to_find_file);
+                        return;
+                    } catch (IOException e) {
+                        Log.e(TAG, "Failed to write to file: " + e.getMessage());
+                        showErrorDialog(R.string.failed_to_export_settings,
+                                R.string.failed_to_write_file);
+                        return;
+                    }
+                    Toast.makeText(getActivity(),
+                            getActivity().getString(R.string.export_settings_successful),
+                            Toast.LENGTH_LONG).show();
+                });
     }
 }

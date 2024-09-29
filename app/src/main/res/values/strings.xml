@@ -52,6 +52,9 @@
     <string name="import_test_field_option_replace_all">Replace all</string>
     <string name="import_test_field_option_add_specific_groups">Add specific groups</string>
     <string name="import_test_field_option_add_specific_fields">Add specific fields</string>
+    <string name="export_test_field_option_all">Export all</string>
+    <string name="export_test_field_option_specific_groups">Export specific groups</string>
+    <string name="export_test_field_option_specific_fields">Export specific fields</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->

@@ -215,8 +215,8 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         }
     }
 
-    static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
-                                            final int fieldIndex) {
+    public static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
+                                                   final int fieldIndex) {
         CharSequence labelText = Settings.getTestFieldLabelText(groupIndex, fieldIndex);
         if (!TextUtils.isEmpty(labelText)) {
             return labelText;

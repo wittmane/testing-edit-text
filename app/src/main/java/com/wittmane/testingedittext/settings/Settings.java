@@ -3045,28 +3045,51 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static final String TRANSLATE_TEXT_ORIGINAL_JSON_PROP = "original";
     private static final String TRANSLATE_TEXT_TRANSLATION_JSON_PROP = "translation";
 
-    public static String getJson() {
+    public static String getJson(boolean exportFieldDefaults, List<GroupInfo> groupInfoList,
+                                 boolean exportOtherSettings) {
         SharedPreferenceManager prefs = getInstance().mPrefs;
         JSONObject jsonObject = new JSONObject();
         try {
-            if (prefs.contains(PREF_TEST_GROUP_IDS)) {
+            if (groupInfoList != null && prefs.contains(PREF_TEST_GROUP_IDS)) {
                 int[] groupIds = readTestFieldGroupIds(prefs);
                 JSONArray groupsJsonArray = new JSONArray();
+                JSONArray looseFieldsJsonArray = new JSONArray();
 
-                for (int groupId : groupIds) {
-                    groupsJsonArray.put(getGroupJson(groupId, prefs));
+                for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
+                    int groupId = groupIds[groupIndex];
+                    GroupInfo groupInfo = groupInfoList.get(groupIndex);
+                    if (groupInfoList.get(groupIndex).mInclude) {
+                        groupsJsonArray.put(getGroupJson(groupId, groupInfo, prefs));
+                    } else if (prefs.contains(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId)) {
+                        // collect the fields that are being exported without their containing group
+                        // being exported
+                        addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo, prefs);
+                    }
+                }
+                if (looseFieldsJsonArray.length() > 0) {
+                    // put the fields that are being exported without their containing group in a
+                    // new ad-hoc group
+                    JSONObject fillerGroupJsonObject = new JSONObject();
+                    fillerGroupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
+                    groupsJsonArray.put(fillerGroupJsonObject);
+                    //TODO: (EW) would it be useful to flag this as a filler group so the import
+                    // could default to add specific fields?
                 }
 
                 jsonObject.put(GROUPS_JSON_PROP, groupsJsonArray);
             }
 
-            for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-                String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
-                addPrefData(jsonObject, defaultsPrefKeyPrefix, defaultsPrefKey, prefs);
+            if (exportFieldDefaults) {
+                for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+                    String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
+                    addPrefData(jsonObject, defaultsPrefKeyPrefix, defaultsPrefKey, prefs);
+                }
             }
 
-            for (String miscPrefKey : MISC_PREF_KEYS) {
-                addPrefData(jsonObject, miscPrefKey, miscPrefKey, prefs);
+            if (exportOtherSettings) {
+                for (String miscPrefKey : MISC_PREF_KEYS) {
+                    addPrefData(jsonObject, miscPrefKey, miscPrefKey, prefs);
+                }
             }
         } catch (JSONException e) {
             Log.e(TAG, "Failed to build settings JSON: " + e.getMessage());
@@ -3075,7 +3098,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return jsonObject.toString();
     }
 
-    private static JSONObject getGroupJson(int groupId, SharedPreferenceManager prefs)
+    private static JSONObject getGroupJson(int groupId, GroupInfo groupInfo,
+                                           SharedPreferenceManager prefs)
             throws JSONException {
         JSONObject groupJsonObject = new JSONObject();
 
@@ -3084,12 +3108,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
             if (groupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
                 if (prefs.contains(groupPrefKey)) {
-                    int[] fieldIds = readTestGroupFieldIds(prefs, groupId);
                     JSONArray fieldsJsonArray = new JSONArray();
 
-                    for (int fieldId : fieldIds) {
-                        fieldsJsonArray.put(getFieldJson(fieldId, prefs));
-                    }
+                    addGroupFieldsJson(fieldsJsonArray, groupId, groupInfo, prefs);
 
                     groupJsonObject.put(FIELDS_JSON_PROP, fieldsJsonArray);
                 }
@@ -3099,6 +3120,19 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
 
         return groupJsonObject;
+    }
+
+    private static void addGroupFieldsJson(JSONArray fieldsJsonArray, int groupId,
+                                           GroupInfo groupInfo, SharedPreferenceManager prefs)
+            throws JSONException {
+        int[] fieldIds = readTestGroupFieldIds(prefs, groupId);
+        for (int fieldIndex = 0; fieldIndex < fieldIds.length; fieldIndex++) {
+            int fieldId = fieldIds[fieldIndex];
+            if (!groupInfo.mFields.get(fieldIndex).mInclude) {
+                continue;
+            }
+            fieldsJsonArray.put(getFieldJson(fieldId, prefs));
+        }
     }
 
     private static JSONObject getFieldJson(int fieldId, SharedPreferenceManager prefs)
