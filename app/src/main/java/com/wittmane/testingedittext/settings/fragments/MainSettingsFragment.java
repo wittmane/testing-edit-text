@@ -21,6 +21,8 @@ import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSett
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -33,13 +35,26 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 
 import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.FieldInfo;
+import com.wittmane.testingedittext.settings.Settings.GroupInfo;
 import com.wittmane.testingedittext.settings.Settings.ImportFileInfo;
+
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -48,7 +63,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class MainSettingsFragment extends PreferenceFragment {
@@ -181,31 +198,224 @@ public class MainSettingsFragment extends PreferenceFragment {
             message.insert(0, "\n");
             message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
             showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
-                replaceSettings(info);
+                new ImportDialog(getActivity(), info).show();
             }, getActivity());
         } else {
-            replaceSettings(info);
+            new ImportDialog(getActivity(), info).show();
         }
     }
 
-    private void replaceSettings(ImportFileInfo info) {
-        showWarningConfirmationDialog(R.string.import_settings,
-                R.string.replace_all_settings_confirmation,
-                () -> {
-                    int oldThemeId = Settings.getThemeId(getActivity());
+    private static final int IMPORT_FIELDS_ALL = 0;
+    private static final int IMPORT_FIELDS_SPECIFIC_GROUPS = 1;
+    private static final int IMPORT_FIELDS_SPECIFIC_FIELDS = 2;
 
-                    Settings.replaceSettings(info.getJsonObject(), getActivity());
+    private static class SpinnerEntry {
+        private final int mValue;
+        private final @NonNull String mDisplay;
 
-                    // handle theme changes
-                    int newThemeId = Settings.getThemeId(getActivity());
-                    ThemedActivity.recreateActivityOnThemeChange(getActivity(),
-                            oldThemeId, newThemeId);
+        public SpinnerEntry(int value, @NonNull String display) {
+            mValue = value;
+            mDisplay = display;
+        }
 
-                    Toast.makeText(getActivity(),
-                            getActivity().getString(R.string.import_settings_successful),
-                            Toast.LENGTH_LONG).show();
-                },
-                getActivity());
+        public int getValue() {
+            return mValue;
+        }
+
+        @Override
+        public @NonNull String toString() {
+            return mDisplay;
+        }
+    }
+
+    private class ImportDialog extends AlertDialog {
+        private final List<GroupInfo> mGroups;
+
+        public ImportDialog(Context context, ImportFileInfo info) {
+            super(context);
+            mGroups = info.getGroups();
+            // make sure all groups and fields are selected to be included by default
+            for (GroupInfo group : mGroups) {
+                group.mInclude = true;
+                for (FieldInfo field : group.mFields) {
+                    field.mInclude = true;
+                }
+            }
+            setCancelable(true);
+            setCanceledOnTouchOutside(true);
+            setTitle(R.string.import_settings);
+            setButton(DialogInterface.BUTTON_POSITIVE, context.getText(android.R.string.ok),
+                    (dialog, which) -> {
+                        CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
+                        CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
+                        Spinner testFieldImportOptionSpinner =
+                                findViewById(R.id.testFieldImportOption);
+                        int testFieldImportOption =
+                                ((SpinnerEntry) testFieldImportOptionSpinner.getSelectedItem())
+                                        .getValue();
+                        if (!testFieldsCheckbox.isChecked()) {
+                            // make sure no groups or fields are selected to be included
+                            for (GroupInfo group : mGroups) {
+                                group.mInclude = false;
+                                for (FieldInfo field : group.mFields) {
+                                    field.mInclude = false;
+                                }
+                            }
+                        } if (testFieldImportOption == IMPORT_FIELDS_ALL) {
+                            // replace all
+                            // make sure all groups and fields are selected to be included
+                            for (GroupInfo group : mGroups) {
+                                group.mInclude = true;
+                                for (FieldInfo field : group.mFields) {
+                                    field.mInclude = true;
+                                }
+                            }
+                        } else if (testFieldImportOption == IMPORT_FIELDS_SPECIFIC_GROUPS) {
+                            // add groups
+                            // make sure all fields in the selected groups (and only those fields)
+                            // are selected to be included
+                            for (GroupInfo group : mGroups) {
+                                for (FieldInfo field : group.mFields) {
+                                    field.mInclude = group.mInclude;
+                                }
+                            }
+                        } else if (testFieldImportOption == IMPORT_FIELDS_SPECIFIC_FIELDS) {
+                            // add fields
+                            // make sure no groups are selected to be included
+                            for (GroupInfo group : mGroups) {
+                                group.mInclude = false;
+                            }
+                        }
+                        CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
+                        importSettings(info.getJsonObject(),
+                                fieldDefaultsCheckbox.isChecked(),
+                                testFieldsCheckbox.isChecked() && testFieldImportOption == 0,
+                                mGroups,
+                                otherSettingsCheckbox.isChecked());
+                    });
+            setButton(DialogInterface.BUTTON_NEGATIVE, context.getText(android.R.string.cancel),
+                    (OnClickListener) null);
+            setView(LayoutInflater.from(context).inflate(R.layout.import_dialog, null));
+        }
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
+            Spinner testFieldImportOptionSpinner = findViewById(R.id.testFieldImportOption);
+            LinearLayout testFieldDynamicDetails = findViewById(R.id.testFieldDynamicDetails);
+
+            testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                testFieldImportOptionSpinner.setEnabled(isChecked);
+                for (int i = 0; i < testFieldDynamicDetails.getChildCount(); i++) {
+                    testFieldDynamicDetails.getChildAt(i).setEnabled(isChecked);
+                }
+            });
+
+            final List<SpinnerEntry> spinnerEntries = new ArrayList<>();
+            spinnerEntries.add(new SpinnerEntry(IMPORT_FIELDS_ALL,
+                    getContext().getString(R.string.import_test_field_option_replace_all)));
+            spinnerEntries.add(new SpinnerEntry(IMPORT_FIELDS_SPECIFIC_GROUPS,
+                    getContext().getString(R.string.import_test_field_option_add_specific_groups)));
+            spinnerEntries.add(new SpinnerEntry(IMPORT_FIELDS_SPECIFIC_FIELDS,
+                    getContext().getString(R.string.import_test_field_option_add_specific_fields)));
+            ArrayAdapter<SpinnerEntry> adapter = new ArrayAdapter<>(getContext(),
+                    android.R.layout.simple_spinner_item, spinnerEntries);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            testFieldImportOptionSpinner.setAdapter(adapter);
+
+            testFieldImportOptionSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position,
+                                           long id) {
+                    SpinnerEntry item = (SpinnerEntry) testFieldImportOptionSpinner.getAdapter()
+                            .getItem(position);
+                    int option = item.getValue();
+                    testFieldDynamicDetails.removeAllViews();
+                    if (option == IMPORT_FIELDS_ALL) {
+                        // replace all - don't need to show individual groups/fields
+                        return;
+                    }
+                    for (GroupInfo group : mGroups) {
+                        if (option == IMPORT_FIELDS_SPECIFIC_GROUPS) {
+                            // add groups
+
+                            CheckBox groupCheckbox = new CheckBox(getContext());
+                            groupCheckbox.setText(group.mName);
+                            groupCheckbox.setChecked(group.mInclude);
+                            groupCheckbox.setOnCheckedChangeListener(
+                                    (buttonView, isChecked) -> group.mInclude = isChecked);
+
+                            testFieldDynamicDetails.addView(groupCheckbox);
+                        } else if (option == IMPORT_FIELDS_SPECIFIC_FIELDS) {
+                            // add fields
+
+                            // skip any groups that don't have any fields
+                            if (group.mFields == null || group.mFields.isEmpty()) {
+                                continue;
+                            }
+
+                            // show a label for the groups for organization
+                            TextView groupLabel = new TextView(getContext());
+                            groupLabel.setText(group.mName);
+
+                            testFieldDynamicDetails.addView(groupLabel);
+
+                            for (FieldInfo field : group.mFields) {
+                                CheckBox fieldCheckbox = new CheckBox(getContext());
+                                fieldCheckbox.setText(field.mName);
+                                fieldCheckbox.setChecked(field.mInclude);
+                                fieldCheckbox.setOnCheckedChangeListener(
+                                        (buttonView, isChecked) -> field.mInclude = isChecked);
+
+                                testFieldDynamicDetails.addView(fieldCheckbox);
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+
+                }
+            });
+        }
+    }
+
+    private void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
+                                boolean replaceFields, List<GroupInfo> groupInfoList,
+                                boolean replaceOtherSettings) {
+        if (replaceFieldDefaults || replaceFields || replaceOtherSettings) {
+            showWarningConfirmationDialog(R.string.import_settings,
+                    R.string.replace_existing_settings_confirmation,
+                    () -> {
+                        importSettingsCore(jsonObject, replaceFieldDefaults, replaceFields,
+                                groupInfoList, replaceOtherSettings);
+                    },
+                    getActivity());
+        } else {
+            importSettingsCore(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
+                    replaceOtherSettings);
+        }
+    }
+
+    //TODO: (EW) name better
+    private void importSettingsCore(JSONObject jsonObject, boolean replaceFieldDefaults,
+                                    boolean replaceFields, List<GroupInfo> groupInfoList,
+                                    boolean replaceOtherSettings) {
+        int oldThemeId = Settings.getThemeId(getActivity());
+
+        Settings.importSettings(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
+                replaceOtherSettings, getActivity());
+
+        // handle theme changes
+        int newThemeId = Settings.getThemeId(getActivity());
+        ThemedActivity.recreateActivityOnThemeChange(getActivity(),
+                oldThemeId, newThemeId);
+
+        Toast.makeText(getActivity(),
+                getActivity().getString(R.string.import_settings_successful),
+                Toast.LENGTH_LONG).show();
     }
 
     private void exportSettings(Uri uri) {

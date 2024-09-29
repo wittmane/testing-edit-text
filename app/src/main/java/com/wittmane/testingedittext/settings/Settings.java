@@ -24,6 +24,7 @@ import android.os.Build;
 import android.preference.PreferenceManager;
 import android.text.InputType;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.inputmethod.EditorInfo;
 
@@ -3291,6 +3292,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private final List<String> mWarnings = new ArrayList<>();
         private final List<String> mUnexpectedProps = new ArrayList<>();
         private JSONObject mJsonObject;
+        private List<GroupInfo> mGroups;
 
         public String getError() {
             return mError;
@@ -3307,6 +3309,20 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         public JSONObject getJsonObject() {
             return mJsonObject;
         }
+
+        public List<GroupInfo> getGroups() {
+            return mGroups;
+        }
+    }
+    //TODO: (EW) don't make properties public
+    public static class GroupInfo {
+        public List<FieldInfo> mFields;
+        public String mName;
+        public boolean mInclude;
+    }
+    public static class FieldInfo {
+        public String mName;
+        public boolean mInclude;
     }
 
     public static ImportFileInfo validateJson(String rawJson, Context context) {
@@ -3318,27 +3334,31 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             while(keys.hasNext()) {
                 String key = keys.next();
                 if (key.equals(GROUPS_JSON_PROP)) {
+                    List<GroupInfo> groups = new ArrayList<>();
                     JSONArray groupsJsonArray = info.mJsonObject.getJSONArray(key);
                     for (int i = 0; i < groupsJsonArray.length(); i++) {
+                        GroupInfo groupInfo = new GroupInfo();
                         JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
                         if (!validateGroupJson(groupJsonObject, info, i, key + "[" + i + "]",
-                                context)) {
+                                context, groupInfo)) {
                             return info;
                         }
+                        groups.add(groupInfo);
                     }
+                    info.mGroups = groups;
                     continue;
                 }
                 String defaultableTestFieldPrefKeyPrefix =
                         findKeyOrKeyPrefixForProp(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES, key);
                 if (defaultableTestFieldPrefKeyPrefix != null) {
-                    if (!validatePrefData(info.mJsonObject, key, null, info, context)) {
+                    if (!validatePrefData(info.mJsonObject, key, null, info, context, null)) {
                         return info;
                     }
                     continue;
                 }
                 String miscPrefKey = findKeyOrKeyPrefixForProp(MISC_PREF_KEYS, key);
                 if (miscPrefKey != null) {
-                    if (!validatePrefData(info.mJsonObject, key, null, info, context)) {
+                    if (!validatePrefData(info.mJsonObject, key, null, info, context, null)) {
                         return info;
                     }
                     continue;
@@ -3355,19 +3375,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean validateGroupJson(JSONObject groupJsonObject, ImportFileInfo info,
-                                             int groupIndex, String path, Context context)
+                                             int groupIndex, String path, Context context,
+                                             GroupInfo groupInfo)
             throws JSONException {
+        Map<String, String> namesMap = new HashMap<>();
+        List<FieldInfo> fields = new ArrayList<>();
         Iterator<String> keys = groupJsonObject.keys();
         while(keys.hasNext()) {
             String key = keys.next();
             if (key.equals(FIELDS_JSON_PROP)) {
                 JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(key);
                 for (int i = 0; i < fieldsJsonArray.length(); i++) {
+                    FieldInfo fieldInfo = new FieldInfo();
                     JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
                     if (!validateFieldJson(fieldJsonObject, info, groupIndex, i,
-                            path + "." + key + "[" + i + "]", context)) {
+                            path + "." + key + "[" + i + "]", context, fieldInfo)) {
                         return false;
                     }
+                    fields.add(fieldInfo);
                 }
                 continue;
             }
@@ -3375,26 +3400,32 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     findKeyOrKeyPrefixForProp(TEST_GROUP_PREF_KEY_PREFIXES, key);
             if (testGroupPrefKeyPrefix != null
                     && !testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
-                if (!validatePrefData(groupJsonObject, key, path, info, context)) {
+                if (!validatePrefData(groupJsonObject, key, path, info, context, namesMap)) {
                     return false;
                 }
                 continue;
             }
             info.mUnexpectedProps.add(path + "." + key);
         }
+        groupInfo.mFields = fields;
+        String name = getName(namesMap, new String[] { PREF_TEST_GROUP_NAME_PREFIX });
+        groupInfo.mName = name != null
+                ? name
+                : context.getString(R.string.test_group_default_name, groupIndex + 1);
         return true;
     }
 
     private static boolean validateFieldJson(JSONObject fieldJsonObject, ImportFileInfo info,
                                              int groupIndex, int fieldIndex, String path,
-                                             Context context) {
+                                             Context context, FieldInfo fieldInfo) {
+        Map<String, String> namesMap = new HashMap<>();
         Iterator<String> keys = fieldJsonObject.keys();
         while(keys.hasNext()) {
             String key = keys.next();
             String testGroupPrefKeyPrefix =
                     findKeyOrKeyPrefixForProp(TEST_FIELD_PREF_KEY_PREFIXES, key);
             if (testGroupPrefKeyPrefix != null) {
-                if (!validatePrefData(fieldJsonObject, key, path, info, context)) {
+                if (!validatePrefData(fieldJsonObject, key, path, info, context, namesMap)) {
                     return false;
                 }
                 continue;
@@ -3402,32 +3433,56 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             String defaultableTestFieldPrefKeyPrefix =
                     findKeyOrKeyPrefixForProp(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES, key);
             if (defaultableTestFieldPrefKeyPrefix != null) {
-                if (!validatePrefData(fieldJsonObject, key, path, info, context)) {
+                if (!validatePrefData(fieldJsonObject, key, path, info, context, null)) {
                     return false;
                 }
                 continue;
             }
             info.mUnexpectedProps.add(path + "." + key);
         }
+        String name = getName(namesMap, new String[] {
+                PREF_IME_LABEL_TEXT_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX
+        });
+        fieldInfo.mName = name != null
+                ? name
+                : context.getString(R.string.test_field_default_name, fieldIndex + 1);
         return true;
     }
 
+    private static String getName(Map<String, String> namesMap, String[] keys) {
+        for (String key : keys) {
+            if (!namesMap.containsKey(key)) {
+                continue;
+            }
+            String name = namesMap.get(key);
+            if (!TextUtils.isEmpty(name)) {
+                return name;
+            }
+        }
+        return null;
+    }
+
     private static boolean validatePrefData(JSONObject jsonObject, String jsonPropName, String path,
-                                            ImportFileInfo info, Context context) {
+                                            ImportFileInfo info, Context context,
+                                            Map<String, String> namesMap) {
         // just need to try getting the data for basic types to ensure the right data type is set
-        return loadOrValidatePrefData(jsonObject, jsonPropName, path, info, context, null);
+        return loadOrValidatePrefData(jsonObject, jsonPropName, path, info, context, null,
+                namesMap);
     }
 
     private static boolean loadPrefData(JSONObject jsonObject, String jsonPropName, String path,
                                         @NonNull Context context, @NonNull String prefKey) {
-        return loadOrValidatePrefData(jsonObject, jsonPropName, path, null, context, prefKey);
+        return loadOrValidatePrefData(jsonObject, jsonPropName, path, null, context, prefKey, null);
 
     }
 
     private static boolean loadOrValidatePrefData(JSONObject jsonObject, String jsonPropName,
                                                   String path, @Nullable ImportFileInfo info,
                                                   @NonNull Context context,
-                                                  @Nullable String prefKey) {
+                                                  @Nullable String prefKey,
+                                                  @Nullable Map<String, String> namesMap) {
         String prefKeyOrPrefix = jsonNameToPrefKeyPrefix(jsonPropName);
         String fullPath = (path == null ? "" : (path + ".")) + jsonPropName;
         int dataType = prefDataType(prefKeyOrPrefix);
@@ -3603,6 +3658,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     if (prefKey != null) {
                         getInstance().mPrefs.setString(prefKey, stringData);
                     }
+                    if (namesMap != null) {
+                        switch (prefKeyOrPrefix) {
+                            case PREF_TEST_GROUP_NAME_PREFIX:
+                                namesMap.put(prefKeyOrPrefix, stringData);
+                        }
+                    }
                     break;
                 case TYPE_SPANNED:
                     Spanned spannedData = getSpanned(jsonObject, jsonPropName);
@@ -3619,6 +3680,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     }
                     if (prefKey != null) {
                         getInstance().mPrefs.setCharSequence(prefKey, charSequenceData);
+                    }
+                    if (namesMap != null) {
+                        switch (prefKeyOrPrefix) {
+                            case PREF_IME_LABEL_TEXT_PREFIX:
+                            case PREF_IME_DEFAULT_TEXT_PREFIX:
+                            case PREF_IME_HINT_TEXT_PREFIX:
+                                namesMap.put(prefKeyOrPrefix, charSequenceData == null
+                                        ? null
+                                        : charSequenceData.toString());
+                        }
                     }
                     break;
                 case TYPE_INT_ARRAY:
@@ -3829,44 +3900,63 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return SharedPreferenceManager.buildSpanned(spannedInfo);
     }
 
-    public static void replaceSettings(JSONObject jsonObject, Context context) {
+    public static void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
+                                      boolean replaceFields, List<GroupInfo> groupInfoList,
+                                      boolean replaceOtherSettings, Context context) {
         Settings instance = getInstance();
         SharedPreferenceManager prefs = instance.mPrefs;
         prefs.unregisterOnSharedPreferenceChangeListener(instance);
         try {
-            // delete the old groups and fields before adding the new ones
-            setTestFieldGroupIds(new int[0]);
+            if (replaceFields) {
+                // delete the old groups and fields before adding the new ones
+                setTestFieldGroupIds(new int[0]);
+            }
 
             if (jsonObject.has(GROUPS_JSON_PROP)) {
                 JSONArray groupsJsonArray = jsonObject.getJSONArray(GROUPS_JSON_PROP);
 
                 List<Integer> groupIds = new ArrayList<>();
                 List<Integer> fieldIds = new ArrayList<>();
+                if (!replaceFields) {
+                    groupIds.addAll(instance.mTestGroups.keySet());
+                    fieldIds.addAll(instance.mTestFields.keySet());
+                }
                 for (int i = 0; i < groupsJsonArray.length(); i++) {
-                    int groupId = getNextId(groupIds);
-                    groupIds.add(groupId);
+                    GroupInfo groupInfo = groupInfoList.get(i);
+                    int groupId;
+                    if (groupInfo.mInclude) {
+                        groupId = getNextId(groupIds);
+                        groupIds.add(groupId);
+                    } else {
+                        // add any fields to the last group
+                        groupId = instance.mTestGroupIds[instance.mTestGroupIds.length - 1];
+                    }
                     JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
                     addGroupJson(groupJsonObject, groupId, GROUPS_JSON_PROP + "[" + i + "]",
-                            fieldIds, context);
+                            fieldIds, groupInfo, context);
                 }
 
                 prefs.setIntArray(PREF_TEST_GROUP_IDS, toPrimitiveArray(groupIds));
             }
 
-            for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-                String prefKey = prefKeyPrefix + BASE_SUFFIX;
-                prefs.remove(prefKey);
-                String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
-                if (jsonObject.has(jsonProp)) {
-                    loadPrefData(jsonObject, jsonProp, null,  context, prefKey);
+            if (replaceFieldDefaults) {
+                for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+                    String prefKey = prefKeyPrefix + BASE_SUFFIX;
+                    prefs.remove(prefKey);
+                    String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
+                    if (jsonObject.has(jsonProp)) {
+                        loadPrefData(jsonObject, jsonProp, null, context, prefKey);
+                    }
                 }
             }
 
-            for (String prefKey : MISC_PREF_KEYS) {
-                prefs.remove(prefKey);
-                String jsonProp = prefKeyPrefixToJsonName(prefKey);
-                if (jsonObject.has(jsonProp)) {
-                    loadPrefData(jsonObject, jsonProp, null, context, prefKey);
+            if (replaceOtherSettings) {
+                for (String prefKey : MISC_PREF_KEYS) {
+                    prefs.remove(prefKey);
+                    String jsonProp = prefKeyPrefixToJsonName(prefKey);
+                    if (jsonObject.has(jsonProp)) {
+                        loadPrefData(jsonObject, jsonProp, null, context, prefKey);
+                    }
                 }
             }
 
@@ -3879,35 +3969,48 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static void addGroupJson(JSONObject groupJsonObject, int groupId, String path,
-                                     List<Integer> fieldIds, Context context)
+                                     List<Integer> fieldIds, GroupInfo groupInfo, Context context)
             throws JSONException {
         SharedPreferenceManager prefs = getInstance().mPrefs;
 
         if (groupJsonObject.has(FIELDS_JSON_PROP)) {
             JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(FIELDS_JSON_PROP);
 
+            List<Integer> groupFieldIds = new ArrayList<>();
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
+                if (!groupInfo.mFields.get(i).mInclude) {
+                    continue;
+                }
                 int fieldId = getNextId(fieldIds);
                 fieldIds.add(fieldId);
+                groupFieldIds.add(fieldId);
                 JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
                 addFieldJson(fieldJsonObject, fieldId,
                         path + "." + FIELDS_JSON_PROP + "[" + i + "]", context);
             }
 
-            prefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId,
-                    toPrimitiveArray(fieldIds));
+            int[] fieldIdsArray;
+            if (groupInfo.mInclude) {
+                fieldIdsArray = toPrimitiveArray(groupFieldIds);
+            } else {
+                fieldIdsArray = ArrayUtils.join(readTestGroupFieldIds(prefs, groupId),
+                        toPrimitiveArray(groupFieldIds));
+            }
+            prefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId, fieldIdsArray);
         }
 
-        for (String prefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
-            if (prefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
-                continue;
-            }
+        if (groupInfo.mInclude) {
+            for (String prefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
+                if (prefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
+                    continue;
+                }
 
-            String prefKey = prefKeyPrefix + GROUP_INFIX + groupId;
-            prefs.remove(prefKey);
-            String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
-            if (groupJsonObject.has(jsonProp)) {
-                loadPrefData(groupJsonObject, jsonProp, path, context, prefKey);
+                String prefKey = prefKeyPrefix + GROUP_INFIX + groupId;
+                prefs.remove(prefKey);
+                String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
+                if (groupJsonObject.has(jsonProp)) {
+                    loadPrefData(groupJsonObject, jsonProp, path, context, prefKey);
+                }
             }
         }
     }

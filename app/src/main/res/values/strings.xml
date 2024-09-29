@@ -45,7 +45,13 @@
     <string name="failed_to_parse_data">Failed to parse data for <xliff:g id="JSON_PATH">%s</xliff:g>.</string>
     <string name="unexpected_property">Unexpected property: <xliff:g id="JSON_PATH">%s</xliff:g></string>
     <string name="confirm_ignore_import_warnings">The following issues were encountered in the settings import file. Do you want to ignore the issues and continue importing what could be read?</string>
-    <string name="replace_all_settings_confirmation">This will replace all settings. Are you sure you want to continue?</string>
+    <string name="replace_existing_settings_confirmation">This will replace existing settings. Are you sure you want to continue?</string>
+    <string name="field_defaults">Field Defaults</string>
+    <string name="test_fields">Test Fields</string>
+    <string name="other_settings">Other Settings</string>
+    <string name="import_test_field_option_replace_all">Replace all</string>
+    <string name="import_test_field_option_add_specific_groups">Add specific groups</string>
+    <string name="import_test_field_option_add_specific_fields">Add specific fields</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
