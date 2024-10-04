@@ -187,7 +187,7 @@ public class MainSettingsFragment extends PreferenceFragment {
             }
         }
         if (message.length() > 0) {
-            message.insert(0, "\n");
+            message.insert(0, "\n\n");
             message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
             showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
                 ImportExportDialog.promptImport(getActivity(), info, this::importSettings);

@@ -3038,8 +3038,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
+    private static final String FIELD_DEFAULTS_JSON_PROP = "fieldDefaults";
     private static final String GROUPS_JSON_PROP = "groups";
     private static final String FIELDS_JSON_PROP = "fields";
+    private static final String OTHER_SETTINGS_JSON_PROP = "other";
+    private static final String GROUP_IS_AD_HOC_JSON_PROP = "adHoc";
     private static final String TEXT_LIST_ESCAPE_CHARS_JSON_PROP = "escapeChars";
     private static final String TEXT_LIST_DATA_ARRAY_JSON_PROP = "dataArray";
     private static final String TRANSLATE_TEXT_ORIGINAL_JSON_PROP = "original";
@@ -3070,26 +3073,30 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     // put the fields that are being exported without their containing group in a
                     // new ad-hoc group
                     JSONObject fillerGroupJsonObject = new JSONObject();
+                    fillerGroupJsonObject.put(GROUP_IS_AD_HOC_JSON_PROP, true);
                     fillerGroupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
                     groupsJsonArray.put(fillerGroupJsonObject);
-                    //TODO: (EW) would it be useful to flag this as a filler group so the import
-                    // could default to add specific fields?
                 }
 
                 jsonObject.put(GROUPS_JSON_PROP, groupsJsonArray);
             }
 
             if (exportFieldDefaults) {
+                JSONObject fieldDefaultsJsonObject = new JSONObject();
                 for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
                     String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
-                    addPrefData(jsonObject, defaultsPrefKeyPrefix, defaultsPrefKey, prefs);
+                    addPrefData(fieldDefaultsJsonObject, defaultsPrefKeyPrefix, defaultsPrefKey,
+                            prefs);
                 }
+                jsonObject.put(FIELD_DEFAULTS_JSON_PROP, fieldDefaultsJsonObject);
             }
 
             if (exportOtherSettings) {
+                JSONObject otherSettingsJsonObject = new JSONObject();
                 for (String miscPrefKey : MISC_PREF_KEYS) {
-                    addPrefData(jsonObject, miscPrefKey, miscPrefKey, prefs);
+                    addPrefData(otherSettingsJsonObject, miscPrefKey, miscPrefKey, prefs);
                 }
+                jsonObject.put(OTHER_SETTINGS_JSON_PROP, otherSettingsJsonObject);
             }
         } catch (JSONException e) {
             Log.e(TAG, "Failed to build settings JSON: " + e.getMessage());
@@ -3327,6 +3334,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         private final List<String> mUnexpectedProps = new ArrayList<>();
         private JSONObject mJsonObject;
         private List<GroupInfo> mGroups;
+        private boolean mIsFieldDefaultsIncluded;
+        private boolean mIsOtherSettingsIncluded;
 
         public String getError() {
             return mError;
@@ -3347,12 +3356,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         public List<GroupInfo> getGroups() {
             return mGroups;
         }
+
+        public boolean isFieldDefaultsIncluded() {
+            return mIsFieldDefaultsIncluded;
+        }
+
+        public boolean isOtherSettingsIncluded() {
+            return mIsOtherSettingsIncluded;
+        }
     }
     //TODO: (EW) don't make properties public
     public static class GroupInfo {
         public List<FieldInfo> mFields;
         public String mName;
         public boolean mInclude;
+        public boolean mIsAdHoc;
     }
     public static class FieldInfo {
         public String mName;
@@ -3380,24 +3398,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         groups.add(groupInfo);
                     }
                     info.mGroups = groups;
-                    continue;
-                }
-                String defaultableTestFieldPrefKeyPrefix =
-                        findKeyOrKeyPrefixForProp(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES, key);
-                if (defaultableTestFieldPrefKeyPrefix != null) {
-                    if (!validatePrefData(info.mJsonObject, key, null, info, context, null)) {
+                } else if (key.equals(FIELD_DEFAULTS_JSON_PROP)) {
+                    JSONObject fieldDefaultsJsonObject = info.mJsonObject.getJSONObject(key);
+                    if (!validateGroupedSettingsJson(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES,
+                            fieldDefaultsJsonObject, info, key, context)) {
                         return info;
                     }
-                    continue;
-                }
-                String miscPrefKey = findKeyOrKeyPrefixForProp(MISC_PREF_KEYS, key);
-                if (miscPrefKey != null) {
-                    if (!validatePrefData(info.mJsonObject, key, null, info, context, null)) {
+                    info.mIsFieldDefaultsIncluded = true;
+                } else if (key.equals(OTHER_SETTINGS_JSON_PROP)) {
+                    JSONObject otherSettingsJsonObject = info.mJsonObject.getJSONObject(key);
+                    if (!validateGroupedSettingsJson(MISC_PREF_KEYS,
+                            otherSettingsJsonObject, info, key, context)) {
                         return info;
                     }
-                    continue;
+                    info.mIsOtherSettingsIncluded = true;
+                } else {
+                    info.mUnexpectedProps.add(key);
                 }
-                info.mUnexpectedProps.add(key);
             }
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
@@ -3427,6 +3444,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         return false;
                     }
                     fields.add(fieldInfo);
+                }
+                continue;
+            }
+            if (key.equals(GROUP_IS_AD_HOC_JSON_PROP)) {
+                try {
+                    groupInfo.mIsAdHoc = groupJsonObject.getBoolean(key);
+                } catch (JSONException e) {
+                    logJsonException(e, path + "." + key, info, context);
                 }
                 continue;
             }
@@ -3482,6 +3507,25 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         fieldInfo.mName = name != null
                 ? name
                 : context.getString(R.string.test_field_default_name, fieldIndex + 1);
+        return true;
+    }
+
+    private static boolean validateGroupedSettingsJson(String[] keyOrKeyPrefixArray,
+                                                       JSONObject jsonObject,
+                                                       ImportFileInfo info, String path,
+                                                       Context context) {
+        Iterator<String> keys = jsonObject.keys();
+        while(keys.hasNext()) {
+            String key = keys.next();
+            String prefKeyPrefix = findKeyOrKeyPrefixForProp(keyOrKeyPrefixArray, key);
+            if (prefKeyPrefix != null) {
+                if (!validatePrefData(jsonObject, key, path, info, context, null)) {
+                    return false;
+                }
+            } else {
+                info.mUnexpectedProps.add(path + "." + key);
+            }
+        }
         return true;
     }
 
@@ -3855,18 +3899,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     throw new RuntimeException("Unknown data type for " + prefKeyOrPrefix);
             }
         } catch (JSONException e) {
-            String message = e.getMessage();
-            Log.e(TAG, fullPath + ": " + message);
-            if (info != null) {
-                if (message != null && message.matches(
-                        "Value not a [\\w\\.]+ at \\w+ of type [\\w\\.]+ cannot be converted to [\\w\\.]+")) {
-                    info.mWarnings.add(context.getString(R.string.invalid_data_type, fullPath));
-                } else {
-                    info.mWarnings.add(context.getString(R.string.failed_to_parse_data, fullPath));
-                }
-            }
+            logJsonException(e, fullPath, info, context);
         }
         return true;
+    }
+
+    private static void logJsonException(JSONException e, String path,
+                                         @Nullable ImportFileInfo info, @NonNull Context context) {
+        String message = e.getMessage();
+        Log.e(TAG, path + ": " + message);
+        if (info != null) {
+            if (message != null && message.matches(
+                    "Value .* at \\w+ of type [\\w\\.]+ cannot be converted to [\\w\\.]+")) {
+                info.mWarnings.add(context.getString(R.string.invalid_data_type, path));
+            } else {
+                info.mWarnings.add(context.getString(R.string.failed_to_parse_data, path));
+            }
+        }
     }
 
     private static int constrain(int value, int minValue, int maxValue, int stepValue) {
@@ -3974,22 +4023,32 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             }
 
             if (replaceFieldDefaults) {
+                JSONObject fieldDefaultsJsonObject = jsonObject.has(FIELD_DEFAULTS_JSON_PROP)
+                        ? jsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP)
+                        : null;
                 for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
                     String prefKey = prefKeyPrefix + BASE_SUFFIX;
                     prefs.remove(prefKey);
-                    String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
-                    if (jsonObject.has(jsonProp)) {
-                        loadPrefData(jsonObject, jsonProp, null, context, prefKey);
+                    if (fieldDefaultsJsonObject != null) {
+                        String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
+                        if (fieldDefaultsJsonObject.has(jsonProp)) {
+                            loadPrefData(fieldDefaultsJsonObject, jsonProp, null, context, prefKey);
+                        }
                     }
                 }
             }
 
             if (replaceOtherSettings) {
+                JSONObject otherSettingsJsonObject = jsonObject.has(OTHER_SETTINGS_JSON_PROP)
+                        ? jsonObject.getJSONObject(OTHER_SETTINGS_JSON_PROP)
+                        : null;
                 for (String prefKey : MISC_PREF_KEYS) {
                     prefs.remove(prefKey);
-                    String jsonProp = prefKeyPrefixToJsonName(prefKey);
-                    if (jsonObject.has(jsonProp)) {
-                        loadPrefData(jsonObject, jsonProp, null, context, prefKey);
+                    if (otherSettingsJsonObject != null) {
+                        String jsonProp = prefKeyPrefixToJsonName(prefKey);
+                        if (otherSettingsJsonObject.has(jsonProp)) {
+                            loadPrefData(otherSettingsJsonObject, jsonProp, null, context, prefKey);
+                        }
                     }
                 }
             }

@@ -31,6 +31,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings.FieldInfo;
@@ -49,33 +50,38 @@ public class ImportExportDialog extends AlertDialog {
     private static final int IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS = 1;
     private static final int IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS = 2;
 
-    private final List<GroupInfo> mGroups;
+    private final boolean mIncludeFieldDefaults;
+    private final @Nullable List<GroupInfo> mGroups;
+    private final boolean mIncludeOtherSettings;
     private final boolean mIsImport;
 
     public static void promptImport(Context context, ImportFileInfo info, Importer importer) {
-        new ImportExportDialog(context, info.getGroups(), info.getJsonObject(), importer,
-                null).show();
+        new ImportExportDialog(context, info.isFieldDefaultsIncluded(), info.getGroups(),
+                info.isOtherSettingsIncluded(), info.getJsonObject(), importer, null).show();
     }
 
     public static void promptExport(Context context, List<GroupInfo> groupInfoList,
                                     Exporter exporter) {
-        new ImportExportDialog(context, groupInfoList, null, null, exporter)
+        new ImportExportDialog(context, true, groupInfoList, true, null, null, exporter)
                 .show();
     }
 
-    private ImportExportDialog(Context context, List<GroupInfo> groupInfoList,
-                               JSONObject jsonObject, Importer importer,
-                               Exporter exporter) {
+    private ImportExportDialog(Context context, boolean includeFieldDefaults,
+                               @Nullable List<GroupInfo> groupInfoList,
+                               boolean includeOtherSettings, JSONObject jsonObject,
+                               Importer importer, Exporter exporter) {
         super(context);
         mIsImport = importer != null;
+        mIncludeFieldDefaults = includeFieldDefaults;
         mGroups = groupInfoList;
         // make sure all groups and fields are selected to be included by default
-        for (GroupInfo group : mGroups) {
+        for (GroupInfo group : nonNull(mGroups)) {
             group.mInclude = true;
             for (FieldInfo field : group.mFields) {
                 field.mInclude = true;
             }
         }
+        mIncludeOtherSettings = includeOtherSettings;
         setCancelable(true);
         setCanceledOnTouchOutside(true);
         setTitle(mIsImport ? R.string.import_settings : R.string.export_settings);
@@ -90,7 +96,7 @@ public class ImportExportDialog extends AlertDialog {
                                     .getValue();
                     if (!testFieldsCheckbox.isChecked()) {
                         // make sure no groups or fields are selected to be included
-                        for (GroupInfo group : mGroups) {
+                        for (GroupInfo group : nonNull(mGroups)) {
                             group.mInclude = false;
                             for (FieldInfo field : group.mFields) {
                                 field.mInclude = false;
@@ -98,7 +104,7 @@ public class ImportExportDialog extends AlertDialog {
                         }
                     } if (testFieldOption == IMPORT_EXPORT_FIELDS_ALL) {
                         // make sure all groups and fields are selected to be included
-                        for (GroupInfo group : mGroups) {
+                        for (GroupInfo group : nonNull(mGroups)) {
                             group.mInclude = true;
                             for (FieldInfo field : group.mFields) {
                                 field.mInclude = true;
@@ -107,14 +113,14 @@ public class ImportExportDialog extends AlertDialog {
                     } else if (testFieldOption == IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS) {
                         // make sure all fields in the selected groups (and only those fields)
                         // are selected to be included
-                        for (GroupInfo group : mGroups) {
+                        for (GroupInfo group : nonNull(mGroups)) {
                             for (FieldInfo field : group.mFields) {
                                 field.mInclude = group.mInclude;
                             }
                         }
                     } else if (testFieldOption == IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS) {
                         // make sure no groups are selected to be included
-                        for (GroupInfo group : mGroups) {
+                        for (GroupInfo group : nonNull(mGroups)) {
                             group.mInclude = false;
                         }
                     }
@@ -136,12 +142,31 @@ public class ImportExportDialog extends AlertDialog {
         setView(LayoutInflater.from(context).inflate(R.layout.import_export_dialog, null));
     }
 
+    private static <T> List<T> nonNull(@Nullable List<T> list) {
+        return list == null ? new ArrayList<>(0) : list;
+    }
+
+    private static void setSpinnerValue(Spinner spinner, int value) {
+        for (int i = 0; i < spinner.getAdapter().getCount(); i++) {
+            SpinnerEntry item = (SpinnerEntry) spinner.getAdapter().getItem(i);
+            if (item.getValue() == value) {
+                spinner.setSelection(i);
+                return;
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
         CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
         Spinner testFieldOptionSpinner = findViewById(R.id.testFieldOption);
         LinearLayout testFieldDynamicDetails = findViewById(R.id.testFieldDynamicDetails);
+        CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
+
+        fieldDefaultsCheckbox.setChecked(mIncludeFieldDefaults);
+        fieldDefaultsCheckbox.setEnabled(mIncludeFieldDefaults);
 
         testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             testFieldOptionSpinner.setEnabled(isChecked);
@@ -168,6 +193,24 @@ public class ImportExportDialog extends AlertDialog {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         testFieldOptionSpinner.setAdapter(adapter);
 
+        if (mGroups == null) {
+            testFieldsCheckbox.setChecked(false);
+            testFieldsCheckbox.setEnabled(false);
+            testFieldOptionSpinner.setEnabled(false);
+        } else if (!mIncludeFieldDefaults || !mIncludeOtherSettings
+                || (mGroups.size() == 1 && mGroups.get(0).mIsAdHoc)) {
+            // test fields should default to replace all only when all settings were exported since
+            // that allow a complete replacement of all settings. since not all of the settings can
+            // be replaced with what is in this import file, the user likely will want to keep the
+            // existing fields, so update the default to add the groups instead. if the only group
+            // is flagged as being ad hoc, individual fields were exported (not whole groups), so
+            // the import should default to match.
+            setSpinnerValue(testFieldOptionSpinner,
+                    mGroups.size() == 1 && mGroups.get(0).mIsAdHoc
+                            ? IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS
+                            : IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS);
+        }
+
         testFieldOptionSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position,
@@ -180,7 +223,7 @@ public class ImportExportDialog extends AlertDialog {
                     // don't need to show individual groups/fields
                     return;
                 }
-                for (GroupInfo group : mGroups) {
+                for (GroupInfo group : nonNull(mGroups)) {
                     if (option == IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS) {
                         CheckBox groupCheckbox = new CheckBox(getContext());
                         groupCheckbox.setText(group.mName);
@@ -219,6 +262,9 @@ public class ImportExportDialog extends AlertDialog {
 
             }
         });
+
+        otherSettingsCheckbox.setChecked(mIncludeOtherSettings);
+        otherSettingsCheckbox.setEnabled(mIncludeOtherSettings);
     }
 
     private static class SpinnerEntry {
