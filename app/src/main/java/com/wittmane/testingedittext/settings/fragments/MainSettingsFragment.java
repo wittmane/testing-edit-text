@@ -68,6 +68,9 @@ public class MainSettingsFragment extends PreferenceFragment {
     private static final String SETTINGS_FILE_MIME_TYPE = "application/json";
 
     private View mView;
+    private List<GroupInfo> mGroupsForExport;
+    private boolean mExportFieldDefaults;
+    private boolean mExportOtherSettings;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -100,13 +103,7 @@ public class MainSettingsFragment extends PreferenceFragment {
             intent.setType(SETTINGS_FILE_MIME_TYPE);
             startActivityForResult(intent, IMPORT_SETTINGS_FILE);
         } else if (itemId == R.id.action_export_settings) {
-            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType(SETTINGS_FILE_MIME_TYPE);
-            String instant = new SimpleDateFormat("yyyyMMddhhmmss", Locale.US)
-                    .format(Calendar.getInstance().getTime());
-            intent.putExtra(Intent.EXTRA_TITLE, "TestingEditTextSettings-" + instant + ".json");
-            startActivityForResult(intent, EXPORT_SETTINGS_FILE);
+            promptExportSettings();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -233,8 +230,8 @@ public class MainSettingsFragment extends PreferenceFragment {
                 Toast.LENGTH_LONG).show();
     }
 
-    private void exportSettings(Uri uri) {
-        List<GroupInfo> groupInfoList = new ArrayList<>();
+    private void promptExportSettings() {
+        mGroupsForExport = new ArrayList<>();
         int groupCount = Settings.getTestFieldGroupCount();
         for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
             GroupInfo groupInfo = new GroupInfo();
@@ -249,44 +246,55 @@ public class MainSettingsFragment extends PreferenceFragment {
                         getFieldDisplayName(getActivity(), groupIndex, fieldIndex).toString();
                 groupInfo.mFields.add(fieldInfo);
             }
-            groupInfoList.add(groupInfo);
+            mGroupsForExport.add(groupInfo);
         }
-        //TODO: (EW) should we prompt what to export before selecting the file to export it to?
-        ImportExportDialog.promptExport(getActivity(), groupInfoList,
+        ImportExportDialog.promptExport(getActivity(), mGroupsForExport,
                 (exportFieldDefaults, groupsForExport, exportOtherSettings) -> {
-                    try (ParcelFileDescriptor pfd =
-                                 getActivity().getContentResolver(). openFileDescriptor(uri, "w")) {
-                        if (pfd == null) {
-                            Log.e(TAG, "Parcel file descriptor is null");
-                            showErrorDialog(R.string.failed_to_export_settings,
-                                    R.string.failed_to_open_file);
-                            return;
-                        }
-                        try (FileOutputStream fileOutputStream =
-                                     new FileOutputStream(pfd.getFileDescriptor())) {
-                            String data = Settings.getJson(exportFieldDefaults, groupsForExport,
-                                    exportOtherSettings);
-                            if (data == null) {
-                                showErrorDialog(R.string.failed_to_export_settings,
-                                        R.string.failed_to_generate_export_data);
-                                return;
-                            }
-                            fileOutputStream.write(data.getBytes());
-                        }
-                    } catch (FileNotFoundException e) {
-                        Log.e(TAG, "File not found for exporting: " + e.getMessage());
-                        showErrorDialog(R.string.failed_to_export_settings,
-                                R.string.failed_to_find_file);
-                        return;
-                    } catch (IOException e) {
-                        Log.e(TAG, "Failed to write to file: " + e.getMessage());
-                        showErrorDialog(R.string.failed_to_export_settings,
-                                R.string.failed_to_write_file);
-                        return;
-                    }
-                    Toast.makeText(getActivity(),
-                            getActivity().getString(R.string.export_settings_successful),
-                            Toast.LENGTH_LONG).show();
+                    mExportFieldDefaults = exportFieldDefaults;
+                    mExportOtherSettings = exportOtherSettings;
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType(SETTINGS_FILE_MIME_TYPE);
+                    String instant = new SimpleDateFormat("yyyyMMddhhmmss", Locale.US)
+                            .format(Calendar.getInstance().getTime());
+                    intent.putExtra(Intent.EXTRA_TITLE, "TestingEditTextSettings-" + instant + ".json");
+                    startActivityForResult(intent, EXPORT_SETTINGS_FILE);
                 });
+    }
+
+    private void exportSettings(Uri uri) {
+        try (ParcelFileDescriptor pfd =
+                     getActivity().getContentResolver(). openFileDescriptor(uri, "w")) {
+            if (pfd == null) {
+                Log.e(TAG, "Parcel file descriptor is null");
+                showErrorDialog(R.string.failed_to_export_settings,
+                        R.string.failed_to_open_file);
+                return;
+            }
+            try (FileOutputStream fileOutputStream =
+                         new FileOutputStream(pfd.getFileDescriptor())) {
+                String data = Settings.getJson(mExportFieldDefaults, mGroupsForExport,
+                        mExportOtherSettings);
+                if (data == null) {
+                    showErrorDialog(R.string.failed_to_export_settings,
+                            R.string.failed_to_generate_export_data);
+                    return;
+                }
+                fileOutputStream.write(data.getBytes());
+            }
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "File not found for exporting: " + e.getMessage());
+            showErrorDialog(R.string.failed_to_export_settings,
+                    R.string.failed_to_find_file);
+            return;
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to write to file: " + e.getMessage());
+            showErrorDialog(R.string.failed_to_export_settings,
+                    R.string.failed_to_write_file);
+            return;
+        }
+        Toast.makeText(getActivity(),
+                getActivity().getString(R.string.export_settings_successful),
+                Toast.LENGTH_LONG).show();
     }
 }
