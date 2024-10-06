@@ -25,6 +25,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceFragment;
@@ -65,7 +66,14 @@ public class MainSettingsFragment extends PreferenceFragment {
 
     private static final int EXPORT_SETTINGS_FILE = 1;
     private static final int IMPORT_SETTINGS_FILE = 2;
-    private static final String SETTINGS_FILE_MIME_TYPE = "application/json";
+    // Android's system file picker didn't recognize the JSON MIME type until Android 10 (note
+    // alternate file picker apps can be used, and even on older version, some can support it), so
+    // to ensure the user is able to select the JSON files in those older versions, we'll have to
+    // allow a more broad MIME type.
+    private static final String SETTINGS_FILE_MIME_TYPE =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? "application/json"
+                    : "application/octet-stream";
 
     private View mView;
     private List<GroupInfo> mGroupsForExport;
