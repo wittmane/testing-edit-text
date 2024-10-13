@@ -41,7 +41,8 @@ import android.widget.Toast;
 import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IconUtils;
-import com.wittmane.testingedittext.settings.ImportExportDialog;
+import com.wittmane.testingedittext.settings.ImportExportContentDialog;
+import com.wittmane.testingedittext.settings.ImportExportSourceDialog;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldInfo;
 import com.wittmane.testingedittext.settings.Settings.GroupInfo;
@@ -76,9 +77,7 @@ public class MainSettingsFragment extends PreferenceFragment {
                     : "application/octet-stream";
 
     private View mView;
-    private List<GroupInfo> mGroupsForExport;
-    private boolean mExportFieldDefaults;
-    private boolean mExportOtherSettings;
+    private String mExportData;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -106,10 +105,18 @@ public class MainSettingsFragment extends PreferenceFragment {
     public boolean onOptionsItemSelected(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_import_settings) {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType(SETTINGS_FILE_MIME_TYPE);
-            startActivityForResult(intent, IMPORT_SETTINGS_FILE);
+            ImportExportSourceDialog.promptImport(getActivity(), rawJsonString -> {
+                if (rawJsonString == null) {
+                    // load from a file
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType(SETTINGS_FILE_MIME_TYPE);
+                    startActivityForResult(intent, IMPORT_SETTINGS_FILE);
+                } else {
+                    // settings data was directly entered
+                    importSettings(rawJsonString);
+                }
+            });
         } else if (itemId == R.id.action_export_settings) {
             promptExportSettings();
         }
@@ -174,7 +181,10 @@ public class MainSettingsFragment extends PreferenceFragment {
             showErrorDialog(R.string.failed_to_import_settings, R.string.failed_to_read_file);
             return;
         }
-        String rawJson = stringBuilder.toString();
+        importSettings(stringBuilder.toString());
+    }
+
+    private void importSettings(String rawJson) {
         ImportFileInfo info = Settings.validateJson(rawJson, getActivity());
         if (info.getError() != null) {
             showErrorDialog(R.string.failed_to_import_settings, info.getError());
@@ -187,18 +197,18 @@ public class MainSettingsFragment extends PreferenceFragment {
         if (!info.getUnexpectedProps().isEmpty()) {
             for (String unexpectedProp : info.getUnexpectedProps()) {
                 message.append(
-                        getActivity().getString(R.string.unexpected_property, unexpectedProp))
-                        .append("\n");
+                        getActivity().getString(R.string.unexpected_property, unexpectedProp));
+                message.append("\n");
             }
         }
         if (message.length() > 0) {
             message.insert(0, "\n\n");
             message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
             showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
-                ImportExportDialog.promptImport(getActivity(), info, this::importSettings);
+                ImportExportContentDialog.promptImport(getActivity(), info, this::importSettings);
             }, getActivity());
         } else {
-            ImportExportDialog.promptImport(getActivity(), info, this::importSettings);
+            ImportExportContentDialog.promptImport(getActivity(), info, this::importSettings);
         }
     }
 
@@ -239,7 +249,7 @@ public class MainSettingsFragment extends PreferenceFragment {
     }
 
     private void promptExportSettings() {
-        mGroupsForExport = new ArrayList<>();
+        List<GroupInfo> mGroupsForExport = new ArrayList<>();
         int groupCount = Settings.getTestFieldGroupCount();
         for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
             GroupInfo groupInfo = new GroupInfo();
@@ -256,21 +266,37 @@ public class MainSettingsFragment extends PreferenceFragment {
             }
             mGroupsForExport.add(groupInfo);
         }
-        ImportExportDialog.promptExport(getActivity(), mGroupsForExport,
+        ImportExportContentDialog.promptExport(getActivity(), mGroupsForExport,
                 (exportFieldDefaults, groupsForExport, exportOtherSettings) -> {
-                    mExportFieldDefaults = exportFieldDefaults;
-                    mExportOtherSettings = exportOtherSettings;
+            mExportData = Settings.getJson(exportFieldDefaults, groupsForExport,
+                            exportOtherSettings);
+            if (mExportData == null) {
+                showErrorDialog(R.string.failed_to_export_settings,
+                        R.string.failed_to_generate_export_data);
+                return;
+            }
+            ImportExportSourceDialog.promptExport(getActivity(), mExportData, rawJsonString -> {
+                // if there is a json string, we already exported to the screen/clipboard, so there
+                // isn't anything more to do
+                if (rawJsonString == null) {
+                    // export to file
                     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
                     intent.setType(SETTINGS_FILE_MIME_TYPE);
                     String instant = new SimpleDateFormat("yyyyMMddhhmmss", Locale.US)
                             .format(Calendar.getInstance().getTime());
-                    intent.putExtra(Intent.EXTRA_TITLE, "TestingEditTextSettings-" + instant + ".json");
+                    intent.putExtra(Intent.EXTRA_TITLE,
+                            "TestingEditTextSettings-" + instant + ".json");
                     startActivityForResult(intent, EXPORT_SETTINGS_FILE);
-                });
+                }
+            });
+        });
     }
 
     private void exportSettings(Uri uri) {
+        if (mExportData == null) {
+            return;
+        }
         try (ParcelFileDescriptor pfd =
                      getActivity().getContentResolver(). openFileDescriptor(uri, "w")) {
             if (pfd == null) {
@@ -281,14 +307,7 @@ public class MainSettingsFragment extends PreferenceFragment {
             }
             try (FileOutputStream fileOutputStream =
                          new FileOutputStream(pfd.getFileDescriptor())) {
-                String data = Settings.getJson(mExportFieldDefaults, mGroupsForExport,
-                        mExportOtherSettings);
-                if (data == null) {
-                    showErrorDialog(R.string.failed_to_export_settings,
-                            R.string.failed_to_generate_export_data);
-                    return;
-                }
-                fileOutputStream.write(data.getBytes());
+                fileOutputStream.write(mExportData.getBytes());
             }
         } catch (FileNotFoundException e) {
             Log.e(TAG, "File not found for exporting: " + e.getMessage());

@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //TODO: (EW) add validation for when nothing is selected to block the accept button
-public class ImportExportDialog extends AlertDialog {
+public class ImportExportContentDialog extends AlertDialog {
 
     private static final int IMPORT_EXPORT_FIELDS_ALL = 0;
     private static final int IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS = 1;
@@ -56,20 +56,20 @@ public class ImportExportDialog extends AlertDialog {
     private final boolean mIsImport;
 
     public static void promptImport(Context context, ImportFileInfo info, Importer importer) {
-        new ImportExportDialog(context, info.isFieldDefaultsIncluded(), info.getGroups(),
+        new ImportExportContentDialog(context, info.isFieldDefaultsIncluded(), info.getGroups(),
                 info.isOtherSettingsIncluded(), info.getJsonObject(), importer, null).show();
     }
 
     public static void promptExport(Context context, List<GroupInfo> groupInfoList,
                                     Exporter exporter) {
-        new ImportExportDialog(context, true, groupInfoList, true, null, null, exporter)
+        new ImportExportContentDialog(context, true, groupInfoList, true, null, null, exporter)
                 .show();
     }
 
-    private ImportExportDialog(Context context, boolean includeFieldDefaults,
-                               @Nullable List<GroupInfo> groupInfoList,
-                               boolean includeOtherSettings, JSONObject jsonObject,
-                               Importer importer, Exporter exporter) {
+    private ImportExportContentDialog(Context context, boolean includeFieldDefaults,
+                                      @Nullable List<GroupInfo> groupInfoList,
+                                      boolean includeOtherSettings, JSONObject jsonObject,
+                                      Importer importer, Exporter exporter) {
         super(context);
         mIsImport = importer != null;
         mIncludeFieldDefaults = includeFieldDefaults;
@@ -139,7 +139,7 @@ public class ImportExportDialog extends AlertDialog {
                 });
         setButton(DialogInterface.BUTTON_NEGATIVE, context.getText(android.R.string.cancel),
                 (OnClickListener) null);
-        setView(LayoutInflater.from(context).inflate(R.layout.import_export_dialog, null));
+        setView(LayoutInflater.from(context).inflate(R.layout.import_export_content_dialog, null));
     }
 
     private static <T> List<T> nonNull(@Nullable List<T> list) {

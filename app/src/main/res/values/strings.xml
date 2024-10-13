@@ -55,6 +55,12 @@
     <string name="export_test_field_option_all">Export all</string>
     <string name="export_test_field_option_specific_groups">Export specific groups</string>
     <string name="export_test_field_option_specific_fields">Export specific fields</string>
+    <string name="import_from_file">From file</string>
+    <string name="export_to_file">To file</string>
+    <string name="import_export_direct">Direct</string>
+    <string name="copy_to_clipboard">Copy</string>
+    <string name="paste_from_clipboard">Paste</string>
+    <string name="settings_copied_to_clipboard">The settings data was copied to the clipboard</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->

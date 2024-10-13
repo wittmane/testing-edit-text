@@ -33,6 +33,7 @@ import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.function.Predicate;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager.Editor;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
@@ -4132,22 +4133,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static int[] toPrimitiveArray(List<Integer> list) {
-        return Arrays.stream(list.toArray(new Integer[0])).mapToInt(i -> i).toArray();
-    }
-
-    // copied from java.util.function.Predicate to support older versions because that requires
-    // API level 24
-    /**
-     * Represents a predicate (boolean-valued function) of one argument.
-     * @param <T> the type of the input to the predicate
-     */
-    public interface Predicate<T> {
-        /**
-         * Evaluates this predicate on the given argument.
-         * @param t the input argument
-         * @return {@code true} if the input argument matches the predicate,
-         * otherwise {@code false}
-         */
-        boolean test(T t);
+        int[] array = new int[list.size()];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = list.get(i);
+        }
+        return array;
     }
 }
