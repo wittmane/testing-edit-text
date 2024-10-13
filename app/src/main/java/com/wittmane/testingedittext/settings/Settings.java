@@ -46,7 +46,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -300,7 +299,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
     };
 
-    private static final String[] DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] TEXT_INPUT_MODIFICATION_PREF_KEY_PREFIXES = new String[]{
             PREF_MODIFY_COMMITTED_TEXT_PREFIX,
             PREF_MODIFY_COMPOSED_TEXT_PREFIX,
             PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
@@ -310,19 +309,25 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_RESTRICT_RANGE_PREFIX,
             PREF_TRANSLATE_SPECIFIC_PREFIX,
             PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
-            PREF_SHIFT_CODEPOINT_PREFIX,
+            PREF_SHIFT_CODEPOINT_PREFIX
+    };
 
+    private static final String[] TEXT_RETURN_PREF_KEY_PREFIXES = new String[]{
             PREF_SKIP_EXTRACTING_TEXT_PREFIX,
             PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
             PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
             PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
             PREF_EXTRACT_FULL_TEXT_PREFIX,
             PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX,
-            PREF_LIMIT_RETURNED_TEXT_PREFIX,
+            PREF_LIMIT_RETURNED_TEXT_PREFIX
+    };
 
+    private static final String[] TEXT_COMPOSITION_PREF_KEY_PREFIXES = new String[]{
             PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
-            PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX,
+            PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX
+    };
 
+    private static final String[] TARGET_VERSION_SIMULATION_PREF_KEY_PREFIXES = new String[]{
             PREF_SKIP_TAKESNAPSHOT_PREFIX,
             PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
             PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
@@ -333,8 +338,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_SKIP_REQUESTCURSORUPDATES_PREFIX,
             PREF_SKIP_COMMITCORRECTION_PREFIX,
             PREF_SKIP_GETSELECTEDTEXT_PREFIX,
-            PREF_SKIP_SETCOMPOSINGREGION_PREFIX,
+            PREF_SKIP_SETCOMPOSINGREGION_PREFIX
+    };
 
+    private static final String[] SYSTEM_BEHAVIOR_SIMULATION_PREF_KEY_PREFIXES = new String[]{
             PREF_UPDATE_DELAY_PREFIX,
             PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
             PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
@@ -344,6 +351,28 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
             PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
     };
+
+    private static final String[] DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES = ArrayUtils.join(
+            TEXT_INPUT_MODIFICATION_PREF_KEY_PREFIXES,
+            TEXT_RETURN_PREF_KEY_PREFIXES,
+            TEXT_COMPOSITION_PREF_KEY_PREFIXES,
+            TARGET_VERSION_SIMULATION_PREF_KEY_PREFIXES,
+            SYSTEM_BEHAVIOR_SIMULATION_PREF_KEY_PREFIXES
+    );
+
+    private static final Map<String, String[]> DEFAULT_OVERRIDE_PREF_PREFIX_MAP = new HashMap<>();
+    static {
+        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.put(PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
+                TEXT_INPUT_MODIFICATION_PREF_KEY_PREFIXES);
+        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.put(PREF_OVERRIDE_TEXT_RETURN_PREFIX,
+                TEXT_RETURN_PREF_KEY_PREFIXES);
+        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.put(PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
+                TEXT_COMPOSITION_PREF_KEY_PREFIXES);
+        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.put(PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
+                TARGET_VERSION_SIMULATION_PREF_KEY_PREFIXES);
+        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.put(PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
+                SYSTEM_BEHAVIOR_SIMULATION_PREF_KEY_PREFIXES);
+    }
 
     private static final String[] TEST_GROUP_PREF_KEY_PREFIXES = new String[]{
             PREF_TEST_FIELD_IDS_PREFIX,
@@ -3050,7 +3079,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static final String TRANSLATE_TEXT_TRANSLATION_JSON_PROP = "translation";
 
     public static String getJson(boolean exportFieldDefaults, List<GroupInfo> groupInfoList,
-                                 boolean exportOtherSettings) {
+                                 boolean embedFieldDefaults, boolean exportOtherSettings) {
         SharedPreferenceManager prefs = getInstance().mPrefs;
         JSONObject jsonObject = new JSONObject();
         try {
@@ -3063,11 +3092,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     int groupId = groupIds[groupIndex];
                     GroupInfo groupInfo = groupInfoList.get(groupIndex);
                     if (groupInfoList.get(groupIndex).mInclude) {
-                        groupsJsonArray.put(getGroupJson(groupId, groupInfo, prefs));
+                        groupsJsonArray.put(
+                                getGroupJson(groupId, groupInfo, embedFieldDefaults, prefs));
                     } else if (prefs.contains(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId)) {
                         // collect the fields that are being exported without their containing group
                         // being exported
-                        addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo, prefs);
+                        addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo,
+                                embedFieldDefaults, prefs);
                     }
                 }
                 if (looseFieldsJsonArray.length() > 0) {
@@ -3107,6 +3138,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static JSONObject getGroupJson(int groupId, GroupInfo groupInfo,
+                                           boolean embedFieldDefaults,
                                            SharedPreferenceManager prefs)
             throws JSONException {
         JSONObject groupJsonObject = new JSONObject();
@@ -3118,7 +3150,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 if (prefs.contains(groupPrefKey)) {
                     JSONArray fieldsJsonArray = new JSONArray();
 
-                    addGroupFieldsJson(fieldsJsonArray, groupId, groupInfo, prefs);
+                    addGroupFieldsJson(fieldsJsonArray, groupId, groupInfo, embedFieldDefaults,
+                            prefs);
 
                     groupJsonObject.put(FIELDS_JSON_PROP, fieldsJsonArray);
                 }
@@ -3131,7 +3164,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static void addGroupFieldsJson(JSONArray fieldsJsonArray, int groupId,
-                                           GroupInfo groupInfo, SharedPreferenceManager prefs)
+                                           GroupInfo groupInfo, boolean embedFieldDefaults,
+                                           SharedPreferenceManager prefs)
             throws JSONException {
         int[] fieldIds = readTestGroupFieldIds(prefs, groupId);
         for (int fieldIndex = 0; fieldIndex < fieldIds.length; fieldIndex++) {
@@ -3139,21 +3173,40 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             if (!groupInfo.mFields.get(fieldIndex).mInclude) {
                 continue;
             }
-            fieldsJsonArray.put(getFieldJson(fieldId, prefs));
+            fieldsJsonArray.put(getFieldJson(fieldId, embedFieldDefaults, prefs));
         }
     }
 
-    private static JSONObject getFieldJson(int fieldId, SharedPreferenceManager prefs)
+    private static JSONObject getFieldJson(int fieldId, boolean embedFieldDefaults,
+                                           SharedPreferenceManager prefs)
             throws JSONException {
         JSONObject fieldJsonObject = new JSONObject();
 
         for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
             String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
-            addPrefData(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey, prefs);
-        }
-        for (String fieldPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-            String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
-            addPrefData(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey, prefs);
+
+            if (DEFAULT_OVERRIDE_PREF_PREFIX_MAP.containsKey(fieldPrefKeyPrefix)) {
+                String suffix;
+                // embed defaults if requested and the field doesn't already override them,
+                // otherwise just load the override values
+                if (embedFieldDefaults && !prefs.getBoolean(fieldPrefKey, false)) {
+                    suffix = BASE_SUFFIX;
+                    String jsonPropName = prefKeyPrefixToJsonName(fieldPrefKeyPrefix);
+                    fieldJsonObject.put(jsonPropName, true);
+                } else {
+                    suffix = FIELD_INFIX + fieldId;
+                    addPrefData(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey, prefs);
+                }
+                String[] fieldDefaultsPrefKeys =
+                        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.get(fieldPrefKeyPrefix);
+                for (String fieldDefaultPrefKeyPrefix : fieldDefaultsPrefKeys) {
+                    String fieldDefaultPrefKey = fieldDefaultPrefKeyPrefix + suffix;
+                    addPrefData(fieldJsonObject, fieldDefaultPrefKeyPrefix, fieldDefaultPrefKey,
+                            prefs);
+                }
+            } else {
+                addPrefData(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey, prefs);
+            }
         }
 
         return fieldJsonObject;

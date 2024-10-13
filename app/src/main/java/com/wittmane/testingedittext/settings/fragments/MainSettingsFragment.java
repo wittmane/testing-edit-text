@@ -267,8 +267,8 @@ public class MainSettingsFragment extends PreferenceFragment {
             mGroupsForExport.add(groupInfo);
         }
         ImportExportContentDialog.promptExport(getActivity(), mGroupsForExport,
-                (exportFieldDefaults, groupsForExport, exportOtherSettings) -> {
-            mExportData = Settings.getJson(exportFieldDefaults, groupsForExport,
+                (exportFieldDefaults, groupsForExport, embedFieldDefaults, exportOtherSettings) -> {
+            mExportData = Settings.getJson(exportFieldDefaults, groupsForExport, embedFieldDefaults,
                             exportOtherSettings);
             if (mExportData == null) {
                 showErrorDialog(R.string.failed_to_export_settings,

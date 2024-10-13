@@ -71,6 +71,14 @@
 
                 </LinearLayout>
 
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/embed_field_defaults"
+                    android:checked="false"
+                    android:enabled="false"
+                    android:id="@+id/embedFieldDefaults" />
+
             </LinearLayout>
 
             <CheckBox

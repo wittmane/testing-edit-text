@@ -91,6 +91,7 @@ public class ImportExportContentDialog extends AlertDialog {
                     CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
                     Spinner testFieldOptionSpinner =
                             findViewById(R.id.testFieldOption);
+                    CheckBox embedFieldDefaultsCheckbox = findViewById(R.id.embedFieldDefaults);
                     int testFieldOption =
                             ((SpinnerEntry) testFieldOptionSpinner.getSelectedItem())
                                     .getValue();
@@ -126,6 +127,7 @@ public class ImportExportContentDialog extends AlertDialog {
                     }
                     CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
                     if (importer != null) {
+                        //TODO: (EW) handle embedFieldDefaultsCheckbox
                         importer.importSettings(jsonObject,
                                 fieldDefaultsCheckbox.isChecked(),
                                 testFieldsCheckbox.isChecked() && testFieldOption == 0,
@@ -134,6 +136,8 @@ public class ImportExportContentDialog extends AlertDialog {
                     } else {
                         exporter.exportSettings(fieldDefaultsCheckbox.isChecked(),
                                 testFieldsCheckbox.isChecked() ? mGroups : null,
+                                !fieldDefaultsCheckbox.isChecked()
+                                        && embedFieldDefaultsCheckbox.isChecked(),
                                 otherSettingsCheckbox.isChecked());
                     }
                 });
@@ -162,11 +166,23 @@ public class ImportExportContentDialog extends AlertDialog {
         CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
         CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
         Spinner testFieldOptionSpinner = findViewById(R.id.testFieldOption);
+        CheckBox embedFieldDefaultsCheckbox = findViewById(R.id.embedFieldDefaults);
         LinearLayout testFieldDynamicDetails = findViewById(R.id.testFieldDynamicDetails);
         CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
 
         fieldDefaultsCheckbox.setChecked(mIncludeFieldDefaults);
         fieldDefaultsCheckbox.setEnabled(mIncludeFieldDefaults);
+        fieldDefaultsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!mIsImport) {
+                // if the defaults are being exported, there's no point in embedding them, so
+                // disable the option
+                embedFieldDefaultsCheckbox.setEnabled(!isChecked);
+            }
+        });
+        //TODO: (EW) handle importing - skipping for now
+        if (mIsImport) {
+            embedFieldDefaultsCheckbox.setVisibility(View.GONE);
+        }
 
         testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             testFieldOptionSpinner.setEnabled(isChecked);
@@ -294,6 +310,6 @@ public class ImportExportContentDialog extends AlertDialog {
 
     public interface Exporter {
         void exportSettings(boolean exportFieldDefaults, List<GroupInfo> groupInfoList,
-                            boolean exportOtherSettings);
+                            boolean embedFieldDefaults, boolean exportOtherSettings);
     }
 }

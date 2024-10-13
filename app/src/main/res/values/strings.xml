@@ -48,6 +48,7 @@
     <string name="replace_existing_settings_confirmation">This will replace existing settings. Are you sure you want to continue?</string>
     <string name="field_defaults">Field Defaults</string>
     <string name="test_fields">Test Fields</string>
+    <string name="embed_field_defaults">Embed defaults</string>
     <string name="other_settings">Other Settings</string>
     <string name="import_test_field_option_replace_all">Replace all</string>
     <string name="import_test_field_option_add_specific_groups">Add specific groups</string>

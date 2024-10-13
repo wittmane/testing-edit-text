@@ -349,6 +349,28 @@ public class ArrayUtils {
         return result;
     }
 
+    // (EW) custom
+    public static @NonNull String[] join(@Nullable String[]... stringArrays) {
+        int totalLength = 0;
+        if (stringArrays != null) {
+            for (String[] stringArray : stringArrays) {
+                totalLength += stringArray == null ? 0 : stringArray.length;
+            }
+        }
+        String[] result = new String[totalLength];
+        if (stringArrays != null) {
+            int position = 0;
+            for (String[] stringArray : stringArrays) {
+                if (stringArray == null) {
+                    continue;
+                }
+                System.arraycopy(stringArray, 0, result, position, stringArray.length);
+                position += stringArray.length;
+            }
+        }
+        return result;
+    }
+
     // (EW) from libcore.util
     public static final class EmptyArray {
         private EmptyArray() {}
