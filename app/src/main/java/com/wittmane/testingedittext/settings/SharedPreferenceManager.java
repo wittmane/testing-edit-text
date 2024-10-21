@@ -30,6 +30,7 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +42,8 @@ import java.util.Set;
  */
 public class SharedPreferenceManager implements SharedPreferences {
     private static final String TAG = SharedPreferenceManager.class.getSimpleName();
+    private static final boolean LOG_READS = false;
+    private static final boolean LOG_WRITES = false;
 
     private static final String SPANNED_STRING_PREF_PREFIX =
             createTypePrefix("ca64cdf7e8164fd2ac8d6be6c23785e2");
@@ -133,6 +136,9 @@ public class SharedPreferenceManager implements SharedPreferences {
 
     @Override
     public Map<String, ?> getAll() {
+        if (LOG_READS) {
+            Log.d(TAG, "getAll");
+        }
         Map<String, ?> baseAllPrefs = mPrefs.getAll();
         Map<String, Object> allPrefs = new HashMap<>();
         for (String prefKey : baseAllPrefs.keySet()) {
@@ -144,6 +150,9 @@ public class SharedPreferenceManager implements SharedPreferences {
     @Nullable
     @Override
     public String getString(String key, @Nullable String defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getString: " + key);
+        }
         mLoadedPrefKeys.add(key);
         String value = mPrefs.getString(key, defaultValue);
         String specialTypeName = getSpecialTypeName(value);
@@ -159,30 +168,45 @@ public class SharedPreferenceManager implements SharedPreferences {
     @Nullable
     @Override
     public Set<String> getStringSet(String key, @Nullable Set<String> defaultValues) {
+        if (LOG_READS) {
+            Log.d(TAG, "getStringSet: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getStringSet(key, defaultValues);
     }
 
     @Override
     public int getInt(String key, int defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getInt: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getInt(key, defaultValue);
     }
 
     @Override
     public long getLong(String key, long defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getLong: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getLong(key, defaultValue);
     }
 
     @Override
     public float getFloat(String key, float defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getFloat: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getFloat(key, defaultValue);
     }
 
     @Override
     public boolean getBoolean(String key, boolean defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getBoolean: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getBoolean(key, defaultValue);
     }
@@ -198,6 +222,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public Spanned getSpanned(String key, @Nullable Spanned defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getSpanned: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -239,6 +266,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public String[] getStringArray(String key, @Nullable String[] defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getStringArray: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -302,6 +332,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public int[] getIntArray(String key, @Nullable int[] defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getIntArray: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -355,6 +388,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public CharSequence getCharSequence(String key, @Nullable CharSequence defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getCharSequence: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -539,36 +575,55 @@ public class SharedPreferenceManager implements SharedPreferences {
                 Log.e(TAG, "The value for " + key + " appears to be a " + specialTypeName
                         + " but is being set as a String, which may cause issues");
             }
+            if (LOG_WRITES) {
+                Log.d(TAG, "putString: key=" + key
+                        + ", value=" + (value != null ? "\"" + value + "\"" : "null"));
+            }
             mEditor.putString(key, value);
             return this;
         }
 
         @Override
         public Editor putStringSet(String key, @Nullable Set<String> value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putStringSet: key=" + key + ", value=" + value);
+            }
             mEditor.putStringSet(key, value);
             return this;
         }
 
         @Override
         public Editor putInt(String key, int value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putInt: key=" + key + ", value=" + value);
+            }
             mEditor.putInt(key, value);
             return this;
         }
 
         @Override
         public Editor putLong(String key, long value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putLong: key=" + key + ", value=" + value);
+            }
             mEditor.putLong(key, value);
             return this;
         }
 
         @Override
         public Editor putFloat(String key, float value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putFloat: key=" + key + ", value=" + value);
+            }
             mEditor.putFloat(key, value);
             return this;
         }
 
         @Override
         public Editor putBoolean(String key, boolean value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putBoolean: key=" + key + ", value=" + value);
+            }
             mEditor.putBoolean(key, value);
             return this;
         }
@@ -580,6 +635,10 @@ public class SharedPreferenceManager implements SharedPreferences {
          * @param value The new value for the preference.
          */
         public Editor putSpanned(String key, @Nullable Spanned value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putSpanned: key=" + key
+                        + ", value=" + (value != null ? "\"" + value + "\"" : "null"));
+            }
             String serializedSpannedInfo;
             if (value == null) {
                 serializedSpannedInfo = "";
@@ -616,6 +675,9 @@ public class SharedPreferenceManager implements SharedPreferences {
          * @param value The new value for the preference.
          */
         public Editor putStringArray(String key, @Nullable String[] value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putStringArray: key=" + key + ", value=" + Arrays.toString(value));
+            }
             String serializedArrayInfo;
             if (value == null) {
                 serializedArrayInfo = "";
@@ -645,6 +707,9 @@ public class SharedPreferenceManager implements SharedPreferences {
          * @param value The new value for the preference.
          */
         public Editor putIntArray(String key, @Nullable int[] value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putIntArray: key=" + key + ", value=" + Arrays.toString(value));
+            }
             String serializedArrayInfo;
             if (value == null) {
                 serializedArrayInfo = "";
@@ -661,23 +726,35 @@ public class SharedPreferenceManager implements SharedPreferences {
 
         @Override
         public Editor remove(String key) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "remove: key=" + key);
+            }
             mEditor.remove(key);
             return this;
         }
 
         @Override
         public Editor clear() {
+            if (LOG_WRITES) {
+                Log.d(TAG, "clear");
+            }
             mEditor.clear();
             return this;
         }
 
         @Override
         public boolean commit() {
+            if (LOG_WRITES) {
+                Log.d(TAG, "commit");
+            }
             return mEditor.commit();
         }
 
         @Override
         public void apply() {
+            if (LOG_WRITES) {
+                Log.d(TAG, "apply");
+            }
             mEditor.apply();
         }
     }

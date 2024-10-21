@@ -214,29 +214,29 @@ public class MainSettingsFragment extends PreferenceFragment {
 
     private void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
                                 boolean replaceFields, List<GroupInfo> groupInfoList,
-                                boolean replaceOtherSettings) {
+                                boolean embedFieldDefaults, boolean replaceOtherSettings) {
         if (replaceFieldDefaults || replaceFields || replaceOtherSettings) {
             showWarningConfirmationDialog(R.string.import_settings,
                     R.string.replace_existing_settings_confirmation,
                     () -> {
                         importSettingsCore(jsonObject, replaceFieldDefaults, replaceFields,
-                                groupInfoList, replaceOtherSettings);
+                                groupInfoList, embedFieldDefaults, replaceOtherSettings);
                     },
                     getActivity());
         } else {
             importSettingsCore(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
-                    replaceOtherSettings);
+                    embedFieldDefaults, replaceOtherSettings);
         }
     }
 
     //TODO: (EW) name better
     private void importSettingsCore(JSONObject jsonObject, boolean replaceFieldDefaults,
                                     boolean replaceFields, List<GroupInfo> groupInfoList,
-                                    boolean replaceOtherSettings) {
+                                    boolean embedFieldDefaults, boolean replaceOtherSettings) {
         int oldThemeId = Settings.getThemeId(getActivity());
 
         Settings.importSettings(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
-                replaceOtherSettings, getActivity());
+                embedFieldDefaults, replaceOtherSettings, getActivity());
 
         // handle theme changes
         int newThemeId = Settings.getThemeId(getActivity());

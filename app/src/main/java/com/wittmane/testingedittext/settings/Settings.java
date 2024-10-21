@@ -4039,11 +4039,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
                                       boolean replaceFields, List<GroupInfo> groupInfoList,
-                                      boolean replaceOtherSettings, Context context) {
+                                      boolean embedFieldDefaults, boolean replaceOtherSettings,
+                                      Context context) {
         Settings instance = getInstance();
         SharedPreferenceManager prefs = instance.mPrefs;
         prefs.unregisterOnSharedPreferenceChangeListener(instance);
         try {
+            JSONObject fieldDefaultsJsonObject = jsonObject.has(FIELD_DEFAULTS_JSON_PROP)
+                    ? jsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP)
+                    : null;
+
             if (replaceFields) {
                 // delete the old groups and fields before adding the new ones
                 setTestFieldGroupIds(new int[0]);
@@ -4070,16 +4075,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     }
                     JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
                     addGroupJson(groupJsonObject, groupId, GROUPS_JSON_PROP + "[" + i + "]",
-                            fieldIds, groupInfo, context);
+                            fieldIds, groupInfo, embedFieldDefaults, fieldDefaultsJsonObject,
+                            context);
                 }
 
                 prefs.setIntArray(PREF_TEST_GROUP_IDS, toPrimitiveArray(groupIds));
             }
 
             if (replaceFieldDefaults) {
-                JSONObject fieldDefaultsJsonObject = jsonObject.has(FIELD_DEFAULTS_JSON_PROP)
-                        ? jsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP)
-                        : null;
                 for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
                     String prefKey = prefKeyPrefix + BASE_SUFFIX;
                     prefs.remove(prefKey);
@@ -4116,7 +4119,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static void addGroupJson(JSONObject groupJsonObject, int groupId, String path,
-                                     List<Integer> fieldIds, GroupInfo groupInfo, Context context)
+                                     List<Integer> fieldIds, GroupInfo groupInfo,
+                                     boolean embedFieldDefaults, JSONObject fieldDefaultsJsonObject,
+                                     Context context)
             throws JSONException {
         SharedPreferenceManager prefs = getInstance().mPrefs;
 
@@ -4133,7 +4138,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 groupFieldIds.add(fieldId);
                 JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
                 addFieldJson(fieldJsonObject, fieldId,
-                        path + "." + FIELDS_JSON_PROP + "[" + i + "]", context);
+                        path + "." + FIELDS_JSON_PROP + "[" + i + "]",
+                        embedFieldDefaults, fieldDefaultsJsonObject, context);
             }
 
             int[] fieldIdsArray;
@@ -4162,26 +4168,60 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
-    private static void addFieldJson(JSONObject fieldJsonObject,
-                                     int fieldId, String path, Context context) {
+    private static void addFieldJson(JSONObject fieldJsonObject, int fieldId, String path,
+                                     boolean embedFieldDefaults, JSONObject fieldDefaultsJsonObject,
+                                     Context context) {
         SharedPreferenceManager prefs = getInstance().mPrefs;
 
-        for (String prefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
-            String prefKey = prefKeyPrefix + FIELD_INFIX + fieldId;
-            prefs.remove(prefKey);
-            String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
-            if (fieldJsonObject.has(jsonProp)) {
-                loadPrefData(fieldJsonObject, jsonProp, path, context, prefKey);
+        for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
+            String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
+            prefs.remove(fieldPrefKey);
+            String jsonProp = prefKeyPrefixToJsonName(fieldPrefKeyPrefix);
+
+            if (DEFAULT_OVERRIDE_PREF_PREFIX_MAP.containsKey(fieldPrefKeyPrefix)) {
+                JSONObject defaultableValueJsonObject;
+                String defaultableValuePath;
+                // embed defaults if requested and the field doesn't already override them,
+                // otherwise just save the override values
+                if (embedFieldDefaults
+                        && !tryGetBoolean(fieldJsonObject, jsonProp, false)) {
+                    defaultableValueJsonObject = fieldDefaultsJsonObject;
+                    defaultableValuePath = FIELD_DEFAULTS_JSON_PROP;
+                    getInstance().mPrefs.setBoolean(fieldPrefKey, true);
+                } else {
+                    defaultableValueJsonObject = fieldJsonObject;
+                    defaultableValuePath = path;
+                    if (fieldJsonObject.has(jsonProp)) {
+                        loadPrefData(fieldJsonObject, jsonProp, path, context, fieldPrefKey);
+                    }
+                }
+                String[] fieldDefaultsPrefKeys =
+                        DEFAULT_OVERRIDE_PREF_PREFIX_MAP.get(fieldPrefKeyPrefix);
+                for (String fieldDefaultPrefKeyPrefix : fieldDefaultsPrefKeys) {
+                    String fieldDefaultPrefKey = fieldDefaultPrefKeyPrefix + FIELD_INFIX + fieldId;
+                    String fieldDefaultJsonProp =
+                            prefKeyPrefixToJsonName(fieldDefaultPrefKeyPrefix);
+                    if (defaultableValueJsonObject.has(fieldDefaultJsonProp)) {
+                        loadPrefData(defaultableValueJsonObject, fieldDefaultJsonProp,
+                                defaultableValuePath, context, fieldDefaultPrefKey);
+                    }
+                }
+            } else {
+                if (fieldJsonObject.has(jsonProp)) {
+                    loadPrefData(fieldJsonObject, jsonProp, path, context, fieldPrefKey);
+                }
             }
         }
+    }
 
-        for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-            String prefKey = prefKeyPrefix + FIELD_INFIX + fieldId;
-            prefs.remove(prefKey);
-            String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
-            if (fieldJsonObject.has(jsonProp)) {
-                loadPrefData(fieldJsonObject, jsonProp, path, context, prefKey);
-            }
+    private static boolean tryGetBoolean(JSONObject jsonObject, String prop, boolean defaultValue) {
+        if (jsonObject == null || !jsonObject.has(prop)) {
+            return defaultValue;
+        }
+        try {
+            return jsonObject.getBoolean(prop);
+        } catch (JSONException e) {
+            return defaultValue;
         }
     }
 

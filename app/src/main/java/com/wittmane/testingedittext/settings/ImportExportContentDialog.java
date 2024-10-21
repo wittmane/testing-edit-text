@@ -126,18 +126,19 @@ public class ImportExportContentDialog extends AlertDialog {
                         }
                     }
                     CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
+                    boolean embedDefaults = !fieldDefaultsCheckbox.isChecked()
+                            && embedFieldDefaultsCheckbox.isChecked();
                     if (importer != null) {
-                        //TODO: (EW) handle embedFieldDefaultsCheckbox
                         importer.importSettings(jsonObject,
                                 fieldDefaultsCheckbox.isChecked(),
                                 testFieldsCheckbox.isChecked() && testFieldOption == 0,
                                 mGroups,
+                                embedDefaults,
                                 otherSettingsCheckbox.isChecked());
                     } else {
                         exporter.exportSettings(fieldDefaultsCheckbox.isChecked(),
                                 testFieldsCheckbox.isChecked() ? mGroups : null,
-                                !fieldDefaultsCheckbox.isChecked()
-                                        && embedFieldDefaultsCheckbox.isChecked(),
+                                embedDefaults,
                                 otherSettingsCheckbox.isChecked());
                     }
                 });
@@ -173,16 +174,10 @@ public class ImportExportContentDialog extends AlertDialog {
         fieldDefaultsCheckbox.setChecked(mIncludeFieldDefaults);
         fieldDefaultsCheckbox.setEnabled(mIncludeFieldDefaults);
         fieldDefaultsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!mIsImport) {
-                // if the defaults are being exported, there's no point in embedding them, so
-                // disable the option
-                embedFieldDefaultsCheckbox.setEnabled(!isChecked);
-            }
+            // if the defaults are being imported or exported, there's no point in embedding them
+            // since handling defaults will be able to work normally, so disable the option
+            embedFieldDefaultsCheckbox.setEnabled(!isChecked);
         });
-        //TODO: (EW) handle importing - skipping for now
-        if (mIsImport) {
-            embedFieldDefaultsCheckbox.setVisibility(View.GONE);
-        }
 
         testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             testFieldOptionSpinner.setEnabled(isChecked);
@@ -305,7 +300,7 @@ public class ImportExportContentDialog extends AlertDialog {
     public interface Importer {
         void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
                             boolean replaceFields, List<GroupInfo> groupInfoList,
-                            boolean replaceOtherSettings);
+                            boolean embedFieldDefaults, boolean replaceOtherSettings);
     }
 
     public interface Exporter {
