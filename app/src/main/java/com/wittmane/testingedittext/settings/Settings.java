@@ -252,7 +252,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String PREF_SHOW_REFERENCE_EDITTEXT =
             "pref_key_show_reference_edittext";
 
-    private static final String[] TEST_FIELD_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] TEST_FIELD_PREF_KEY_PREFIXES = new String[] {
             PREF_IME_LABEL_TEXT_PREFIX,
             PREF_IME_DEFAULT_TEXT_PREFIX,
             PREF_IME_HINT_TEXT_PREFIX,
@@ -299,7 +299,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
     };
 
-    private static final String[] TEXT_INPUT_MODIFICATION_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] TEXT_INPUT_MODIFICATION_PREF_KEY_PREFIXES = new String[] {
             PREF_MODIFY_COMMITTED_TEXT_PREFIX,
             PREF_MODIFY_COMPOSED_TEXT_PREFIX,
             PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX,
@@ -312,7 +312,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_SHIFT_CODEPOINT_PREFIX
     };
 
-    private static final String[] TEXT_RETURN_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] TEXT_RETURN_PREF_KEY_PREFIXES = new String[] {
             PREF_SKIP_EXTRACTING_TEXT_PREFIX,
             PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
             PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX,
@@ -322,12 +322,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_LIMIT_RETURNED_TEXT_PREFIX
     };
 
-    private static final String[] TEXT_COMPOSITION_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] TEXT_COMPOSITION_PREF_KEY_PREFIXES = new String[] {
             PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX,
             PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX
     };
 
-    private static final String[] TARGET_VERSION_SIMULATION_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] TARGET_VERSION_SIMULATION_PREF_KEY_PREFIXES = new String[] {
             PREF_SKIP_TAKESNAPSHOT_PREFIX,
             PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
             PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
@@ -341,7 +341,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_SKIP_SETCOMPOSINGREGION_PREFIX
     };
 
-    private static final String[] SYSTEM_BEHAVIOR_SIMULATION_PREF_KEY_PREFIXES = new String[]{
+    private static final String[] SYSTEM_BEHAVIOR_SIMULATION_PREF_KEY_PREFIXES = new String[] {
             PREF_UPDATE_DELAY_PREFIX,
             PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX,
             PREF_GETSURROUNDINGTEXT_DELAY_PREFIX,
@@ -374,9 +374,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 SYSTEM_BEHAVIOR_SIMULATION_PREF_KEY_PREFIXES);
     }
 
-    private static final String[] TEST_GROUP_PREF_KEY_PREFIXES = new String[]{
-            PREF_TEST_FIELD_IDS_PREFIX,
-            PREF_TEST_GROUP_NAME_PREFIX
+    private static final String[] TEST_GROUP_PREF_KEY_PREFIXES = new String[] {
+            PREF_TEST_GROUP_NAME_PREFIX,
+            PREF_TEST_FIELD_IDS_PREFIX
     };
 
     private static final String[] MISC_PREF_KEYS = new String[] {
@@ -692,7 +692,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         // intentionally skipping some preferences since they are read in groups, so listing them
         // all would just read all of them multiple times. leaving them commented out here for
         // visibility.
-        final String[] testFieldPrefKeyPrefixes = new String[]{
+        final String[] testFieldPrefKeyPrefixes = new String[] {
                 PREF_IME_LABEL_TEXT_PREFIX,
                 PREF_IME_DEFAULT_TEXT_PREFIX,
                 PREF_IME_HINT_TEXT_PREFIX,
