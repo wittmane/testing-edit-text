@@ -3130,7 +3130,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 }
                 jsonObject.put(OTHER_SETTINGS_JSON_PROP, otherSettingsJsonObject);
             }
-        } catch (JSONException e) {
+        } catch (JSONException | IllegalArgumentException e) {
             Log.e(TAG, "Failed to build settings JSON: " + e.getMessage());
             return null;
         }
@@ -3364,22 +3364,40 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static String prefKeyPrefixToJsonName(String prefKeyOrKeyPrefix) {
-        //TODO: (EW) probably should require the prefix
         int start = prefKeyOrKeyPrefix.startsWith(PREF_KEY_PREFIX) ? PREF_KEY_PREFIX.length() : 0;
-        return prefKeyOrKeyPrefix.substring(start);
+        String coreName = prefKeyOrKeyPrefix.substring(start);
+        return snakeCaseToCamelCase(coreName);
     }
 
-    private static String jsonNameToPrefKeyPrefix(String jsonPropName) {
-        return PREF_KEY_PREFIX + jsonPropName;
-    }
+    private static String snakeCaseToCamelCase(String name) {
+        if (!name.matches("[a-z](?:[a-z]|\\d)*(?:_(?:[a-z]|\\d)+)*")) {
+            throw new IllegalArgumentException(name + " isn't valid snake case");
+        }
+        int nextToAdd = 0;
+        int nextUnderscore;
+        StringBuilder sb = new StringBuilder();
+        while ((nextUnderscore = name.indexOf('_', nextToAdd)) >= 0) {
+            // add any text before the underscore that hasn't already been added/adjusted yet
+            sb.append(name.substring(nextToAdd, nextUnderscore));
+            nextToAdd = nextUnderscore + 1;
 
-    private static String findKeyOrKeyPrefixForProp(String[] keyOrPrefixArray, String jsonProp) {
-        for (String keyOrPrefix : keyOrPrefixArray) {
-            if (prefKeyPrefixToJsonName(keyOrPrefix).equals(jsonProp)) {
-                return keyOrPrefix;
+            if (nextUnderscore + 1 < name.length()) {
+                char c = name.charAt(nextUnderscore + 1);
+                if (c >= 'a' && c <= 'z') {
+                    // convert the character after the underscore to uppercase
+                    sb.append((char) (c - 'a' + 'A'));
+                    nextToAdd++;
+                } else if (c >= '0' && c <= '9') {
+                    // add the number without adjustment
+                    sb.append(c);
+                    nextToAdd++;
+                }
             }
         }
-        return null;
+        if (nextToAdd < name.length()) {
+            sb.append(name.substring(nextToAdd));
+        }
+        return sb.toString();
     }
 
     public static class ImportFileInfo {
@@ -3431,45 +3449,75 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         public boolean mInclude;
     }
 
+    private static Set<String> getProps(JSONObject jsonObject) {
+        Set<String> props = new HashSet<>();
+        Iterator<String> keys = jsonObject.keys();
+        while(keys.hasNext()) {
+            String key = keys.next();
+            props.add(key);
+        }
+        return props;
+    }
+
+    private static JSONObject getJsonObject(JSONObject jsonObject, String propName)
+            throws JSONException {
+        return jsonObject.has(propName)
+                ? jsonObject.getJSONObject(propName)
+                : null;
+    }
+
     public static ImportFileInfo validateJson(String rawJson, Context context) {
         ImportFileInfo info = new ImportFileInfo();
 
         try {
             info.mJsonObject = new JSONObject(rawJson);
-            Iterator<String> keys = info.mJsonObject.keys();
-            while(keys.hasNext()) {
-                String key = keys.next();
-                if (key.equals(GROUPS_JSON_PROP)) {
-                    List<GroupInfo> groups = new ArrayList<>();
-                    JSONArray groupsJsonArray = info.mJsonObject.getJSONArray(key);
-                    for (int i = 0; i < groupsJsonArray.length(); i++) {
-                        GroupInfo groupInfo = new GroupInfo();
-                        JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
-                        if (!validateGroupJson(groupJsonObject, info, i, key + "[" + i + "]",
-                                context, groupInfo)) {
-                            return info;
-                        }
-                        groups.add(groupInfo);
-                    }
-                    info.mGroups = groups;
-                } else if (key.equals(FIELD_DEFAULTS_JSON_PROP)) {
-                    JSONObject fieldDefaultsJsonObject = info.mJsonObject.getJSONObject(key);
-                    if (!validateGroupedSettingsJson(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES,
-                            fieldDefaultsJsonObject, info, key, context)) {
+            Set<String> props = getProps(info.mJsonObject);
+
+            //TODO: (EW) see if there is a good way to reduce duplicate code with tracking the
+            // unexpected properties
+            if (props.contains(GROUPS_JSON_PROP)) {
+                props.remove(GROUPS_JSON_PROP);
+
+                List<GroupInfo> groups = new ArrayList<>();
+                JSONArray groupsJsonArray = info.mJsonObject.getJSONArray(GROUPS_JSON_PROP);
+                for (int i = 0; i < groupsJsonArray.length(); i++) {
+                    GroupInfo groupInfo = new GroupInfo();
+                    JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
+                    if (!validateGroupJson(groupJsonObject, info, i,
+                            GROUPS_JSON_PROP + "[" + i + "]",
+                            context, groupInfo)) {
                         return info;
                     }
-                    info.mIsFieldDefaultsIncluded = true;
-                } else if (key.equals(OTHER_SETTINGS_JSON_PROP)) {
-                    JSONObject otherSettingsJsonObject = info.mJsonObject.getJSONObject(key);
-                    if (!validateGroupedSettingsJson(MISC_PREF_KEYS,
-                            otherSettingsJsonObject, info, key, context)) {
-                        return info;
-                    }
-                    info.mIsOtherSettingsIncluded = true;
-                } else {
-                    info.mUnexpectedProps.add(key);
+                    groups.add(groupInfo);
                 }
+                info.mGroups = groups;
             }
+
+            if (props.contains(FIELD_DEFAULTS_JSON_PROP)) {
+                props.remove(FIELD_DEFAULTS_JSON_PROP);
+
+                JSONObject fieldDefaultsJsonObject =
+                        info.mJsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP);
+                if (!validateGroupedSettingsJson(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES,
+                        fieldDefaultsJsonObject, info, FIELD_DEFAULTS_JSON_PROP, context)) {
+                    return info;
+                }
+                info.mIsFieldDefaultsIncluded = true;
+            }
+
+            if (props.contains(OTHER_SETTINGS_JSON_PROP)) {
+                props.remove(OTHER_SETTINGS_JSON_PROP);
+
+                JSONObject otherSettingsJsonObject =
+                        info.mJsonObject.getJSONObject(OTHER_SETTINGS_JSON_PROP);
+                if (!validateGroupedSettingsJson(MISC_PREF_KEYS,
+                        otherSettingsJsonObject, info, OTHER_SETTINGS_JSON_PROP, context)) {
+                    return info;
+                }
+                info.mIsOtherSettingsIncluded = true;
+            }
+
+            info.mUnexpectedProps.addAll(props);
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
             info.mError = context.getString(R.string.failed_to_parse_import_file);
@@ -3485,41 +3533,52 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             throws JSONException {
         Map<String, String> namesMap = new HashMap<>();
         List<FieldInfo> fields = new ArrayList<>();
-        Iterator<String> keys = groupJsonObject.keys();
-        while(keys.hasNext()) {
-            String key = keys.next();
-            if (key.equals(FIELDS_JSON_PROP)) {
-                JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(key);
-                for (int i = 0; i < fieldsJsonArray.length(); i++) {
-                    FieldInfo fieldInfo = new FieldInfo();
-                    JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
-                    if (!validateFieldJson(fieldJsonObject, info, groupIndex, i,
-                            path + "." + key + "[" + i + "]", context, fieldInfo)) {
-                        return false;
-                    }
-                    fields.add(fieldInfo);
-                }
-                continue;
-            }
-            if (key.equals(GROUP_IS_AD_HOC_JSON_PROP)) {
-                try {
-                    groupInfo.mIsAdHoc = groupJsonObject.getBoolean(key);
-                } catch (JSONException e) {
-                    logJsonException(e, path + "." + key, info, context);
-                }
-                continue;
-            }
-            String testGroupPrefKeyPrefix =
-                    findKeyOrKeyPrefixForProp(TEST_GROUP_PREF_KEY_PREFIXES, key);
-            if (testGroupPrefKeyPrefix != null
-                    && !testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
-                if (!validatePrefData(groupJsonObject, key, path, info, context, namesMap)) {
+
+        Set<String> props = getProps(groupJsonObject);
+
+        if (props.contains(FIELDS_JSON_PROP)) {
+            props.remove(FIELDS_JSON_PROP);
+
+            JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(FIELDS_JSON_PROP);
+            for (int i = 0; i < fieldsJsonArray.length(); i++) {
+                FieldInfo fieldInfo = new FieldInfo();
+                JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
+                if (!validateFieldJson(fieldJsonObject, info, groupIndex, i,
+                        path + "." + FIELDS_JSON_PROP + "[" + i + "]", context, fieldInfo)) {
                     return false;
                 }
-                continue;
+                fields.add(fieldInfo);
             }
-            info.mUnexpectedProps.add(path + "." + key);
         }
+
+        if (props.contains(GROUP_IS_AD_HOC_JSON_PROP)) {
+            props.remove(GROUP_IS_AD_HOC_JSON_PROP);
+
+            try {
+                groupInfo.mIsAdHoc = groupJsonObject.getBoolean(GROUP_IS_AD_HOC_JSON_PROP);
+            } catch (JSONException e) {
+                logJsonException(e, path + "." + GROUP_IS_AD_HOC_JSON_PROP, info, context);
+            }
+        }
+
+        for (String testGroupPrefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
+            String jsonProp = prefKeyPrefixToJsonName(testGroupPrefKeyPrefix);
+            if (props.contains(jsonProp)) {
+                props.remove(jsonProp);
+
+                if (!testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
+                    if (!validatePrefData(groupJsonObject, jsonProp, path, testGroupPrefKeyPrefix,
+                            info, context, namesMap)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        for (String prop : props) {
+            info.mUnexpectedProps.add(path + "." + prop);
+        }
+
         groupInfo.mFields = fields;
         String name = getName(namesMap, new String[] { PREF_TEST_GROUP_NAME_PREFIX });
         groupInfo.mName = name != null
@@ -3532,27 +3591,37 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                                              int groupIndex, int fieldIndex, String path,
                                              Context context, FieldInfo fieldInfo) {
         Map<String, String> namesMap = new HashMap<>();
-        Iterator<String> keys = fieldJsonObject.keys();
-        while(keys.hasNext()) {
-            String key = keys.next();
-            String testGroupPrefKeyPrefix =
-                    findKeyOrKeyPrefixForProp(TEST_FIELD_PREF_KEY_PREFIXES, key);
-            if (testGroupPrefKeyPrefix != null) {
-                if (!validatePrefData(fieldJsonObject, key, path, info, context, namesMap)) {
+
+        Set<String> props = getProps(fieldJsonObject);
+
+        for (String testFieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
+            String jsonProp = prefKeyPrefixToJsonName(testFieldPrefKeyPrefix);
+            if (props.contains(jsonProp)) {
+                props.remove(jsonProp);
+
+                if (!validatePrefData(fieldJsonObject, jsonProp, path, testFieldPrefKeyPrefix, info,
+                        context, namesMap)) {
                     return false;
                 }
-                continue;
             }
-            String defaultableTestFieldPrefKeyPrefix =
-                    findKeyOrKeyPrefixForProp(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES, key);
-            if (defaultableTestFieldPrefKeyPrefix != null) {
-                if (!validatePrefData(fieldJsonObject, key, path, info, context, null)) {
-                    return false;
-                }
-                continue;
-            }
-            info.mUnexpectedProps.add(path + "." + key);
         }
+
+        for (String defaultableTestFieldPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+            String jsonProp = prefKeyPrefixToJsonName(defaultableTestFieldPrefKeyPrefix);
+            if (props.contains(jsonProp)) {
+                props.remove(jsonProp);
+
+                if (!validatePrefData(fieldJsonObject, jsonProp, path,
+                        defaultableTestFieldPrefKeyPrefix, info, context, null)) {
+                    return false;
+                }
+            }
+        }
+
+        for (String prop : props) {
+            info.mUnexpectedProps.add(path + "." + prop);
+        }
+
         String name = getName(namesMap, new String[] {
                 PREF_IME_LABEL_TEXT_PREFIX,
                 PREF_IME_DEFAULT_TEXT_PREFIX,
@@ -3564,22 +3633,30 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return true;
     }
 
+    //TODO: (EW) rename - it sounds too much like it's referring to field groups. maybe use
+    // something different, like "cluster"
     private static boolean validateGroupedSettingsJson(String[] keyOrKeyPrefixArray,
                                                        JSONObject jsonObject,
                                                        ImportFileInfo info, String path,
                                                        Context context) {
-        Iterator<String> keys = jsonObject.keys();
-        while(keys.hasNext()) {
-            String key = keys.next();
-            String prefKeyPrefix = findKeyOrKeyPrefixForProp(keyOrKeyPrefixArray, key);
-            if (prefKeyPrefix != null) {
-                if (!validatePrefData(jsonObject, key, path, info, context, null)) {
+        Set<String> props = getProps(jsonObject);
+
+        for (String prefKeyPrefix : keyOrKeyPrefixArray) {
+            String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
+            if (props.contains(jsonProp)) {
+                props.remove(jsonProp);
+
+                if (!validatePrefData(jsonObject, jsonProp, path, prefKeyPrefix, info, context,
+                        null)) {
                     return false;
                 }
-            } else {
-                info.mUnexpectedProps.add(path + "." + key);
             }
         }
+
+        for (String prop : props) {
+            info.mUnexpectedProps.add(path + "." + prop);
+        }
+
         return true;
     }
 
@@ -3597,25 +3674,27 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private static boolean validatePrefData(JSONObject jsonObject, String jsonPropName, String path,
-                                            ImportFileInfo info, Context context,
-                                            Map<String, String> namesMap) {
+                                            String prefKeyOrPrefix, ImportFileInfo info,
+                                            Context context, Map<String, String> namesMap) {
         // just need to try getting the data for basic types to ensure the right data type is set
-        return loadOrValidatePrefData(jsonObject, jsonPropName, path, info, context, null,
-                namesMap);
+        return loadOrValidatePrefData(jsonObject, jsonPropName, path, prefKeyOrPrefix, info,
+                context, null, namesMap);
     }
 
     private static boolean loadPrefData(JSONObject jsonObject, String jsonPropName, String path,
-                                        @NonNull Context context, @NonNull String prefKey) {
-        return loadOrValidatePrefData(jsonObject, jsonPropName, path, null, context, prefKey, null);
+                                        String prefKeyOrPrefix, @NonNull Context context,
+                                        @NonNull String prefKey) {
+        return loadOrValidatePrefData(jsonObject, jsonPropName, path, prefKeyOrPrefix, null,
+                context, prefKey, null);
 
     }
 
     private static boolean loadOrValidatePrefData(JSONObject jsonObject, String jsonPropName,
-                                                  String path, @Nullable ImportFileInfo info,
+                                                  String path, String prefKeyOrPrefix,
+                                                  @Nullable ImportFileInfo info,
                                                   @NonNull Context context,
                                                   @Nullable String prefKey,
                                                   @Nullable Map<String, String> namesMap) {
-        String prefKeyOrPrefix = jsonNameToPrefKeyPrefix(jsonPropName);
         String fullPath = (path == null ? "" : (path + ".")) + jsonPropName;
         int dataType = prefDataType(prefKeyOrPrefix);
         try {
@@ -4045,9 +4124,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         SharedPreferenceManager prefs = instance.mPrefs;
         prefs.unregisterOnSharedPreferenceChangeListener(instance);
         try {
-            JSONObject fieldDefaultsJsonObject = jsonObject.has(FIELD_DEFAULTS_JSON_PROP)
-                    ? jsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP)
-                    : null;
+            JSONObject fieldDefaultsJsonObject =
+                    getJsonObject(jsonObject, FIELD_DEFAULTS_JSON_PROP);
 
             if (replaceFields) {
                 // delete the old groups and fields before adding the new ones
@@ -4089,22 +4167,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     if (fieldDefaultsJsonObject != null) {
                         String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
                         if (fieldDefaultsJsonObject.has(jsonProp)) {
-                            loadPrefData(fieldDefaultsJsonObject, jsonProp, null, context, prefKey);
+                            loadPrefData(fieldDefaultsJsonObject, jsonProp, null, prefKeyPrefix,
+                                    context, prefKey);
                         }
                     }
                 }
             }
 
             if (replaceOtherSettings) {
-                JSONObject otherSettingsJsonObject = jsonObject.has(OTHER_SETTINGS_JSON_PROP)
-                        ? jsonObject.getJSONObject(OTHER_SETTINGS_JSON_PROP)
-                        : null;
+                JSONObject otherSettingsJsonObject =
+                        getJsonObject(jsonObject, OTHER_SETTINGS_JSON_PROP);
                 for (String prefKey : MISC_PREF_KEYS) {
                     prefs.remove(prefKey);
                     if (otherSettingsJsonObject != null) {
                         String jsonProp = prefKeyPrefixToJsonName(prefKey);
                         if (otherSettingsJsonObject.has(jsonProp)) {
-                            loadPrefData(otherSettingsJsonObject, jsonProp, null, context, prefKey);
+                            loadPrefData(otherSettingsJsonObject, jsonProp, null, prefKey, context,
+                                    prefKey);
                         }
                     }
                 }
@@ -4162,7 +4241,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 prefs.remove(prefKey);
                 String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
                 if (groupJsonObject.has(jsonProp)) {
-                    loadPrefData(groupJsonObject, jsonProp, path, context, prefKey);
+                    loadPrefData(groupJsonObject, jsonProp, path, prefKeyPrefix, context, prefKey);
                 }
             }
         }
@@ -4192,7 +4271,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     defaultableValueJsonObject = fieldJsonObject;
                     defaultableValuePath = path;
                     if (fieldJsonObject.has(jsonProp)) {
-                        loadPrefData(fieldJsonObject, jsonProp, path, context, fieldPrefKey);
+                        loadPrefData(fieldJsonObject, jsonProp, path, fieldPrefKeyPrefix, context,
+                                fieldPrefKey);
                     }
                 }
                 String[] fieldDefaultsPrefKeys =
@@ -4203,12 +4283,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             prefKeyPrefixToJsonName(fieldDefaultPrefKeyPrefix);
                     if (defaultableValueJsonObject.has(fieldDefaultJsonProp)) {
                         loadPrefData(defaultableValueJsonObject, fieldDefaultJsonProp,
-                                defaultableValuePath, context, fieldDefaultPrefKey);
+                                defaultableValuePath, fieldDefaultPrefKeyPrefix, context,
+                                fieldDefaultPrefKey);
                     }
                 }
             } else {
                 if (fieldJsonObject.has(jsonProp)) {
-                    loadPrefData(fieldJsonObject, jsonProp, path, context, fieldPrefKey);
+                    loadPrefData(fieldJsonObject, jsonProp, path, fieldPrefKeyPrefix, context,
+                            fieldPrefKey);
                 }
             }
         }
