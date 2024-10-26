@@ -27,9 +27,11 @@ public class IterableUtils {
      * @param <TSource> The type of the elements in the sequence.
      */
     public static <TSource> boolean all(Iterable<TSource> source, Predicate<TSource> predicate) {
-        for (TSource item : source) {
-            if (!predicate.test(item)) {
-                return false;
+        if (source != null) {
+            for (TSource item : source) {
+                if (!predicate.test(item)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -43,9 +45,11 @@ public class IterableUtils {
      * @param <TSource> The type of the elements in the sequence.
      */
     public static <TSource> boolean any(Iterable<TSource> source, Predicate<TSource> predicate) {
-        for (TSource item : source) {
-            if (predicate.test(item)) {
-                return true;
+        if (source != null) {
+            for (TSource item : source) {
+                if (predicate.test(item)) {
+                    return true;
+                }
             }
         }
         return false;

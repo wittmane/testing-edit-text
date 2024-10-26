@@ -19,8 +19,6 @@ package com.wittmane.testingedittext.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.res.Resources;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -48,7 +46,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-//TODO: (EW) add validation for when nothing is selected to block the accept button
 public class ImportExportContentDialog extends AlertDialog {
     private static final String TAG = ImportExportContentDialog.class.getSimpleName();
 
@@ -180,9 +177,8 @@ public class ImportExportContentDialog extends AlertDialog {
         fieldDefaultsCheckbox.setChecked(mIncludeFieldDefaults);
         fieldDefaultsCheckbox.setEnabled(mIncludeFieldDefaults);
         fieldDefaultsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // if the defaults are being imported or exported, there's no point in embedding them
-            // since handling defaults will be able to work normally, so disable the option
-            embedFieldDefaultsCheckbox.setEnabled(!isChecked);
+            updateEmbedFieldDefaultsEnabled();
+            updateAcceptButtonState();
         });
 
         testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -190,6 +186,8 @@ public class ImportExportContentDialog extends AlertDialog {
             for (int i = 0; i < testFieldDynamicDetails.getChildCount(); i++) {
                 testFieldDynamicDetails.getChildAt(i).setEnabled(isChecked);
             }
+            updateEmbedFieldDefaultsEnabled();
+            updateAcceptButtonState();
         });
 
         final List<SpinnerEntry> spinnerEntries = new ArrayList<>();
@@ -276,6 +274,7 @@ public class ImportExportContentDialog extends AlertDialog {
                                 toggleButtons(selectAllButton, deselectAllButton,
                                         !areAllChecked(checkBoxes));
                             }
+                            updateAcceptButtonState();
                         });
 
                         testFieldDynamicDetails.addView(groupCheckbox);
@@ -304,6 +303,7 @@ public class ImportExportContentDialog extends AlertDialog {
                                     toggleButtons(selectAllButton, deselectAllButton,
                                             !areAllChecked(checkBoxes));
                                 }
+                                updateAcceptButtonState();
                             });
 
                             testFieldDynamicDetails.addView(fieldCheckbox);
@@ -315,6 +315,8 @@ public class ImportExportContentDialog extends AlertDialog {
                 if (checkBoxes.size() <= 1) {
                     deselectAllButton.setVisibility(View.GONE);
                 }
+
+                updateAcceptButtonState();
             }
 
             @Override
@@ -325,6 +327,9 @@ public class ImportExportContentDialog extends AlertDialog {
 
         otherSettingsCheckbox.setChecked(mIncludeOtherSettings);
         otherSettingsCheckbox.setEnabled(mIncludeOtherSettings);
+        otherSettingsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            updateAcceptButtonState();
+        });
     }
 
     private static boolean areAllChecked(Iterable<CheckBox> checkBoxes) {
@@ -339,6 +344,56 @@ public class ImportExportContentDialog extends AlertDialog {
             buttonA.setVisibility(View.GONE);
             buttonB.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void updateEmbedFieldDefaultsEnabled() {
+        CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
+        CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
+        CheckBox embedFieldDefaultsCheckbox = findViewById(R.id.embedFieldDefaults);
+        // if the defaults are being imported or exported, there's no point in embedding them
+        // since handling defaults will be able to work normally, so disable the option. also,
+        // if test fields aren't being exported, this option is irrelevant, so disable it.
+        embedFieldDefaultsCheckbox.setEnabled(!fieldDefaultsCheckbox.isChecked()
+                && testFieldsCheckbox.isChecked());
+    }
+
+    private void updateAcceptButtonState() {
+        Button acceptButton = getButton(AlertDialog.BUTTON_POSITIVE);
+        if (acceptButton == null) {
+            return;
+        }
+        acceptButton.setEnabled(hasDataSelected());
+    }
+
+    private boolean hasDataSelected() {
+        CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
+        if (fieldDefaultsCheckbox.isChecked()) {
+            return true;
+        }
+        CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
+        if (testFieldsCheckbox.isChecked()) {
+            Spinner testFieldOptionSpinner = findViewById(R.id.testFieldOption);
+            int testFieldOption =
+                    ((SpinnerEntry) testFieldOptionSpinner.getSelectedItem())
+                            .getValue();
+            if (testFieldOption == IMPORT_EXPORT_FIELDS_ALL) {
+                return true;
+            }
+            if (testFieldOption == IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS
+                    && IterableUtils.any(mGroups, group -> group.mInclude)) {
+                return true;
+            }
+            if (testFieldOption == IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS
+                    && IterableUtils.any(mGroups, group -> IterableUtils.any(group.mFields,
+                    field -> field.mInclude))) {
+                return true;
+            }
+        }
+        CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
+        if (otherSettingsCheckbox.isChecked()) {
+            return true;
+        }
+        return false;
     }
 
     private static class SpinnerEntry {
