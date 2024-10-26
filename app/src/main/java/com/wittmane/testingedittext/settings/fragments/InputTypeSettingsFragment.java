@@ -84,17 +84,17 @@ public class InputTypeSettingsFragment extends PerTestFieldSettingsFragment {
         mMultilinePref = (SwitchPreference)findPreference(
                 getPrefKey(Settings.PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX));
         mCreateInputConnectionPref = (SwitchPreference)findPreference(
-                getPrefKey(Settings.PREF_CREATE_INPUT_CONNECTION_PREFIX));
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX));
         mSendSelectionInfoPref = (SwitchPreference)findPreference(
-                getPrefKey(Settings.PREF_SEND_SELECTION_INFO_PREFIX));
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX));
         mSendTextPref = (SwitchPreference)findPreference(
-                getPrefKey(Settings.PREF_SEND_TEXT_PREFIX));
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX));
         mComposingTextBehaviorPref = (ListPreference)findPreference(
-                getPrefKey(Settings.PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX));
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX));
         mAllowDeleteSurroundingTextPref = (SwitchPreference)findPreference(
-                getPrefKey(Settings.PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX));
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX));
         mAllowSettingSelectionPref = (SwitchPreference)findPreference(
-                getPrefKey(Settings.PREF_ALLOW_SETTING_SELECTION_PREFIX));
+                getPrefKey(Settings.PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX));
     }
 
     @Override

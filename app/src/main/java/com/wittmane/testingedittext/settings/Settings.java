@@ -201,18 +201,18 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             "pref_key_input_type_number_flag_decimal";
     public static final String PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX =
             "pref_key_null_input_type_multiline";
-    public static final String PREF_CREATE_INPUT_CONNECTION_PREFIX =
-            "pref_key_create_input_connection";
-    public static final String PREF_SEND_SELECTION_INFO_PREFIX =
-            "pref_key_send_selection_info";
-    public static final String PREF_SEND_TEXT_PREFIX =
-            "pref_key_send_text";
-    public static final String PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX =
-            "pref_key_composing_text_behavior";
-    public static final String PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
-            "pref_key_allow_delete_surrounding_text";
-    public static final String PREF_ALLOW_SETTING_SELECTION_PREFIX =
-            "pref_key_allow_setting_selection";
+    public static final String PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX =
+            "pref_key_null_input_type_create_input_connection";
+    public static final String PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX =
+            "pref_key_null_input_type_send_selection_info";
+    public static final String PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX =
+            "pref_key_null_input_type_send_text";
+    public static final String PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX =
+            "pref_key_null_input_type_composing_text_behavior";
+    public static final String PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX =
+            "pref_key_null_input_type_allow_delete_surrounding_text";
+    public static final String PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX =
+            "pref_key_null_input_type_allow_setting_selection";
     public static final String PREF_IME_OPTIONS_ACTION_PREFIX =
             "pref_key_ime_options_action";
     public static final String PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX =
@@ -269,12 +269,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
             PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
             PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-            PREF_CREATE_INPUT_CONNECTION_PREFIX,
-            PREF_SEND_SELECTION_INFO_PREFIX,
-            PREF_SEND_TEXT_PREFIX,
-            PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-            PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-            PREF_ALLOW_SETTING_SELECTION_PREFIX,
+            PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX,
+            PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX,
+            PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX,
+            PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+            PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+            PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX,
             PREF_IME_OPTIONS_ACTION_PREFIX,
             PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
             PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -438,11 +438,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
             case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
             case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
-            case PREF_CREATE_INPUT_CONNECTION_PREFIX:
-            case PREF_SEND_SELECTION_INFO_PREFIX:
-            case PREF_SEND_TEXT_PREFIX:
-            case PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
-            case PREF_ALLOW_SETTING_SELECTION_PREFIX:
+            case PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX:
+            case PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX:
+            case PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX:
+            case PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
+            case PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX:
             case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
             case PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
             case PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
@@ -476,7 +476,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
-            case PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
             case PREF_IME_OPTIONS_ACTION_PREFIX:
             case PREF_IME_ACTION_LABEL_PREFIX:
             case PREF_PRIVATE_IME_OPTIONS_PREFIX:
@@ -537,6 +537,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         logPreferences();
 
+        convertInputTypeNullPrefs(mPrefs);
+
         if (!mPrefs.contains(PREF_TEST_GROUP_IDS)) {
             // create a default group and field the first time the app is opened
             Log.d(TAG, "creating defaults");
@@ -549,6 +551,44 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         if (LIST_PREFS) {
             for (String prefKey : mPrefs.getPrefKeysNotLoaded()) {
                 Log.w(TAG, "Preference key " + prefKey + " has data but wasn't loaded");
+            }
+        }
+    }
+
+    private static void convertInputTypeNullPrefs(final SharedPreferenceManager prefs) {
+        String[] prefKeyPrefixes = new String[] {
+                PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX,
+                PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX,
+                PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX,
+                PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX
+        };
+        for (int groupId : readTestFieldGroupIds(prefs)) {
+            for (int fieldId : readTestGroupFieldIds(prefs, groupId)) {
+                for (String newPrefKeyPrefix : prefKeyPrefixes) {
+                    String oldPrefKeyPrefix = newPrefKeyPrefix.replace("null_input_type_", "");
+                    String oldPrefKey = oldPrefKeyPrefix + FIELD_INFIX + fieldId;
+                    String newPrefKey = newPrefKeyPrefix + FIELD_INFIX + fieldId;
+
+                    if (!prefs.contains(oldPrefKey)) {
+                        continue;
+                    }
+
+                    if (newPrefKeyPrefix.equals(
+                            PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX)) {
+                        String val = prefs.getString(oldPrefKey, null);
+                        Log.d(TAG, "Write " + newPrefKey + ": " + val);
+                        prefs.setString(newPrefKey, val);
+                    } else {
+                        boolean val = prefs.getBoolean(oldPrefKey, false);
+                        Log.d(TAG, "Write " + newPrefKey + ": " + val);
+                        prefs.setBoolean(newPrefKey, val);
+                    }
+
+                    prefs.remove(oldPrefKey);
+                    Log.d(TAG, "Delete " + oldPrefKey);
+                }
             }
         }
     }
@@ -709,12 +749,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 //PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
                 //PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
                 //PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                //PREF_CREATE_INPUT_CONNECTION_PREFIX,
-                //PREF_SEND_SELECTION_INFO_PREFIX,
-                //PREF_SEND_TEXT_PREFIX,
-                //PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                //PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                //PREF_ALLOW_SETTING_SELECTION_PREFIX,
+                //PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX,
+                //PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX,
+                //PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX,
+                //PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                //PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                //PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX,
                 PREF_IME_OPTIONS_ACTION_PREFIX,
                 //PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
                 //PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
@@ -877,30 +917,52 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
             case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
             case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
-            case PREF_CREATE_INPUT_CONNECTION_PREFIX:
-            case PREF_SEND_SELECTION_INFO_PREFIX:
-            case PREF_SEND_TEXT_PREFIX:
-            case PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX:
-            case PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
-            case PREF_ALLOW_SETTING_SELECTION_PREFIX:
+            case PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX:
+            case PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX:
+            case PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX:
+            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+            case PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
+            case PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX:
                 testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
                 testField.mNullInputTypeMultiline =
                         readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
-                testField.mCreateInputConnection =
-                        readTestFieldCreateInputConnection(mPrefs, fieldId, testField.mInputType);
-                testField.mSendSelectionInfo =
-                        readTestFieldSendSelectionInfo(mPrefs, fieldId, testField.mInputType);
-                testField.mSendText =
-                        readTestFieldSendText(mPrefs, fieldId, testField.mInputType);
-                testField.mComposingTextBehavior =
-                        readTestFieldComposingTextBehavior(mPrefs, fieldId, testField.mInputType,
-                                testField.mCreateInputConnection);
-                testField.mAllowDeleteSurroundingText =
-                        readTestFieldAllowDeleteSurroundingText(mPrefs, fieldId,
-                                testField.mInputType, testField.mCreateInputConnection);
-                testField.mAllowSettingSelection =
-                        readTestFieldAllowSettingSelection(mPrefs, fieldId, testField.mInputType,
-                                testField.mCreateInputConnection);
+                // this setting only applies to null input types since as far as I can tell, the
+                // others are expected to create the input connection to fully support rich input
+                testField.mCreateInputConnection = testField.mInputType == EditorInfo.TYPE_NULL
+                        ? readTestFieldNullInputTypeCreateInputConnection(mPrefs, fieldId)
+                        : NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
+                // this setting only applies to null input types since as far as I can tell, the
+                // others are expected to send selection info (possibly based on the same
+                // understanding for them needing to create an input connection)
+                testField.mSendSelectionInfo = testField.mInputType == EditorInfo.TYPE_NULL
+                        ? readTestFieldNullInputTypeSendSelectionInfo(mPrefs, fieldId)
+                        : NONNULL_INPUT_TYPE_SEND_SELECTION_INFO;
+                // this setting only applies to null input types since as far as I can tell, the
+                // others are expected to return text as part of fully supporting rich input
+                testField.mSendText = testField.mInputType == EditorInfo.TYPE_NULL
+                        ? readTestFieldNullInputTypeSendText(mPrefs, fieldId)
+                        : NONNULL_INPUT_TYPE_SEND_TEXT;
+                // this setting only applies to null input types since as far as I can tell, the
+                // others are expected to support all of the rich editing specified in documentation
+                // for InputConnection (that isn't noted as being optional)
+                testField.mComposingTextBehavior = testField.mInputType == EditorInfo.TYPE_NULL
+                        ? readTestFieldNullInputTypeComposingTextBehavior(mPrefs, fieldId,
+                                testField.mCreateInputConnection)
+                        : NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
+                // this setting only applies to null input types since as far as I can tell, the
+                // others are expected to support all of the rich editing specified in documentation
+                // for InputConnection (that isn't noted as being optional)
+                testField.mAllowDeleteSurroundingText = testField.mInputType == EditorInfo.TYPE_NULL
+                        ? readTestFieldNullInputTypeAllowDeleteSurroundingText(mPrefs, fieldId,
+                                testField.mCreateInputConnection)
+                        : NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
+                // this setting only applies to null input types since as far as I can tell, the
+                // others are expected to support all of the rich editing specified in documentation
+                // for InputConnection (that isn't noted as being optional)
+                testField.mAllowSettingSelection = testField.mInputType == EditorInfo.TYPE_NULL
+                        ? readTestFieldNullInputTypeAllowSettingSelection(mPrefs, fieldId,
+                                testField.mCreateInputConnection)
+                        : NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
                 break;
             case PREF_IME_OPTIONS_ACTION_PREFIX:
             case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
@@ -2307,18 +2369,19 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static boolean defaultCreateInputConnection(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL;
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION
+                : DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
     }
 
-    private static boolean readTestFieldCreateInputConnection(final SharedPreferenceManager prefs,
-                                                              int fieldId, int inputType) {
-        // this setting only applies to null input types since as far as I can tell, the others are
-        // expected to create the input connection to fully support rich input
-        if (inputType != EditorInfo.TYPE_NULL) {
-            return defaultCreateInputConnection(inputType);
-        }
-        return prefs.getBoolean(PREF_CREATE_INPUT_CONNECTION_PREFIX + FIELD_INFIX + fieldId,
-                defaultCreateInputConnection(inputType));
+    public static final boolean NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = false;
+
+    private static boolean readTestFieldNullInputTypeCreateInputConnection(
+            final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(
+                PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX + FIELD_INFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION);
     }
 
     public static boolean getTestFieldCreateInputConnection(int groupIndex, int fieldIndex) {
@@ -2326,19 +2389,19 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static boolean defaultSendSelectionInfo(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL;
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_SEND_SELECTION_INFO
+                : DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO;
     }
 
-    private static boolean readTestFieldSendSelectionInfo(final SharedPreferenceManager prefs,
-                                                          int fieldId, int inputType) {
-        // this setting only applies to null input types since as far as I can tell, the others are
-        // expected to send selection info (possibly based on the same understanding for them
-        // needing to create an input connection)
-        if (inputType != EditorInfo.TYPE_NULL) {
-            return defaultCreateInputConnection(inputType);
-        }
-        return prefs.getBoolean(PREF_SEND_SELECTION_INFO_PREFIX + FIELD_INFIX + fieldId,
-                defaultCreateInputConnection(inputType));
+    public static final boolean NONNULL_INPUT_TYPE_SEND_SELECTION_INFO = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO = false;
+
+    private static boolean readTestFieldNullInputTypeSendSelectionInfo(
+            final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(
+                PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX + FIELD_INFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO);
     }
 
     public static boolean getTestFieldSendSelectionInfo(int groupIndex, int fieldIndex) {
@@ -2346,18 +2409,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static boolean defaultSendText(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL;
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_SEND_TEXT
+                : DEFAULT_NULL_INPUT_TYPE_SEND_TEXT;
     }
 
-    private static boolean readTestFieldSendText(final SharedPreferenceManager prefs, int fieldId,
-                                                 int inputType) {
-        // this setting only applies to null input types since as far as I can tell, the others are
-        // expected to return text as part of fully supporting rich input
-        if (inputType != EditorInfo.TYPE_NULL) {
-            return defaultSendText(inputType);
-        }
-        return prefs.getBoolean(PREF_SEND_TEXT_PREFIX + FIELD_INFIX + fieldId,
-                defaultSendText(inputType));
+    public static final boolean NONNULL_INPUT_TYPE_SEND_TEXT = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_TEXT = false;
+
+    private static boolean readTestFieldNullInputTypeSendText(final SharedPreferenceManager prefs, int fieldId) {
+        return prefs.getBoolean(PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX + FIELD_INFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_SEND_TEXT);
     }
 
     public static boolean getTestFieldSendText(int groupIndex, int fieldIndex) {
@@ -2371,25 +2433,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static int defaultComposingTextBehavior(int inputType) {
         return inputType != EditorInfo.TYPE_NULL
-                ? COMPOSING_TEXT_BEHAVIOR_COMPOSE
-                : COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+                ? NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR
+                : DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
     }
 
-    private static int readTestFieldComposingTextBehavior(final SharedPreferenceManager prefs,
-                                                          int fieldId, int inputType,
-                                                          boolean createInputConnection) {
+    public static final int NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
+            COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+    public static final int DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
+            COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+
+    private static int readTestFieldNullInputTypeComposingTextBehavior(
+            final SharedPreferenceManager prefs, int fieldId, boolean createInputConnection) {
         // composition (or custom management) is only possible if an input connection is created
         if (!createInputConnection) {
             return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
         }
-        // this setting only applies to null input types since as far as I can tell, the others are
-        // expected to support all of the rich editing specified in documentation for
-        // InputConnection (that isn't noted as being optional)
-        if (inputType != EditorInfo.TYPE_NULL) {
-            return defaultComposingTextBehavior(inputType);
-        }
-        String behavior =
-                prefs.getString(PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX + FIELD_INFIX + fieldId, "");
+        String behavior = prefs.getString(
+                PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX + FIELD_INFIX + fieldId, "");
         switch (behavior) {
             case "INVISIBLE":
                 return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
@@ -2400,7 +2460,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case "IGNORE":
                 return COMPOSING_TEXT_BEHAVIOR_IGNORE;
             default:
-                return defaultComposingTextBehavior(inputType);
+                return DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
         }
     }
 
@@ -2409,24 +2469,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static boolean defaultAllowDeleteSurroundingText(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL;
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT
+                : DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
     }
 
-    private static boolean readTestFieldAllowDeleteSurroundingText(
-            final SharedPreferenceManager prefs, int fieldId, int inputType,
-            boolean createInputConnection) {
+    public static final boolean NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = false;
+
+    private static boolean readTestFieldNullInputTypeAllowDeleteSurroundingText(
+            final SharedPreferenceManager prefs, int fieldId, boolean createInputConnection) {
         // composition is only possible if an input connection is created
         if (!createInputConnection) {
             return false;
         }
-        // this setting only applies to null input types since as far as I can tell, the others are
-        // expected to support all of the rich editing specified in documentation for
-        // InputConnection (that isn't noted as being optional)
-        if (inputType != EditorInfo.TYPE_NULL) {
-            return defaultAllowDeleteSurroundingText(inputType);
-        }
-        return prefs.getBoolean(PREF_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + FIELD_INFIX + fieldId,
-                defaultAllowDeleteSurroundingText(inputType));
+        return prefs.getBoolean(
+                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + FIELD_INFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT);
     }
 
     public static boolean getTestFieldAllowDeleteSurroundingText(int groupIndex, int fieldIndex) {
@@ -2434,24 +2493,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static boolean defaultAllowSettingSelection(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL;
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION
+                : DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
     }
 
-    private static boolean readTestFieldAllowSettingSelection(final SharedPreferenceManager prefs,
-                                                              int fieldId, int inputType,
-                                                              boolean createInputConnection) {
+    public static final boolean NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = false;
+
+    private static boolean readTestFieldNullInputTypeAllowSettingSelection(
+            final SharedPreferenceManager prefs, int fieldId, boolean createInputConnection) {
         // setting the selection position is only possible if an input connection is created
         if (!createInputConnection) {
             return false;
         }
-        // this setting only applies to null input types since as far as I can tell, the others are
-        // expected to support all of the rich editing specified in documentation for
-        // InputConnection (that isn't noted as being optional)
-        if (inputType != EditorInfo.TYPE_NULL) {
-            return defaultAllowSettingSelection(inputType);
-        }
-        return prefs.getBoolean(PREF_ALLOW_SETTING_SELECTION_PREFIX + FIELD_INFIX + fieldId,
-                defaultAllowSettingSelection(inputType));
+        return prefs.getBoolean(
+                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX + FIELD_INFIX + fieldId,
+                DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION);
     }
 
     public static boolean getTestFieldAllowSettingSelection(int groupIndex, int fieldIndex) {
@@ -3859,7 +3917,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             allowedStringValues = context.getResources().getStringArray(
                                     R.array.type_text_cap_flag_values);
                             break;
-                        case PREF_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+                        case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
                             allowedStringValues = context.getResources().getStringArray(
                                     R.array.composing_text_behavior_values);
                             break;
