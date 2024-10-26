@@ -27,6 +27,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.Menu;
@@ -133,13 +134,18 @@ public class IconUtils {
      * @return The button that was created.
      */
     public static ImageButton createImageButton(Context context, int imageResId) {
-        ImageButton button = new ImageButton(context);
+        ImageButton button = new EnabledStateListenerImageButton(context,
+                (buttonView, isEnabled) -> {
+                    buttonView.setColorFilter(IconUtils.getColorForIcon(context, buttonView));
+                });
         button.setImageResource(imageResId);
         button.setColorFilter(IconUtils.getColorForIcon(context, button));
         button.setBackgroundResource(getResourceId(
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         ? android.R.attr.selectableItemBackgroundBorderless
                         : android.R.attr.selectableItemBackground, context));
+        button.setLayoutParams(
+                new ViewGroup.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         button.setPadding(0, 0, 0, 0);
         return button;
     }
@@ -152,12 +158,13 @@ public class IconUtils {
      * @return The button that was created.
      */
     public static Button createButton(Context context, int imageResId, int textResId) {
-        Button button = new Button(context);
-
         Drawable drawable = getDrawable(context, imageResId).mutate();
-        drawable.setColorFilter(new PorterDuffColorFilter(
-                IconUtils.getColorForIcon(context, button),
-                PorterDuff.Mode.SRC_ATOP));
+
+        Button button = new EnabledStateListenerButton(context, (buttonView, isEnabled) -> {
+            // update the icon color when the enabled state changes
+            setColorFilter(drawable, IconUtils.getColorForIcon(context, buttonView));
+        });
+        setColorFilter(drawable, IconUtils.getColorForIcon(context, button));
         button.setCompoundDrawablesRelativeWithIntrinsicBounds(drawable,null, null, null);
 
         button.setBackgroundResource(
@@ -188,6 +195,54 @@ public class IconUtils {
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
 
         return button;
+    }
+
+    public static void setColorFilter(Drawable drawable, int color) {
+        drawable.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_ATOP));
+    }
+
+    @SuppressLint("AppCompatCustomView")
+    private static class EnabledStateListenerButton extends Button {
+        private final OnEnabledChangeListener<Button> mOnEnabledChangeListener;
+        public EnabledStateListenerButton(Context context,
+                                          OnEnabledChangeListener<Button> onEnabledChangeListener) {
+            super(context);
+            mOnEnabledChangeListener = onEnabledChangeListener;
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            boolean wasEnabled = isEnabled();
+            super.setEnabled(enabled);
+            boolean isEnabled = isEnabled();
+            if (wasEnabled != isEnabled) {
+                mOnEnabledChangeListener.onEnabledChanged(this, isEnabled);
+            }
+        }
+    }
+
+    @SuppressLint("AppCompatCustomView")
+    private static class EnabledStateListenerImageButton extends ImageButton {
+        private final OnEnabledChangeListener<ImageButton> mOnEnabledChangeListener;
+        public EnabledStateListenerImageButton(Context context,
+                OnEnabledChangeListener<ImageButton> onEnabledChangeListener) {
+            super(context);
+            mOnEnabledChangeListener = onEnabledChangeListener;
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            boolean wasEnabled = isEnabled();
+            super.setEnabled(enabled);
+            boolean isEnabled = isEnabled();
+            if (wasEnabled != isEnabled) {
+                mOnEnabledChangeListener.onEnabledChanged(this, isEnabled);
+            }
+        }
+    }
+
+    private interface OnEnabledChangeListener<T extends View> {
+        void onEnabledChanged(T view, boolean isEnabled);
     }
 
     private static int getResourceId(int attr, Context context) {

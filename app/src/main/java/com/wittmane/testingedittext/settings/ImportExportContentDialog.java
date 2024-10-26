@@ -170,7 +170,6 @@ public class ImportExportContentDialog extends AlertDialog {
         CheckBox fieldDefaultsCheckbox = findViewById(R.id.fieldDefaults);
         CheckBox testFieldsCheckbox = findViewById(R.id.testFields);
         Spinner testFieldOptionSpinner = findViewById(R.id.testFieldOption);
-        CheckBox embedFieldDefaultsCheckbox = findViewById(R.id.embedFieldDefaults);
         LinearLayout testFieldDynamicDetails = findViewById(R.id.testFieldDynamicDetails);
         CheckBox otherSettingsCheckbox = findViewById(R.id.otherSettings);
 
@@ -271,7 +270,7 @@ public class ImportExportContentDialog extends AlertDialog {
                         groupCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                             group.mInclude = isChecked;
                             if (checkBoxes.size() > 1) {
-                                toggleButtons(selectAllButton, deselectAllButton,
+                                toggleViews(selectAllButton, deselectAllButton,
                                         !areAllChecked(checkBoxes));
                             }
                             updateAcceptButtonState();
@@ -300,7 +299,7 @@ public class ImportExportContentDialog extends AlertDialog {
                             fieldCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                                 field.mInclude = isChecked;
                                 if (checkBoxes.size() > 1) {
-                                    toggleButtons(selectAllButton, deselectAllButton,
+                                    toggleViews(selectAllButton, deselectAllButton,
                                             !areAllChecked(checkBoxes));
                                 }
                                 updateAcceptButtonState();
@@ -336,13 +335,13 @@ public class ImportExportContentDialog extends AlertDialog {
         return IterableUtils.all(checkBoxes, checkBox -> checkBox.isChecked());
     }
 
-    private static void toggleButtons(Button buttonA, Button buttonB, boolean showA) {
+    private static void toggleViews(View viewA, View viewB, boolean showA) {
         if (showA) {
-            buttonA.setVisibility(View.VISIBLE);
-            buttonB.setVisibility(View.GONE);
+            viewA.setVisibility(View.VISIBLE);
+            viewB.setVisibility(View.GONE);
         } else {
-            buttonA.setVisibility(View.GONE);
-            buttonB.setVisibility(View.VISIBLE);
+            viewA.setVisibility(View.GONE);
+            viewB.setVisibility(View.VISIBLE);
         }
     }
 
