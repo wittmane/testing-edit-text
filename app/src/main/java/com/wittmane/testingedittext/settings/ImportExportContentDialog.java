@@ -41,6 +41,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings.FieldInfo;
 import com.wittmane.testingedittext.settings.Settings.GroupInfo;
 import com.wittmane.testingedittext.settings.Settings.ImportFileInfo;
+import com.wittmane.testingedittext.util.IterableUtils;
 
 import org.json.JSONObject;
 
@@ -285,11 +286,13 @@ public class ImportExportContentDialog extends AlertDialog {
                             continue;
                         }
 
-                        // show a label for the groups for organization
-                        TextView groupLabel = new TextView(getContext());
-                        groupLabel.setText(group.mName);
+                        if (mGroups.size() > 1) {
+                            // show a label for the groups for organization
+                            TextView groupLabel = new TextView(getContext());
+                            groupLabel.setText(group.mName);
 
-                        testFieldDynamicDetails.addView(groupLabel);
+                            testFieldDynamicDetails.addView(groupLabel);
+                        }
 
                         for (FieldInfo field : group.mFields) {
                             CheckBox fieldCheckbox = new CheckBox(getContext());
@@ -325,12 +328,7 @@ public class ImportExportContentDialog extends AlertDialog {
     }
 
     private static boolean areAllChecked(Iterable<CheckBox> checkBoxes) {
-        for (CheckBox checkBox : checkBoxes) {
-            if (!checkBox.isChecked()) {
-                return false;
-            }
-        }
-        return true;
+        return IterableUtils.all(checkBoxes, checkBox -> checkBox.isChecked());
     }
 
     private static void toggleButtons(Button buttonA, Button buttonB, boolean showA) {

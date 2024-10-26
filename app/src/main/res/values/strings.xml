@@ -64,6 +64,7 @@
     <string name="settings_copied_to_clipboard">The settings data was copied to the clipboard</string>
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
+    <string name="ad_hoc_import_group_name">Group</string>
 
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->

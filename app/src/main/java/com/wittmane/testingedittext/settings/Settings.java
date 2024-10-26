@@ -39,6 +39,7 @@ import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPre
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
 import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
+import com.wittmane.testingedittext.util.IterableUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -3072,7 +3073,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static final String GROUPS_JSON_PROP = "groups";
     private static final String FIELDS_JSON_PROP = "fields";
     private static final String OTHER_SETTINGS_JSON_PROP = "other";
-    private static final String GROUP_IS_AD_HOC_JSON_PROP = "adHoc";
     private static final String TEXT_LIST_ESCAPE_CHARS_JSON_PROP = "escapeChars";
     private static final String TEXT_LIST_DATA_ARRAY_JSON_PROP = "dataArray";
     private static final String TRANSLATE_TEXT_ORIGINAL_JSON_PROP = "original";
@@ -3085,32 +3085,37 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         try {
             if (groupInfoList != null && prefs.contains(PREF_TEST_GROUP_IDS)) {
                 int[] groupIds = readTestFieldGroupIds(prefs);
-                JSONArray groupsJsonArray = new JSONArray();
-                JSONArray looseFieldsJsonArray = new JSONArray();
 
-                for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
-                    int groupId = groupIds[groupIndex];
-                    GroupInfo groupInfo = groupInfoList.get(groupIndex);
-                    if (groupInfoList.get(groupIndex).mInclude) {
-                        groupsJsonArray.put(
-                                getGroupJson(groupId, groupInfo, embedFieldDefaults, prefs));
-                    } else if (prefs.contains(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId)) {
-                        // collect the fields that are being exported without their containing group
-                        // being exported
-                        addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo,
-                                embedFieldDefaults, prefs);
+                if (IterableUtils.any(groupInfoList, groupInfo -> groupInfo.mInclude)
+                        || !IterableUtils.any(groupInfoList,
+                                groupInfo -> IterableUtils.any(groupInfo.mFields,
+                                        fieldInfo -> fieldInfo.mInclude))) {
+                    // either at least one group was flagged to include or there are no fields and
+                    // no groups to include
+                    JSONArray groupsJsonArray = new JSONArray();
+                    for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
+                        int groupId = groupIds[groupIndex];
+                        GroupInfo groupInfo = groupInfoList.get(groupIndex);
+                        if (groupInfoList.get(groupIndex).mInclude) {
+                            groupsJsonArray.put(
+                                    getGroupJson(groupId, groupInfo, embedFieldDefaults, prefs));
+                        }
                     }
+                    jsonObject.put(GROUPS_JSON_PROP, groupsJsonArray);
+                } else {
+                    // there are no groups flagged to include, so skip the groups themselves and
+                    // just collect the fields that are flagged to include from any group
+                    JSONArray looseFieldsJsonArray = new JSONArray();
+                    for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
+                        int groupId = groupIds[groupIndex];
+                        GroupInfo groupInfo = groupInfoList.get(groupIndex);
+                        if (prefs.contains(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId)) {
+                            addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo,
+                                    embedFieldDefaults, prefs);
+                        }
+                    }
+                    jsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
                 }
-                if (looseFieldsJsonArray.length() > 0) {
-                    // put the fields that are being exported without their containing group in a
-                    // new ad-hoc group
-                    JSONObject fillerGroupJsonObject = new JSONObject();
-                    fillerGroupJsonObject.put(GROUP_IS_AD_HOC_JSON_PROP, true);
-                    fillerGroupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
-                    groupsJsonArray.put(fillerGroupJsonObject);
-                }
-
-                jsonObject.put(GROUPS_JSON_PROP, groupsJsonArray);
             }
 
             if (exportFieldDefaults) {
@@ -3491,6 +3496,27 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                     groups.add(groupInfo);
                 }
                 info.mGroups = groups;
+            } else if (props.contains(FIELDS_JSON_PROP)) {
+                props.remove(FIELDS_JSON_PROP);
+
+                List<GroupInfo> groups = new ArrayList<>();
+
+                GroupInfo groupInfo = new GroupInfo();
+
+                // build the ad-hoc group to load
+                JSONObject groupJsonObject = new JSONObject();
+                JSONArray looseFieldsJsonArray = info.mJsonObject.getJSONArray(FIELDS_JSON_PROP);
+                groupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
+
+                if (!validateGroupJson(groupJsonObject, info, 0, null,
+                        context, groupInfo)) {
+                    return info;
+                }
+                groupInfo.mIsAdHoc = true;
+                groupInfo.mName = context.getText(R.string.ad_hoc_import_group_name).toString();
+                groups.add(groupInfo);
+
+                info.mGroups = groups;
             }
 
             if (props.contains(FIELD_DEFAULTS_JSON_PROP)) {
@@ -3544,20 +3570,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 FieldInfo fieldInfo = new FieldInfo();
                 JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
                 if (!validateFieldJson(fieldJsonObject, info, groupIndex, i,
-                        path + "." + FIELDS_JSON_PROP + "[" + i + "]", context, fieldInfo)) {
+                        (path != null ? path + "." : "") + FIELDS_JSON_PROP + "[" + i + "]",
+                        context, fieldInfo)) {
                     return false;
                 }
                 fields.add(fieldInfo);
-            }
-        }
-
-        if (props.contains(GROUP_IS_AD_HOC_JSON_PROP)) {
-            props.remove(GROUP_IS_AD_HOC_JSON_PROP);
-
-            try {
-                groupInfo.mIsAdHoc = groupJsonObject.getBoolean(GROUP_IS_AD_HOC_JSON_PROP);
-            } catch (JSONException e) {
-                logJsonException(e, path + "." + GROUP_IS_AD_HOC_JSON_PROP, info, context);
             }
         }
 
@@ -4132,30 +4149,32 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 setTestFieldGroupIds(new int[0]);
             }
 
+            List<Integer> groupIds = new ArrayList<>();
+            List<Integer> fieldIds = new ArrayList<>();
+            if (!replaceFields) {
+                groupIds.addAll(instance.mTestGroups.keySet());
+                fieldIds.addAll(instance.mTestFields.keySet());
+            }
             if (jsonObject.has(GROUPS_JSON_PROP)) {
                 JSONArray groupsJsonArray = jsonObject.getJSONArray(GROUPS_JSON_PROP);
 
-                List<Integer> groupIds = new ArrayList<>();
-                List<Integer> fieldIds = new ArrayList<>();
-                if (!replaceFields) {
-                    groupIds.addAll(instance.mTestGroups.keySet());
-                    fieldIds.addAll(instance.mTestFields.keySet());
-                }
                 for (int i = 0; i < groupsJsonArray.length(); i++) {
-                    GroupInfo groupInfo = groupInfoList.get(i);
-                    int groupId;
-                    if (groupInfo.mInclude) {
-                        groupId = getNextId(groupIds);
-                        groupIds.add(groupId);
-                    } else {
-                        // add any fields to the last group
-                        groupId = instance.mTestGroupIds[instance.mTestGroupIds.length - 1];
-                    }
                     JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
-                    addGroupJson(groupJsonObject, groupId, GROUPS_JSON_PROP + "[" + i + "]",
-                            fieldIds, groupInfo, embedFieldDefaults, fieldDefaultsJsonObject,
-                            context);
+
+                    importGroupJson(groupJsonObject, GROUPS_JSON_PROP + "[" + i + "]",
+                            groupInfoList.get(i), groupIds, fieldIds, embedFieldDefaults,
+                            fieldDefaultsJsonObject, context);
                 }
+
+                prefs.setIntArray(PREF_TEST_GROUP_IDS, toPrimitiveArray(groupIds));
+            } else if (jsonObject.has(FIELDS_JSON_PROP) && groupInfoList.size() == 1) {
+                // build the ad-hoc group to load
+                JSONObject groupJsonObject = new JSONObject();
+                JSONArray looseFieldsJsonArray = jsonObject.getJSONArray(FIELDS_JSON_PROP);
+                groupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
+
+                importGroupJson(groupJsonObject, null, groupInfoList.get(0), groupIds, fieldIds,
+                        embedFieldDefaults, fieldDefaultsJsonObject, context);
 
                 prefs.setIntArray(PREF_TEST_GROUP_IDS, toPrimitiveArray(groupIds));
             }
@@ -4197,6 +4216,25 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         instance.loadSettings();
     }
 
+    private static void importGroupJson(JSONObject groupJsonObject, String path,
+                                        GroupInfo groupInfo, List<Integer> groupIds,
+                                        List<Integer> fieldIds, boolean embedFieldDefaults,
+                                        JSONObject fieldDefaultsJsonObject, Context context)
+            throws JSONException {
+        Settings instance = getInstance();
+        int groupId;
+        if (groupInfo.mInclude) {
+            groupId = getNextId(groupIds);
+            groupIds.add(groupId);
+        } else {
+            // add any fields to the last group
+            groupId = instance.mTestGroupIds[instance.mTestGroupIds.length - 1];
+        }
+        addGroupJson(groupJsonObject, groupId, path,
+                fieldIds, groupInfo, embedFieldDefaults, fieldDefaultsJsonObject,
+                context);
+    }
+
     private static void addGroupJson(JSONObject groupJsonObject, int groupId, String path,
                                      List<Integer> fieldIds, GroupInfo groupInfo,
                                      boolean embedFieldDefaults, JSONObject fieldDefaultsJsonObject,
@@ -4217,7 +4255,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 groupFieldIds.add(fieldId);
                 JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
                 addFieldJson(fieldJsonObject, fieldId,
-                        path + "." + FIELDS_JSON_PROP + "[" + i + "]",
+                        (path != null ? path + "." : "") + FIELDS_JSON_PROP + "[" + i + "]",
                         embedFieldDefaults, fieldDefaultsJsonObject, context);
             }
 
