@@ -16,6 +16,7 @@
 
 package com.wittmane.testingedittext.settings;
 
+import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -23,12 +24,17 @@ import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -37,6 +43,10 @@ import com.wittmane.testingedittext.R;
 import java.util.ArrayList;
 
 public class IconUtils {
+    private static final String TAG = IconUtils.class.getSimpleName();
+
+    //TODO: (EW) this is defined multiple places. find a good place to put it for everything to
+    // reference.
     private static final int RESOURCES_ID_NULL =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
 
@@ -126,16 +136,86 @@ public class IconUtils {
         ImageButton button = new ImageButton(context);
         button.setImageResource(imageResId);
         button.setColorFilter(IconUtils.getColorForIcon(context, button));
-        TypedArray typedArray = context.getTheme()
-                .obtainStyledAttributes(new int[] {
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                ? android.R.attr.selectableItemBackgroundBorderless
-                                : android.R.attr.selectableItemBackground
-                });
-        int background = typedArray.getResourceId(0, RESOURCES_ID_NULL);
-        typedArray.recycle();
-        button.setBackgroundResource(background);
+        button.setBackgroundResource(getResourceId(
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        ? android.R.attr.selectableItemBackgroundBorderless
+                        : android.R.attr.selectableItemBackground, context));
         button.setPadding(0, 0, 0, 0);
         return button;
+    }
+
+    /**
+     * Create a button with an icon with a tint to match the text color.
+     * @param context The current context.
+     * @param imageResId The resource ID of the drawable.
+     * @param textResId The resource ID of the string.
+     * @return The button that was created.
+     */
+    public static Button createButton(Context context, int imageResId, int textResId) {
+        Button button = new Button(context);
+
+        Drawable drawable = getDrawable(context, imageResId).mutate();
+        drawable.setColorFilter(new PorterDuffColorFilter(
+                IconUtils.getColorForIcon(context, button),
+                PorterDuff.Mode.SRC_ATOP));
+        button.setCompoundDrawablesRelativeWithIntrinsicBounds(drawable,null, null, null);
+
+        button.setBackgroundResource(
+                getResourceId(android.R.attr.selectableItemBackground, context));
+
+        button.setText(textResId);
+
+        button.setLayoutParams(
+                new ViewGroup.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+        // adding some padding to roughly match the look of a checkbox. the checkbox padding is
+        // actually built into the checkbox drawable (btn_check_material_anim). that drawable has a
+        // height/width of 32dp but the actual icon matches the size of a 24dp drawable, which means
+        // it effectively embedded a 4dp padding to the drawable. we'll just apply that padding to
+        // the button, which is technically different, since embedded drawable padding wouldn't
+        // affect the right side of the button, and if text wraps multiple lines, the drawable
+        // padding wouldn't affect the top or bottom, but this keeps a consistent padding around the
+        // whole button, which seems fine.
+        int padding = (int) dpToPx(4, context);
+        button.setPadding(padding, padding, padding, padding);
+        button.setCompoundDrawablePadding(padding);
+        // remove the minimum height/width from the button
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        // align the text to be next to the icon and centered vertically
+        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+
+        return button;
+    }
+
+    private static int getResourceId(int attr, Context context) {
+        TypedArray typedArray = context.getTheme().obtainStyledAttributes(new int[] { attr });
+        int resId = typedArray.getResourceId(0, RESOURCES_ID_NULL);
+        typedArray.recycle();
+        return resId;
+    }
+
+    private static float dpToPx(float px, Context context) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, px,
+                context.getResources().getDisplayMetrics());
+    }
+
+    /**
+     * Return a drawable object associated with a particular resource ID.
+     *
+     * This is a wrapper function to get a drawable on any version.
+     * @param context The current context.
+     * @param res The drawable resource ID.
+     * @return An object that can be used to draw this resource.
+     */
+    @SuppressLint("UseCompatLoadingForDrawables")
+    public static Drawable getDrawable(Context context, int res) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return context.getDrawable(res);
+        } else {
+            return context.getResources().getDrawable(res);
+        }
     }
 }

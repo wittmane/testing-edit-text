@@ -19,12 +19,16 @@ package com.wittmane.testingedittext.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.Resources;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -45,6 +49,7 @@ import java.util.List;
 
 //TODO: (EW) add validation for when nothing is selected to block the accept button
 public class ImportExportContentDialog extends AlertDialog {
+    private static final String TAG = ImportExportContentDialog.class.getSimpleName();
 
     private static final int IMPORT_EXPORT_FIELDS_ALL = 0;
     private static final int IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS = 1;
@@ -234,15 +239,46 @@ public class ImportExportContentDialog extends AlertDialog {
                     // don't need to show individual groups/fields
                     return;
                 }
+
+                List<CheckBox> checkBoxes = new ArrayList<>();
+
+                Button selectAllButton = IconUtils.createButton(getContext(),
+                        R.drawable.baseline_select_all_white_24, R.string.select_all);
+                // start hidden because all checkboxes start checked
+                selectAllButton.setVisibility(View.GONE);
+                selectAllButton.setOnClickListener(v -> {
+                    // select all
+                    for (CheckBox checkBox : checkBoxes) {
+                        checkBox.setChecked(true);
+                    }
+                });
+                testFieldDynamicDetails.addView(selectAllButton);
+
+                Button deselectAllButton = IconUtils.createButton(getContext(),
+                        R.drawable.baseline_deselect_white_24, R.string.deselect_all);
+                deselectAllButton.setOnClickListener(v -> {
+                    // deselect all
+                    for (CheckBox checkBox : checkBoxes) {
+                        checkBox.setChecked(false);
+                    }
+                });
+                testFieldDynamicDetails.addView(deselectAllButton);
+
                 for (GroupInfo group : nonNull(mGroups)) {
                     if (option == IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS) {
                         CheckBox groupCheckbox = new CheckBox(getContext());
                         groupCheckbox.setText(group.mName);
                         groupCheckbox.setChecked(group.mInclude);
-                        groupCheckbox.setOnCheckedChangeListener(
-                                (buttonView, isChecked) -> group.mInclude = isChecked);
+                        groupCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                            group.mInclude = isChecked;
+                            if (checkBoxes.size() > 1) {
+                                toggleButtons(selectAllButton, deselectAllButton,
+                                        !areAllChecked(checkBoxes));
+                            }
+                        });
 
                         testFieldDynamicDetails.addView(groupCheckbox);
+                        checkBoxes.add(groupCheckbox);
                     } else if (option == IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS) {
                         // skip any groups that don't have any fields
                         if (group.mFields == null || group.mFields.isEmpty()) {
@@ -259,12 +295,22 @@ public class ImportExportContentDialog extends AlertDialog {
                             CheckBox fieldCheckbox = new CheckBox(getContext());
                             fieldCheckbox.setText(field.mName);
                             fieldCheckbox.setChecked(field.mInclude);
-                            fieldCheckbox.setOnCheckedChangeListener(
-                                    (buttonView, isChecked) -> field.mInclude = isChecked);
+                            fieldCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                field.mInclude = isChecked;
+                                if (checkBoxes.size() > 1) {
+                                    toggleButtons(selectAllButton, deselectAllButton,
+                                            !areAllChecked(checkBoxes));
+                                }
+                            });
 
                             testFieldDynamicDetails.addView(fieldCheckbox);
+                            checkBoxes.add(fieldCheckbox);
                         }
                     }
+                }
+
+                if (checkBoxes.size() <= 1) {
+                    deselectAllButton.setVisibility(View.GONE);
                 }
             }
 
@@ -276,6 +322,25 @@ public class ImportExportContentDialog extends AlertDialog {
 
         otherSettingsCheckbox.setChecked(mIncludeOtherSettings);
         otherSettingsCheckbox.setEnabled(mIncludeOtherSettings);
+    }
+
+    private static boolean areAllChecked(Iterable<CheckBox> checkBoxes) {
+        for (CheckBox checkBox : checkBoxes) {
+            if (!checkBox.isChecked()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void toggleButtons(Button buttonA, Button buttonB, boolean showA) {
+        if (showA) {
+            buttonA.setVisibility(View.VISIBLE);
+            buttonB.setVisibility(View.GONE);
+        } else {
+            buttonA.setVisibility(View.GONE);
+            buttonB.setVisibility(View.VISIBLE);
+        }
     }
 
     private static class SpinnerEntry {

@@ -41,6 +41,7 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.Lin
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
+import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings.EditorSettings;
 import com.wittmane.testingedittext.settings.TranslateText;
 import com.wittmane.testingedittext.wrapper.Insets;
@@ -10664,13 +10665,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     public static final String ID_CONTENT_DESCRIPTION = "android:content_description";
 
     // (EW) wrapper to get a drawable on any version
-    @SuppressLint("UseCompatLoadingForDrawables")
-    Drawable getDrawable(int res) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return getContext().getDrawable(res);
-        } else {
-            return getContext().getResources().getDrawable(res);
-        }
+    private Drawable getDrawable(int res) {
+        return IconUtils.getDrawable(getContext(), res);
     }
 
     // (EW) from View
