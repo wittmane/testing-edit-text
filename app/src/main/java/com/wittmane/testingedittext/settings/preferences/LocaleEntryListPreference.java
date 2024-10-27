@@ -226,7 +226,7 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         }
 
         @NonNull
-        protected Locale[] readDefaultValue() {
+        public Locale[] readDefaultValue() {
             return new Locale[0];
         }
 

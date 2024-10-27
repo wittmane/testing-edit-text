@@ -101,7 +101,7 @@ public abstract class TextEntryListPreferenceBase<T, TDataManager extends TextLi
 
         @NonNull
         @Override
-        protected TextList<T> readDefaultValue() {
+        public TextList<T> readDefaultValue() {
             return new TextList<T>(getDefaultDataArray(), false);
         }
 

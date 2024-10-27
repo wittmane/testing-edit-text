@@ -54,6 +54,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -500,6 +501,247 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 return TYPE_TEXT_LIST_TRANSLATE_TEXT;
             default:
                 return TYPE_UNKNOWN;
+        }
+    }
+
+    //TODO: (EW) remove constants to consolidate and have this method manage whatever used the
+    // constants before
+    //TODO: (EW) use this to create more generic preference loading methods to reduce some of the
+    // boilerplate bloat
+    private static boolean getPrefDefaultBoolean(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
+                return false;
+            case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
+                return DEFAULT_MODIFY_COMMITTED_TEXT;
+            case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
+                return DEFAULT_MODIFY_COMPOSED_TEXT;
+            case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
+                return DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY;
+            case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
+                return DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END;
+            case PREF_RESTRICT_TO_INCLUDE_PREFIX:
+                return DEFAULT_RESTRICT_TO_INCLUDE;
+            case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
+                return DEFAULT_TRANSLATE_FULL_MATCH_ONLY;
+            case PREF_OVERRIDE_TEXT_RETURN_PREFIX:
+                return false;
+            case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
+                return DEFAULT_SKIP_EXTRACTING_TEXT;
+            case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
+                return DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR;
+            case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
+                return DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT;
+            case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
+                return DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES;
+            case PREF_EXTRACT_FULL_TEXT_PREFIX:
+                return DEFAULT_EXTRACT_FULL_TEXT;
+            case PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX:
+                return false;
+            case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
+                return DEFAULT_DELETE_THROUGH_COMPOSING_TEXT;
+            case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
+                return DEFAULT_KEEP_EMPTY_COMPOSING_POSITION;
+            case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
+                return false;
+            case PREF_SKIP_TAKESNAPSHOT_PREFIX:
+                return DEFAULT_SKIP_TAKESNAPSHOT;
+            case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
+                return DEFAULT_SKIP_GETSURROUNDINGTEXT;
+            case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
+                return DEFAULT_SKIP_PERFORMSPELLCHECK;
+            case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
+                return DEFAULT_SKIP_SETIMECONSUMESINPUT;
+            case PREF_SKIP_COMMITCONTENT_PREFIX:
+                return DEFAULT_SKIP_COMMITCONTENT;
+            case PREF_SKIP_CLOSECONNECTION_PREFIX:
+                return DEFAULT_SKIP_CLOSECONNECTION;
+            case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
+                return DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS;
+            case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
+                return DEFAULT_SKIP_REQUESTCURSORUPDATES;
+            case PREF_SKIP_COMMITCORRECTION_PREFIX:
+                return DEFAULT_SKIP_COMMITCORRECTION;
+            case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
+                return DEFAULT_SKIP_GETSELECTEDTEXT;
+            case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
+                return DEFAULT_SKIP_SETCOMPOSINGREGION;
+            case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
+                return false;
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
+                return false;
+            case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
+                return false;
+            case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
+                return false;
+            case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
+                return false;
+            case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
+                return false;
+            case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
+                return DEFAULT_NULL_INPUT_TYPE_MULTILINE;
+            case PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX:
+                return DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
+            case PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX:
+                return DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO;
+            case PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX:
+                return DEFAULT_NULL_INPUT_TYPE_SEND_TEXT;
+            case PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
+                return DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
+            case PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX:
+                return DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
+            case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
+                return false;
+            case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
+                return false;
+            case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
+                return false;
+            case PREF_ALLOW_UNDO_PREFIX:
+                return true;
+            case PREF_SHOW_REFERENCE_EDITTEXT:
+                return false;
+            default:
+                Log.e(TAG, "boolean default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_BOOLEAN ? " (not a boolean)" : ""));
+                return false;
+        }
+    }
+    private static int getPrefDefaultInt(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            case PREF_IME_ACTION_ID_PREFIX:
+                return 0;
+            case PREF_MAX_LENGTH_PREFIX:
+                return -1;
+            case PREF_SHIFT_CODEPOINT_PREFIX:
+                return DEFAULT_CODEPOINT_SHIFT;
+            case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
+                return DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT;
+            case PREF_LIMIT_RETURNED_TEXT_PREFIX:
+                return DEFAULT_RETURNED_TEXT_LIMIT;
+            case PREF_UPDATE_DELAY_PREFIX:
+                return DEFAULT_UPDATE_DELAY;
+            case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
+                return DEFAULT_FINISHCOMPOSINGTEXT_DELAY;
+            case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
+                return DEFAULT_GETSURROUNDINGTEXT_DELAY;
+            case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
+                return DEFAULT_GETTEXTBEFORECURSOR_DELAY;
+            case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
+                return DEFAULT_GETSELECTEDTEXT_DELAY;
+            case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
+                return DEFAULT_GETTEXTAFTERCURSOR_DELAY;
+            case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
+                return DEFAULT_GETCURSORCAPSMODE_DELAY;
+            case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+                return DEFAULT_GETEXTRACTEDTEXT_DELAY;
+            default:
+                Log.e(TAG, "int default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_INT ? " (not an int)" : ""));
+                return 0;
+        }
+    }
+    private static long getPrefDefaultLong(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            default:
+                Log.e(TAG, "long default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_LONG ? " (not a long)" : ""));
+                return 0;
+        }
+    }
+    private static long getPrefDefaultFloat(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            default:
+                Log.e(TAG, "float default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_FLOAT ? " (not a float)" : ""));
+                return 0;
+        }
+    }
+    private static String getPrefDefaultString(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            case PREF_TEST_GROUP_NAME_PREFIX:
+                return null;
+            case PREF_INPUT_TYPE_CLASS_PREFIX:
+                return "TYPE_CLASS_TEXT";
+            case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
+                return "TYPE_TEXT_VARIATION_NORMAL";
+            case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
+                return "TYPE_NUMBER_VARIATION_NORMAL";
+            case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
+                return "TYPE_DATETIME_VARIATION_NORMAL";
+            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
+                return "";
+            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
+                return "";
+            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+                return "";
+            case PREF_IME_OPTIONS_ACTION_PREFIX:
+                return "IME_ACTION_UNSPECIFIED";
+            case PREF_IME_ACTION_LABEL_PREFIX:
+                return null;
+            case PREF_PRIVATE_IME_OPTIONS_PREFIX:
+                return null;
+            case PREF_THEME:
+                return THEME_SYSTEM_DEFAULT;
+            default:
+                Log.e(TAG, "String default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_STRING ? " (not a String)" : ""));
+                return null;
+        }
+    }
+    private static Spanned getPrefDefaultSpanned(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            default:
+                Log.e(TAG, "Spanned default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_SPANNED ? " (not a Spanned)" : ""));
+                return null;
+        }
+    }
+    private static CharSequence getPrefDefaultCharSequence(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            case PREF_IME_LABEL_TEXT_PREFIX:
+                return null;
+            case PREF_IME_DEFAULT_TEXT_PREFIX:
+                return null;
+            case PREF_IME_HINT_TEXT_PREFIX:
+                return null;
+            default:
+                Log.e(TAG, "CharSequence default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_CHAR_SEQUENCE ? " (not a CharSequence)" : ""));
+                return null;
+        }
+    }
+    private static int[] getPrefDefaultIntArray(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            case PREF_TEST_GROUP_IDS:
+                return new int[0];
+            case PREF_TEST_FIELD_IDS_PREFIX:
+                return new int[0];
+            default:
+                Log.e(TAG, "int[] default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_INT_ARRAY ? " (not an int[])" : ""));
+                return null;
+        }
+    }
+    private static String[] getPrefDefaultStringArray(String keyOrPrefix) {
+        switch (keyOrPrefix) {
+            default:
+                Log.e(TAG, "String[] default missing for " + keyOrPrefix
+                        + (prefDataType(keyOrPrefix) != TYPE_STRING_ARRAY
+                                ? " (not a String[])"
+                                : ""));
+                return null;
         }
     }
 
@@ -3127,6 +3369,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
+    private static final boolean EXPORT_UNSET_PREFS = false;
+    private static final boolean EXPORT_DEFAULT_PREFS_VALUES = false;
+    private static final boolean IMPORT_DEFAULT_PREFS_VALUES = false;
+
     private static final String FIELD_DEFAULTS_JSON_PROP = "fieldDefaults";
     private static final String GROUPS_JSON_PROP = "groups";
     private static final String FIELDS_JSON_PROP = "fields";
@@ -3176,6 +3422,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 }
             }
 
+            //TODO: (EW) consider moving this up to match the settings screen and dialog
             if (exportFieldDefaults) {
                 JSONObject fieldDefaultsJsonObject = new JSONObject();
                 for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
@@ -3275,114 +3522,181 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return fieldJsonObject;
     }
 
+    //TODO: (EW) probably should break this into multiple helper methods
     private static void addPrefData(JSONObject jsonObject, String prefKeyOrPrefix, String prefKey,
                                     SharedPreferenceManager prefs) throws JSONException {
-        if (!prefs.contains(prefKey)) {
+        if (!EXPORT_UNSET_PREFS && !prefs.contains(prefKey)) {
             return;
         }
         String jsonPropName = prefKeyPrefixToJsonName(prefKeyOrPrefix);
         int dataType = prefDataType(prefKeyOrPrefix);
-        // note that the default values don't matter because we already validate that there is a
-        // value
         switch (dataType) {
             case TYPE_BOOLEAN:
-                jsonObject.put(jsonPropName, prefs.getBoolean(prefKey, false));
+                boolean defaultBoolean = getPrefDefaultBoolean(prefKeyOrPrefix);
+                boolean prefValueBoolean = prefs.getBoolean(prefKey, defaultBoolean);
+                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueBoolean != defaultBoolean) {
+                    jsonObject.put(jsonPropName, prefValueBoolean);
+                }
                 break;
             case TYPE_INT:
-                jsonObject.put(jsonPropName, prefs.getInt(prefKey, 0));
+                int defaultInt = getPrefDefaultInt(prefKeyOrPrefix);
+                int prefValueInt = prefs.getInt(prefKey, defaultInt);
+                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueInt != defaultInt) {
+                    jsonObject.put(jsonPropName, prefValueInt);
+                }
                 break;
             case TYPE_LONG:
-                jsonObject.put(jsonPropName, prefs.getLong(prefKey, 0));
+                long defaultLong = getPrefDefaultLong(prefKeyOrPrefix);
+                long prefValueLong = prefs.getLong(prefKey, defaultLong);
+                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueLong != defaultLong) {
+                    jsonObject.put(jsonPropName, prefValueLong);
+                }
                 break;
             case TYPE_FLOAT:
-                jsonObject.put(jsonPropName, prefs.getFloat(prefKey, 0));
+                float defaultFloat = getPrefDefaultFloat(prefKeyOrPrefix);
+                float prefValueFloat = prefs.getFloat(prefKey, defaultFloat);
+                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueFloat != defaultFloat) {
+                    jsonObject.put(jsonPropName, prefValueFloat);
+                }
                 break;
             case TYPE_STRING:
-                addObject(jsonObject, jsonPropName, prefs.getString(prefKey, null));
+                String defaultString = getPrefDefaultString(prefKeyOrPrefix);
+                String prefValueString = prefs.getString(prefKey, defaultString);
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !TextUtils.equals(prefValueString, defaultString)) {
+                    addObject(jsonObject, jsonPropName, prefValueString);
+                }
                 break;
             case TYPE_SPANNED:
-                Spanned spannedData = prefs.getSpanned(prefKey, null);
-                // get the data that SharedPreferenceManager uses to save spanned objects
-                addArray(jsonObject, jsonPropName, spannedData == null
-                        ? null
-                        : SharedPreferenceManager.getSpannedInfo(spannedData));
+                Spanned defaultSpanned = getPrefDefaultSpanned(prefKeyOrPrefix);
+                Spanned prefValueSpanned = prefs.getSpanned(prefKey, defaultSpanned);
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !definitelyEqual(prefValueSpanned, defaultSpanned)) {
+                    // get the data that SharedPreferenceManager uses to save spanned objects
+                    addArray(jsonObject, jsonPropName, prefValueSpanned == null
+                            ? null
+                            : SharedPreferenceManager.getSpannedInfo(prefValueSpanned));
+                }
                 break;
             case TYPE_CHAR_SEQUENCE:
-                CharSequence charSequenceData = prefs.getCharSequence(prefKey, null);
-                if (charSequenceData instanceof Spanned) {
-                    // get the data that SharedPreferenceManager uses to save spanned objects
-                    //TODO: (EW) possibly should embed some indication of what data this holds so
-                    // that if other supported CharSequence type are supported in the future or we
-                    // find a better way to export the data, we can maintain compatibility between
-                    // varying versions between the exporting and importing app.
-                    addArray(jsonObject, jsonPropName,
-                            SharedPreferenceManager.getSpannedInfo((Spanned) charSequenceData));
-                } else if (charSequenceData == null || charSequenceData instanceof String) {
-                    addObject(jsonObject, jsonPropName, charSequenceData);
-                } else {
-                    jsonObject.put(jsonPropName, charSequenceData.toString());
+                CharSequence defaultCharSequence = getPrefDefaultCharSequence(prefKeyOrPrefix);
+                CharSequence prefValueCharSequence =
+                        prefs.getCharSequence(prefKey, defaultCharSequence);
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !definitelyEqual(prefValueCharSequence, defaultCharSequence)) {
+                    if (prefValueCharSequence instanceof Spanned) {
+                        // get the data that SharedPreferenceManager uses to save spanned objects
+                        //TODO: (EW) possibly should embed some indication of what data this holds
+                        // so that if other supported CharSequence type are supported in the future
+                        // or we find a better way to export the data, we can maintain compatibility
+                        // between varying versions between the exporting and importing app.
+                        addArray(jsonObject, jsonPropName,
+                                SharedPreferenceManager.getSpannedInfo(
+                                        (Spanned) prefValueCharSequence));
+                    } else if (prefValueCharSequence == null
+                            || prefValueCharSequence instanceof String) {
+                        addObject(jsonObject, jsonPropName, prefValueCharSequence);
+                    } else {
+                        jsonObject.put(jsonPropName, prefValueCharSequence.toString());
+                    }
                 }
                 break;
             case TYPE_INT_ARRAY:
-                addArray(jsonObject, jsonPropName, prefs.getIntArray(prefKey, null));
+                int[] defaultIntArray = getPrefDefaultIntArray(prefKeyOrPrefix);
+                int[] prefValueIntArray = prefs.getIntArray(prefKey, defaultIntArray);
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !Arrays.equals(prefValueIntArray, defaultIntArray)) {
+                    addArray(jsonObject, jsonPropName, prefValueIntArray);
+                }
                 break;
             case TYPE_STRING_ARRAY:
-                addArray(jsonObject, jsonPropName, prefs.getStringArray(prefKey, null));
+                String[] defaultStringArray = getPrefDefaultStringArray(prefKeyOrPrefix);
+                String[] prefValueStringArray = prefs.getStringArray(prefKey, defaultStringArray);
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !Arrays.equals(prefValueStringArray, defaultStringArray)) {
+                    addArray(jsonObject, jsonPropName, prefValueStringArray);
+                }
                 break;
             case TYPE_INT_RANGE:
                 //TODO: (EW) make more generic. the only use case for the int range currently is the
                 // codepoint range preference. maybe just convert this preference to use an int
                 // array and just have extra validation on the length when reading the data.
-                IntRange intRange =
-                        (new CodepointRangeDialogPreference.DataManager(prefs, prefKey))
-                                .readValue();
-                addArray(jsonObject, jsonPropName, intRange == null
-                        ? null
-                        : new int[] { intRange.getStart(), intRange.getEnd() });
+                CodepointRangeDialogPreference.DataManager codepointRangeDialogDataManager =
+                        new CodepointRangeDialogPreference.DataManager(prefs, prefKey);
+                IntRange defaultIntRange = codepointRangeDialogDataManager.readDefaultValue();
+                IntRange prefValueIntRange = codepointRangeDialogDataManager.readValue();
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !Objects.equals(prefValueIntRange, defaultIntRange)) {
+                    addArray(jsonObject, jsonPropName, prefValueIntRange == null
+                            ? null
+                            : new int[] {
+                                    prefValueIntRange.getStart(),
+                                    prefValueIntRange.getEnd()
+                            });
+                }
                 break;
             case TYPE_LOCALE_ARRAY:
                 //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
                 // preference)
-                Locale[] locales =
-                        (new LocaleEntryListPreference.DataManager(prefs, prefKey)).readValue();
-                String[] localeStrings = new String[locales.length];
-                for (int i = 0; i < locales.length; i++) {
-                    localeStrings[i] = LocaleEntryListPreference.getLocaleString(locales[i]);
+                LocaleEntryListPreference.DataManager localeEntryListDataManager =
+                        new LocaleEntryListPreference.DataManager(prefs, prefKey);
+                Locale[] defaultLocaleArray = localeEntryListDataManager.readDefaultValue();
+                Locale[] prefValueLocaleArray = localeEntryListDataManager.readValue();
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !Arrays.equals(prefValueLocaleArray, defaultLocaleArray)) {
+                    String[] localeStrings = new String[prefValueLocaleArray.length];
+                    for (int i = 0; i < prefValueLocaleArray.length; i++) {
+                        localeStrings[i] = LocaleEntryListPreference.getLocaleString(
+                                prefValueLocaleArray[i]);
+                    }
+                    addArray(jsonObject, jsonPropName, localeStrings);
                 }
-                addArray(jsonObject, jsonPropName, localeStrings);
                 break;
             case TYPE_TEXT_LIST_STRING:
                 //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
                 // preference)
-                TextList<String> textListString =
-                        (new TextListPreference.DataManager(prefs,prefKey)).readValue();
-                JSONObject textListStringJsonObject = new JSONObject();
-                textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
-                        textListString.escapeChars());
-                addArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
-                        textListString.getDataArray());
-                jsonObject.put(jsonPropName, textListStringJsonObject);
+                TextListPreference.DataManager textListDataManager =
+                        new TextListPreference.DataManager(prefs,prefKey);
+                TextList<String> defaultTextListString = textListDataManager.readDefaultValue();
+                TextList<String> prefValueTextListString = textListDataManager.readValue();
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !Objects.equals(prefValueTextListString, defaultTextListString)) {
+                    JSONObject textListStringJsonObject = new JSONObject();
+                    textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
+                            prefValueTextListString.escapeChars());
+                    addArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
+                            prefValueTextListString.getDataArray());
+                    jsonObject.put(jsonPropName, textListStringJsonObject);
+                }
                 break;
             case TYPE_TEXT_LIST_TRANSLATE_TEXT:
                 //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
                 // preference)
-                TextList<TranslateText> textListTranslateText =
-                        (new TextTranslateListPreference.DataManager(prefs, prefKey)).readValue();
-                JSONObject translateTextJsonObject = new JSONObject();
-                translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
-                        textListTranslateText.escapeChars());
-                JSONObject[] translateTextArray =
-                        new JSONObject[textListTranslateText.getDataArray().length];
-                for (int i = 0 ; i < translateTextArray.length; i++) {
-                    translateTextArray[i] = new JSONObject();
-                    translateTextArray[i].put(TRANSLATE_TEXT_ORIGINAL_JSON_PROP,
-                            textListTranslateText.getDataArray()[i].getOriginal());
-                    translateTextArray[i].put(TRANSLATE_TEXT_TRANSLATION_JSON_PROP,
-                            textListTranslateText.getDataArray()[i].getTranslation());
+                TextTranslateListPreference.DataManager textTranslateListDataManager =
+                        new TextTranslateListPreference.DataManager(prefs, prefKey);
+                TextList<TranslateText> defaultTextListTranslateText =
+                        textTranslateListDataManager.readDefaultValue();
+                TextList<TranslateText> prefValueTextListTranslateText =
+                        textTranslateListDataManager.readValue();
+                if (EXPORT_DEFAULT_PREFS_VALUES
+                        || !Objects.equals(prefValueTextListTranslateText,
+                                defaultTextListTranslateText)) {
+                    JSONObject translateTextJsonObject = new JSONObject();
+                    translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
+                            prefValueTextListTranslateText.escapeChars());
+                    JSONObject[] translateTextArray =
+                            new JSONObject[prefValueTextListTranslateText.getDataArray().length];
+                    for (int i = 0; i < translateTextArray.length; i++) {
+                        translateTextArray[i] = new JSONObject();
+                        translateTextArray[i].put(TRANSLATE_TEXT_ORIGINAL_JSON_PROP,
+                                prefValueTextListTranslateText.getDataArray()[i].getOriginal());
+                        translateTextArray[i].put(TRANSLATE_TEXT_TRANSLATION_JSON_PROP,
+                                prefValueTextListTranslateText.getDataArray()[i].getTranslation());
+                    }
+                    addArray(translateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
+                            translateTextArray);
+                    jsonObject.put(jsonPropName, translateTextJsonObject);
                 }
-                addArray(translateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
-                        translateTextArray);
-                jsonObject.put(jsonPropName, translateTextJsonObject);
                 break;
             case TYPE_UNKNOWN:
             default:
@@ -3461,6 +3775,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             sb.append(name.substring(nextToAdd));
         }
         return sb.toString();
+    }
+
+    // modified from TextUtils#equals since Spanned objects generally don't compare well (see
+    // https://stackoverflow.com/a/46403431)
+    private static boolean definitelyEqual(CharSequence a, CharSequence b) {
+        if (a == b) return true;
+        if (a != null && b != null && a.length() == b.length()) {
+            if (a instanceof String && b instanceof String) {
+                return a.equals(b);
+            } else {
+                // these may be equal, but we may not be able to be completely sure
+                return false;
+            }
+        }
+        return false;
     }
 
     public static class ImportFileInfo {
@@ -3764,6 +4093,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     }
 
+    //TODO: (EW) probably should break this into multiple helper methods
     private static boolean loadOrValidatePrefData(JSONObject jsonObject, String jsonPropName,
                                                   String path, String prefKeyOrPrefix,
                                                   @Nullable ImportFileInfo info,
@@ -3777,7 +4107,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 case TYPE_BOOLEAN:
                     boolean booleanData = jsonObject.getBoolean(jsonPropName);
                     if (prefKey != null) {
-                        getInstance().mPrefs.setBoolean(prefKey, booleanData);
+                        boolean defaultBoolean = getPrefDefaultBoolean(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES || booleanData != defaultBoolean) {
+                            getInstance().mPrefs.setBoolean(prefKey, booleanData);
+                        }
                     }
                     break;
                 case TYPE_INT:
@@ -3844,7 +4177,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             stepValue = 1;
                     }
                     int constrainedIntData = constrain(intData, minValue, maxValue, stepValue);
-                    if (constrainedIntData != intData) {
+                    if (constrainedIntData != intData
+                            && intData != getPrefDefaultInt(prefKeyOrPrefix)) {
                         if (intData < minValue || intData > maxValue) {
                             Log.e(TAG, fullPath + " ( " + intData + ") isn't in the range "
                                     + minValue + " - " + maxValue);
@@ -3866,13 +4200,19 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         }
                     }
                     if (prefKey != null) {
-                        getInstance().mPrefs.setInt(prefKey, intData);
+                        int defaultInt = getPrefDefaultInt(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES || intData != defaultInt) {
+                            getInstance().mPrefs.setInt(prefKey, intData);
+                        }
                     }
                     break;
                 case TYPE_LONG:
                     long longData = jsonObject.getLong(jsonPropName);
                     if (prefKey != null) {
-                        getInstance().mPrefs.setLong(prefKey, longData);
+                        long defaultLong = getPrefDefaultLong(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES || longData != defaultLong) {
+                            getInstance().mPrefs.setLong(prefKey, longData);
+                        }
                     }
                     break;
                 case TYPE_FLOAT:
@@ -3886,11 +4226,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                     }
                     if (prefKey != null) {
-                        getInstance().mPrefs.setFloat(prefKey, (float) doubleData);
+                        float defaultFloat = getPrefDefaultFloat(prefKeyOrPrefix);
+                        float floatData = (float) doubleData;
+                        if (IMPORT_DEFAULT_PREFS_VALUES || floatData != defaultFloat) {
+                            getInstance().mPrefs.setFloat(prefKey, floatData);
+                        }
                     }
                     break;
                 case TYPE_STRING:
-                    String stringData = jsonObject.getString(jsonPropName);
+                    String stringData = getString(jsonObject, jsonPropName);
                     String[] allowedStringValues;
                     switch (prefKeyOrPrefix) {
                         case PREF_INPUT_TYPE_CLASS_PREFIX:
@@ -3933,7 +4277,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             allowedStringValues = null;
                     }
                     if (allowedStringValues != null
-                            && !ArrayUtils.contains(allowedStringValues, stringData)) {
+                            && !ArrayUtils.contains(allowedStringValues, stringData)
+                            && !TextUtils.equals(stringData,
+                                    getPrefDefaultString(prefKeyOrPrefix))) {
                         Log.e(TAG, fullPath + " has an invalid value: " + stringData);
                         if (info != null) {
                             info.mWarnings.add(context.getString(R.string.invalid_value,
@@ -3942,7 +4288,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         break;
                     }
                     if (prefKey != null) {
-                        getInstance().mPrefs.setString(prefKey, stringData);
+                        String defaultString = getPrefDefaultString(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !TextUtils.equals(stringData, defaultString)) {
+                            getInstance().mPrefs.setString(prefKey, stringData);
+                        }
                     }
                     if (namesMap != null) {
                         switch (prefKeyOrPrefix) {
@@ -3954,18 +4304,29 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 case TYPE_SPANNED:
                     Spanned spannedData = getSpanned(jsonObject, jsonPropName);
                     if (prefKey != null) {
-                        getInstance().mPrefs.setSpanned(prefKey, spannedData);
+                        Spanned defaultSpanned = getPrefDefaultSpanned(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !definitelyEqual(spannedData, defaultSpanned)) {
+                            getInstance().mPrefs.setSpanned(prefKey, spannedData);
+                        }
                     }
                     break;
                 case TYPE_CHAR_SEQUENCE:
                     CharSequence charSequenceData;
-                    if (jsonObject.get(jsonPropName) instanceof String) {
+                    if (jsonObject.isNull(jsonPropName)) {
+                        charSequenceData = null;
+                    } else if (jsonObject.get(jsonPropName) instanceof String) {
                         charSequenceData = jsonObject.getString(jsonPropName);
                     } else {
                         charSequenceData = getSpanned(jsonObject, jsonPropName);
                     }
                     if (prefKey != null) {
-                        getInstance().mPrefs.setCharSequence(prefKey, charSequenceData);
+                        CharSequence defaultCharSequence =
+                                getPrefDefaultCharSequence(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !definitelyEqual(charSequenceData, defaultCharSequence)) {
+                            getInstance().mPrefs.setCharSequence(prefKey, charSequenceData);
+                        }
                     }
                     if (namesMap != null) {
                         switch (prefKeyOrPrefix) {
@@ -3981,13 +4342,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 case TYPE_INT_ARRAY:
                     int[] intArrayData = getIntArray(jsonObject, jsonPropName);
                     if (prefKey != null) {
-                        getInstance().mPrefs.setIntArray(prefKey, intArrayData);
+                        int[] defaultIntArray = getPrefDefaultIntArray(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !Arrays.equals(intArrayData, defaultIntArray)) {
+                            getInstance().mPrefs.setIntArray(prefKey, intArrayData);
+                        }
                     }
                     break;
                 case TYPE_STRING_ARRAY:
                     String[] stringArrayData = getStringArray(jsonObject, jsonPropName);
                     if (prefKey != null) {
-                        getInstance().mPrefs.setStringArray(prefKey, stringArrayData);
+                        String[] defaultStringArray = getPrefDefaultStringArray(prefKeyOrPrefix);
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !Arrays.equals(stringArrayData, defaultStringArray)) {
+                            getInstance().mPrefs.setStringArray(prefKey, stringArrayData);
+                        }
                     }
                     break;
                 case TYPE_INT_RANGE:
@@ -4014,9 +4383,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             break;
                         }
                         if (prefKey != null) {
-                            (new CodepointRangeDialogPreference.DataManager(
-                                    getInstance().mPrefs, prefKey))
-                                    .writeValue(range);
+                            CodepointRangeDialogPreference.DataManager codepointRangeDialogDataManager =
+                                    new CodepointRangeDialogPreference.DataManager(
+                                            getInstance().mPrefs, prefKey);
+                            IntRange defaultIntRange =
+                                    codepointRangeDialogDataManager.readDefaultValue();
+                            if (IMPORT_DEFAULT_PREFS_VALUES
+                                    || !Objects.equals(range, defaultIntRange)) {
+                                codepointRangeDialogDataManager.writeValue(range);
+                            }
                         }
                     } else {
                         Log.e(TAG, prefKey + " doesn't have handling to be imported");
@@ -4042,8 +4417,15 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                                 localStringArray[i]));
                     }
                     if (prefKey != null) {
-                        (new LocaleEntryListPreference.DataManager(getInstance().mPrefs, prefKey))
-                                .writeValue(localeList.toArray(new Locale[0]));
+                        LocaleEntryListPreference.DataManager localeEntryListDataManager =
+                                new LocaleEntryListPreference.DataManager(getInstance().mPrefs,
+                                        prefKey);
+                        Locale[] defaultLocaleArray = localeEntryListDataManager.readDefaultValue();
+                        Locale[] localeArray = localeList.toArray(new Locale[0]);
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !Arrays.equals(localeArray, defaultLocaleArray)) {
+                            localeEntryListDataManager.writeValue(localeArray);
+                        }
                     }
                     break;
                 case TYPE_TEXT_LIST_STRING:
@@ -4064,8 +4446,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             textListStringStringArray,
                             textListStringJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
                     if (prefKey != null) {
-                        (new TextListPreference.DataManager(getInstance().mPrefs, prefKey))
-                                .writeValue(textListStringData);
+                        TextListPreference.DataManager textListDataManager =
+                                new TextListPreference.DataManager(getInstance().mPrefs, prefKey);
+                        TextList<String> defaultTextListString =
+                                textListDataManager.readDefaultValue();
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !Objects.equals(textListStringData, defaultTextListString)) {
+                            textListDataManager.writeValue(textListStringData);
+                        }
                     }
                     break;
                 case TYPE_TEXT_LIST_TRANSLATE_TEXT:
@@ -4097,8 +4485,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                             textListTranslateTextJsonObject.getBoolean(
                                     TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
                     if (prefKey != null) {
-                        (new TextTranslateListPreference.DataManager(getInstance().mPrefs, prefKey))
-                                .writeValue(textListTranslateTextData);
+                        TextTranslateListPreference.DataManager textTranslateListDataManager =
+                                new TextTranslateListPreference.DataManager(getInstance().mPrefs,
+                                        prefKey);
+                        TextList<TranslateText> defaultTextListTranslateText =
+                                textTranslateListDataManager.readDefaultValue();
+                        if (IMPORT_DEFAULT_PREFS_VALUES
+                                || !Objects.equals(textListTranslateTextData,
+                                        defaultTextListTranslateText)) {
+                            textTranslateListDataManager.writeValue(textListTranslateTextData);
+                        }
                     }
                     break;
                 case TYPE_UNKNOWN:
@@ -4140,6 +4536,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return (int) stepLowerEdge;
         }
         return (int) stepUpperEdge;
+    }
+
+    private static String getString(JSONObject jsonObject, String jsonPropName)
+            throws JSONException {
+        if (jsonObject.isNull(jsonPropName)) {
+            return null;
+        }
+        return jsonObject.getString(jsonPropName);
     }
 
     private static JSONObject[] getJsonObjectArray(JSONObject jsonObject, String jsonPropName)

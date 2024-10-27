@@ -384,7 +384,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
         protected abstract T buildFullData(String[] rowData, String[] extraData);
 
         @NonNull
-        protected abstract T readDefaultValue();
+        public abstract T readDefaultValue();
 
         public void writeValue(@NonNull T fullData) {
             String[] rowData = flattenRowData(fullData);

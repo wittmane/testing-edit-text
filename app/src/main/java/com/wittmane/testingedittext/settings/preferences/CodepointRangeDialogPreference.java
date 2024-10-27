@@ -713,7 +713,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         }
 
         @Nullable
-        private IntRange readDefaultValue() {
+        public IntRange readDefaultValue() {
             return DEFAULT_RESTRICT_RANGE;
         }
 
