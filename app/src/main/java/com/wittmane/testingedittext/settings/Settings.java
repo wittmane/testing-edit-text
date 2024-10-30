@@ -504,10 +504,114 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
+    public static final int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
+    public static final int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 1;
+    public static final int COMPOSING_TEXT_BEHAVIOR_COMMIT = 2;
+    public static final int COMPOSING_TEXT_BEHAVIOR_IGNORE = 3;
+    private static int getComposingTextBehaviorInt(
+            String nullInputTypeComposingTextBehaviorString) {
+        switch (nullInputTypeComposingTextBehaviorString) {
+            case "INVISIBLE":
+                return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+            case "COMPOSE":
+                return COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+            case "COMMIT":
+                return COMPOSING_TEXT_BEHAVIOR_COMMIT;
+            case "IGNORE":
+                return COMPOSING_TEXT_BEHAVIOR_IGNORE;
+            default:
+                Log.e(TAG, nullInputTypeComposingTextBehaviorString
+                        + " isn't a valid composing text behavior");
+                // the fallback is based on a null input type because the preference is specific to
+                // this because other types have a fixed behavior
+                return DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
+        }
+    }
+
+    public static final boolean DEFAULT_MODIFY_COMMITTED_TEXT = false;
+    public static final boolean DEFAULT_MODIFY_COMPOSED_TEXT = false;
+    public static final boolean DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY = false;
+    public static final boolean DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END = false;
+    public static final boolean DEFAULT_RESTRICT_TO_INCLUDE = false;
+    public static final boolean DEFAULT_TRANSLATE_FULL_MATCH_ONLY = false;
+    public static final int DEFAULT_CODEPOINT_SHIFT = 0;
+    public static final boolean DEFAULT_SKIP_EXTRACTING_TEXT = false;
+    public static final boolean DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR = false;
+    public static final boolean DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT = false;
+    public static final boolean DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES = false;
+    public static final boolean DEFAULT_EXTRACT_FULL_TEXT = false;
+    public static final int DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT = -1;
+    public static final int DEFAULT_RETURNED_TEXT_LIMIT = -1;
+    public static final boolean DEFAULT_DELETE_THROUGH_COMPOSING_TEXT = false;
+    public static final boolean DEFAULT_KEEP_EMPTY_COMPOSING_POSITION = false;
+    public static final boolean DEFAULT_SKIP_TAKESNAPSHOT = false;
+    public static final boolean DEFAULT_SKIP_GETSURROUNDINGTEXT = false;
+    public static final boolean DEFAULT_SKIP_PERFORMSPELLCHECK = false;
+    public static final boolean DEFAULT_SKIP_SETIMECONSUMESINPUT = false;
+    public static final boolean DEFAULT_SKIP_COMMITCONTENT = false;
+    public static final boolean DEFAULT_SKIP_CLOSECONNECTION = false;
+    public static final boolean DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS = false;
+    public static final boolean DEFAULT_SKIP_REQUESTCURSORUPDATES = false;
+    public static final boolean DEFAULT_SKIP_COMMITCORRECTION = false;
+    public static final boolean DEFAULT_SKIP_GETSELECTEDTEXT = false;
+    public static final boolean DEFAULT_SKIP_SETCOMPOSINGREGION = false;
+    public static final int DEFAULT_UPDATE_DELAY = 0;
+    public static final int DEFAULT_FINISHCOMPOSINGTEXT_DELAY = 0;
+    public static final int DEFAULT_GETSURROUNDINGTEXT_DELAY = 0;
+    public static final int DEFAULT_GETTEXTBEFORECURSOR_DELAY = 0;
+    public static final int DEFAULT_GETSELECTEDTEXT_DELAY = 0;
+    public static final int DEFAULT_GETTEXTAFTERCURSOR_DELAY = 0;
+    public static final int DEFAULT_GETCURSORCAPSMODE_DELAY = 0;
+    public static final int DEFAULT_GETEXTRACTEDTEXT_DELAY = 0;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
+    public static final boolean NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = false;
+    public static final boolean NONNULL_INPUT_TYPE_SEND_SELECTION_INFO = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO = false;
+    public static final boolean NONNULL_INPUT_TYPE_SEND_TEXT = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_TEXT = false;
+    public static final int NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
+            COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+    public static final int DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
+            COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+    public static final boolean NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = false;
+    public static final boolean NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = true;
+    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = false;
+
+    public static boolean defaultCreateInputConnection(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION
+                : DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
+    }
+    public static boolean defaultSendSelectionInfo(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_SEND_SELECTION_INFO
+                : DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO;
+    }
+    public static boolean defaultSendText(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_SEND_TEXT
+                : DEFAULT_NULL_INPUT_TYPE_SEND_TEXT;
+    }
+    public static int defaultComposingTextBehavior(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR
+                : DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
+    }
+    public static boolean defaultAllowDeleteSurroundingText(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT
+                : DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
+    }
+    public static boolean defaultAllowSettingSelection(int inputType) {
+        return inputType != EditorInfo.TYPE_NULL
+                ? NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION
+                : DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
+    }
+
     //TODO: (EW) remove constants to consolidate and have this method manage whatever used the
     // constants before
-    //TODO: (EW) use this to create more generic preference loading methods to reduce some of the
-    // boilerplate bloat
     private static boolean getPrefDefaultBoolean(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
@@ -670,8 +774,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
     private static String getPrefDefaultString(String keyOrPrefix) {
         switch (keyOrPrefix) {
-            case PREF_TEST_GROUP_NAME_PREFIX:
-                return null;
             case PREF_INPUT_TYPE_CLASS_PREFIX:
                 return "TYPE_CLASS_TEXT";
             case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
@@ -680,20 +782,18 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 return "TYPE_NUMBER_VARIATION_NORMAL";
             case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
                 return "TYPE_DATETIME_VARIATION_NORMAL";
-            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
-                return "";
-            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
-                return "";
-            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
-                return "";
             case PREF_IME_OPTIONS_ACTION_PREFIX:
                 return "IME_ACTION_UNSPECIFIED";
-            case PREF_IME_ACTION_LABEL_PREFIX:
-                return null;
-            case PREF_PRIVATE_IME_OPTIONS_PREFIX:
-                return null;
             case PREF_THEME:
                 return THEME_SYSTEM_DEFAULT;
+            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
+            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
+            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+                return "";
+            case PREF_TEST_GROUP_NAME_PREFIX:
+            case PREF_IME_ACTION_LABEL_PREFIX:
+            case PREF_PRIVATE_IME_OPTIONS_PREFIX:
+                return null;
             default:
                 Log.e(TAG, "String default missing for " + keyOrPrefix
                         + (prefDataType(keyOrPrefix) != TYPE_STRING ? " (not a String)" : ""));
@@ -711,9 +811,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private static CharSequence getPrefDefaultCharSequence(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_IME_LABEL_TEXT_PREFIX:
-                return null;
             case PREF_IME_DEFAULT_TEXT_PREFIX:
-                return null;
             case PREF_IME_HINT_TEXT_PREFIX:
                 return null;
             default:
@@ -743,6 +841,34 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                                 : ""));
                 return null;
         }
+    }
+
+    private boolean readBoolean(String prefKey) {
+        return mPrefs.getBoolean(prefKey, getPrefDefaultBoolean(prefKey));
+    }
+    private boolean readTestFieldBoolean(int fieldId, String prefKeyPrefix) {
+        return mPrefs.getBoolean(prefKeyPrefix + getSuffix(fieldId),
+                getPrefDefaultBoolean(prefKeyPrefix));
+    }
+
+    private int readInt(String prefKey) {
+        return mPrefs.getInt(prefKey, getPrefDefaultInt(prefKey));
+    }
+    private int readTestFieldInt(int fieldId, String prefKeyPrefix) {
+        return mPrefs.getInt(prefKeyPrefix + getSuffix(fieldId),
+                getPrefDefaultInt(prefKeyPrefix));
+    }
+
+    private String readString(String prefKey) {
+        return mPrefs.getString(prefKey, getPrefDefaultString(prefKey));
+    }
+    private String readTestGroupString(int groupId, String prefKeyPrefix) {
+        return mPrefs.getString(prefKeyPrefix + GROUP_INFIX + groupId,
+                getPrefDefaultString(prefKeyPrefix));
+    }
+    private String readTestFieldString(int fieldId, String prefKeyPrefix) {
+        return mPrefs.getString(prefKeyPrefix + getSuffix(fieldId),
+                getPrefDefaultString(prefKeyPrefix));
     }
 
     private int[] mTestGroupIds;
@@ -952,7 +1078,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private TestGroup loadExistingGroup(int groupId) {
-        String groupName = readTestGroupName(mPrefs, groupId);
+        //TODO: (EW) see if PREF_TEST_GROUP_NAME_PREFIX can only be loaded in 1 call
+        String groupName = readTestGroupString(groupId, PREF_TEST_GROUP_NAME_PREFIX);
         int[] groupFieldIds = readTestGroupFieldIds(mPrefs, groupId);
         TestGroup group = new TestGroup(groupId, groupName, groupFieldIds);
         mTestGroups.put(groupId, group);
@@ -1039,10 +1166,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 // simple Preference, so we don't need to do anything when these change
                 break;
             case PREF_THEME:
-                mTheme = readTheme(mPrefs);
+                mTheme = readString(PREF_THEME);
                 break;
             case PREF_SHOW_REFERENCE_EDITTEXT:
-                mShowReferenceEditText = readShowReferenceEditText(mPrefs);
+                mShowReferenceEditText = readBoolean(PREF_SHOW_REFERENCE_EDITTEXT);
                 break;
             default:
                 // try loading as a specific field or group's setting
@@ -1127,7 +1254,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 // simple Preference, so we don't need to do anything when these change
                 break;
             case PREF_TEST_GROUP_NAME_PREFIX:
-                getGroupById(groupId).mName = readTestGroupName(mPrefs, groupId);
+                getGroupById(groupId).mName =
+                        readTestGroupString(groupId, PREF_TEST_GROUP_NAME_PREFIX);
                 break;
             default:
                 Log.w(TAG, "Preference " + prefKeyPrefix + GROUP_INFIX + groupId
@@ -1165,46 +1293,51 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
             case PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
             case PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX:
-                testField.mInputType = readTestFieldInputType(mPrefs, fieldId);
+                testField.mInputType = readTestFieldInputType(fieldId);
                 testField.mNullInputTypeMultiline =
-                        readTestFieldNullInputTypeMultiline(mPrefs, fieldId);
-                // this setting only applies to null input types since as far as I can tell, the
-                // others are expected to create the input connection to fully support rich input
-                testField.mCreateInputConnection = testField.mInputType == EditorInfo.TYPE_NULL
-                        ? readTestFieldNullInputTypeCreateInputConnection(mPrefs, fieldId)
-                        : NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
-                // this setting only applies to null input types since as far as I can tell, the
-                // others are expected to send selection info (possibly based on the same
-                // understanding for them needing to create an input connection)
-                testField.mSendSelectionInfo = testField.mInputType == EditorInfo.TYPE_NULL
-                        ? readTestFieldNullInputTypeSendSelectionInfo(mPrefs, fieldId)
-                        : NONNULL_INPUT_TYPE_SEND_SELECTION_INFO;
-                // this setting only applies to null input types since as far as I can tell, the
-                // others are expected to return text as part of fully supporting rich input
-                testField.mSendText = testField.mInputType == EditorInfo.TYPE_NULL
-                        ? readTestFieldNullInputTypeSendText(mPrefs, fieldId)
-                        : NONNULL_INPUT_TYPE_SEND_TEXT;
-                // this setting only applies to null input types since as far as I can tell, the
-                // others are expected to support all of the rich editing specified in documentation
-                // for InputConnection (that isn't noted as being optional)
-                testField.mComposingTextBehavior = testField.mInputType == EditorInfo.TYPE_NULL
-                        ? readTestFieldNullInputTypeComposingTextBehavior(mPrefs, fieldId,
-                                testField.mCreateInputConnection)
-                        : NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
-                // this setting only applies to null input types since as far as I can tell, the
-                // others are expected to support all of the rich editing specified in documentation
-                // for InputConnection (that isn't noted as being optional)
-                testField.mAllowDeleteSurroundingText = testField.mInputType == EditorInfo.TYPE_NULL
-                        ? readTestFieldNullInputTypeAllowDeleteSurroundingText(mPrefs, fieldId,
-                                testField.mCreateInputConnection)
-                        : NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
-                // this setting only applies to null input types since as far as I can tell, the
-                // others are expected to support all of the rich editing specified in documentation
-                // for InputConnection (that isn't noted as being optional)
-                testField.mAllowSettingSelection = testField.mInputType == EditorInfo.TYPE_NULL
-                        ? readTestFieldNullInputTypeAllowSettingSelection(mPrefs, fieldId,
-                                testField.mCreateInputConnection)
-                        : NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
+                        readTestFieldBoolean(fieldId, PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX);
+                // the following settings only apply to null input types since as far as I can
+                // tell, the others are expected to create the input connection to fully support
+                // rich input, are expected to send selection info (possibly based on the same
+                // understanding for them needing to create an input connection), are expected to
+                // return text as part of fully supporting rich input, and are expected to support
+                // all of the rich editing specified in documentation for InputConnection (that
+                // isn't noted as being optional)
+                if (testField.mInputType == EditorInfo.TYPE_NULL) {
+                    testField.mCreateInputConnection = readTestFieldBoolean(fieldId,
+                            PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX);
+                    testField.mSendSelectionInfo = readTestFieldBoolean(fieldId,
+                            PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX);
+                    testField.mSendText = readTestFieldBoolean(fieldId,
+                            PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX);
+                    if (testField.mCreateInputConnection) {
+                        testField.mComposingTextBehavior = getComposingTextBehaviorInt(
+                                readTestFieldString(fieldId,
+                                        PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX));
+                        testField.mAllowDeleteSurroundingText = readTestFieldBoolean(fieldId,
+                                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX);
+                        testField.mAllowSettingSelection = readTestFieldBoolean(fieldId,
+                                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX);
+                    } else {
+                        // composition (or custom management) is only possible if an input
+                        // connection is created
+                        testField.mComposingTextBehavior = COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+                        // these APIs are only possible to be implemented if an input connection is
+                        // created
+                        testField.mAllowDeleteSurroundingText = false;
+                        // setting the selection position is only possible if an input connection is
+                        // created
+                        testField.mAllowSettingSelection = false;
+                    }
+                } else {
+                    testField.mCreateInputConnection = NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
+                    testField.mSendSelectionInfo = NONNULL_INPUT_TYPE_SEND_SELECTION_INFO;
+                    testField.mSendText = NONNULL_INPUT_TYPE_SEND_TEXT;
+                    testField.mComposingTextBehavior = NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
+                    testField.mAllowDeleteSurroundingText =
+                            NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
+                    testField.mAllowSettingSelection = NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
+                }
                 break;
             case PREF_IME_OPTIONS_ACTION_PREFIX:
             case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
@@ -1215,25 +1348,28 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
             case PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
             case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
-                testField.mImeOptions = readTestFieldImeOptions(mPrefs, fieldId);
+                testField.mImeOptions = readTestFieldImeOptions(fieldId);
                 break;
             case PREF_IME_ACTION_ID_PREFIX:
-                testField.mImeActionId = readTestFieldImeActionId(mPrefs, fieldId);
+                testField.mImeActionId = readTestFieldInt(fieldId, PREF_IME_ACTION_ID_PREFIX);
                 break;
             case PREF_IME_ACTION_LABEL_PREFIX:
-                testField.mImeActionLabel = readTestFieldImeActionLabel(mPrefs, fieldId);
+                testField.mImeActionLabel =
+                        readTestFieldString(fieldId, PREF_IME_ACTION_LABEL_PREFIX);
                 break;
             case PREF_PRIVATE_IME_OPTIONS_PREFIX:
-                testField.mPrivateImeOptions = readTestFieldPrivateImeOptions(mPrefs, fieldId);
+                testField.mPrivateImeOptions =
+                        readTestFieldString(fieldId, PREF_PRIVATE_IME_OPTIONS_PREFIX);
                 break;
             case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
-                testField.mSelectAllOnFocus = readTestFieldSelectAllOnFocus(mPrefs, fieldId);
+                testField.mSelectAllOnFocus =
+                        readTestFieldBoolean(fieldId, PREF_SELECT_ALL_ON_FOCUS_PREFIX);
                 break;
             case PREF_MAX_LENGTH_PREFIX:
-                testField.mMaxLength = readTestFieldMaxLength(mPrefs, fieldId);
+                testField.mMaxLength = readTestFieldInt(fieldId, PREF_MAX_LENGTH_PREFIX);
                 break;
             case PREF_ALLOW_UNDO_PREFIX:
-                testField.mAllowUndo = readTestFieldAllowUndo(mPrefs, fieldId);
+                testField.mAllowUndo = readTestFieldBoolean(fieldId, PREF_ALLOW_UNDO_PREFIX);
                 break;
             case PREF_TEXT_LOCALES_PREFIX:
                 testField.mTextLocales = readTestFieldTextLocales(mPrefs, fieldId);
@@ -1244,19 +1380,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
                 testField.mOverrideTextInputModification =
-                        readOverrideTextInputModification(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX);
                 break;
             case PREF_OVERRIDE_TEXT_RETURN_PREFIX:
-                testField.mOverrideTextReturn = readOverrideTextReturn(mPrefs, fieldId);
+                testField.mOverrideTextReturn =
+                        readTestFieldBoolean(fieldId, PREF_OVERRIDE_TEXT_RETURN_PREFIX);
                 break;
             case PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX:
-                testField.mOverrideTextComposition = readOverrideTextComposition(mPrefs, fieldId);
+                testField.mOverrideTextComposition =
+                        readTestFieldBoolean(fieldId, PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
                 break;
             case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
-                testField.mOverrideTargetVersion = readOverrideTargetVersion(mPrefs, fieldId);
+                testField.mOverrideTargetVersion = readTestFieldBoolean(fieldId,
+                        PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX);
                 break;
             case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
-                testField.mOverrideSystemBehavior = readOverrideSystemBehavior(mPrefs, fieldId);
+                testField.mOverrideSystemBehavior = readTestFieldBoolean(fieldId,
+                        PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX);
                 break;
             default:
                 Log.w(TAG, "Preference " + prefKeyPrefix + FIELD_INFIX + fieldId
@@ -1276,21 +1416,25 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
         switch (prefKeyPrefix) {
             case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
-                testFieldOrDefault.mModifyCommittedText = readModifyCommittedText(mPrefs, fieldId);
+                testFieldOrDefault.mModifyCommittedText =
+                        readTestFieldBoolean(fieldId, PREF_MODIFY_COMMITTED_TEXT_PREFIX);
                 break;
             case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
-                testFieldOrDefault.mModifyComposedText = readModifyComposedText(mPrefs, fieldId);
+                testFieldOrDefault.mModifyComposedText =
+                        readTestFieldBoolean(fieldId, PREF_MODIFY_COMPOSED_TEXT_PREFIX);
                 break;
             case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
                 testFieldOrDefault.mModifyComposedChangesOnly =
-                        readModifyComposedChangesOnly(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX);
                 break;
             case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
                 testFieldOrDefault.mConsiderComposedChangesFromEnd =
-                        readConsiderComposedChangesFromEnd(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId,
+                                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX);
                 break;
             case PREF_RESTRICT_TO_INCLUDE_PREFIX:
-                testFieldOrDefault.mRestrictToInclude = readRestrictToInclude(mPrefs, fieldId);
+                testFieldOrDefault.mRestrictToInclude =
+                        readTestFieldBoolean(fieldId, PREF_RESTRICT_TO_INCLUDE_PREFIX);
                 break;
             case PREF_RESTRICT_SPECIFIC_PREFIX:
                 testFieldOrDefault.mRestrictSpecific = readRestrictSpecific(mPrefs, fieldId);
@@ -1303,118 +1447,130 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
                 testFieldOrDefault.mTranslateFullMatchOnly =
-                        readTranslateFullMatchOnly(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX);
                 break;
             case PREF_SHIFT_CODEPOINT_PREFIX:
-                testFieldOrDefault.mShiftCodepoint = readShiftCodepoint(mPrefs, fieldId);
+                testFieldOrDefault.mShiftCodepoint =
+                        readTestFieldInt(fieldId, PREF_SHIFT_CODEPOINT_PREFIX);
                 break;
 
             case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
-                testFieldOrDefault.mSkipExtractingText = readSkipExtractingText(mPrefs, fieldId);
+                testFieldOrDefault.mSkipExtractingText =
+                        readTestFieldBoolean(fieldId, PREF_SKIP_EXTRACTING_TEXT_PREFIX);
                 break;
             case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
                 testFieldOrDefault.mIgnoreExtractedTextMonitor =
-                        readIgnoreExtractedTextMonitor(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX);
                 break;
             case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
                 testFieldOrDefault.mUpdateSelectionBeforeExtractedText =
-                        readUpdateSelectionBeforeExtractedText(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId,
+                                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX);
                 break;
             case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
                 testFieldOrDefault.mUpdateExtractedTextOnlyOnNetChanges =
-                        readUpdateExtractedTextOnlyOnNetChanges(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId,
+                                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX);
                 break;
             case PREF_EXTRACT_FULL_TEXT_PREFIX:
-                testFieldOrDefault.mExtractFullText = readExtractFullText(mPrefs, fieldId);
+                testFieldOrDefault.mExtractFullText =
+                        readTestFieldBoolean(fieldId, PREF_EXTRACT_FULL_TEXT_PREFIX);
                 break;
             case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
                 testFieldOrDefault.mExtractMonitorTextLimit =
-                        readExtractMonitorTextLimit(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX);
                 break;
             case PREF_LIMIT_RETURNED_TEXT_PREFIX:
-                testFieldOrDefault.mReturnedTextLimit = readReturnedTextLimit(mPrefs, fieldId);
+                testFieldOrDefault.mReturnedTextLimit =
+                        readTestFieldInt(fieldId, PREF_LIMIT_RETURNED_TEXT_PREFIX);
                 break;
 
             case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
                 testFieldOrDefault.mDeleteThroughComposingText =
-                        readDeleteThroughComposingText(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX);
                 break;
             case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
                 testFieldOrDefault.mKeepEmptyComposingPosition =
-                        readKeepEmptyComposingPosition(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX);
                 break;
 
             case PREF_SKIP_TAKESNAPSHOT_PREFIX:
-                testFieldOrDefault.mSkipTakeSnapshot = readSkipTakeSnapshot(mPrefs, fieldId);
+                testFieldOrDefault.mSkipTakeSnapshot =
+                        readTestFieldBoolean(fieldId, PREF_SKIP_TAKESNAPSHOT_PREFIX);
                 break;
             case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
                 testFieldOrDefault.mSkipGetSurroundingText =
-                        readSkipGetSurroundingText(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_SKIP_GETSURROUNDINGTEXT_PREFIX);
                 break;
             case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
                 testFieldOrDefault.mSkipPerformSpellCheck =
-                        readSkipPerformSpellCheck(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_SKIP_PERFORMSPELLCHECK_PREFIX);
                 break;
             case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
                 testFieldOrDefault.mSkipSetImeConsumesInput =
-                        readSkipSetImeConsumesInput(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_SKIP_SETIMECONSUMESINPUT_PREFIX);
                 break;
             case PREF_SKIP_COMMITCONTENT_PREFIX:
-                testFieldOrDefault.mSkipCommitContent = readSkipCommitContent(mPrefs, fieldId);
+                testFieldOrDefault.mSkipCommitContent =
+                        readTestFieldBoolean(fieldId, PREF_SKIP_COMMITCONTENT_PREFIX);
                 break;
             case PREF_SKIP_CLOSECONNECTION_PREFIX:
-                testFieldOrDefault.mSkipCloseConnection = readSkipCloseConnection(mPrefs, fieldId);
+                testFieldOrDefault.mSkipCloseConnection =
+                        readTestFieldBoolean(fieldId, PREF_SKIP_CLOSECONNECTION_PREFIX);
                 break;
             case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
                 testFieldOrDefault.mSkipDeleteSurroundingTextInCodePoints =
-                        readSkipDeleteSurroundingTextInCodePoints(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId,
+                                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX);
                 break;
             case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
                 testFieldOrDefault.mSkipRequestCursorUpdates =
-                        readSkipRequestCursorUpdates(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_SKIP_REQUESTCURSORUPDATES_PREFIX);
                 break;
             case PREF_SKIP_COMMITCORRECTION_PREFIX:
                 testFieldOrDefault.mSkipCommitCorrection =
-                        readSkipCommitCorrection(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_SKIP_COMMITCORRECTION_PREFIX);
                 break;
             case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
-                testFieldOrDefault.mSkipGetSelectedText = readSkipGetSelectedText(mPrefs, fieldId);
+                testFieldOrDefault.mSkipGetSelectedText =
+                        readTestFieldBoolean(fieldId, PREF_SKIP_GETSELECTEDTEXT_PREFIX);
                 break;
             case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
                 testFieldOrDefault.mSkipSetComposingRegion =
-                        readSkipSetComposingRegion(mPrefs, fieldId);
+                        readTestFieldBoolean(fieldId, PREF_SKIP_SETCOMPOSINGREGION_PREFIX);
                 break;
 
             case PREF_UPDATE_DELAY_PREFIX:
-                testFieldOrDefault.mUpdateDelay = readUpdateDelay(mPrefs, fieldId);
+                testFieldOrDefault.mUpdateDelay =
+                        readTestFieldInt(fieldId, PREF_UPDATE_DELAY_PREFIX);
                 break;
             case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
                 testFieldOrDefault.mFinishComposingTextDelay =
-                        readFinishComposingTextDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX);
                 break;
             case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
                 testFieldOrDefault.mGetSurroundingTextDelay =
-                        readGetSurroundingTextDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_GETSURROUNDINGTEXT_DELAY_PREFIX);
                 break;
             case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
                 testFieldOrDefault.mGetTextBeforeCursorDelay =
-                        readGetTextBeforeCursorDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX);
                 break;
             case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
                 testFieldOrDefault.mGetSelectedTextDelay =
-                        readGetSelectedTextDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_GETSELECTEDTEXT_DELAY_PREFIX);
                 break;
             case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
                 testFieldOrDefault.mGetTextAfterCursorDelay =
-                        readGetTextAfterCursorDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX);
                 break;
             case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
                 testFieldOrDefault.mGetCursorCapsModeDelay =
-                        readGetCursorCapsModeDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_GETCURSORCAPSMODE_DELAY_PREFIX);
                 break;
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
                 testFieldOrDefault.mGetExtractedTextDelay =
-                        readGetExtractedTextDelay(mPrefs, fieldId);
+                        readTestFieldInt(fieldId, PREF_GETEXTRACTEDTEXT_DELAY_PREFIX);
                 break;
         }
     }
@@ -1473,31 +1629,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 testField -> testField.mOverrideSystemBehavior);
     }
 
-    private static boolean readOverrideTextInputModification(final SharedPreferenceManager prefs,
-                                                             int fieldId) {
-        return prefs.getBoolean(PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX + getSuffix(fieldId),
-                false);
-    }
-
-    public static final boolean DEFAULT_MODIFY_COMMITTED_TEXT = false;
-
-    private static boolean readModifyCommittedText(final SharedPreferenceManager prefs,
-                                                   int fieldId) {
-        return prefs.getBoolean(PREF_MODIFY_COMMITTED_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_MODIFY_COMMITTED_TEXT);
-    }
-
     public static boolean shouldModifyCommittedText(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mModifyCommittedText;
-    }
-
-    public static final boolean DEFAULT_MODIFY_COMPOSED_TEXT = false;
-
-    private static boolean readModifyComposedText(final SharedPreferenceManager prefs,
-                                                  int fieldId) {
-        return prefs.getBoolean(PREF_MODIFY_COMPOSED_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_MODIFY_COMPOSED_TEXT);
     }
 
     public static boolean shouldModifyComposedText(int groupIndex, int fieldIndex) {
@@ -1505,37 +1639,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mModifyComposedText;
     }
 
-    public static final boolean DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY = false;
-
-    private static boolean readModifyComposedChangesOnly(final SharedPreferenceManager prefs,
-                                                         int fieldId) {
-        return prefs.getBoolean(PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX + getSuffix(fieldId),
-                DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY);
-    }
-
     public static boolean shouldModifyComposedChangesOnly(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mModifyComposedChangesOnly;
     }
 
-    public static final boolean DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END = false;
-
-    private static boolean readConsiderComposedChangesFromEnd(final SharedPreferenceManager prefs,
-                                                              int fieldId) {
-        return prefs.getBoolean(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX + getSuffix(fieldId),
-                DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END);
-    }
-
     public static boolean shouldConsiderComposedChangesFromEnd(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mConsiderComposedChangesFromEnd;
-    }
-
-    public static final boolean DEFAULT_RESTRICT_TO_INCLUDE = false;
-
-    private static boolean readRestrictToInclude(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(PREF_RESTRICT_TO_INCLUDE_PREFIX + getSuffix(fieldId),
-                DEFAULT_RESTRICT_TO_INCLUDE);
     }
 
     public static boolean shouldRestrictToInclude(int groupIndex, int fieldIndex) {
@@ -1683,24 +1794,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mTranslateSpecific;
     }
 
-    public static final boolean DEFAULT_TRANSLATE_FULL_MATCH_ONLY = false;
-
-    private static boolean readTranslateFullMatchOnly(final SharedPreferenceManager prefs,
-                                                      int fieldId) {
-        return prefs.getBoolean(PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX + getSuffix(fieldId),
-                DEFAULT_TRANSLATE_FULL_MATCH_ONLY);
-    }
-
     public static boolean shouldTranslateFullMatchOnly(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
                 .mTranslateFullMatchOnly;
-    }
-
-    public static final int DEFAULT_CODEPOINT_SHIFT = 0;
-
-    private static int readShiftCodepoint(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_SHIFT_CODEPOINT_PREFIX + getSuffix(fieldId),
-                DEFAULT_CODEPOINT_SHIFT);
     }
 
     public static int getShiftCodepoint(int groupIndex, int fieldIndex) {
@@ -1708,30 +1804,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mShiftCodepoint;
     }
 
-    private static boolean readOverrideTextReturn(final SharedPreferenceManager prefs,
-                                                  int fieldId) {
-        return prefs.getBoolean(PREF_OVERRIDE_TEXT_RETURN_PREFIX + getSuffix(fieldId), false);
-    }
-
-    public static final boolean DEFAULT_SKIP_EXTRACTING_TEXT = false;
-
-    private static boolean readSkipExtractingText(final SharedPreferenceManager prefs,
-                                                  int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_EXTRACTING_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_EXTRACTING_TEXT);
-    }
-
     public static boolean shouldSkipExtractingText(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mSkipExtractingText;
-    }
-
-    public static final boolean DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR = false;
-
-    private static boolean readIgnoreExtractedTextMonitor(final SharedPreferenceManager prefs,
-                                                          int fieldId) {
-        return prefs.getBoolean(PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX + getSuffix(fieldId),
-                DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR);
     }
 
     public static boolean shouldIgnoreExtractedTextMonitor(int groupIndex, int fieldIndex) {
@@ -1739,27 +1814,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mIgnoreExtractedTextMonitor;
     }
 
-    public static final boolean DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT = false;
-
-    private static boolean readUpdateSelectionBeforeExtractedText(
-            final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(
-                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT);
-    }
-
     public static boolean shouldUpdateSelectionBeforeExtractedText(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mUpdateSelectionBeforeExtractedText;
-    }
-
-    public static final boolean DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES = false;
-
-    private static boolean readUpdateExtractedTextOnlyOnNetChanges(
-            final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(
-                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX + getSuffix(fieldId),
-                DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES);
     }
 
     public static boolean shouldUpdateExtractedTextOnlyOnNetChanges(int groupIndex,
@@ -1768,24 +1825,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mUpdateExtractedTextOnlyOnNetChanges;
     }
 
-    public static final boolean DEFAULT_EXTRACT_FULL_TEXT = false;
-
-    private static boolean readExtractFullText(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(PREF_EXTRACT_FULL_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_EXTRACT_FULL_TEXT);
-    }
-
     public static boolean shouldExtractFullText(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mExtractFullText;
-    }
-
-    public static final int DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT = -1;
-
-    private static int readExtractMonitorTextLimit(final SharedPreferenceManager prefs,
-                                                   int fieldId) {
-        return prefs.getInt(PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT);
     }
 
     public static int getExtractMonitorTextLimit(int groupIndex, int fieldIndex) {
@@ -1793,29 +1835,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mExtractMonitorTextLimit;
     }
 
-    public static final int DEFAULT_RETURNED_TEXT_LIMIT = -1;
-
-    private static int readReturnedTextLimit(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_LIMIT_RETURNED_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_RETURNED_TEXT_LIMIT);
-    }
-
     public static int getReturnedTextLimit(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
                 .mReturnedTextLimit;
-    }
-
-    private static boolean readOverrideTextComposition(final SharedPreferenceManager prefs,
-                                                       int fieldId) {
-        return prefs.getBoolean(PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX + getSuffix(fieldId), false);
-    }
-
-    public static final boolean DEFAULT_DELETE_THROUGH_COMPOSING_TEXT = false;
-
-    private static boolean readDeleteThroughComposingText(final SharedPreferenceManager prefs,
-                                                          int fieldId) {
-        return prefs.getBoolean(PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_DELETE_THROUGH_COMPOSING_TEXT);
     }
 
     public static boolean shouldDeleteThroughComposingText(int groupIndex, int fieldIndex) {
@@ -1823,30 +1845,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mDeleteThroughComposingText;
     }
 
-    public static final boolean DEFAULT_KEEP_EMPTY_COMPOSING_POSITION = false;
-
-    private static boolean readKeepEmptyComposingPosition(final SharedPreferenceManager prefs,
-                                                          int fieldId) {
-        return prefs.getBoolean(PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX + getSuffix(fieldId),
-                DEFAULT_KEEP_EMPTY_COMPOSING_POSITION);
-    }
-
     public static boolean shouldKeepEmptyComposingPosition(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTextComposition(groupIndex, fieldIndex)
                 .mKeepEmptyComposingPosition;
-    }
-
-    private static boolean readOverrideTargetVersion(final SharedPreferenceManager prefs,
-                                                     int fieldId) {
-        return prefs.getBoolean(PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX + getSuffix(fieldId),
-                false);
-    }
-
-    public static final boolean DEFAULT_SKIP_TAKESNAPSHOT = false;
-
-    private static boolean readSkipTakeSnapshot(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_TAKESNAPSHOT_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_TAKESNAPSHOT);
     }
 
     public static boolean shouldSkipTakeSnapshot(int groupIndex, int fieldIndex) {
@@ -1854,25 +1855,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mSkipTakeSnapshot;
     }
 
-    public static final boolean DEFAULT_SKIP_GETSURROUNDINGTEXT = false;
-
-    private static boolean readSkipGetSurroundingText(final SharedPreferenceManager prefs,
-                                                      int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_GETSURROUNDINGTEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_GETSURROUNDINGTEXT);
-    }
-
     public static boolean shouldSkipGetSurroundingText(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipGetSurroundingText;
-    }
-
-    public static final boolean DEFAULT_SKIP_PERFORMSPELLCHECK = false;
-
-    private static boolean readSkipPerformSpellCheck(final SharedPreferenceManager prefs,
-                                                     int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_PERFORMSPELLCHECK_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_PERFORMSPELLCHECK);
     }
 
     public static boolean shouldSkipPerformSpellCheck(int groupIndex, int fieldIndex) {
@@ -1880,24 +1865,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mSkipPerformSpellCheck;
     }
 
-    public static final boolean DEFAULT_SKIP_SETIMECONSUMESINPUT = false;
-
-    private static boolean readSkipSetImeConsumesInput(final SharedPreferenceManager prefs,
-                                                       int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_SETIMECONSUMESINPUT_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_SETIMECONSUMESINPUT);
-    }
-
     public static boolean shouldSkipSetImeConsumesInput(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipSetImeConsumesInput;
-    }
-
-    public static final boolean DEFAULT_SKIP_COMMITCONTENT = false;
-
-    private static boolean readSkipCommitContent(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_COMMITCONTENT_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_COMMITCONTENT);
     }
 
     public static boolean shouldSkipCommitContent(int groupIndex, int fieldIndex) {
@@ -1905,24 +1875,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mSkipCommitContent;
     }
 
-    public static final boolean DEFAULT_SKIP_CLOSECONNECTION = false;
-
-    private static boolean readSkipCloseConnection(final SharedPreferenceManager prefs,
-                                                   int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_CLOSECONNECTION_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_CLOSECONNECTION);
-    }
-
     public static boolean shouldSkipCloseConnection(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipCloseConnection;
-    }
-
-    public static final boolean DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS = false;
-
-    private static boolean readSkipDeleteSurroundingTextInCodePoints(
-            final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX + getSuffix(fieldId), DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS);
     }
 
     public static boolean shouldSkipDeleteSurroundingTextInCodePoints(int groupIndex,
@@ -1931,25 +1886,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mSkipDeleteSurroundingTextInCodePoints;
     }
 
-    public static final boolean DEFAULT_SKIP_REQUESTCURSORUPDATES = false;
-
-    private static boolean readSkipRequestCursorUpdates(final SharedPreferenceManager prefs,
-                                                        int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_REQUESTCURSORUPDATES_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_REQUESTCURSORUPDATES);
-    }
-
     public static boolean shouldSkipRequestCursorUpdates(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipRequestCursorUpdates;
-    }
-
-    public static final boolean DEFAULT_SKIP_COMMITCORRECTION = false;
-
-    private static boolean readSkipCommitCorrection(final SharedPreferenceManager prefs,
-                                                    int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_COMMITCORRECTION_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_COMMITCORRECTION);
     }
 
     public static boolean shouldSkipCommitCorrection(int groupIndex, int fieldIndex) {
@@ -1957,25 +1896,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mSkipCommitCorrection;
     }
 
-    public static final boolean DEFAULT_SKIP_GETSELECTEDTEXT = false;
-
-    private static boolean readSkipGetSelectedText(final SharedPreferenceManager prefs,
-                                                   int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_GETSELECTEDTEXT_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_GETSELECTEDTEXT);
-    }
-
     public static boolean shouldSkipGetSelectedText(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
                 .mSkipGetSelectedText;
-    }
-
-    public static final boolean DEFAULT_SKIP_SETCOMPOSINGREGION = false;
-
-    private static boolean readSkipSetComposingRegion(final SharedPreferenceManager prefs,
-                                                      int fieldId) {
-        return prefs.getBoolean(PREF_SKIP_SETCOMPOSINGREGION_PREFIX + getSuffix(fieldId),
-                DEFAULT_SKIP_SETCOMPOSINGREGION);
     }
 
     public static boolean shouldSkipSetComposingRegion(int groupIndex, int fieldIndex) {
@@ -1983,30 +1906,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mSkipSetComposingRegion;
     }
 
-    private static boolean readOverrideSystemBehavior(final SharedPreferenceManager prefs,
-                                                      int fieldId) {
-        return prefs.getBoolean(
-                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX + getSuffix(fieldId),
-                false);
-    }
-
-    public static final int DEFAULT_UPDATE_DELAY = 0;
-
-    private static int readUpdateDelay(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_UPDATE_DELAY_PREFIX + getSuffix(fieldId), DEFAULT_UPDATE_DELAY);
-    }
-
     public static int getUpdateDelay(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mUpdateDelay;
-    }
-
-    public static final int DEFAULT_FINISHCOMPOSINGTEXT_DELAY = 0;
-
-    private static int readFinishComposingTextDelay(final SharedPreferenceManager prefs,
-                                                    int fieldId) {
-        return prefs.getInt(PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_FINISHCOMPOSINGTEXT_DELAY);
     }
 
     public static int getFinishComposingTextDelay(int groupIndex, int fieldIndex) {
@@ -2014,25 +1916,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mFinishComposingTextDelay;
     }
 
-    public static final int DEFAULT_GETSURROUNDINGTEXT_DELAY = 0;
-
-    private static int readGetSurroundingTextDelay(final SharedPreferenceManager prefs,
-                                                   int fieldId) {
-        return prefs.getInt(PREF_GETSURROUNDINGTEXT_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_GETSURROUNDINGTEXT_DELAY);
-    }
-
     public static int getGetSurroundingTextDelay(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetSurroundingTextDelay;
-    }
-
-    public static final int DEFAULT_GETTEXTBEFORECURSOR_DELAY = 0;
-
-    private static int readGetTextBeforeCursorDelay(final SharedPreferenceManager prefs,
-                                                    int fieldId) {
-        return prefs.getInt(PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_GETTEXTBEFORECURSOR_DELAY);
     }
 
     public static int getGetTextBeforeCursorDelay(int groupIndex, int fieldIndex) {
@@ -2040,25 +1926,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mGetTextBeforeCursorDelay;
     }
 
-    public static final int DEFAULT_GETSELECTEDTEXT_DELAY = 0;
-
-    private static int readGetSelectedTextDelay(final SharedPreferenceManager prefs,
-                                                int fieldId) {
-        return prefs.getInt(PREF_GETSELECTEDTEXT_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_GETSELECTEDTEXT_DELAY);
-    }
-
     public static int getGetSelectedTextDelay(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetSelectedTextDelay;
-    }
-
-    public static final int DEFAULT_GETTEXTAFTERCURSOR_DELAY = 0;
-
-    private static int readGetTextAfterCursorDelay(final SharedPreferenceManager prefs,
-                                                   int fieldId) {
-        return prefs.getInt(PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_GETTEXTAFTERCURSOR_DELAY);
     }
 
     public static int getGetTextAfterCursorDelay(int groupIndex, int fieldIndex) {
@@ -2066,24 +1936,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 .mGetTextAfterCursorDelay;
     }
 
-    public static final int DEFAULT_GETCURSORCAPSMODE_DELAY = 0;
-
-    private static int readGetCursorCapsModeDelay(final SharedPreferenceManager prefs,
-                                                  int fieldId) {
-        return prefs.getInt(PREF_GETCURSORCAPSMODE_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_GETCURSORCAPSMODE_DELAY);
-    }
-
     public static int getGetCursorCapsModeDelay(int groupIndex, int fieldIndex) {
         return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
                 .mGetCursorCapsModeDelay;
-    }
-
-    public static final int DEFAULT_GETEXTRACTEDTEXT_DELAY = 0;
-
-    private static int readGetExtractedTextDelay(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_GETEXTRACTEDTEXT_DELAY_PREFIX + getSuffix(fieldId),
-                DEFAULT_GETEXTRACTEDTEXT_DELAY);
     }
 
     public static int getGetExtractedTextDelay(int groupIndex, int fieldIndex) {
@@ -2118,10 +1973,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         editor.putIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId,
                 fieldIds);
         getGroupById(groupId).mFieldIds = deepCopy(fieldIds);
-    }
-
-    private static String readTestGroupName(final SharedPreferenceManager prefs, int groupId) {
-        return prefs.getString(PREF_TEST_GROUP_NAME_PREFIX + GROUP_INFIX + groupId, null);
     }
 
     public static void setTestGroupAndFieldIds(FieldIdGroup[] testGroups) {
@@ -2430,10 +2281,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getField(groupIndex, fieldIndex).mHintText;
     }
 
-    private static int readTestFieldInputType(final SharedPreferenceManager prefs, int fieldId) {
-        String inputTypeClass = prefs.getString(
-                PREF_INPUT_TYPE_CLASS_PREFIX + FIELD_INFIX + fieldId,
-                "TYPE_CLASS_TEXT");
+    private int readTestFieldInputType(int fieldId) {
+        String inputTypeClass = readTestFieldString(fieldId, PREF_INPUT_TYPE_CLASS_PREFIX);
         String variation;
         int inputType;
         switch (inputTypeClass) {
@@ -2442,9 +2291,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case "TYPE_CLASS_DATETIME":
                 inputType = InputType.TYPE_CLASS_DATETIME;
-                variation = prefs.getString(
-                        PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX + FIELD_INFIX + fieldId,
-                        "TYPE_DATETIME_VARIATION_NORMAL");
+                variation = readTestFieldString(fieldId, PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX);
                 switch (variation) {
                     case "TYPE_DATETIME_VARIATION_NORMAL":
                         inputType |= InputType.TYPE_DATETIME_VARIATION_NORMAL;
@@ -2462,9 +2309,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case "TYPE_CLASS_NUMBER":
                 inputType = InputType.TYPE_CLASS_NUMBER;
-                variation = prefs.getString(
-                        PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX + FIELD_INFIX + fieldId,
-                        "TYPE_NUMBER_VARIATION_NORMAL");
+                variation = readTestFieldString(fieldId, PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX);
                 switch (variation) {
                     case "TYPE_NUMBER_VARIATION_NORMAL":
                         inputType |= InputType.TYPE_NUMBER_VARIATION_NORMAL;
@@ -2476,14 +2321,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         Log.e(TAG, "Unexpected input type number variation: " + variation);
                         break;
                 }
-                if (prefs.getBoolean(
-                        PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX + FIELD_INFIX + fieldId,
-                        false)) {
+                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX)) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_SIGNED;
                 }
-                if (prefs.getBoolean(
-                        PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX + FIELD_INFIX + fieldId,
-                        false)) {
+                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX)) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_DECIMAL;
                 }
                 break;
@@ -2492,9 +2333,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 break;
             case "TYPE_CLASS_TEXT":
                 inputType = InputType.TYPE_CLASS_TEXT;
-                variation = prefs.getString(
-                        PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX + FIELD_INFIX + fieldId,
-                        "TYPE_TEXT_VARIATION_NORMAL");
+                variation = readTestFieldString(fieldId, PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX);
                 switch (variation) {
                     case "TYPE_TEXT_VARIATION_NORMAL":
                         inputType |= InputType.TYPE_TEXT_VARIATION_NORMAL;
@@ -2545,9 +2384,8 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         Log.e(TAG, "Unexpected input type text variation: " + variation);
                         break;
                 }
-                String multiLineFlag = prefs.getString(
-                        PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX + FIELD_INFIX + fieldId,
-                        "");
+                String multiLineFlag =
+                        readTestFieldString(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX);
                 switch (multiLineFlag) {
                     case "TYPE_TEXT_FLAG_MULTI_LINE":
                         inputType |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
@@ -2556,9 +2394,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         inputType |= InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE;
                         break;
                 }
-                String capFlag = prefs.getString(
-                        PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX + FIELD_INFIX + fieldId,
-                        "");
+                String capFlag = readTestFieldString(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX);
                 switch (capFlag) {
                     case "TYPE_TEXT_FLAG_CAP_CHARACTERS":
                         inputType |= InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS;
@@ -2570,19 +2406,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         inputType |= InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
                         break;
                 }
-                if (prefs.getBoolean(
-                        PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX + FIELD_INFIX + fieldId,
-                        false)) {
+                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
                 }
-                if (prefs.getBoolean(
-                        PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX + FIELD_INFIX + fieldId,
-                        false)) {
+                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
                 }
-                if (prefs.getBoolean(
-                        PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX + FIELD_INFIX + fieldId,
-                        false)) {
+                if (readTestFieldBoolean(fieldId,
+                        PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX)) {
                     inputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                 }
                 break;
@@ -2598,170 +2429,36 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getField(groupIndex, fieldIndex).mInputType;
     }
 
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
-
-    private static boolean readTestFieldNullInputTypeMultiline(final SharedPreferenceManager prefs,
-                                                               int fieldId) {
-        return prefs.getBoolean(PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX + FIELD_INFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_MULTILINE);
-    }
-
     public static boolean getTestFieldNullInputTypeMultiline(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mNullInputTypeMultiline;
-    }
-
-    public static boolean defaultCreateInputConnection(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION
-                : DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
-    }
-
-    public static final boolean NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = false;
-
-    private static boolean readTestFieldNullInputTypeCreateInputConnection(
-            final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(
-                PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX + FIELD_INFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION);
     }
 
     public static boolean getTestFieldCreateInputConnection(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mCreateInputConnection;
     }
 
-    public static boolean defaultSendSelectionInfo(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_SEND_SELECTION_INFO
-                : DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO;
-    }
-
-    public static final boolean NONNULL_INPUT_TYPE_SEND_SELECTION_INFO = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO = false;
-
-    private static boolean readTestFieldNullInputTypeSendSelectionInfo(
-            final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(
-                PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX + FIELD_INFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO);
-    }
-
     public static boolean getTestFieldSendSelectionInfo(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mSendSelectionInfo;
-    }
-
-    public static boolean defaultSendText(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_SEND_TEXT
-                : DEFAULT_NULL_INPUT_TYPE_SEND_TEXT;
-    }
-
-    public static final boolean NONNULL_INPUT_TYPE_SEND_TEXT = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_TEXT = false;
-
-    private static boolean readTestFieldNullInputTypeSendText(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getBoolean(PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX + FIELD_INFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_SEND_TEXT);
     }
 
     public static boolean getTestFieldSendText(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mSendText;
     }
 
-    public static final int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
-    public static final int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 1;
-    public static final int COMPOSING_TEXT_BEHAVIOR_COMMIT = 2;
-    public static final int COMPOSING_TEXT_BEHAVIOR_IGNORE = 3;
-
-    public static int defaultComposingTextBehavior(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR
-                : DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
-    }
-
-    public static final int NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
-            COMPOSING_TEXT_BEHAVIOR_COMPOSE;
-    public static final int DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
-            COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
-
-    private static int readTestFieldNullInputTypeComposingTextBehavior(
-            final SharedPreferenceManager prefs, int fieldId, boolean createInputConnection) {
-        // composition (or custom management) is only possible if an input connection is created
-        if (!createInputConnection) {
-            return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
-        }
-        String behavior = prefs.getString(
-                PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX + FIELD_INFIX + fieldId, "");
-        switch (behavior) {
-            case "INVISIBLE":
-                return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
-            case "COMPOSE":
-                return COMPOSING_TEXT_BEHAVIOR_COMPOSE;
-            case "COMMIT":
-                return COMPOSING_TEXT_BEHAVIOR_COMMIT;
-            case "IGNORE":
-                return COMPOSING_TEXT_BEHAVIOR_IGNORE;
-            default:
-                return DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
-        }
-    }
-
     public static int getTestFieldComposingTextBehavior(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mComposingTextBehavior;
-    }
-
-    public static boolean defaultAllowDeleteSurroundingText(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT
-                : DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
-    }
-
-    public static final boolean NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = false;
-
-    private static boolean readTestFieldNullInputTypeAllowDeleteSurroundingText(
-            final SharedPreferenceManager prefs, int fieldId, boolean createInputConnection) {
-        // composition is only possible if an input connection is created
-        if (!createInputConnection) {
-            return false;
-        }
-        return prefs.getBoolean(
-                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX + FIELD_INFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT);
     }
 
     public static boolean getTestFieldAllowDeleteSurroundingText(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mAllowDeleteSurroundingText;
     }
 
-    public static boolean defaultAllowSettingSelection(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION
-                : DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
-    }
-
-    public static final boolean NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = false;
-
-    private static boolean readTestFieldNullInputTypeAllowSettingSelection(
-            final SharedPreferenceManager prefs, int fieldId, boolean createInputConnection) {
-        // setting the selection position is only possible if an input connection is created
-        if (!createInputConnection) {
-            return false;
-        }
-        return prefs.getBoolean(
-                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX + FIELD_INFIX + fieldId,
-                DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION);
-    }
-
     public static boolean getTestFieldAllowSettingSelection(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mAllowSettingSelection;
     }
 
-    private static int readTestFieldImeOptions(final SharedPreferenceManager prefs, int fieldId) {
-        String imeOptionsAction = prefs.getString(
-                PREF_IME_OPTIONS_ACTION_PREFIX + FIELD_INFIX + fieldId,
-                "IME_ACTION_UNSPECIFIED");
+    private int readTestFieldImeOptions(int fieldId) {
+        String imeOptionsAction = readTestFieldString(fieldId, PREF_IME_OPTIONS_ACTION_PREFIX);
         int imeOptions;
         switch (imeOptionsAction) {
             case "IME_ACTION_UNSPECIFIED":
@@ -2793,38 +2490,28 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 imeOptions = EditorInfo.IME_NULL;
                 break;
         }
-        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_FORCE_ASCII;
         }
-        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_NEXT;
         }
-        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
         }
-        if (prefs.getBoolean(
-                PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ACCESSORY_ACTION;
         }
-        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ENTER_ACTION;
         }
-        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_EXTRACT_UI;
         }
-        if (prefs.getBoolean(PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX + FIELD_INFIX + fieldId,
-                false)) {
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX)) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_FULLSCREEN;
         }
-        if (prefs.getBoolean(
-                PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX + FIELD_INFIX + fieldId,
-                false)
+        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX)
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
         }
@@ -2835,52 +2522,24 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getField(groupIndex, fieldIndex).mImeOptions;
     }
 
-    private static int readTestFieldImeActionId(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_IME_ACTION_ID_PREFIX + FIELD_INFIX + fieldId, 0);
-    }
-
     public static int getTestFieldImeActionId(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mImeActionId;
-    }
-
-    private static String readTestFieldImeActionLabel(final SharedPreferenceManager prefs,
-                                                      int fieldId) {
-        return prefs.getString(PREF_IME_ACTION_LABEL_PREFIX + FIELD_INFIX + fieldId, null);
     }
 
     public static String getTestFieldImeActionLabel(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mImeActionLabel;
     }
 
-    private static String readTestFieldPrivateImeOptions(final SharedPreferenceManager prefs,
-                                                         int fieldId) {
-        return prefs.getString(PREF_PRIVATE_IME_OPTIONS_PREFIX + FIELD_INFIX + fieldId, null);
-    }
-
     public static String getTestFieldPrivateImeOptions(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mPrivateImeOptions;
-    }
-
-    private static boolean readTestFieldSelectAllOnFocus(final SharedPreferenceManager prefs,
-                                                         int fieldId) {
-        return prefs.getBoolean(PREF_SELECT_ALL_ON_FOCUS_PREFIX + FIELD_INFIX + fieldId, false);
     }
 
     public static boolean shouldTestFieldSelectAllOnFocus(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mSelectAllOnFocus;
     }
 
-    private static int readTestFieldMaxLength(final SharedPreferenceManager prefs, int fieldId) {
-        return prefs.getInt(PREF_MAX_LENGTH_PREFIX + FIELD_INFIX + fieldId, -1);
-    }
-
     public static int getTestFieldMaxLength(int groupIndex, int fieldIndex) {
         return getField(groupIndex, fieldIndex).mMaxLength;
-    }
-
-    private static boolean readTestFieldAllowUndo(final SharedPreferenceManager prefs,
-                                                  int fieldId) {
-        return prefs.getBoolean(PREF_ALLOW_UNDO_PREFIX + FIELD_INFIX + fieldId, true);
     }
 
     public static boolean shouldTestFieldAllowUndo(int groupIndex, int fieldIndex) {
@@ -2912,10 +2571,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static final String THEME_MATERIAL_LIGHT = "THEME_MATERIAL_LIGHT";
     public static final String THEME_HOLO_DARK = "THEME_HOLO_DARK";
     public static final String THEME_HOLO_LIGHT = "THEME_HOLO_LIGHT";
-
-    private static String readTheme(final SharedPreferenceManager prefs) {
-        return prefs.getString(PREF_THEME, THEME_SYSTEM_DEFAULT);
-    }
 
     public static int getThemeId(final Context context) {
         return getThemeId(getInstance().mTheme, context);
@@ -2958,10 +2613,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         int nightModeFlags = context.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK;
         return nightModeFlags == Configuration.UI_MODE_NIGHT_YES;
-    }
-
-    private static boolean readShowReferenceEditText(final SharedPreferenceManager prefs) {
-        return prefs.getBoolean(PREF_SHOW_REFERENCE_EDITTEXT, false);
     }
 
     public static boolean getShowReferenceEditText() {
@@ -3499,7 +3150,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 String suffix;
                 // embed defaults if requested and the field doesn't already override them,
                 // otherwise just load the override values
-                if (embedFieldDefaults && !prefs.getBoolean(fieldPrefKey, false)) {
+                if (embedFieldDefaults
+                        && !prefs.getBoolean(fieldPrefKey,
+                                getPrefDefaultBoolean(fieldPrefKeyPrefix))) {
                     suffix = BASE_SUFFIX;
                     String jsonPropName = prefKeyPrefixToJsonName(fieldPrefKeyPrefix);
                     fieldJsonObject.put(jsonPropName, true);
