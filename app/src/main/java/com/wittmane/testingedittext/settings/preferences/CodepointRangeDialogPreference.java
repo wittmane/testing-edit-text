@@ -16,7 +16,7 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
-import static com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_RANGE;
+import static com.wittmane.testingedittext.settings.PreferenceReader.DEFAULT_RESTRICT_RANGE;
 
 import android.app.AlertDialog;
 import android.content.Context;

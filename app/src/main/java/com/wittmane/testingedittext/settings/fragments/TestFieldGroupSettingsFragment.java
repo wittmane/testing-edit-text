@@ -16,8 +16,7 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
-import static com.wittmane.testingedittext.settings.Settings.GROUP_INFIX;
-import static com.wittmane.testingedittext.settings.Settings.PREF_TEST_GROUP_NAME_PREFIX;
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 

@@ -16,10 +16,9 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -50,12 +49,12 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference imeHintLocalesPref = findPreference(
-                    getPrefKey(Settings.PREF_IME_HINT_LOCALES_PREFIX));
+                    getPrefKey(PREF_IME_HINT_LOCALES_PREFIX));
             preferenceScreen.removePreference(imeHintLocalesPref);
 
             LocaleEntryListPreference textLocalesPref =
                     (LocaleEntryListPreference)findPreference(
-                            getPrefKey(Settings.PREF_TEXT_LOCALES_PREFIX));
+                            getPrefKey(PREF_TEXT_LOCALES_PREFIX));
             textLocalesPref.setMaxEntries(1);
         }
     }

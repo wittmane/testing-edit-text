@@ -44,9 +44,10 @@ import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.ImportExportContentDialog;
 import com.wittmane.testingedittext.settings.ImportExportSourceDialog;
 import com.wittmane.testingedittext.settings.Settings;
-import com.wittmane.testingedittext.settings.Settings.FieldInfo;
-import com.wittmane.testingedittext.settings.Settings.GroupInfo;
-import com.wittmane.testingedittext.settings.Settings.ImportFileInfo;
+import com.wittmane.testingedittext.settings.JsonManager;
+import com.wittmane.testingedittext.settings.JsonManager.FieldInfo;
+import com.wittmane.testingedittext.settings.JsonManager.GroupInfo;
+import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
 
 import org.json.JSONObject;
 
@@ -185,7 +186,7 @@ public class MainSettingsFragment extends PreferenceFragment {
     }
 
     private void importSettings(String rawJson) {
-        ImportFileInfo info = Settings.validateJson(rawJson, getActivity());
+        ImportFileInfo info = JsonManager.validateJson(rawJson, getActivity());
         if (info.getError() != null) {
             showErrorDialog(R.string.failed_to_import_settings, info.getError());
             return;
@@ -235,7 +236,7 @@ public class MainSettingsFragment extends PreferenceFragment {
                                     boolean embedFieldDefaults, boolean replaceOtherSettings) {
         int oldThemeId = Settings.getThemeId(getActivity());
 
-        Settings.importSettings(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
+        JsonManager.importSettings(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
                 embedFieldDefaults, replaceOtherSettings, getActivity());
 
         // handle theme changes
@@ -268,8 +269,8 @@ public class MainSettingsFragment extends PreferenceFragment {
         }
         ImportExportContentDialog.promptExport(getActivity(), mGroupsForExport,
                 (exportFieldDefaults, groupsForExport, embedFieldDefaults, exportOtherSettings) -> {
-            mExportData = Settings.getJson(exportFieldDefaults, groupsForExport, embedFieldDefaults,
-                            exportOtherSettings);
+            mExportData = JsonManager.getJson(exportFieldDefaults, groupsForExport,
+                    embedFieldDefaults, exportOtherSettings);
             if (mExportData == null) {
                 showErrorDialog(R.string.failed_to_export_settings,
                         R.string.failed_to_generate_export_data);

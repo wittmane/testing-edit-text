@@ -16,12 +16,13 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.Settings;
 
 public class SystemBehaviorSettingsFragment extends PerTestFieldSettingsFragment {
     private static final String TAG = SystemBehaviorSettingsFragment.class.getSimpleName();
@@ -31,11 +32,11 @@ public class SystemBehaviorSettingsFragment extends PerTestFieldSettingsFragment
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_system_behavior);
 
-        manageOverrideToggle(Settings.PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX);
+        manageOverrideToggle(PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX);
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             Preference getSurroundingTextDelayPref =
-                    findPreference(getPrefKey(Settings.PREF_GETSURROUNDINGTEXT_DELAY_PREFIX));
+                    findPreference(getPrefKey(PREF_GETSURROUNDINGTEXT_DELAY_PREFIX));
             getPreferenceScreen().removePreference(getSurroundingTextDelayPref);
         }
     }

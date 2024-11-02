@@ -16,14 +16,13 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
-import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager.OnPreferencesChangedListener;
 
@@ -35,15 +34,15 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_modify_text);
 
-        findPreference(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX))
-                .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX));
-        findPreference(getPrefKey(Settings.PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX))
-                .setDependency(getPrefKey(Settings.PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX));
+        findPreference(getPrefKey(PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX))
+                .setDependency(getPrefKey(PREF_MODIFY_COMPOSED_TEXT_PREFIX));
+        findPreference(getPrefKey(PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX))
+                .setDependency(getPrefKey(PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX));
 
         new SwitchPreferenceDependencyManager(new String[]{
-                getPrefKey(Settings.PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX),
-                getPrefKey(Settings.PREF_MODIFY_COMMITTED_TEXT_PREFIX),
-                getPrefKey(Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX)
+                getPrefKey(PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX),
+                getPrefKey(PREF_MODIFY_COMMITTED_TEXT_PREFIX),
+                getPrefKey(PREF_MODIFY_COMPOSED_TEXT_PREFIX)
         }, this, new OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefsChecked) {
@@ -53,7 +52,7 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         if (getFieldIndex() == BASE_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             Preference pref = findPreference(getPrefKey(
-                    Settings.PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX));
+                    PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX));
             preferenceScreen.removePreference(pref);
         }
     }
@@ -72,8 +71,8 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         }
 
         String[] modifyEntryTypePrefKeyPrefixes = new String[] {
-                Settings.PREF_MODIFY_COMMITTED_TEXT_PREFIX,
-                Settings.PREF_MODIFY_COMPOSED_TEXT_PREFIX
+                PREF_MODIFY_COMMITTED_TEXT_PREFIX,
+                PREF_MODIFY_COMPOSED_TEXT_PREFIX
         };
         for (String prefKeyPrefix : modifyEntryTypePrefKeyPrefixes) {
             Preference pref = findPreference(getPrefKey(prefKeyPrefix));
@@ -81,12 +80,12 @@ public class ModifyTextSettingsFragment extends PerTestFieldSettingsFragment {
         }
 
         String[] modifierPrefKeyPrefixes = new String[] {
-                Settings.PREF_RESTRICT_TO_INCLUDE_PREFIX,
-                Settings.PREF_RESTRICT_SPECIFIC_PREFIX,
-                Settings.PREF_RESTRICT_RANGE_PREFIX,
-                Settings.PREF_TRANSLATE_SPECIFIC_PREFIX,
-                Settings.PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
-                Settings.PREF_SHIFT_CODEPOINT_PREFIX
+                PREF_RESTRICT_TO_INCLUDE_PREFIX,
+                PREF_RESTRICT_SPECIFIC_PREFIX,
+                PREF_RESTRICT_RANGE_PREFIX,
+                PREF_TRANSLATE_SPECIFIC_PREFIX,
+                PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX,
+                PREF_SHIFT_CODEPOINT_PREFIX
         };
         for (String prefKeyPrefix : modifierPrefKeyPrefixes) {
             Preference pref = findPreference(getPrefKey(prefKeyPrefix));

@@ -42,8 +42,9 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.Lin
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
 import com.wittmane.testingedittext.settings.IconUtils;
-import com.wittmane.testingedittext.settings.Settings.EditorSettings;
+import com.wittmane.testingedittext.settings.EditorSettings;
 import com.wittmane.testingedittext.settings.TranslateText;
+import com.wittmane.testingedittext.settings.PreferenceReader;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Matrix;
@@ -61,7 +62,6 @@ import android.icu.text.DecimalFormatSymbols;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -140,7 +140,6 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
-import android.view.inputmethod.InputContentInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
@@ -539,233 +538,227 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     private class DefaultEditorSettings implements EditorSettings {
         @Override
         public boolean nullInputTypeMultiline() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
+            return PreferenceReader.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
         }
 
         @Override
         public boolean shouldCreateInputConnection() {
-            return com.wittmane.testingedittext.settings.Settings.defaultCreateInputConnection(
-                    mEditor.mInputType);
+            return PreferenceReader.defaultCreateInputConnection(mEditor.mInputType);
         }
 
         @Override
         public boolean shouldSendSelectionInfo() {
-            return com.wittmane.testingedittext.settings.Settings.defaultSendSelectionInfo(
-                    mEditor.mInputType);
+            return PreferenceReader.defaultSendSelectionInfo(mEditor.mInputType);
         }
 
         @Override
         public boolean shouldSendText() {
-            return com.wittmane.testingedittext.settings.Settings.defaultSendText(
-                    mEditor.mInputType);
+            return PreferenceReader.defaultSendText(mEditor.mInputType);
         }
 
         @Override
         public int composingTextBehavior() {
-            return com.wittmane.testingedittext.settings.Settings.defaultComposingTextBehavior(
-                    mEditor.mInputType);
+            return PreferenceReader.defaultComposingTextBehavior(mEditor.mInputType);
         }
 
         @Override
         public boolean allowDeleteSurroundingText() {
-            return com.wittmane.testingedittext.settings.Settings.defaultAllowDeleteSurroundingText(
-                    mEditor.mInputType);
+            return PreferenceReader.defaultAllowDeleteSurroundingText(mEditor.mInputType);
         }
 
         @Override
         public boolean allowSettingSelection() {
-            return com.wittmane.testingedittext.settings.Settings.defaultAllowSettingSelection(
-                    mEditor.mInputType);
+            return PreferenceReader.defaultAllowSettingSelection(mEditor.mInputType);
         }
 
         @Override
         public boolean shouldModifyCommittedText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_MODIFY_COMMITTED_TEXT;
+            return PreferenceReader.DEFAULT_MODIFY_COMMITTED_TEXT;
         }
 
         @Override
         public boolean shouldModifyComposedText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_MODIFY_COMPOSED_TEXT;
+            return PreferenceReader.DEFAULT_MODIFY_COMPOSED_TEXT;
         }
 
         @Override
         public boolean shouldModifyComposedChangesOnly() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY;
+            return PreferenceReader.DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY;
         }
 
         @Override
         public boolean shouldConsiderComposedChangesFromEnd() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END;
+            return PreferenceReader.DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END;
         }
 
         @Override
         public boolean shouldRestrictToInclude() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_TO_INCLUDE;
+            return PreferenceReader.DEFAULT_RESTRICT_TO_INCLUDE;
         }
 
         @Override
         public String[] getRestrictSpecific() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_SPECIFIC;
+            return PreferenceReader.DEFAULT_RESTRICT_SPECIFIC;
         }
 
         @Override
         public @Nullable com.wittmane.testingedittext.settings.IntRange getRestrictRange() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_RANGE;
+            return PreferenceReader.DEFAULT_RESTRICT_RANGE;
         }
 
         @Override
         public TranslateText[] getTranslateSpecific() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_TRANSLATE_SPECIFIC;
+            return PreferenceReader.DEFAULT_TRANSLATE_SPECIFIC;
         }
 
         @Override
         public boolean shouldTranslateFullMatchOnly() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_TRANSLATE_FULL_MATCH_ONLY;
+            return PreferenceReader.DEFAULT_TRANSLATE_FULL_MATCH_ONLY;
         }
 
         @Override
         public int getCodepointShift() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_CODEPOINT_SHIFT;
+            return PreferenceReader.DEFAULT_CODEPOINT_SHIFT;
         }
 
         @Override
         public boolean shouldSkipExtractingText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_EXTRACTING_TEXT;
+            return PreferenceReader.DEFAULT_SKIP_EXTRACTING_TEXT;
         }
 
         @Override
         public boolean shouldIgnoreExtractedTextMonitor() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR;
+            return PreferenceReader.DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR;
         }
 
         @Override
         public boolean shouldUpdateSelectionBeforeExtractedText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT;
+            return PreferenceReader.DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT;
         }
 
         @Override
         public boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES;
+            return PreferenceReader.DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES;
         }
 
         @Override
         public boolean shouldExtractFullText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_EXTRACT_FULL_TEXT;
+            return PreferenceReader.DEFAULT_EXTRACT_FULL_TEXT;
         }
 
         @Override
         public int getExtractMonitorTextLimit() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT;
+            return PreferenceReader.DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT;
         }
 
         @Override
         public int getReturnedTextLimit() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_RETURNED_TEXT_LIMIT;
+            return PreferenceReader.DEFAULT_RETURNED_TEXT_LIMIT;
         }
 
         @Override
         public boolean shouldDeleteThroughComposingText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_DELETE_THROUGH_COMPOSING_TEXT;
+            return PreferenceReader.DEFAULT_DELETE_THROUGH_COMPOSING_TEXT;
         }
 
         @Override
         public boolean shouldKeepEmptyComposingPosition() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_KEEP_EMPTY_COMPOSING_POSITION;
+            return PreferenceReader.DEFAULT_KEEP_EMPTY_COMPOSING_POSITION;
         }
 
         @Override
         public boolean shouldSkipTakeSnapshot() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_TAKESNAPSHOT;
+            return PreferenceReader.DEFAULT_SKIP_TAKESNAPSHOT;
         }
 
         @Override
         public boolean shouldSkipGetSurroundingText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_GETSURROUNDINGTEXT;
+            return PreferenceReader.DEFAULT_SKIP_GETSURROUNDINGTEXT;
         }
 
         @Override
         public boolean shouldSkipPerformSpellCheck() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_PERFORMSPELLCHECK;
+            return PreferenceReader.DEFAULT_SKIP_PERFORMSPELLCHECK;
         }
 
         @Override
         public boolean shouldSkipSetImeConsumesInput() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_SETIMECONSUMESINPUT;
+            return PreferenceReader.DEFAULT_SKIP_SETIMECONSUMESINPUT;
         }
 
         @Override
         public boolean shouldSkipCommitContent() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_COMMITCONTENT;
+            return PreferenceReader.DEFAULT_SKIP_COMMITCONTENT;
         }
 
         @Override
         public boolean shouldSkipCloseConnection() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_CLOSECONNECTION;
+            return PreferenceReader.DEFAULT_SKIP_CLOSECONNECTION;
         }
 
         @Override
         public boolean shouldSkipDeleteSurroundingTextInCodePoints() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS;
+            return PreferenceReader.DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS;
         }
 
         @Override
         public boolean shouldSkipRequestCursorUpdates() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_REQUESTCURSORUPDATES;
+            return PreferenceReader.DEFAULT_SKIP_REQUESTCURSORUPDATES;
         }
 
         @Override
         public boolean shouldSkipCommitCorrection() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_COMMITCORRECTION;
+            return PreferenceReader.DEFAULT_SKIP_COMMITCORRECTION;
         }
 
         @Override
         public boolean shouldSkipGetSelectedText() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_GETSELECTEDTEXT;
+            return PreferenceReader.DEFAULT_SKIP_GETSELECTEDTEXT;
         }
 
         @Override
         public boolean shouldSkipSetComposingRegion() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_SKIP_SETCOMPOSINGREGION;
+            return PreferenceReader.DEFAULT_SKIP_SETCOMPOSINGREGION;
         }
 
         @Override
         public int getUpdateDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_UPDATE_DELAY;
+            return PreferenceReader.DEFAULT_UPDATE_DELAY;
         }
 
         @Override
         public int getFinishComposingTextDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_FINISHCOMPOSINGTEXT_DELAY;
+            return PreferenceReader.DEFAULT_FINISHCOMPOSINGTEXT_DELAY;
         }
 
         @Override
         public int getGetSurroundingTextDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETSURROUNDINGTEXT_DELAY;
+            return PreferenceReader.DEFAULT_GETSURROUNDINGTEXT_DELAY;
         }
 
         @Override
         public int getGetTextBeforeCursorDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETTEXTBEFORECURSOR_DELAY;
+            return PreferenceReader.DEFAULT_GETTEXTBEFORECURSOR_DELAY;
         }
 
         @Override
         public int getGetSelectedTextDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETSELECTEDTEXT_DELAY;
+            return PreferenceReader.DEFAULT_GETSELECTEDTEXT_DELAY;
         }
 
         @Override
         public int getGetTextAfterCursorDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETTEXTAFTERCURSOR_DELAY;
+            return PreferenceReader.DEFAULT_GETTEXTAFTERCURSOR_DELAY;
         }
 
         @Override
         public int getGetCursorCapsModeDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETCURSORCAPSMODE_DELAY;
+            return PreferenceReader.DEFAULT_GETCURSORCAPSMODE_DELAY;
         }
 
         @Override
         public int getGetExtractedTextDelay() {
-            return com.wittmane.testingedittext.settings.Settings.DEFAULT_GETEXTRACTEDTEXT_DELAY;
+            return PreferenceReader.DEFAULT_GETEXTRACTEDTEXT_DELAY;
         }
     }
 

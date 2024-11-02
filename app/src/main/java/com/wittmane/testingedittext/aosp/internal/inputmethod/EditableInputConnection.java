@@ -61,7 +61,7 @@ import androidx.annotation.RequiresApi;
 import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.widget.EditText;
-import com.wittmane.testingedittext.settings.Settings.EditorSettings;
+import com.wittmane.testingedittext.settings.EditorSettings;
 import com.wittmane.testingedittext.settings.TranslateText;
 
 import java.lang.annotation.Retention;

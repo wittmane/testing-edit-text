@@ -20,7 +20,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -36,9 +35,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.Settings.FieldInfo;
-import com.wittmane.testingedittext.settings.Settings.GroupInfo;
-import com.wittmane.testingedittext.settings.Settings.ImportFileInfo;
+import com.wittmane.testingedittext.settings.JsonManager.FieldInfo;
+import com.wittmane.testingedittext.settings.JsonManager.GroupInfo;
+import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
 import com.wittmane.testingedittext.util.IterableUtils;
 
 import org.json.JSONObject;

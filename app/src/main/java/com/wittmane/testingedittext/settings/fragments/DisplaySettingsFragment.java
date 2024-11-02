@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceFragment;
@@ -24,6 +26,7 @@ import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.PreferenceKeys;
 import com.wittmane.testingedittext.settings.preferences.EnhancedListPreference;
 
 public class DisplaySettingsFragment extends PreferenceFragment {
@@ -34,8 +37,7 @@ public class DisplaySettingsFragment extends PreferenceFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_display);
 
-        EnhancedListPreference themePref =
-                (EnhancedListPreference) findPreference(Settings.PREF_THEME);
+        EnhancedListPreference themePref = (EnhancedListPreference) findPreference(PREF_THEME);
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             // remove the material themes as options since that's only available starting in
@@ -45,8 +47,8 @@ public class DisplaySettingsFragment extends PreferenceFragment {
             // sanity check, but this should always be true
             if (entries.length == entryValues.length) {
                 for (String theme : new String[] {
-                        Settings.THEME_MATERIAL_DARK,
-                        Settings.THEME_MATERIAL_LIGHT
+                        THEME_MATERIAL_DARK,
+                        THEME_MATERIAL_LIGHT
                 }) {
                     int index = ArrayUtils.indexOf(entryValues, theme);
                     if (index >= 0) {

@@ -16,15 +16,13 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
-import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
-import static com.wittmane.testingedittext.settings.Settings.BASE_GROUP_INDEX;
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager.OnPreferencesChangedListener;
 
@@ -37,10 +35,10 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
         addPreferencesFromResource(R.xml.preference_screen_returning_text);
 
         new SwitchPreferenceDependencyManager(new String[]{
-                getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN_PREFIX),
-                getPrefKey(Settings.PREF_SKIP_EXTRACTING_TEXT_PREFIX),
-                getPrefKey(Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX),
-                getPrefKey(Settings.PREF_EXTRACT_FULL_TEXT_PREFIX)
+                getPrefKey(PREF_OVERRIDE_TEXT_RETURN_PREFIX),
+                getPrefKey(PREF_SKIP_EXTRACTING_TEXT_PREFIX),
+                getPrefKey(PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX),
+                getPrefKey(PREF_EXTRACT_FULL_TEXT_PREFIX)
         }, this, new OnPreferencesChangedListener() {
             @Override
             public void onPreferencesChanged(boolean[] prefsChecked) {
@@ -50,7 +48,7 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
         });
         if (getGroupIndex() == BASE_GROUP_INDEX && getFieldIndex() == BASE_FIELD_INDEX) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
-            Preference pref = findPreference(getPrefKey(Settings.PREF_OVERRIDE_TEXT_RETURN_PREFIX));
+            Preference pref = findPreference(getPrefKey(PREF_OVERRIDE_TEXT_RETURN_PREFIX));
             preferenceScreen.removePreference(pref);
         }
     }
@@ -77,22 +75,22 @@ public class ReturningTextSettingsFragment extends PerTestFieldSettingsFragment 
         }
 
         Preference updateSelectionBeforeExtractedTextPref = findPreference(getPrefKey(
-                Settings.PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX));
+                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX));
         updateSelectionBeforeExtractedTextPref.setEnabled(enableUpdateSelectionBeforeExtractedText);
 
         Preference extractFullTextPref = findPreference(getPrefKey(
-                Settings.PREF_EXTRACT_FULL_TEXT_PREFIX));
+                PREF_EXTRACT_FULL_TEXT_PREFIX));
         extractFullTextPref.setEnabled(enableExtractFullText);
 
         Preference limitExtractMonitorTextPref = findPreference(getPrefKey(
-                Settings.PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX));
+                PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX));
         limitExtractMonitorTextPref.setEnabled(enableLimitExtractMonitorText);
 
         String[] otherPrefKeyPrefixes = new String[] {
-                Settings.PREF_SKIP_EXTRACTING_TEXT_PREFIX,
-                Settings.PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
-                Settings.PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
-                Settings.PREF_LIMIT_RETURNED_TEXT_PREFIX
+                PREF_SKIP_EXTRACTING_TEXT_PREFIX,
+                PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX,
+                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX,
+                PREF_LIMIT_RETURNED_TEXT_PREFIX
         };
         for (String prefKeyPrefix : otherPrefKeyPrefixes) {
             Preference pref = findPreference(getPrefKey(prefKeyPrefix));

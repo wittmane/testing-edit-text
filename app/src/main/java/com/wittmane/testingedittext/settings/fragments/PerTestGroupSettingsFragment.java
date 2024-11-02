@@ -16,7 +16,7 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
-import static com.wittmane.testingedittext.settings.Settings.BASE_GROUP_INDEX;
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Bundle;
 import android.preference.PreferenceFragment;

@@ -16,7 +16,7 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
-import static com.wittmane.testingedittext.settings.Settings.DEFAULT_TRANSLATE_SPECIFIC;
+import static com.wittmane.testingedittext.settings.PreferenceReader.DEFAULT_TRANSLATE_SPECIFIC;
 
 import android.content.Context;
 import android.text.TextUtils;
