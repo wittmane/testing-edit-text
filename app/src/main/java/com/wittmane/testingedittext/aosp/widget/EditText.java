@@ -537,7 +537,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
     // and just override the things that don't have an app-level default preference
     private class DefaultEditorSettings implements EditorSettings {
         @Override
-        public boolean nullInputTypeMultiline() {
+        public boolean getNullInputTypeMultiline() {
             return PreferenceReader.DEFAULT_NULL_INPUT_TYPE_MULTILINE;
         }
 
@@ -557,7 +557,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         }
 
         @Override
-        public int composingTextBehavior() {
+        public int getComposingTextBehavior() {
             return PreferenceReader.defaultComposingTextBehavior(mEditor.mInputType);
         }
 
@@ -4722,7 +4722,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
 
     private boolean isMultilineInputType(int type) {
         if (type == EditorInfo.TYPE_NULL) {
-            return mSettings.nullInputTypeMultiline();
+            return mSettings.getNullInputTypeMultiline();
         }
         return (type & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE))
                 == (EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);

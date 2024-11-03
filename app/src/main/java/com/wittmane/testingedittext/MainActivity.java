@@ -51,6 +51,7 @@ import androidx.annotation.RequiresApi;
 import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
 
 import java.lang.reflect.InvocationTargetException;
@@ -440,7 +441,9 @@ public class MainActivity extends ThemedActivity
         for (int fieldIndex = 0; fieldIndex < fieldsOnLayout.size(); fieldIndex++) {
             TestField testField = fieldsOnLayout.get(fieldIndex);
 
-            CharSequence labelText = Settings.getTestFieldLabelText(groupIndex, fieldIndex);
+            TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+
+            CharSequence labelText = fieldSettings.getLabelText();
             testField.mLabel.setText(labelText);
             testField.mLabel.setVisibility(TextUtils.isEmpty(labelText) ? View.GONE : View.VISIBLE);
 
@@ -485,6 +488,8 @@ public class MainActivity extends ThemedActivity
         //TODO: (EW) use the settings object tied to the text field, rather than look up the value
         // by the index in order to consolidate logic
 
+        TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+
         // since we have a custom setting for making a null input type field still allow multiple
         // lines (which is normally handled as part of the input type), we'll need to trigger
         // setting the input type (even if that didn't change) to trigger a change in the field
@@ -492,9 +497,8 @@ public class MainActivity extends ThemedActivity
         // set to exactly what we try to set it to, we need to check if the setting for the input
         // type matches what we last requested (rather than what it actually is) to avoid trying to
         // set again unnecessarily.
-        int inputType = Settings.getTestFieldInputType(groupIndex, fieldIndex);
-        boolean nullInputTypeSingleLine =
-                !Settings.getTestFieldNullInputTypeMultiline(groupIndex, fieldIndex);
+        int inputType = fieldSettings.getInputType();
+        boolean nullInputTypeSingleLine = !fieldSettings.getNullInputTypeMultiline();
         if (editText.getRequestedInputType() != inputType
                 || (inputType == InputType.TYPE_NULL
                         && editText.isSingleLine() != nullInputTypeSingleLine
@@ -502,13 +506,13 @@ public class MainActivity extends ThemedActivity
             editText.setInputType(inputType);
         }
 
-        int imeOptions = Settings.getTestFieldImeOptions(groupIndex, fieldIndex);
+        int imeOptions = fieldSettings.getImeOptions();
         if (editText.getImeOptions() != imeOptions) {
             editText.setImeOptions(imeOptions);
         }
 
-        int imeActionId = Settings.getTestFieldImeActionId(groupIndex, fieldIndex);
-        String imeActionLabel = Settings.getTestFieldImeActionLabel(groupIndex, fieldIndex);
+        int imeActionId = fieldSettings.getImeActionId();
+        String imeActionLabel = fieldSettings.getImeActionLabel();
         int currentImeActionId = editText.getImeActionId();
         CharSequence currentImeActionLabel = editText.getImeActionLabel();
         if (currentImeActionId != imeActionId
@@ -516,17 +520,17 @@ public class MainActivity extends ThemedActivity
             editText.setImeActionLabel(imeActionLabel, imeActionId);
         }
 
-        String privateImeOptions = Settings.getTestFieldPrivateImeOptions(groupIndex, fieldIndex);
+        String privateImeOptions = fieldSettings.getPrivateImeOptions();
         if (!TextUtils.equals(editText.getPrivateImeOptions(), privateImeOptions)) {
             editText.setPrivateImeOptions(privateImeOptions);
         }
 
-        boolean selectAllOnFocus = Settings.shouldTestFieldSelectAllOnFocus(groupIndex, fieldIndex);
+        boolean selectAllOnFocus = fieldSettings.shouldSelectAllOnFocus();
         if (editText.getSelectAllOnFocus() != selectAllOnFocus) {
             editText.setSelectAllOnFocus(selectAllOnFocus);
         }
 
-        int maxLength = Settings.getTestFieldMaxLength(groupIndex, fieldIndex);
+        int maxLength = fieldSettings.getMaxLength();
         InputFilter[] filters = editText.getFilters();
         List<InputFilter> newFilters = new ArrayList<>();
         boolean filtersChanged = false;
@@ -563,12 +567,12 @@ public class MainActivity extends ThemedActivity
             editText.setFilters(newFilters.toArray(new InputFilter[0]));
         }
 
-        boolean allowUndo = Settings.shouldTestFieldAllowUndo(groupIndex, fieldIndex);
+        boolean allowUndo = fieldSettings.shouldAllowUndo();
         if (editText.getAllowUndo() != allowUndo) {
             editText.setAllowUndo(allowUndo);
         }
 
-        Locale[] textLocales = Settings.getTestFieldTextLocales(groupIndex, fieldIndex);
+        Locale[] textLocales = fieldSettings.getTextLocales();
         Locale[] currentTextLocales = editText.getTextLocales();
         if (textLocales.length > 0) {
             if (!equals(currentTextLocales, textLocales)) {
@@ -581,18 +585,18 @@ public class MainActivity extends ThemedActivity
             }
         }
 
-        Locale[] imeHintLocales = Settings.getTestFieldImeHintLocales(groupIndex, fieldIndex);
+        Locale[] imeHintLocales = fieldSettings.getImeHintLocales();
         Locale[] currentImeHintLocales = editText.getImeHintLocales();
         if (!equals(currentImeHintLocales, imeHintLocales)) {
             editText.setImeHintLocales(imeHintLocales);
         }
 
-        CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
+        CharSequence defaultText = fieldSettings.getDefaultText();
         if (!editText.wasTextSet(defaultText)) {
             editText.setText(defaultText);
         }
 
-        CharSequence hint = Settings.getTestFieldHintText(groupIndex, fieldIndex);
+        CharSequence hint = fieldSettings.getHintText();
         if (!editText.wasHintSet(hint)) {
             editText.setHint(hint);
         }

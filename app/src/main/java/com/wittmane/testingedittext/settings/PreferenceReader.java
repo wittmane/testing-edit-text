@@ -16,10 +16,10 @@
 
 package com.wittmane.testingedittext.settings;
 
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Build;

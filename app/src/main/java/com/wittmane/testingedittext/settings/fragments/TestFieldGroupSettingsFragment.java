@@ -41,6 +41,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.DraggableListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.FieldEntry;
 import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
@@ -216,17 +217,19 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     public static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
                                                    final int fieldIndex) {
-        CharSequence labelText = Settings.getTestFieldLabelText(groupIndex, fieldIndex);
+        TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+
+        CharSequence labelText = fieldSettings.getLabelText();
         if (!TextUtils.isEmpty(labelText)) {
             return labelText;
         }
 
-        CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
+        CharSequence defaultText = fieldSettings.getDefaultText();
         if (!TextUtils.isEmpty(defaultText)) {
             return defaultText;
         }
 
-        CharSequence hintText = Settings.getTestFieldHintText(groupIndex, fieldIndex);
+        CharSequence hintText = fieldSettings.getHintText();
         if (!TextUtils.isEmpty(hintText)) {
             return hintText;
         }
@@ -258,6 +261,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             Context context = getContext();
             int groupIndex = getGroupIndex();
             int fieldIndex = getFieldIndex();
+            TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
             setTitle(getFieldDisplayName(context, groupIndex, fieldIndex));
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
@@ -272,19 +276,14 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                             ImeActionPreference.getImeActionDescription(groupIndex, fieldIndex,
                                     context),
                             context),
-                    getLabeledPrivateImeOptions(
-                            Settings.getTestFieldPrivateImeOptions(groupIndex, fieldIndex),
-                            context),
-                    Settings.shouldTestFieldSelectAllOnFocus(groupIndex, fieldIndex)
-                            ? context.getString(R.string.select_all_on_focus) : null,
-                    getLabeledMaxLength(Settings.getTestFieldMaxLength(groupIndex, fieldIndex),
-                            context),
-                    Settings.shouldTestFieldAllowUndo(groupIndex, fieldIndex)
-                            ? context.getString(R.string.allow_undo) : null,
-                    getLabeledTextLocales(
-                            Settings.getTestFieldTextLocales(groupIndex, fieldIndex), context),
-                    getLabeledImeHintLocales(
-                            Settings.getTestFieldImeHintLocales(groupIndex, fieldIndex), context)
+                    getLabeledPrivateImeOptions(fieldSettings.getPrivateImeOptions(), context),
+                    fieldSettings.shouldSelectAllOnFocus()
+                            ? context.getString(R.string.select_all_on_focus)
+                            : null,
+                    getLabeledMaxLength(fieldSettings.getMaxLength(), context),
+                    fieldSettings.shouldAllowUndo() ? context.getString(R.string.allow_undo) : null,
+                    getLabeledTextLocales(fieldSettings.getTextLocales(), context),
+                    getLabeledImeHintLocales(fieldSettings.getImeHintLocales(), context)
             };
             StringBuilder sb = new StringBuilder();
             for (String summaryPiece : summaryInfo) {

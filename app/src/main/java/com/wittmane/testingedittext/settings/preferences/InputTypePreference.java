@@ -16,6 +16,9 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
@@ -25,6 +28,7 @@ import android.util.Log;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.InputTypeSettingsFragment;
 
 import java.util.ArrayList;
@@ -65,40 +69,42 @@ public class InputTypePreference extends PerTestFieldPreference {
     }
 
     public static String getInputTypeDescription(int groupIndex, int fieldIndex, Context context) {
-        int inputType = Settings.getTestFieldInputType(groupIndex, fieldIndex);
+        TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+
+        int inputType = fieldSettings.getInputType();
 
         if (inputType == InputType.TYPE_NULL) {
             List<String> extraDetails = new ArrayList<>();
-            if (Settings.getTestFieldNullInputTypeMultiline(groupIndex, fieldIndex)) {
+            if (fieldSettings.getNullInputTypeMultiline()) {
                 extraDetails.add(context.getString(
                         R.string.input_type_text_flag_multi_line));
             }
-            if (Settings.getTestFieldSendSelectionInfo(groupIndex, fieldIndex)) {
+            if (fieldSettings.shouldSendSelectionInfo()) {
                 extraDetails.add(context.getString(
                         R.string.send_selection_info_title));
             }
-            if (Settings.getTestFieldCreateInputConnection(groupIndex, fieldIndex)) {
+            if (fieldSettings.shouldCreateInputConnection()) {
                 extraDetails.add(context.getString(
                         R.string.create_input_connection_title));
-                if (Settings.getTestFieldSendText(groupIndex, fieldIndex)) {
+                if (fieldSettings.shouldSendText()) {
                     extraDetails.add(context.getString(
                             R.string.send_text_title));
                 }
-                switch (Settings.getTestFieldComposingTextBehavior(groupIndex, fieldIndex)) {
-                    case Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE:
+                switch (fieldSettings.getComposingTextBehavior()) {
+                    case COMPOSING_TEXT_BEHAVIOR_COMPOSE:
                         extraDetails.add(context.getString(
                                 R.string.composing_text_behavior_compose));
                         break;
-                    case Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT:
+                    case COMPOSING_TEXT_BEHAVIOR_COMMIT:
                         extraDetails.add(context.getString(
                                 R.string.composing_text_behavior_commit));
                         break;
                 }
-                if (Settings.getTestFieldAllowDeleteSurroundingText(groupIndex, fieldIndex)) {
+                if (fieldSettings.allowDeleteSurroundingText()) {
                     extraDetails.add(context.getString(
                             R.string.allow_delete_surrounding_text_title));
                 }
-                if (Settings.getTestFieldAllowSettingSelection(groupIndex, fieldIndex)) {
+                if (fieldSettings.allowSettingSelection()) {
                     extraDetails.add(context.getString(R.string.allow_setting_selection_title));
                 }
             }

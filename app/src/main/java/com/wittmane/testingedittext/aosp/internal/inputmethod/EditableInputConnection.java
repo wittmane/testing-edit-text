@@ -68,10 +68,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
-import static com.wittmane.testingedittext.settings.Settings.COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
+import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
 
 // (EW) this is a merge of EditableInputConnection and BaseInputConnection to be able to insert
 // custom behavior
@@ -1009,7 +1009,7 @@ public class EditableInputConnection implements InputConnection {
         // temporary buffer to a key event to send if necessary (only would contain the composition
         // here) and then clear the text buffer, so we just need to add any text in the invisible
         // composition buffer to the actual text field
-        if (getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE
+        if (getSettings().getComposingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE
                 && !TextUtils.isEmpty(mInvisibleComposition)) {
             removeComposingSpans(mInvisibleComposition);
             // (EW) place the cursor based on what was specified for the new cursor position when
@@ -1152,7 +1152,7 @@ public class EditableInputConnection implements InputConnection {
 
         CharSequence textBeforeCursor;
         CharSequence logInfo = null;
-        if (getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+        if (getSettings().getComposingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             textBeforeCursor = getTextBeforeCursorInternal(length, flags, mInvisibleComposition);
             logInfo = "composition only";
         } else if (!getSettings().shouldSendText()) {
@@ -1253,7 +1253,7 @@ public class EditableInputConnection implements InputConnection {
 
         CharSequence selectedText;
         CharSequence logInfo = null;
-        if (getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+        if (getSettings().getComposingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             selectedText = getSelectedTextInternal(flags, mInvisibleComposition);
             logInfo = "composition only";
         } else if (!getSettings().shouldSendText()) {
@@ -1308,7 +1308,7 @@ public class EditableInputConnection implements InputConnection {
 
         CharSequence textAfterCursor;
         CharSequence logInfo = null;
-        if (getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+        if (getSettings().getComposingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             textAfterCursor = getTextAfterCursorInternal(length, flags, mInvisibleComposition);
             logInfo = "composition only";
         } else if (!getSettings().shouldSendText()) {
@@ -1714,7 +1714,7 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "setComposingText: text=" + text
                     + ", newCursorPosition=" + newCursorPosition);
         }
-        int composingTextBehavior = getSettings().composingTextBehavior();
+        int composingTextBehavior = getSettings().getComposingTextBehavior();
         if (composingTextBehavior == COMPOSING_TEXT_BEHAVIOR_IGNORE) {
             if (LOG_CALLS) {
                 Log.d(TAG, "setComposingText: skipping due to lack of support");
@@ -1944,7 +1944,7 @@ public class EditableInputConnection implements InputConnection {
             Log.e(TAG, "couldn't fake not implementing setComposingRegion");
         }
 
-        if (getSettings().composingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
+        if (getSettings().getComposingTextBehavior() == COMPOSING_TEXT_BEHAVIOR_INVISIBLE) {
             // (EW) the AOSP version called sendCurrentText at the end, which would convert the text
             // in the (temporary) Editable to key events to send to the view and then clear the
             // Editable when in dummy mode, which ultimately wouldn't result in a composing region
@@ -1953,7 +1953,7 @@ public class EditableInputConnection implements InputConnection {
             finishComposingTextInternal();
             return true;
         }
-        if (getSettings().composingTextBehavior() != COMPOSING_TEXT_BEHAVIOR_COMPOSE) {
+        if (getSettings().getComposingTextBehavior() != COMPOSING_TEXT_BEHAVIOR_COMPOSE) {
             if (LOG_CALLS) {
                 Log.d(TAG, "setComposingRegion: skipping due to lack of support");
             }

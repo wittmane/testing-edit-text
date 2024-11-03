@@ -19,11 +19,16 @@ package com.wittmane.testingedittext.settings;
 import androidx.annotation.Nullable;
 
 public interface EditorSettings {
-    boolean nullInputTypeMultiline();
+    int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
+    int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 1;
+    int COMPOSING_TEXT_BEHAVIOR_COMMIT = 2;
+    int COMPOSING_TEXT_BEHAVIOR_IGNORE = 3;
+
+    boolean getNullInputTypeMultiline();
     boolean shouldCreateInputConnection();
     boolean shouldSendSelectionInfo();
     boolean shouldSendText();
-    int composingTextBehavior();
+    int getComposingTextBehavior();
     boolean allowDeleteSurroundingText();
     boolean allowSettingSelection();
 

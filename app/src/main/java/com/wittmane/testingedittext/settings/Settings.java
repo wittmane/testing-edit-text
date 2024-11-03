@@ -49,11 +49,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static final boolean LIST_PREFS = false;
 
-    public static final int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
-    public static final int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 1;
-    public static final int COMPOSING_TEXT_BEHAVIOR_COMMIT = 2;
-    public static final int COMPOSING_TEXT_BEHAVIOR_IGNORE = 3;
-
     private int[] mTestGroupIds;
     private final Map<Integer, TestGroup> mTestGroups = new HashMap<>();
     private final Map<Integer, TestField> mTestFields = new HashMap<>();
@@ -498,246 +493,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return -1;
     }
 
-    private static AppLevelDefaults getTestFieldOrBase(int groupIndex, int fieldIndex,
-                                                       Predicate<TestField> override) {
-        TestField testField = getField(groupIndex, fieldIndex);
-        if (!override.test(testField)) {
-            return getInstance().mTestFieldDefaults;
-        }
-        return testField;
-    }
-
-    private static AppLevelDefaults getTestFieldOrBaseForTextInputModification(int groupIndex,
-                                                                               int fieldIndex) {
-        return getTestFieldOrBase(groupIndex, fieldIndex,
-                testField -> testField.mOverrideTextInputModification);
-    }
-
-    private static AppLevelDefaults getTestFieldOrBaseForTextReturn(int groupIndex,
-                                                                    int fieldIndex) {
-        return getTestFieldOrBase(groupIndex, fieldIndex,
-                testField -> testField.mOverrideTextReturn);
-    }
-
-    private static AppLevelDefaults getTestFieldOrBaseForTextComposition(int groupIndex,
-                                                                         int fieldIndex) {
-        return getTestFieldOrBase(groupIndex, fieldIndex,
-                testField -> testField.mOverrideTextComposition);
-    }
-
-    private static AppLevelDefaults getTestFieldOrBaseForTargetVersion(int groupIndex,
-                                                                       int fieldIndex) {
-        return getTestFieldOrBase(groupIndex, fieldIndex,
-                testField -> testField.mOverrideTargetVersion);
-    }
-
-    private static AppLevelDefaults getTestFieldOrBaseForSystemBehavior(int groupIndex,
-                                                                        int fieldIndex) {
-        return getTestFieldOrBase(groupIndex, fieldIndex,
-                testField -> testField.mOverrideSystemBehavior);
-    }
-
-    public static boolean shouldModifyCommittedText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mModifyCommittedText;
-    }
-
-    public static boolean shouldModifyComposedText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mModifyComposedText;
-    }
-
-    public static boolean shouldModifyComposedChangesOnly(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mModifyComposedChangesOnly;
-    }
-
-    public static boolean shouldConsiderComposedChangesFromEnd(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mConsiderComposedChangesFromEnd;
-    }
-
-    public static boolean shouldRestrictToInclude(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mRestrictToInclude;
-    }
-
-    public static String[] getRestrictSpecific(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mRestrictSpecific;
-    }
-
-    public static @Nullable IntRange getRestrictRange(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mRestrictRange;
-    }
-
-    public static TranslateText[] getTranslateSpecific(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mTranslateSpecific;
-    }
-
-    public static boolean shouldTranslateFullMatchOnly(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mTranslateFullMatchOnly;
-    }
-
-    public static int getShiftCodepoint(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextInputModification(groupIndex, fieldIndex)
-                .mShiftCodepoint;
-    }
-
-    public static boolean shouldSkipExtractingText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mSkipExtractingText;
-    }
-
-    public static boolean shouldIgnoreExtractedTextMonitor(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mIgnoreExtractedTextMonitor;
-    }
-
-    public static boolean shouldUpdateSelectionBeforeExtractedText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mUpdateSelectionBeforeExtractedText;
-    }
-
-    public static boolean shouldUpdateExtractedTextOnlyOnNetChanges(int groupIndex,
-                                                                    int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mUpdateExtractedTextOnlyOnNetChanges;
-    }
-
-    public static boolean shouldExtractFullText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mExtractFullText;
-    }
-
-    public static int getExtractMonitorTextLimit(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mExtractMonitorTextLimit;
-    }
-
-    public static int getReturnedTextLimit(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextReturn(groupIndex, fieldIndex)
-                .mReturnedTextLimit;
-    }
-
-    public static boolean shouldDeleteThroughComposingText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextComposition(groupIndex, fieldIndex)
-                .mDeleteThroughComposingText;
-    }
-
-    public static boolean shouldKeepEmptyComposingPosition(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTextComposition(groupIndex, fieldIndex)
-                .mKeepEmptyComposingPosition;
-    }
-
-    public static boolean shouldSkipTakeSnapshot(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipTakeSnapshot;
-    }
-
-    public static boolean shouldSkipGetSurroundingText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipGetSurroundingText;
-    }
-
-    public static boolean shouldSkipPerformSpellCheck(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipPerformSpellCheck;
-    }
-
-    public static boolean shouldSkipSetImeConsumesInput(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipSetImeConsumesInput;
-    }
-
-    public static boolean shouldSkipCommitContent(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipCommitContent;
-    }
-
-    public static boolean shouldSkipCloseConnection(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipCloseConnection;
-    }
-
-    public static boolean shouldSkipDeleteSurroundingTextInCodePoints(int groupIndex,
-                                                                      int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipDeleteSurroundingTextInCodePoints;
-    }
-
-    public static boolean shouldSkipRequestCursorUpdates(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipRequestCursorUpdates;
-    }
-
-    public static boolean shouldSkipCommitCorrection(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipCommitCorrection;
-    }
-
-    public static boolean shouldSkipGetSelectedText(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipGetSelectedText;
-    }
-
-    public static boolean shouldSkipSetComposingRegion(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForTargetVersion(groupIndex, fieldIndex)
-                .mSkipSetComposingRegion;
-    }
-
-    public static int getUpdateDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mUpdateDelay;
-    }
-
-    public static int getFinishComposingTextDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mFinishComposingTextDelay;
-    }
-
-    public static int getGetSurroundingTextDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mGetSurroundingTextDelay;
-    }
-
-    public static int getGetTextBeforeCursorDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mGetTextBeforeCursorDelay;
-    }
-
-    public static int getGetSelectedTextDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mGetSelectedTextDelay;
-    }
-
-    public static int getGetTextAfterCursorDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mGetTextAfterCursorDelay;
-    }
-
-    public static int getGetCursorCapsModeDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mGetCursorCapsModeDelay;
-    }
-
-    public static int getGetExtractedTextDelay(int groupIndex, int fieldIndex) {
-        return getTestFieldOrBaseForSystemBehavior(groupIndex, fieldIndex)
-                .mGetExtractedTextDelay;
-    }
-
-    private static int[] readTestFieldGroupIds(final SharedPreferenceManager prefs) {
-        int[] groupIds = prefs.getIntArray(PREF_TEST_GROUP_IDS, new int[0]);
-        if (groupIds == null) {
-            Log.e(TAG, "Group IDs is null");
-            groupIds = new int[0];
-        }
-        return groupIds;
-    }
-
     private static void setTestFieldGroupIds(Editor editor, int[] groupIds) {
         editor.putIntArray(PREF_TEST_GROUP_IDS, groupIds);
         getInstance().mTestGroupIds = deepCopy(groupIds);
@@ -1036,86 +791,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return max + 1;
     }
 
-    public static CharSequence getTestFieldLabelText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mLabelText;
-    }
-
-    public static CharSequence getTestFieldDefaultText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mDefaultText;
-    }
-
-    public static CharSequence getTestFieldHintText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mHintText;
-    }
-
-    public static int getTestFieldInputType(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mInputType;
-    }
-
-    public static boolean getTestFieldNullInputTypeMultiline(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mNullInputTypeMultiline;
-    }
-
-    public static boolean getTestFieldCreateInputConnection(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mCreateInputConnection;
-    }
-
-    public static boolean getTestFieldSendSelectionInfo(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mSendSelectionInfo;
-    }
-
-    public static boolean getTestFieldSendText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mSendText;
-    }
-
-    public static int getTestFieldComposingTextBehavior(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mComposingTextBehavior;
-    }
-
-    public static boolean getTestFieldAllowDeleteSurroundingText(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mAllowDeleteSurroundingText;
-    }
-
-    public static boolean getTestFieldAllowSettingSelection(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mAllowSettingSelection;
-    }
-
-    public static int getTestFieldImeOptions(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mImeOptions;
-    }
-
-    public static int getTestFieldImeActionId(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mImeActionId;
-    }
-
-    public static String getTestFieldImeActionLabel(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mImeActionLabel;
-    }
-
-    public static String getTestFieldPrivateImeOptions(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mPrivateImeOptions;
-    }
-
-    public static boolean shouldTestFieldSelectAllOnFocus(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mSelectAllOnFocus;
-    }
-
-    public static int getTestFieldMaxLength(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mMaxLength;
-    }
-
-    public static boolean shouldTestFieldAllowUndo(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mAllowUndo;
-    }
-
-    public static Locale[] getTestFieldTextLocales(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mTextLocales;
-    }
-
-    public static Locale[] getTestFieldImeHintLocales(int groupIndex, int fieldIndex) {
-        return getField(groupIndex, fieldIndex).mImeHintLocales;
-    }
-
     public static int getThemeId(final Context context) {
         return getThemeId(getInstance().mTheme, context);
     }
@@ -1169,243 +844,334 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return copy;
     }
 
-    public static EditorSettings getTestFieldSettings(int groupIndex, int fieldIndex) {
-        return new FieldPrefEditorSettings(groupIndex, fieldIndex);
+    public static TestFieldSettings getTestFieldSettings(int groupIndex, int fieldIndex) {
+        return new TestFieldSettings(groupIndex, fieldIndex);
     }
 
-    private static class FieldPrefEditorSettings implements EditorSettings {
+    private static class TestFieldCustomEditorSettings implements EditorSettings {
         //TODO: (EW) would it be better to use the field ID instead of the index?
         private final int mGroupIndex;
         private final int mFieldIndex;
 
-        private FieldPrefEditorSettings(int groupIndex, int fieldIndex) {
+        private TestFieldCustomEditorSettings(int groupIndex, int fieldIndex) {
             mGroupIndex = groupIndex;
             mFieldIndex = fieldIndex;
         }
 
+        protected TestField getField() {
+            return Settings.getField(mGroupIndex, mFieldIndex);
+        }
+
+        private AppLevelDefaults getTestFieldOrBase(Predicate<TestField> override) {
+            TestField testField = getField();
+            if (!override.test(testField)) {
+                return getInstance().mTestFieldDefaults;
+            }
+            return testField;
+        }
+
+        private AppLevelDefaults getTestFieldOrBaseForTextInputModification() {
+            return getTestFieldOrBase(testField -> testField.mOverrideTextInputModification);
+        }
+
+        private AppLevelDefaults getTestFieldOrBaseForTextReturn() {
+            return getTestFieldOrBase(testField -> testField.mOverrideTextReturn);
+        }
+
+        private AppLevelDefaults getTestFieldOrBaseForTextComposition() {
+            return getTestFieldOrBase(testField -> testField.mOverrideTextComposition);
+        }
+
+        private AppLevelDefaults getTestFieldOrBaseForTargetVersion() {
+            return getTestFieldOrBase(testField -> testField.mOverrideTargetVersion);
+        }
+
+        private AppLevelDefaults getTestFieldOrBaseForSystemBehavior() {
+            return getTestFieldOrBase(testField -> testField.mOverrideSystemBehavior);
+        }
+
         @Override
-        public boolean nullInputTypeMultiline() {
-            return Settings.getTestFieldNullInputTypeMultiline(mGroupIndex, mFieldIndex);
+        public boolean getNullInputTypeMultiline() {
+            return getField().mNullInputTypeMultiline;
         }
 
         @Override
         public boolean shouldCreateInputConnection() {
-            return Settings.getTestFieldCreateInputConnection(mGroupIndex, mFieldIndex);
+            return getField().mCreateInputConnection;
         }
 
         @Override
         public boolean shouldSendSelectionInfo() {
-            return Settings.getTestFieldSendSelectionInfo(mGroupIndex, mFieldIndex);
+            return getField().mSendSelectionInfo;
         }
 
         @Override
         public boolean shouldSendText() {
-            return Settings.getTestFieldSendText(mGroupIndex, mFieldIndex);
+            return getField().mSendText;
         }
 
         @Override
-        public int composingTextBehavior() {
-            return Settings.getTestFieldComposingTextBehavior(mGroupIndex, mFieldIndex);
+        public int getComposingTextBehavior() {
+            return getField().mComposingTextBehavior;
         }
 
         @Override
         public boolean allowDeleteSurroundingText() {
-            return Settings.getTestFieldAllowDeleteSurroundingText(mGroupIndex, mFieldIndex);
+            return getField().mAllowDeleteSurroundingText;
         }
 
         @Override
         public boolean allowSettingSelection() {
-            return Settings.getTestFieldAllowSettingSelection(mGroupIndex, mFieldIndex);
+            return getField().mAllowSettingSelection;
         }
 
         @Override
         public boolean shouldModifyCommittedText() {
-            return Settings.shouldModifyCommittedText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mModifyCommittedText;
         }
 
         @Override
         public boolean shouldModifyComposedText() {
-            return Settings.shouldModifyComposedText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mModifyComposedText;
         }
 
         @Override
         public boolean shouldModifyComposedChangesOnly() {
-            return Settings.shouldModifyComposedChangesOnly(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mModifyComposedChangesOnly;
         }
 
         @Override
         public boolean shouldConsiderComposedChangesFromEnd() {
-            return Settings.shouldConsiderComposedChangesFromEnd(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mConsiderComposedChangesFromEnd;
         }
 
         @Override
         public boolean shouldRestrictToInclude() {
-            return Settings.shouldRestrictToInclude(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mRestrictToInclude;
         }
 
         @Override
         public String[] getRestrictSpecific() {
-            return Settings.getRestrictSpecific(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mRestrictSpecific;
         }
 
         @Override
         public @Nullable IntRange getRestrictRange() {
-            return Settings.getRestrictRange(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mRestrictRange;
         }
 
         @Override
         public TranslateText[] getTranslateSpecific() {
-            return Settings.getTranslateSpecific(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mTranslateSpecific;
         }
 
         @Override
         public boolean shouldTranslateFullMatchOnly() {
-            return Settings.shouldTranslateFullMatchOnly(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mTranslateFullMatchOnly;
         }
 
         @Override
         public int getCodepointShift() {
-            return Settings.getShiftCodepoint(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextInputModification().mShiftCodepoint;
         }
 
         @Override
         public boolean shouldSkipExtractingText() {
-            return Settings.shouldSkipExtractingText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mSkipExtractingText;
         }
 
         @Override
         public boolean shouldIgnoreExtractedTextMonitor() {
-            return Settings.shouldIgnoreExtractedTextMonitor(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mIgnoreExtractedTextMonitor;
         }
 
         @Override
         public boolean shouldUpdateSelectionBeforeExtractedText() {
-            return Settings.shouldUpdateSelectionBeforeExtractedText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mUpdateSelectionBeforeExtractedText;
         }
 
         @Override
         public boolean shouldUpdateExtractedTextOnlyOnNetChanges() {
-            return Settings.shouldUpdateExtractedTextOnlyOnNetChanges(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mUpdateExtractedTextOnlyOnNetChanges;
         }
 
         @Override
         public boolean shouldExtractFullText() {
-            return Settings.shouldExtractFullText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mExtractFullText;
         }
 
         @Override
         public int getExtractMonitorTextLimit() {
-            return Settings.getExtractMonitorTextLimit(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mExtractMonitorTextLimit;
         }
 
         @Override
         public int getReturnedTextLimit() {
-            return Settings.getReturnedTextLimit(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextReturn().mReturnedTextLimit;
         }
 
         @Override
         public boolean shouldDeleteThroughComposingText() {
-            return Settings.shouldDeleteThroughComposingText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextComposition().mDeleteThroughComposingText;
         }
 
         @Override
         public boolean shouldKeepEmptyComposingPosition() {
-            return Settings.shouldKeepEmptyComposingPosition(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTextComposition().mKeepEmptyComposingPosition;
         }
 
         @Override
         public boolean shouldSkipTakeSnapshot() {
-            return Settings.shouldSkipTakeSnapshot(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipTakeSnapshot;
         }
 
         @Override
         public boolean shouldSkipGetSurroundingText() {
-            return Settings.shouldSkipGetSurroundingText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipGetSurroundingText;
         }
 
         @Override
         public boolean shouldSkipPerformSpellCheck() {
-            return Settings.shouldSkipPerformSpellCheck(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipPerformSpellCheck;
         }
 
         @Override
         public boolean shouldSkipSetImeConsumesInput() {
-            return Settings.shouldSkipSetImeConsumesInput(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipSetImeConsumesInput;
         }
 
         @Override
         public boolean shouldSkipCommitContent() {
-            return Settings.shouldSkipCommitContent(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipCommitContent;
         }
 
         @Override
         public boolean shouldSkipCloseConnection() {
-            return Settings.shouldSkipCloseConnection(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipCloseConnection;
         }
 
         @Override
         public boolean shouldSkipDeleteSurroundingTextInCodePoints() {
-            return Settings.shouldSkipDeleteSurroundingTextInCodePoints(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipDeleteSurroundingTextInCodePoints;
         }
 
         @Override
         public boolean shouldSkipRequestCursorUpdates() {
-            return Settings.shouldSkipRequestCursorUpdates(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipRequestCursorUpdates;
         }
 
         @Override
         public boolean shouldSkipCommitCorrection() {
-            return Settings.shouldSkipCommitCorrection(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipCommitCorrection;
         }
 
         @Override
         public boolean shouldSkipGetSelectedText() {
-            return Settings.shouldSkipGetSelectedText(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipGetSelectedText;
         }
 
         @Override
         public boolean shouldSkipSetComposingRegion() {
-            return Settings.shouldSkipSetComposingRegion(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForTargetVersion().mSkipSetComposingRegion;
         }
 
         @Override
         public int getUpdateDelay() {
-            return Settings.getUpdateDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mUpdateDelay;
         }
 
         @Override
         public int getFinishComposingTextDelay() {
-            return Settings.getFinishComposingTextDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mFinishComposingTextDelay;
         }
 
         @Override
         public int getGetSurroundingTextDelay() {
-            return Settings.getGetSurroundingTextDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mGetSurroundingTextDelay;
         }
 
         @Override
         public int getGetTextBeforeCursorDelay() {
-            return Settings.getGetTextBeforeCursorDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mGetTextBeforeCursorDelay;
         }
 
         @Override
         public int getGetSelectedTextDelay() {
-            return Settings.getGetSelectedTextDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mGetSelectedTextDelay;
         }
 
         @Override
         public int getGetTextAfterCursorDelay() {
-            return Settings.getGetTextAfterCursorDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mGetTextAfterCursorDelay;
         }
 
         @Override
         public int getGetCursorCapsModeDelay() {
-            return Settings.getGetCursorCapsModeDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mGetCursorCapsModeDelay;
         }
 
         @Override
         public int getGetExtractedTextDelay() {
-            return Settings.getGetExtractedTextDelay(mGroupIndex, mFieldIndex);
+            return getTestFieldOrBaseForSystemBehavior().mGetExtractedTextDelay;
+        }
+    }
+
+    public static class TestFieldSettings extends TestFieldCustomEditorSettings {
+
+        private TestFieldSettings(int groupIndex, int fieldIndex) {
+            super(groupIndex, fieldIndex);
+        }
+
+        public CharSequence getLabelText() {
+            return getField().mLabelText;
+        }
+
+        public CharSequence getDefaultText() {
+            return getField().mDefaultText;
+        }
+
+        public CharSequence getHintText() {
+            return getField().mHintText;
+        }
+
+        public int getInputType() {
+            return getField().mInputType;
+        }
+
+        public int getImeOptions() {
+            return getField().mImeOptions;
+        }
+
+        public int getImeActionId() {
+            return getField().mImeActionId;
+        }
+
+        public String getImeActionLabel() {
+            return getField().mImeActionLabel;
+        }
+
+        public String getPrivateImeOptions() {
+            return getField().mPrivateImeOptions;
+        }
+
+        public boolean shouldSelectAllOnFocus() {
+            return getField().mSelectAllOnFocus;
+        }
+
+        public int getMaxLength() {
+            return getField().mMaxLength;
+        }
+
+        public boolean shouldAllowUndo() {
+            return getField().mAllowUndo;
+        }
+
+        public Locale[] getTextLocales() {
+            return getField().mTextLocales;
+        }
+
+        public Locale[] getImeHintLocales() {
+            return getField().mImeHintLocales;
         }
     }
 }
