@@ -162,238 +162,96 @@ public class PreferenceReader {
     //#endregion
 
     //#region defaults
-    public static final boolean DEFAULT_MODIFY_COMMITTED_TEXT = false;
-    public static final boolean DEFAULT_MODIFY_COMPOSED_TEXT = false;
-    public static final boolean DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY = false;
-    public static final boolean DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END = false;
-    public static final boolean DEFAULT_RESTRICT_TO_INCLUDE = false;
-    public static final boolean DEFAULT_TRANSLATE_FULL_MATCH_ONLY = false;
-    public static final int DEFAULT_CODEPOINT_SHIFT = 0;
-    public static final boolean DEFAULT_SKIP_EXTRACTING_TEXT = false;
-    public static final boolean DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR = false;
-    public static final boolean DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT = false;
-    public static final boolean DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES = false;
-    public static final boolean DEFAULT_EXTRACT_FULL_TEXT = false;
-    public static final int DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT = -1;
-    public static final int DEFAULT_RETURNED_TEXT_LIMIT = -1;
-    public static final boolean DEFAULT_DELETE_THROUGH_COMPOSING_TEXT = false;
-    public static final boolean DEFAULT_KEEP_EMPTY_COMPOSING_POSITION = false;
-    public static final boolean DEFAULT_SKIP_TAKESNAPSHOT = false;
-    public static final boolean DEFAULT_SKIP_GETSURROUNDINGTEXT = false;
-    public static final boolean DEFAULT_SKIP_PERFORMSPELLCHECK = false;
-    public static final boolean DEFAULT_SKIP_SETIMECONSUMESINPUT = false;
-    public static final boolean DEFAULT_SKIP_COMMITCONTENT = false;
-    public static final boolean DEFAULT_SKIP_CLOSECONNECTION = false;
-    public static final boolean DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS = false;
-    public static final boolean DEFAULT_SKIP_REQUESTCURSORUPDATES = false;
-    public static final boolean DEFAULT_SKIP_COMMITCORRECTION = false;
-    public static final boolean DEFAULT_SKIP_GETSELECTEDTEXT = false;
-    public static final boolean DEFAULT_SKIP_SETCOMPOSINGREGION = false;
-    public static final int DEFAULT_UPDATE_DELAY = 0;
-    public static final int DEFAULT_FINISHCOMPOSINGTEXT_DELAY = 0;
-    public static final int DEFAULT_GETSURROUNDINGTEXT_DELAY = 0;
-    public static final int DEFAULT_GETTEXTBEFORECURSOR_DELAY = 0;
-    public static final int DEFAULT_GETSELECTEDTEXT_DELAY = 0;
-    public static final int DEFAULT_GETTEXTAFTERCURSOR_DELAY = 0;
-    public static final int DEFAULT_GETCURSORCAPSMODE_DELAY = 0;
-    public static final int DEFAULT_GETEXTRACTEDTEXT_DELAY = 0;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_MULTILINE = false;
-    public static final boolean NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION = false;
-    public static final boolean NONNULL_INPUT_TYPE_SEND_SELECTION_INFO = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO = false;
-    public static final boolean NONNULL_INPUT_TYPE_SEND_TEXT = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_SEND_TEXT = false;
-    public static final int NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
-            COMPOSING_TEXT_BEHAVIOR_COMPOSE;
-    public static final int DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR =
-            COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
-    public static final boolean NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT = false;
-    public static final boolean NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = true;
-    public static final boolean DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION = false;
-
-    public static boolean defaultCreateInputConnection(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION
-                : DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
-    }
-    public static boolean defaultSendSelectionInfo(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_SEND_SELECTION_INFO
-                : DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO;
-    }
-    public static boolean defaultSendText(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_SEND_TEXT
-                : DEFAULT_NULL_INPUT_TYPE_SEND_TEXT;
-    }
-    public static int defaultComposingTextBehavior(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR
-                : DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
-    }
-    public static boolean defaultAllowDeleteSurroundingText(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT
-                : DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
-    }
-    public static boolean defaultAllowSettingSelection(int inputType) {
-        return inputType != EditorInfo.TYPE_NULL
-                ? NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION
-                : DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
-    }
-
     public static final String[] DEFAULT_RESTRICT_SPECIFIC = new String[0];
     public static final IntRange DEFAULT_RESTRICT_RANGE = null;
     public static final TranslateText[] DEFAULT_TRANSLATE_SPECIFIC = new TranslateText[0];
 
-    //TODO: (EW) remove constants to consolidate and have this method manage whatever used the
-    // constants before
     public static boolean getPrefDefaultBoolean(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
-                return false;
             case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
-                return DEFAULT_MODIFY_COMMITTED_TEXT;
             case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
-                return DEFAULT_MODIFY_COMPOSED_TEXT;
             case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
-                return DEFAULT_MODIFY_COMPOSED_CHANGES_ONLY;
             case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
-                return DEFAULT_CONSIDER_COMPOSED_CHANGES_FROM_END;
             case PREF_RESTRICT_TO_INCLUDE_PREFIX:
-                return DEFAULT_RESTRICT_TO_INCLUDE;
             case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
-                return DEFAULT_TRANSLATE_FULL_MATCH_ONLY;
             case PREF_OVERRIDE_TEXT_RETURN_PREFIX:
-                return false;
             case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
-                return DEFAULT_SKIP_EXTRACTING_TEXT;
             case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
-                return DEFAULT_IGNORE_EXTRACTED_TEXT_MONITOR;
             case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
-                return DEFAULT_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT;
             case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
-                return DEFAULT_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES;
             case PREF_EXTRACT_FULL_TEXT_PREFIX:
-                return DEFAULT_EXTRACT_FULL_TEXT;
             case PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX:
-                return false;
             case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
-                return DEFAULT_DELETE_THROUGH_COMPOSING_TEXT;
             case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
-                return DEFAULT_KEEP_EMPTY_COMPOSING_POSITION;
             case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
-                return false;
             case PREF_SKIP_TAKESNAPSHOT_PREFIX:
-                return DEFAULT_SKIP_TAKESNAPSHOT;
             case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
-                return DEFAULT_SKIP_GETSURROUNDINGTEXT;
             case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
-                return DEFAULT_SKIP_PERFORMSPELLCHECK;
             case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
-                return DEFAULT_SKIP_SETIMECONSUMESINPUT;
             case PREF_SKIP_COMMITCONTENT_PREFIX:
-                return DEFAULT_SKIP_COMMITCONTENT;
             case PREF_SKIP_CLOSECONNECTION_PREFIX:
-                return DEFAULT_SKIP_CLOSECONNECTION;
             case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
-                return DEFAULT_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS;
             case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
-                return DEFAULT_SKIP_REQUESTCURSORUPDATES;
             case PREF_SKIP_COMMITCORRECTION_PREFIX:
-                return DEFAULT_SKIP_COMMITCORRECTION;
             case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
-                return DEFAULT_SKIP_GETSELECTEDTEXT;
             case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
-                return DEFAULT_SKIP_SETCOMPOSINGREGION;
             case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
-                return false;
             case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
-                return false;
             case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
-                return false;
             case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
-                return false;
             case PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX:
-                return false;
             case PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX:
-                return false;
             case PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX:
-                return DEFAULT_NULL_INPUT_TYPE_MULTILINE;
             case PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX:
-                return DEFAULT_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
             case PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX:
-                return DEFAULT_NULL_INPUT_TYPE_SEND_SELECTION_INFO;
             case PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX:
-                return DEFAULT_NULL_INPUT_TYPE_SEND_TEXT;
             case PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
-                return DEFAULT_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
             case PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX:
-                return DEFAULT_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
             case PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX:
-                return false;
             case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
-                return false;
             case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
+            case PREF_SHOW_REFERENCE_EDITTEXT:
                 return false;
             case PREF_ALLOW_UNDO_PREFIX:
                 return true;
-            case PREF_SHOW_REFERENCE_EDITTEXT:
-                return false;
             default:
                 Log.e(TAG, "boolean default missing for " + keyOrPrefix
                         + (prefDataType(keyOrPrefix) != TYPE_BOOLEAN ? " (not a boolean)" : ""));
                 return false;
         }
     }
+
     public static int getPrefDefaultInt(String keyOrPrefix) {
         switch (keyOrPrefix) {
-            case PREF_IME_ACTION_ID_PREFIX:
-                return 0;
             case PREF_MAX_LENGTH_PREFIX:
-                return -1;
-            case PREF_SHIFT_CODEPOINT_PREFIX:
-                return DEFAULT_CODEPOINT_SHIFT;
             case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
-                return DEFAULT_EXTRACT_MONITOR_TEXT_LIMIT;
             case PREF_LIMIT_RETURNED_TEXT_PREFIX:
-                return DEFAULT_RETURNED_TEXT_LIMIT;
+                return -1;
+            case PREF_IME_ACTION_ID_PREFIX:
+            case PREF_SHIFT_CODEPOINT_PREFIX:
             case PREF_UPDATE_DELAY_PREFIX:
-                return DEFAULT_UPDATE_DELAY;
             case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
-                return DEFAULT_FINISHCOMPOSINGTEXT_DELAY;
             case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
-                return DEFAULT_GETSURROUNDINGTEXT_DELAY;
             case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
-                return DEFAULT_GETTEXTBEFORECURSOR_DELAY;
             case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
-                return DEFAULT_GETSELECTEDTEXT_DELAY;
             case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
-                return DEFAULT_GETTEXTAFTERCURSOR_DELAY;
             case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
-                return DEFAULT_GETCURSORCAPSMODE_DELAY;
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
-                return DEFAULT_GETEXTRACTEDTEXT_DELAY;
+                return 0;
             default:
                 Log.e(TAG, "int default missing for " + keyOrPrefix
                         + (prefDataType(keyOrPrefix) != TYPE_INT ? " (not an int)" : ""));
                 return 0;
         }
     }
+
     public static long getPrefDefaultLong(String keyOrPrefix) {
         switch (keyOrPrefix) {
             default:
@@ -402,6 +260,7 @@ public class PreferenceReader {
                 return 0;
         }
     }
+
     public static long getPrefDefaultFloat(String keyOrPrefix) {
         switch (keyOrPrefix) {
             default:
@@ -410,6 +269,7 @@ public class PreferenceReader {
                 return 0;
         }
     }
+
     public static String getPrefDefaultString(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_INPUT_TYPE_CLASS_PREFIX:
@@ -438,6 +298,7 @@ public class PreferenceReader {
                 return null;
         }
     }
+
     public static Spanned getPrefDefaultSpanned(String keyOrPrefix) {
         switch (keyOrPrefix) {
             default:
@@ -446,6 +307,7 @@ public class PreferenceReader {
                 return null;
         }
     }
+
     public static CharSequence getPrefDefaultCharSequence(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_IME_LABEL_TEXT_PREFIX:
@@ -458,6 +320,7 @@ public class PreferenceReader {
                 return null;
         }
     }
+
     public static int[] getPrefDefaultIntArray(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_TEST_GROUP_IDS:
@@ -470,6 +333,7 @@ public class PreferenceReader {
                 return null;
         }
     }
+
     public static String[] getPrefDefaultStringArray(String keyOrPrefix) {
         switch (keyOrPrefix) {
             default:
@@ -492,36 +356,41 @@ public class PreferenceReader {
     }
     //#endregion
 
-    private final SharedPreferenceManager mPrefs;
+    private final @Nullable SharedPreferenceManager mPrefs;
 
-    public PreferenceReader(SharedPreferenceManager prefs) {
+    public PreferenceReader(@Nullable SharedPreferenceManager prefs) {
         mPrefs = prefs;
     }
 
     public boolean contains(String prefKey) {
-        return mPrefs.contains(prefKey);
+        return mPrefs != null && mPrefs.contains(prefKey);
     }
 
     //#region generic read methods
     //#region core read methods
     private boolean readBoolean(String prefKey, String prefKeyOrPrefix) {
-        return mPrefs.getBoolean(prefKey, getPrefDefaultBoolean(prefKeyOrPrefix));
+        boolean defaultValue = getPrefDefaultBoolean(prefKeyOrPrefix);
+        return mPrefs != null ? mPrefs.getBoolean(prefKey, defaultValue) : defaultValue;
     }
 
     public int readInt(String prefKey, String prefKeyOrPrefix) {
-        return mPrefs.getInt(prefKey, getPrefDefaultInt(prefKeyOrPrefix));
+        int defaultValue = getPrefDefaultInt(prefKeyOrPrefix);
+        return mPrefs != null ? mPrefs.getInt(prefKey, defaultValue) : defaultValue;
     }
 
     public String readString(String prefKey, String prefKeyOrPrefix) {
-        return mPrefs.getString(prefKey, getPrefDefaultString(prefKeyOrPrefix));
+        String defaultValue = getPrefDefaultString(prefKeyOrPrefix);
+        return mPrefs != null ? mPrefs.getString(prefKey, defaultValue) : defaultValue;
     }
 
     private CharSequence readCharSequence(String prefKey, String prefKeyOrPrefix) {
-        return mPrefs.getCharSequence(prefKey, getPrefDefaultCharSequence(prefKeyOrPrefix));
+        CharSequence defaultValue = getPrefDefaultCharSequence(prefKeyOrPrefix);
+        return mPrefs != null ? mPrefs.getCharSequence(prefKey, defaultValue) : defaultValue;
     }
 
     private int[] readIntArray(String prefKey, String prefKeyOrPrefix) {
-        int[] value = mPrefs.getIntArray(prefKey, getPrefDefaultIntArray(prefKeyOrPrefix));
+        int[] defaultValue = getPrefDefaultIntArray(prefKeyOrPrefix);
+        int[] value = mPrefs != null ? mPrefs.getIntArray(prefKey, defaultValue) : defaultValue;
         if (value == null && !prefAllowsNullIntArray(prefKeyOrPrefix)) {
             Log.e(TAG, "Preference " + prefKey + " has a value of null.");
             return new int[0];
@@ -721,8 +590,14 @@ public class PreferenceReader {
     //#endregion
 
     //#region object loading methods
-    public void loadTestFieldOrDefaultSetting(String prefKeyPrefix,
-                                              AppLevelDefaults testFieldOrDefault) {
+    /* package */ void loadTestFieldDefaultableSettings(AppLevelDefaults testFieldOrDefault) {
+        for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+            loadTestFieldDefaultableSetting(prefKeyPrefix, testFieldOrDefault);
+        }
+    }
+
+    /* package*/ void loadTestFieldDefaultableSetting(String prefKeyPrefix,
+                                                      AppLevelDefaults testFieldOrDefault) {
         int fieldId = testFieldOrDefault instanceof TestField
                 ? ((TestField) testFieldOrDefault).mId
                 : BASE_FIELD_ID;
@@ -887,7 +762,62 @@ public class PreferenceReader {
         }
     }
 
-    public void loadTestFieldSetting(String prefKeyPrefix, TestField testField) {
+    /* package */ void loadTestFieldSpecificSettings(TestField testField) {
+        // intentionally skipping some preferences since they are read in groups, so listing them
+        // all would just read all of them multiple times. leaving them commented out here for
+        // visibility.
+        final String[] testFieldPrefKeyPrefixes = new String[]{
+                PREF_IME_LABEL_TEXT_PREFIX,
+                PREF_IME_DEFAULT_TEXT_PREFIX,
+                PREF_IME_HINT_TEXT_PREFIX,
+                PREF_INPUT_TYPE_CLASS_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
+                //PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
+                //PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
+                //PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
+                //PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX,
+                //PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX,
+                //PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX,
+                //PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                //PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                //PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX,
+                PREF_IME_OPTIONS_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
+                //PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
+                PREF_IME_ACTION_ID_PREFIX,
+                PREF_IME_ACTION_LABEL_PREFIX,
+                PREF_PRIVATE_IME_OPTIONS_PREFIX,
+                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
+                PREF_MAX_LENGTH_PREFIX,
+                PREF_ALLOW_UNDO_PREFIX,
+                PREF_TEXT_LOCALES_PREFIX,
+                PREF_IME_HINT_LOCALES_PREFIX,
+
+                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
+                PREF_OVERRIDE_TEXT_RETURN_PREFIX,
+                PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
+                PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
+                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
+        };
+        for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
+            loadTestFieldSpecificSetting(prefKeyPrefix, testField);
+        }
+    }
+
+    /* package*/ void loadTestFieldSpecificSetting(String prefKeyPrefix, TestField testField) {
         int fieldId = testField.mId;
         switch (prefKeyPrefix) {
             case PREF_IME_LABEL_TEXT_PREFIX:
@@ -956,13 +886,12 @@ public class PreferenceReader {
                         testField.mAllowSettingSelection = false;
                     }
                 } else {
-                    testField.mCreateInputConnection = NONNULL_INPUT_TYPE_CREATE_INPUT_CONNECTION;
-                    testField.mSendSelectionInfo = NONNULL_INPUT_TYPE_SEND_SELECTION_INFO;
-                    testField.mSendText = NONNULL_INPUT_TYPE_SEND_TEXT;
-                    testField.mComposingTextBehavior = NONNULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
-                    testField.mAllowDeleteSurroundingText =
-                            NONNULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT;
-                    testField.mAllowSettingSelection = NONNULL_INPUT_TYPE_ALLOW_SETTING_SELECTION;
+                    testField.mCreateInputConnection = true;
+                    testField.mSendSelectionInfo = true;
+                    testField.mSendText = true;
+                    testField.mComposingTextBehavior = COMPOSING_TEXT_BEHAVIOR_COMPOSE;
+                    testField.mAllowDeleteSurroundingText = true;
+                    testField.mAllowSettingSelection = true;
                 }
                 break;
             case PREF_IME_OPTIONS_ACTION_PREFIX:
@@ -1046,12 +975,12 @@ public class PreferenceReader {
                         + " isn't a valid composing text behavior");
                 // the fallback is based on a null input type because the preference is specific to
                 // this because other types have a fixed behavior
-                return DEFAULT_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR;
+                return COMPOSING_TEXT_BEHAVIOR_INVISIBLE;
         }
     }
 
     //#region compound preferences
-    private int readTestFieldInputType(int fieldId) {
+    protected int readTestFieldInputType(int fieldId) {
         String inputTypeClass = readTestFieldString(fieldId, PREF_INPUT_TYPE_CLASS_PREFIX);
         String variation;
         int inputType;

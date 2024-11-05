@@ -349,7 +349,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     protected abstract TDataManager createDataManager(SharedPreferenceManager prefs, String key);
 
     protected static abstract class DataManagerBase<T> {
-        protected final SharedPreferenceManager mPrefs;
+        private final SharedPreferenceManager mPrefs;
         protected String mKey;
 
         protected DataManagerBase(SharedPreferenceManager prefs, String key) {
@@ -361,7 +361,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
         @NonNull
         public T readValue() {
-            String[] pieces = mPrefs.getStringArray(mKey, null);
+            String[] pieces = mPrefs != null ? mPrefs.getStringArray(mKey, null) : null;
             if (pieces == null) {
                 return readDefaultValue();
             }

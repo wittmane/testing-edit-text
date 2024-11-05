@@ -694,7 +694,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
 
         @Nullable
         public IntRange readValue() {
-            String rawValue = mPrefs.getString(mKey, null);
+            String rawValue = mPrefs != null ? mPrefs.getString(mKey, null) : null;
             if (TextUtils.isEmpty(rawValue)) {
                 return null;
             }

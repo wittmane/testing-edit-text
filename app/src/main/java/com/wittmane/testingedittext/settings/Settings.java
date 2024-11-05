@@ -265,7 +265,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         for (String prefKey : MISC_PREF_KEYS) {
             loadSetting(prefKey);
         }
-        loadTestFieldSettings(BASE_FIELD_ID);
+        mPreferenceReader.loadTestFieldDefaultableSettings(mTestFieldDefaults);
         mTestGroupIds = mPreferenceReader.readIntArray(PREF_TEST_GROUP_IDS);
         mTestGroups.clear();
         mTestFields.clear();
@@ -293,69 +293,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private TestField loadExistingField(int fieldId) {
         TestField field = new TestField(fieldId);
         mTestFields.put(fieldId, field);
-        loadTestFieldSettings(fieldId);
+        mPreferenceReader.loadTestFieldSpecificSettings(field);
+        mPreferenceReader.loadTestFieldDefaultableSettings(field);
         return field;
-    }
-
-    private void loadTestFieldSettings(int fieldId) {
-        // intentionally skipping some preferences since they are read in groups, so listing them
-        // all would just read all of them multiple times. leaving them commented out here for
-        // visibility.
-        final String[] testFieldPrefKeyPrefixes = new String[] {
-                PREF_IME_LABEL_TEXT_PREFIX,
-                PREF_IME_DEFAULT_TEXT_PREFIX,
-                PREF_IME_HINT_TEXT_PREFIX,
-                PREF_INPUT_TYPE_CLASS_PREFIX,
-                //PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX,
-                //PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX,
-                //PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX,
-                //PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX,
-                //PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX,
-                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX,
-                //PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX,
-                //PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX,
-                //PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX,
-                //PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX,
-                //PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX,
-                //PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX,
-                //PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX,
-                //PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX,
-                //PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                //PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                //PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX,
-                PREF_IME_OPTIONS_ACTION_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX,
-                //PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX,
-                PREF_IME_ACTION_ID_PREFIX,
-                PREF_IME_ACTION_LABEL_PREFIX,
-                PREF_PRIVATE_IME_OPTIONS_PREFIX,
-                PREF_SELECT_ALL_ON_FOCUS_PREFIX,
-                PREF_MAX_LENGTH_PREFIX,
-                PREF_ALLOW_UNDO_PREFIX,
-                PREF_TEXT_LOCALES_PREFIX,
-                PREF_IME_HINT_LOCALES_PREFIX,
-
-                PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX,
-                PREF_OVERRIDE_TEXT_RETURN_PREFIX,
-                PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX,
-                PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX,
-                PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
-        };
-        if (fieldId != BASE_FIELD_ID) {
-            for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
-                loadTestFieldSetting(prefKeyPrefix, fieldId);
-            }
-        }
-
-        for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-            loadTestFieldOrDefaultSetting(prefKeyPrefix, fieldId);
-        }
     }
 
     private void loadSetting(String prefKey) {
@@ -383,9 +323,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return;
         }
         if (prefKey.endsWith(BASE_SUFFIX)) {
-            loadTestFieldOrDefaultSetting(
+            mPreferenceReader.loadTestFieldDefaultableSetting(
                     prefKey.substring(0, prefKey.length() - BASE_SUFFIX.length()),
-                    BASE_FIELD_ID);
+                    mTestFieldDefaults);
         } else if (containsIdSuffix(prefKey, GROUP_INFIX)) {
             PrefKeyPieces prefKeyPieces = PrefKeyPieces.parse(prefKey, GROUP_INFIX, mTestGroups,
                     Settings::isGroupIdValid);
@@ -399,8 +339,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             if (prefKeyPieces == null) {
                 return;
             }
-            loadTestFieldSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
-            loadTestFieldOrDefaultSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
+            TestField testField = getField(prefKeyPieces.mId);
+            mPreferenceReader.loadTestFieldSpecificSetting(prefKeyPieces.mPrefix, testField);
+            mPreferenceReader.loadTestFieldDefaultableSetting(prefKeyPieces.mPrefix, testField);
         } else {
             Log.w(TAG, "Preference " + prefKey + " couldn't be processed as a prefixed setting");
         }
@@ -462,24 +403,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 Log.w(TAG, "Preference " + prefKeyPrefix + GROUP_INFIX + groupId
                         + " wasn't processed");
         }
-    }
-
-    private void loadTestFieldSetting(String prefKeyPrefix, int fieldId) {
-        TestField testField = getField(fieldId);
-        mPreferenceReader.loadTestFieldSetting(prefKeyPrefix, testField);
-    }
-
-    private void loadTestFieldOrDefaultSetting(String prefKeyPrefix, int fieldId) {
-        AppLevelDefaults testFieldOrDefault;
-        if (fieldId == BASE_FIELD_ID) {
-            testFieldOrDefault = mTestFieldDefaults;
-        } else {
-            testFieldOrDefault = getField(fieldId);
-            if (testFieldOrDefault == null) {
-                return;
-            }
-        }
-        mPreferenceReader.loadTestFieldOrDefaultSetting(prefKeyPrefix, testFieldOrDefault);
     }
 
     private static int indexOf(List<TestField> fields, int id) {
@@ -848,19 +771,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return new TestFieldSettings(groupIndex, fieldIndex);
     }
 
-    private static class TestFieldCustomEditorSettings implements EditorSettings {
-        //TODO: (EW) would it be better to use the field ID instead of the index?
-        private final int mGroupIndex;
-        private final int mFieldIndex;
+    /* package */ static abstract class TestFieldCustomEditorSettings implements EditorSettings {
 
-        private TestFieldCustomEditorSettings(int groupIndex, int fieldIndex) {
-            mGroupIndex = groupIndex;
-            mFieldIndex = fieldIndex;
-        }
-
-        protected TestField getField() {
-            return Settings.getField(mGroupIndex, mFieldIndex);
-        }
+        /* package */ abstract TestField getField();
 
         private AppLevelDefaults getTestFieldOrBase(Predicate<TestField> override) {
             TestField testField = getField();
@@ -1117,9 +1030,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static class TestFieldSettings extends TestFieldCustomEditorSettings {
+        //TODO: (EW) would it be better to use the field ID instead of the index?
+        private final int mGroupIndex;
+        private final int mFieldIndex;
 
         private TestFieldSettings(int groupIndex, int fieldIndex) {
-            super(groupIndex, fieldIndex);
+            mGroupIndex = groupIndex;
+            mFieldIndex = fieldIndex;
+        }
+
+        /* package */ TestField getField() {
+            return Settings.getField(mGroupIndex, mFieldIndex);
         }
 
         public CharSequence getLabelText() {
