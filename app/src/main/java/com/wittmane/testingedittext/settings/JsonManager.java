@@ -71,6 +71,16 @@ public abstract class JsonManager {
         PreferenceReader preferenceReader = Settings.getInstance().getPreferenceReader();
         JSONObject jsonObject = new JSONObject();
         try {
+            if (exportFieldDefaults) {
+                JSONObject fieldDefaultsJsonObject = new JSONObject();
+                for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
+                    String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
+                    addPrefData(fieldDefaultsJsonObject, defaultsPrefKeyPrefix, defaultsPrefKey,
+                            prefs);
+                }
+                jsonObject.put(FIELD_DEFAULTS_JSON_PROP, fieldDefaultsJsonObject);
+            }
+
             if (groupInfoList != null && preferenceReader.contains(PREF_TEST_GROUP_IDS)) {
                 int[] groupIds = preferenceReader.readIntArray(PREF_TEST_GROUP_IDS);
 
@@ -106,17 +116,6 @@ public abstract class JsonManager {
                     }
                     jsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
                 }
-            }
-
-            //TODO: (EW) consider moving this up to match the settings screen and dialog
-            if (exportFieldDefaults) {
-                JSONObject fieldDefaultsJsonObject = new JSONObject();
-                for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-                    String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
-                    addPrefData(fieldDefaultsJsonObject, defaultsPrefKeyPrefix, defaultsPrefKey,
-                            prefs);
-                }
-                jsonObject.put(FIELD_DEFAULTS_JSON_PROP, fieldDefaultsJsonObject);
             }
 
             if (exportOtherSettings) {
@@ -212,7 +211,6 @@ public abstract class JsonManager {
         return fieldJsonObject;
     }
 
-    //TODO: (EW) probably should break this into multiple helper methods
     private static void addPrefData(JSONObject jsonObject, String prefKeyOrPrefix, String prefKey,
                                     SharedPreferenceManager prefs) throws JSONException {
         //TODO: (EW) consider not using SharedPreferenceManager, but only using PreferenceReader
@@ -224,178 +222,270 @@ public abstract class JsonManager {
         int dataType = PreferenceReader.prefDataType(prefKeyOrPrefix);
         switch (dataType) {
             case PreferenceReader.TYPE_BOOLEAN:
-                boolean defaultBoolean = PreferenceReader.getPrefDefaultBoolean(prefKeyOrPrefix);
-                boolean prefValueBoolean = prefs.getBoolean(prefKey, defaultBoolean);
-                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueBoolean != defaultBoolean) {
-                    jsonObject.put(jsonPropName, prefValueBoolean);
-                }
+                addBooleanPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_INT:
-                int defaultInt = PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix);
-                int prefValueInt = prefs.getInt(prefKey, defaultInt);
-                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueInt != defaultInt) {
-                    jsonObject.put(jsonPropName, prefValueInt);
-                }
+                addIntPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_LONG:
-                long defaultLong = PreferenceReader.getPrefDefaultLong(prefKeyOrPrefix);
-                long prefValueLong = prefs.getLong(prefKey, defaultLong);
-                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueLong != defaultLong) {
-                    jsonObject.put(jsonPropName, prefValueLong);
-                }
+                addLongPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_FLOAT:
-                float defaultFloat = PreferenceReader.getPrefDefaultFloat(prefKeyOrPrefix);
-                float prefValueFloat = prefs.getFloat(prefKey, defaultFloat);
-                if (EXPORT_DEFAULT_PREFS_VALUES || prefValueFloat != defaultFloat) {
-                    jsonObject.put(jsonPropName, prefValueFloat);
-                }
+                addFloatPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_STRING:
-                String defaultString = PreferenceReader.getPrefDefaultString(prefKeyOrPrefix);
-                String prefValueString = prefs.getString(prefKey, defaultString);
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !TextUtils.equals(prefValueString, defaultString)) {
-                    addObject(jsonObject, jsonPropName, prefValueString);
-                }
+                addStringPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_SPANNED:
-                Spanned defaultSpanned = PreferenceReader.getPrefDefaultSpanned(prefKeyOrPrefix);
-                Spanned prefValueSpanned = prefs.getSpanned(prefKey, defaultSpanned);
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !definitelyEqual(prefValueSpanned, defaultSpanned)) {
-                    // get the data that SharedPreferenceManager uses to save spanned objects
-                    addArray(jsonObject, jsonPropName, prefValueSpanned == null
-                            ? null
-                            : SharedPreferenceManager.getSpannedInfo(prefValueSpanned));
-                }
+                addSpannedPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_CHAR_SEQUENCE:
-                CharSequence defaultCharSequence =
-                        PreferenceReader.getPrefDefaultCharSequence(prefKeyOrPrefix);
-                CharSequence prefValueCharSequence =
-                        prefs.getCharSequence(prefKey, defaultCharSequence);
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !definitelyEqual(prefValueCharSequence, defaultCharSequence)) {
-                    if (prefValueCharSequence instanceof Spanned) {
-                        // get the data that SharedPreferenceManager uses to save spanned objects
-                        //TODO: (EW) possibly should embed some indication of what data this holds
-                        // so that if other supported CharSequence type are supported in the future
-                        // or we find a better way to export the data, we can maintain compatibility
-                        // between varying versions between the exporting and importing app.
-                        addArray(jsonObject, jsonPropName,
-                                SharedPreferenceManager.getSpannedInfo(
-                                        (Spanned) prefValueCharSequence));
-                    } else if (prefValueCharSequence == null
-                            || prefValueCharSequence instanceof String) {
-                        addObject(jsonObject, jsonPropName, prefValueCharSequence);
-                    } else {
-                        jsonObject.put(jsonPropName, prefValueCharSequence.toString());
-                    }
-                }
+                addCharSequencePref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_INT_ARRAY:
-                int[] defaultIntArray = PreferenceReader.getPrefDefaultIntArray(prefKeyOrPrefix);
-                int[] prefValueIntArray = prefs.getIntArray(prefKey, defaultIntArray);
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !Arrays.equals(prefValueIntArray, defaultIntArray)) {
-                    addArray(jsonObject, jsonPropName, prefValueIntArray);
-                }
+                addIntArrayPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_STRING_ARRAY:
-                String[] defaultStringArray =
-                        PreferenceReader.getPrefDefaultStringArray(prefKeyOrPrefix);
-                String[] prefValueStringArray = prefs.getStringArray(prefKey, defaultStringArray);
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !Arrays.equals(prefValueStringArray, defaultStringArray)) {
-                    addArray(jsonObject, jsonPropName, prefValueStringArray);
-                }
+                addStringArrayPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_INT_RANGE:
-                //TODO: (EW) make more generic. the only use case for the int range currently is the
-                // codepoint range preference. maybe just convert this preference to use an int
-                // array and just have extra validation on the length when reading the data.
-                CodepointRangeDialogPreference.DataManager codepointRangeDialogDataManager =
-                        new CodepointRangeDialogPreference.DataManager(prefs, prefKey);
-                IntRange defaultIntRange = codepointRangeDialogDataManager.readDefaultValue();
-                IntRange prefValueIntRange = codepointRangeDialogDataManager.readValue();
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !Objects.equals(prefValueIntRange, defaultIntRange)) {
-                    addArray(jsonObject, jsonPropName, prefValueIntRange == null
-                            ? null
-                            : new int[] {
-                                    prefValueIntRange.getStart(),
-                                    prefValueIntRange.getEnd()
-                            });
-                }
+                addIntRangePref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_LOCALE_ARRAY:
-                //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
-                // preference)
-                LocaleEntryListPreference.DataManager localeEntryListDataManager =
-                        new LocaleEntryListPreference.DataManager(prefs, prefKey);
-                Locale[] defaultLocaleArray = localeEntryListDataManager.readDefaultValue();
-                Locale[] prefValueLocaleArray = localeEntryListDataManager.readValue();
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !Arrays.equals(prefValueLocaleArray, defaultLocaleArray)) {
-                    String[] localeStrings = new String[prefValueLocaleArray.length];
-                    for (int i = 0; i < prefValueLocaleArray.length; i++) {
-                        localeStrings[i] = LocaleEntryListPreference.getLocaleString(
-                                prefValueLocaleArray[i]);
-                    }
-                    addArray(jsonObject, jsonPropName, localeStrings);
-                }
+                addLocaleArrayPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_TEXT_LIST_STRING:
-                //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
-                // preference)
-                TextListPreference.DataManager textListDataManager =
-                        new TextListPreference.DataManager(prefs,prefKey);
-                TextList<String> defaultTextListString = textListDataManager.readDefaultValue();
-                TextList<String> prefValueTextListString = textListDataManager.readValue();
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !Objects.equals(prefValueTextListString, defaultTextListString)) {
-                    JSONObject textListStringJsonObject = new JSONObject();
-                    textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
-                            prefValueTextListString.escapeChars());
-                    addArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
-                            prefValueTextListString.getDataArray());
-                    jsonObject.put(jsonPropName, textListStringJsonObject);
-                }
+                addTextListStringPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_TEXT_LIST_TRANSLATE_TEXT:
-                //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
-                // preference)
-                TextTranslateListPreference.DataManager textTranslateListDataManager =
-                        new TextTranslateListPreference.DataManager(prefs, prefKey);
-                TextList<TranslateText> defaultTextListTranslateText =
-                        textTranslateListDataManager.readDefaultValue();
-                TextList<TranslateText> prefValueTextListTranslateText =
-                        textTranslateListDataManager.readValue();
-                if (EXPORT_DEFAULT_PREFS_VALUES
-                        || !Objects.equals(prefValueTextListTranslateText,
-                                defaultTextListTranslateText)) {
-                    JSONObject translateTextJsonObject = new JSONObject();
-                    translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
-                            prefValueTextListTranslateText.escapeChars());
-                    JSONObject[] translateTextArray =
-                            new JSONObject[prefValueTextListTranslateText.getDataArray().length];
-                    for (int i = 0; i < translateTextArray.length; i++) {
-                        translateTextArray[i] = new JSONObject();
-                        translateTextArray[i].put(TRANSLATE_TEXT_ORIGINAL_JSON_PROP,
-                                prefValueTextListTranslateText.getDataArray()[i].getOriginal());
-                        translateTextArray[i].put(TRANSLATE_TEXT_TRANSLATION_JSON_PROP,
-                                prefValueTextListTranslateText.getDataArray()[i].getTranslation());
-                    }
-                    addArray(translateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
-                            translateTextArray);
-                    jsonObject.put(jsonPropName, translateTextJsonObject);
-                }
+                addTextListTranslateTextPref(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, prefs);
                 break;
             case PreferenceReader.TYPE_UNKNOWN:
             default:
                 //TODO: (EW) probably handle gracefully, but hard crash for now to catch issues
                 throw new RuntimeException("Unknown data type for " + prefKeyOrPrefix);
+        }
+    }
+
+    //TODO: (EW) try to reduce duplicate code between these methods
+    private static void addBooleanPref(JSONObject jsonObject, String jsonPropName,
+                                       String prefKeyOrPrefix, String prefKey,
+                                       SharedPreferenceManager prefs)
+            throws JSONException {
+        boolean defaultBoolean = PreferenceReader.getPrefDefaultBoolean(prefKeyOrPrefix);
+        boolean prefValueBoolean = prefs.getBoolean(prefKey, defaultBoolean);
+        if (EXPORT_DEFAULT_PREFS_VALUES || prefValueBoolean != defaultBoolean) {
+            jsonObject.put(jsonPropName, prefValueBoolean);
+        }
+    }
+
+    private static void addIntPref(JSONObject jsonObject, String jsonPropName,
+                                   String prefKeyOrPrefix, String prefKey,
+                                   SharedPreferenceManager prefs)
+            throws JSONException {
+        int defaultInt = PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix);
+        int prefValueInt = prefs.getInt(prefKey, defaultInt);
+        if (EXPORT_DEFAULT_PREFS_VALUES || prefValueInt != defaultInt) {
+            jsonObject.put(jsonPropName, prefValueInt);
+        }
+    }
+
+    private static void addLongPref(JSONObject jsonObject, String jsonPropName,
+                                    String prefKeyOrPrefix, String prefKey,
+                                    SharedPreferenceManager prefs)
+            throws JSONException {
+        long defaultLong = PreferenceReader.getPrefDefaultLong(prefKeyOrPrefix);
+        long prefValueLong = prefs.getLong(prefKey, defaultLong);
+        if (EXPORT_DEFAULT_PREFS_VALUES || prefValueLong != defaultLong) {
+            jsonObject.put(jsonPropName, prefValueLong);
+        }
+    }
+
+    private static void addFloatPref(JSONObject jsonObject, String jsonPropName,
+                                     String prefKeyOrPrefix, String prefKey,
+                                     SharedPreferenceManager prefs)
+            throws JSONException {
+        float defaultFloat = PreferenceReader.getPrefDefaultFloat(prefKeyOrPrefix);
+        float prefValueFloat = prefs.getFloat(prefKey, defaultFloat);
+        if (EXPORT_DEFAULT_PREFS_VALUES || prefValueFloat != defaultFloat) {
+            jsonObject.put(jsonPropName, prefValueFloat);
+        }
+    }
+
+    private static void addStringPref(JSONObject jsonObject, String jsonPropName,
+                                      String prefKeyOrPrefix, String prefKey,
+                                      SharedPreferenceManager prefs)
+            throws JSONException {
+        String defaultString = PreferenceReader.getPrefDefaultString(prefKeyOrPrefix);
+        String prefValueString = prefs.getString(prefKey, defaultString);
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !TextUtils.equals(prefValueString, defaultString)) {
+            addObject(jsonObject, jsonPropName, prefValueString);
+        }
+    }
+
+    private static void addSpannedPref(JSONObject jsonObject, String jsonPropName,
+                                       String prefKeyOrPrefix, String prefKey,
+                                       SharedPreferenceManager prefs)
+            throws JSONException {
+        Spanned defaultSpanned = PreferenceReader.getPrefDefaultSpanned(prefKeyOrPrefix);
+        Spanned prefValueSpanned = prefs.getSpanned(prefKey, defaultSpanned);
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !definitelyEqual(prefValueSpanned, defaultSpanned)) {
+            // get the data that SharedPreferenceManager uses to save spanned objects
+            addArray(jsonObject, jsonPropName, prefValueSpanned == null
+                    ? null
+                    : SharedPreferenceManager.getSpannedInfo(prefValueSpanned));
+        }
+    }
+
+    private static void addCharSequencePref(JSONObject jsonObject, String jsonPropName,
+                                            String prefKeyOrPrefix, String prefKey,
+                                            SharedPreferenceManager prefs)
+            throws JSONException {
+        CharSequence defaultCharSequence =
+                PreferenceReader.getPrefDefaultCharSequence(prefKeyOrPrefix);
+        CharSequence prefValueCharSequence =
+                prefs.getCharSequence(prefKey, defaultCharSequence);
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !definitelyEqual(prefValueCharSequence, defaultCharSequence)) {
+            if (prefValueCharSequence instanceof Spanned) {
+                // get the data that SharedPreferenceManager uses to save spanned objects
+                //TODO: (EW) possibly should embed some indication of what data this holds
+                // so that if other supported CharSequence type are supported in the future
+                // or we find a better way to export the data, we can maintain compatibility
+                // between varying versions between the exporting and importing app.
+                addArray(jsonObject, jsonPropName,
+                        SharedPreferenceManager.getSpannedInfo(
+                                (Spanned) prefValueCharSequence));
+            } else if (prefValueCharSequence == null
+                    || prefValueCharSequence instanceof String) {
+                addObject(jsonObject, jsonPropName, prefValueCharSequence);
+            } else {
+                jsonObject.put(jsonPropName, prefValueCharSequence.toString());
+            }
+        }
+    }
+
+    private static void addIntArrayPref(JSONObject jsonObject, String jsonPropName,
+                                        String prefKeyOrPrefix, String prefKey,
+                                        SharedPreferenceManager prefs)
+            throws JSONException {
+        int[] defaultIntArray = PreferenceReader.getPrefDefaultIntArray(prefKeyOrPrefix);
+        int[] prefValueIntArray = prefs.getIntArray(prefKey, defaultIntArray);
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !Arrays.equals(prefValueIntArray, defaultIntArray)) {
+            addArray(jsonObject, jsonPropName, prefValueIntArray);
+        }
+    }
+
+    private static void addStringArrayPref(JSONObject jsonObject, String jsonPropName,
+                                           String prefKeyOrPrefix, String prefKey,
+                                           SharedPreferenceManager prefs)
+            throws JSONException {
+        String[] defaultStringArray =
+                PreferenceReader.getPrefDefaultStringArray(prefKeyOrPrefix);
+        String[] prefValueStringArray = prefs.getStringArray(prefKey, defaultStringArray);
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !Arrays.equals(prefValueStringArray, defaultStringArray)) {
+            addArray(jsonObject, jsonPropName, prefValueStringArray);
+        }
+    }
+
+    private static void addIntRangePref(JSONObject jsonObject, String jsonPropName,
+                                        String prefKeyOrPrefix, String prefKey,
+                                        SharedPreferenceManager prefs)
+            throws JSONException {
+        //TODO: (EW) make more generic. the only use case for the int range currently is the
+        // codepoint range preference. maybe just convert this preference to use an int
+        // array and just have extra validation on the length when reading the data.
+        CodepointRangeDialogPreference.DataManager codepointRangeDialogDataManager =
+                new CodepointRangeDialogPreference.DataManager(prefs, prefKey);
+        IntRange defaultIntRange = codepointRangeDialogDataManager.readDefaultValue();
+        IntRange prefValueIntRange = codepointRangeDialogDataManager.readValue();
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !Objects.equals(prefValueIntRange, defaultIntRange)) {
+            addArray(jsonObject, jsonPropName, prefValueIntRange == null
+                    ? null
+                    : new int[] {
+                    prefValueIntRange.getStart(),
+                    prefValueIntRange.getEnd()
+            });
+        }
+    }
+
+    private static void addLocaleArrayPref(JSONObject jsonObject, String jsonPropName,
+                                           String prefKeyOrPrefix, String prefKey,
+                                           SharedPreferenceManager prefs)
+            throws JSONException {
+        //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
+        // preference)
+        LocaleEntryListPreference.DataManager localeEntryListDataManager =
+                new LocaleEntryListPreference.DataManager(prefs, prefKey);
+        Locale[] defaultLocaleArray = localeEntryListDataManager.readDefaultValue();
+        Locale[] prefValueLocaleArray = localeEntryListDataManager.readValue();
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !Arrays.equals(prefValueLocaleArray, defaultLocaleArray)) {
+            String[] localeStrings = new String[prefValueLocaleArray.length];
+            for (int i = 0; i < prefValueLocaleArray.length; i++) {
+                localeStrings[i] = LocaleEntryListPreference.getLocaleString(
+                        prefValueLocaleArray[i]);
+            }
+            addArray(jsonObject, jsonPropName, localeStrings);
+        }
+    }
+
+    private static void addTextListStringPref(JSONObject jsonObject, String jsonPropName,
+                                              String prefKeyOrPrefix, String prefKey,
+                                              SharedPreferenceManager prefs)
+            throws JSONException {
+        //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
+        // preference)
+        TextListPreference.DataManager textListDataManager =
+                new TextListPreference.DataManager(prefs,prefKey);
+        TextList<String> defaultTextListString = textListDataManager.readDefaultValue();
+        TextList<String> prefValueTextListString = textListDataManager.readValue();
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !Objects.equals(prefValueTextListString, defaultTextListString)) {
+            JSONObject textListStringJsonObject = new JSONObject();
+            textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
+                    prefValueTextListString.escapeChars());
+            addArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
+                    prefValueTextListString.getDataArray());
+            jsonObject.put(jsonPropName, textListStringJsonObject);
+        }
+    }
+
+    private static void addTextListTranslateTextPref(JSONObject jsonObject, String jsonPropName,
+                                                     String prefKeyOrPrefix, String prefKey,
+                                                     SharedPreferenceManager prefs)
+            throws JSONException {
+        //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
+        // preference)
+        TextTranslateListPreference.DataManager textTranslateListDataManager =
+                new TextTranslateListPreference.DataManager(prefs, prefKey);
+        TextList<TranslateText> defaultTextListTranslateText =
+                textTranslateListDataManager.readDefaultValue();
+        TextList<TranslateText> prefValueTextListTranslateText =
+                textTranslateListDataManager.readValue();
+        if (EXPORT_DEFAULT_PREFS_VALUES
+                || !Objects.equals(prefValueTextListTranslateText,
+                defaultTextListTranslateText)) {
+            JSONObject translateTextJsonObject = new JSONObject();
+            translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP,
+                    prefValueTextListTranslateText.escapeChars());
+            JSONObject[] translateTextArray =
+                    new JSONObject[prefValueTextListTranslateText.getDataArray().length];
+            for (int i = 0; i < translateTextArray.length; i++) {
+                translateTextArray[i] = new JSONObject();
+                translateTextArray[i].put(TRANSLATE_TEXT_ORIGINAL_JSON_PROP,
+                        prefValueTextListTranslateText.getDataArray()[i].getOriginal());
+                translateTextArray[i].put(TRANSLATE_TEXT_TRANSLATION_JSON_PROP,
+                        prefValueTextListTranslateText.getDataArray()[i].getTranslation());
+            }
+            addArray(translateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
+                    translateTextArray);
+            jsonObject.put(jsonPropName, translateTextJsonObject);
         }
     }
 
@@ -650,7 +740,7 @@ public abstract class JsonManager {
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
                 FieldInfo fieldInfo = new FieldInfo();
                 JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
-                if (!validateFieldJson(fieldJsonObject, info, groupIndex, i,
+                if (!validateFieldJson(fieldJsonObject, info, i,
                         (path != null ? path + "." : "") + FIELDS_JSON_PROP + "[" + i + "]",
                         context, fieldInfo)) {
                     return false;
@@ -686,8 +776,8 @@ public abstract class JsonManager {
     }
 
     private static boolean validateFieldJson(JSONObject fieldJsonObject, ImportFileInfo info,
-                                             int groupIndex, int fieldIndex, String path,
-                                             Context context, FieldInfo fieldInfo) {
+                                             int fieldIndex, String path, Context context,
+                                             FieldInfo fieldInfo) {
         Map<String, String> namesMap = new HashMap<>();
 
         Set<String> props = getProps(fieldJsonObject);
@@ -787,7 +877,6 @@ public abstract class JsonManager {
 
     }
 
-    //TODO: (EW) probably should break this into multiple helper methods
     private static boolean loadOrValidatePrefData(JSONObject jsonObject, String jsonPropName,
                                                   String path, String prefKeyOrPrefix,
                                                   @Nullable ImportFileInfo info,
@@ -796,405 +885,46 @@ public abstract class JsonManager {
                                                   @Nullable Map<String, String> namesMap) {
         String fullPath = (path == null ? "" : (path + ".")) + jsonPropName;
         int dataType = PreferenceReader.prefDataType(prefKeyOrPrefix);
-        SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
         try {
             switch (dataType) {
                 case PreferenceReader.TYPE_BOOLEAN:
-                    boolean booleanData = jsonObject.getBoolean(jsonPropName);
-                    if (prefKey != null) {
-                        boolean defaultBoolean =
-                                PreferenceReader.getPrefDefaultBoolean(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES || booleanData != defaultBoolean) {
-                            prefs.setBoolean(prefKey, booleanData);
-                        }
-                    }
+                    loadOrValidateBoolean(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey);
                     break;
                 case PreferenceReader.TYPE_INT:
-                    int intData = jsonObject.getInt(jsonPropName);
-                    int minValue;
-                    int maxValue;
-                    int stepValue;
-                    switch (prefKeyOrPrefix) {
-                        case PREF_MAX_LENGTH_PREFIX:
-                            // non-negative
-                            minValue = 0;
-                            maxValue = Integer.MAX_VALUE;
-                            stepValue = 1;
-                            break;
-                        case PREF_SHIFT_CODEPOINT_PREFIX:
-                            minValue = context.getResources().getInteger(
-                                    R.integer.config_shift_codepoint_min);
-                            maxValue = context.getResources().getInteger(
-                                    R.integer.config_shift_codepoint_max);
-                            stepValue = context.getResources().getInteger(
-                                    R.integer.config_shift_codepoint_step);
-                            break;
-                        case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
-                            minValue = context.getResources().getInteger(
-                                    R.integer.config_extract_monitor_text_limit_min);
-                            maxValue = context.getResources().getInteger(
-                                    R.integer.config_extract_monitor_text_limit_max);
-                            stepValue = context.getResources().getInteger(
-                                    R.integer.config_extract_monitor_text_limit_step);
-                            break;
-                        case PREF_LIMIT_RETURNED_TEXT_PREFIX:
-                            minValue = context.getResources().getInteger(
-                                    R.integer.config_returned_text_limit_min);
-                            maxValue = context.getResources().getInteger(
-                                    R.integer.config_returned_text_limit_max);
-                            stepValue = context.getResources().getInteger(
-                                    R.integer.config_returned_text_limit_step);
-                            break;
-                        case PREF_UPDATE_DELAY_PREFIX:
-                            minValue = context.getResources().getInteger(
-                                    R.integer.config_update_delay_min);
-                            maxValue = context.getResources().getInteger(
-                                    R.integer.config_update_delay_max);
-                            stepValue = context.getResources().getInteger(
-                                    R.integer.config_update_delay_step);
-                            break;
-                        case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
-                        case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
-                        case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
-                        case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
-                        case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
-                        case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
-                        case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
-                            minValue = context.getResources().getInteger(
-                                    R.integer.config_inputconnection_method_delay_min);
-                            maxValue = context.getResources().getInteger(
-                                    R.integer.config_inputconnection_method_delay_max);
-                            stepValue = context.getResources().getInteger(
-                                    R.integer.config_inputconnection_method_delay_step);
-                            break;
-                        default:
-                            minValue = Integer.MIN_VALUE;
-                            maxValue = Integer.MAX_VALUE;
-                            stepValue = 1;
-                    }
-                    int constrainedIntData = constrain(intData, minValue, maxValue, stepValue);
-                    if (constrainedIntData != intData
-                            && intData != PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix)) {
-                        if (intData < minValue || intData > maxValue) {
-                            Log.e(TAG, fullPath + " ( " + intData + ") isn't in the range "
-                                    + minValue + " - " + maxValue);
-                            if (info != null) {
-                                info.mWarnings.add(context.getString(R.string.value_not_in_range,
-                                        fullPath, intData, minValue, maxValue));
-                            }
-                            break;
-                        } else {
-                            Log.w(TAG, fullPath + " has an int ( " + intData
-                                    + ") that doesn't conform to the constraints: min=" + minValue
-                                    + ", max=" + maxValue + ", step=" + stepValue);
-                            if (info != null) {
-                                info.mWarnings.add(context.getString(R.string.invalid_step_value,
-                                        fullPath));
-                            }
-                            // it should be relatively safe to just shift to the nearest step
-                            intData = constrainedIntData;
-                        }
-                    }
-                    if (prefKey != null) {
-                        int defaultInt = PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES || intData != defaultInt) {
-                            prefs.setInt(prefKey, intData);
-                        }
-                    }
+                    loadOrValidateInt(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info, context, prefKey);
                     break;
                 case PreferenceReader.TYPE_LONG:
-                    long longData = jsonObject.getLong(jsonPropName);
-                    if (prefKey != null) {
-                        long defaultLong = PreferenceReader.getPrefDefaultLong(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES || longData != defaultLong) {
-                            prefs.setLong(prefKey, longData);
-                        }
-                    }
+                    loadOrValidateLong(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey);
                     break;
                 case PreferenceReader.TYPE_FLOAT:
-                    double doubleData = jsonObject.getDouble(jsonPropName);
-                    if (doubleData > Float.MAX_VALUE || doubleData < Float.MIN_VALUE) {
-                        Log.e(TAG, doubleData + " isn't a valid float for " + fullPath);
-                        if (info != null) {
-                            info.mWarnings.add(
-                                    context.getString(R.string.invalid_float_data, fullPath));
-                        }
-                        break;
-                    }
-                    if (prefKey != null) {
-                        float defaultFloat = PreferenceReader.getPrefDefaultFloat(prefKeyOrPrefix);
-                        float floatData = (float) doubleData;
-                        if (IMPORT_DEFAULT_PREFS_VALUES || floatData != defaultFloat) {
-                            prefs.setFloat(prefKey, floatData);
-                        }
-                    }
+                    loadOrValidateFloat(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info, context, prefKey);
                     break;
                 case PreferenceReader.TYPE_STRING:
-                    String stringData = getString(jsonObject, jsonPropName);
-                    String[] allowedStringValues;
-                    switch (prefKeyOrPrefix) {
-                        case PREF_INPUT_TYPE_CLASS_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.type_class_values);
-                            break;
-                        case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.type_text_variation_values);
-                            break;
-                        case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.type_number_variation_values);
-                            break;
-                        case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.type_datetime_variation_values);
-                            break;
-                        case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.type_text_multi_line_flag_values);
-                            break;
-                        case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.type_text_cap_flag_values);
-                            break;
-                        case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.composing_text_behavior_values);
-                            break;
-                        case PREF_IME_OPTIONS_ACTION_PREFIX:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.ime_options_action_values);
-                            break;
-                        case PREF_THEME:
-                            allowedStringValues = context.getResources().getStringArray(
-                                    R.array.theme_values);
-                            break;
-                        default:
-                            allowedStringValues = null;
-                    }
-                    if (allowedStringValues != null
-                            && !ArrayUtils.contains(allowedStringValues, stringData)
-                            && !TextUtils.equals(stringData,
-                            PreferenceReader.getPrefDefaultString(prefKeyOrPrefix))) {
-                        Log.e(TAG, fullPath + " has an invalid value: " + stringData);
-                        if (info != null) {
-                            info.mWarnings.add(context.getString(R.string.invalid_value,
-                                    fullPath, stringData));
-                        }
-                        break;
-                    }
-                    if (prefKey != null) {
-                        String defaultString =
-                                PreferenceReader.getPrefDefaultString(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !TextUtils.equals(stringData, defaultString)) {
-                            prefs.setString(prefKey, stringData);
-                        }
-                    }
-                    if (namesMap != null) {
-                        switch (prefKeyOrPrefix) {
-                            case PREF_TEST_GROUP_NAME_PREFIX:
-                                namesMap.put(prefKeyOrPrefix, stringData);
-                        }
-                    }
+                    loadOrValidateString(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info, context, prefKey, namesMap);
                     break;
                 case PreferenceReader.TYPE_SPANNED:
-                    Spanned spannedData = getSpanned(jsonObject, jsonPropName);
-                    if (prefKey != null) {
-                        Spanned defaultSpanned =
-                                PreferenceReader.getPrefDefaultSpanned(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !definitelyEqual(spannedData, defaultSpanned)) {
-                            prefs.setSpanned(prefKey, spannedData);
-                        }
-                    }
+                    loadOrValidateSpanned(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey);
                     break;
                 case PreferenceReader.TYPE_CHAR_SEQUENCE:
-                    CharSequence charSequenceData;
-                    if (jsonObject.isNull(jsonPropName)) {
-                        charSequenceData = null;
-                    } else if (jsonObject.get(jsonPropName) instanceof String) {
-                        charSequenceData = jsonObject.getString(jsonPropName);
-                    } else {
-                        charSequenceData = getSpanned(jsonObject, jsonPropName);
-                    }
-                    if (prefKey != null) {
-                        CharSequence defaultCharSequence =
-                                PreferenceReader.getPrefDefaultCharSequence(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !definitelyEqual(charSequenceData, defaultCharSequence)) {
-                            prefs.setCharSequence(prefKey, charSequenceData);
-                        }
-                    }
-                    if (namesMap != null) {
-                        switch (prefKeyOrPrefix) {
-                            case PREF_IME_LABEL_TEXT_PREFIX:
-                            case PREF_IME_DEFAULT_TEXT_PREFIX:
-                            case PREF_IME_HINT_TEXT_PREFIX:
-                                namesMap.put(prefKeyOrPrefix, charSequenceData == null
-                                        ? null
-                                        : charSequenceData.toString());
-                        }
-                    }
+                    loadOrValidateCharSequence(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey, namesMap);
                     break;
                 case PreferenceReader.TYPE_INT_ARRAY:
-                    int[] intArrayData = getIntArray(jsonObject, jsonPropName);
-                    if (prefKey != null) {
-                        int[] defaultIntArray =
-                                PreferenceReader.getPrefDefaultIntArray(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !Arrays.equals(intArrayData, defaultIntArray)) {
-                            prefs.setIntArray(prefKey, intArrayData);
-                        }
-                    }
+                    loadOrValidateIntArray(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey);
                     break;
                 case PreferenceReader.TYPE_STRING_ARRAY:
-                    String[] stringArrayData = getStringArray(jsonObject, jsonPropName);
-                    if (prefKey != null) {
-                        String[] defaultStringArray =
-                                PreferenceReader.getPrefDefaultStringArray(prefKeyOrPrefix);
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !Arrays.equals(stringArrayData, defaultStringArray)) {
-                            prefs.setStringArray(prefKey, stringArrayData);
-                        }
-                    }
+                    loadOrValidateStringArray(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey);
                     break;
                 case PreferenceReader.TYPE_INT_RANGE:
-                    int[] rangeArray = getIntArray(jsonObject, jsonPropName);
-                    if (rangeArray != null && rangeArray.length != 2) {
-                        Log.e(TAG, fullPath + " doesn't have exactly 2 values: "
-                                + Arrays.toString(rangeArray));
-                        if (info != null) {
-                            info.mWarnings.add(context.getString(R.string.invalid_data, fullPath));
-                        }
-                        break;
-                    }
-                    if (prefKeyOrPrefix.equals(PREF_RESTRICT_RANGE_PREFIX)) {
-                        IntRange range = rangeArray == null
-                                ? null
-                                : new IntRange(rangeArray[0], rangeArray[1]);
-                        if (!CodepointRangeDialogPreference.isValidRange(range)) {
-                            Log.e(TAG, fullPath + " contains an invalid codepoint range: "
-                                    + range);
-                            if (info != null) {
-                                info.mWarnings.add(
-                                        context.getString(R.string.invalid_data, fullPath));
-                            }
-                            break;
-                        }
-                        if (prefKey != null) {
-                            CodepointRangeDialogPreference.DataManager codepointRangeDialogDataManager =
-                                    new CodepointRangeDialogPreference.DataManager(
-                                            prefs, prefKey);
-                            IntRange defaultIntRange =
-                                    codepointRangeDialogDataManager.readDefaultValue();
-                            if (IMPORT_DEFAULT_PREFS_VALUES
-                                    || !Objects.equals(range, defaultIntRange)) {
-                                codepointRangeDialogDataManager.writeValue(range);
-                            }
-                        }
-                    } else {
-                        Log.e(TAG, prefKey + " doesn't have handling to be imported");
-                    }
+                    loadOrValidateIntRange(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info, context, prefKey);
                     break;
                 case PreferenceReader.TYPE_LOCALE_ARRAY:
-                    //TODO: (EW) possibly could be more generic (or at least decoupled from the
-                    // specific preference)
-                    String[] localStringArray = getStringArray(jsonObject, jsonPropName);
-                    int localeCount = localStringArray == null ? 0 : localStringArray.length;
-                    List<Locale> localeList = new ArrayList<>();
-                    for (int i = 0; i < localeCount; i++) {
-                        if (!LocaleEntryListPreference.isValidLocale(localStringArray[i])) {
-                            Log.e(TAG, fullPath + "[" + i + "] doesn't have a valid locale string: "
-                                    + localStringArray[i]);
-                            if (info != null) {
-                                info.mWarnings.add(context.getString(R.string.invalid_locale,
-                                        fullPath + "[" + i + "]", localStringArray[i]));
-                            }
-                            continue;
-                        }
-                        localeList.add(LocaleEntryListPreference.constructLocaleFromString(
-                                localStringArray[i]));
-                    }
-                    if (prefKey != null) {
-                        LocaleEntryListPreference.DataManager localeEntryListDataManager =
-                                new LocaleEntryListPreference.DataManager(prefs,
-                                        prefKey);
-                        Locale[] defaultLocaleArray = localeEntryListDataManager.readDefaultValue();
-                        Locale[] localeArray = localeList.toArray(new Locale[0]);
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !Arrays.equals(localeArray, defaultLocaleArray)) {
-                            localeEntryListDataManager.writeValue(localeArray);
-                        }
-                    }
+                    loadOrValidateLocaleArray(jsonObject, jsonPropName, fullPath, info, context, prefKey);
                     break;
                 case PreferenceReader.TYPE_TEXT_LIST_STRING:
-                    //TODO: (EW) possibly could be more generic (or at least decoupled from the
-                    // specific preference)
-                    JSONObject textListStringJsonObject = jsonObject.getJSONObject(jsonPropName);
-                    String[] textListStringStringArray = getStringArray(textListStringJsonObject,
-                            TEXT_LIST_DATA_ARRAY_JSON_PROP);
-                    if (textListStringStringArray == null) {
-                        Log.e(TAG, fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP + " is null");
-                        if (info != null) {
-                            info.mWarnings.add(context.getString(R.string.null_data,
-                                    fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP));
-                        }
-                        break;
-                    }
-                    TextList<String> textListStringData = new TextList<>(
-                            textListStringStringArray,
-                            textListStringJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-                    if (prefKey != null) {
-                        TextListPreference.DataManager textListDataManager =
-                                new TextListPreference.DataManager(prefs, prefKey);
-                        TextList<String> defaultTextListString =
-                                textListDataManager.readDefaultValue();
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !Objects.equals(textListStringData, defaultTextListString)) {
-                            textListDataManager.writeValue(textListStringData);
-                        }
-                    }
+                    loadOrValidateTextListString(jsonObject, jsonPropName, fullPath, info, context, prefKey);
                     break;
                 case PreferenceReader.TYPE_TEXT_LIST_TRANSLATE_TEXT:
-                    //TODO: (EW) possibly could be more generic (or at least decoupled from the
-                    // specific preference)
-                    JSONObject textListTranslateTextJsonObject =
-                            jsonObject.getJSONObject(jsonPropName);
-                    JSONObject[] translateTextJsonObjects = getJsonObjectArray(
-                            textListTranslateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP);
-                    if (translateTextJsonObjects == null) {
-                        Log.e(TAG, fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP + " is null");
-                        if (info != null) {
-                            info.mWarnings.add(context.getString(R.string.null_data,
-                                    fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP));
-                        }
-                        break;
-                    }
-                    TranslateText[] translateTextArray =
-                            new TranslateText[translateTextJsonObjects.length];
-                    for (int i = 0; i < translateTextJsonObjects.length; i++) {
-                        translateTextArray[i] = new TranslateText(
-                                translateTextJsonObjects[i].getString(
-                                        TRANSLATE_TEXT_ORIGINAL_JSON_PROP),
-                                translateTextJsonObjects[i].getString(
-                                        TRANSLATE_TEXT_TRANSLATION_JSON_PROP));
-                    }
-                    TextList<TranslateText> textListTranslateTextData = new TextList<>(
-                            translateTextArray,
-                            textListTranslateTextJsonObject.getBoolean(
-                                    TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-                    if (prefKey != null) {
-                        TextTranslateListPreference.DataManager textTranslateListDataManager =
-                                new TextTranslateListPreference.DataManager(prefs, prefKey);
-                        TextList<TranslateText> defaultTextListTranslateText =
-                                textTranslateListDataManager.readDefaultValue();
-                        if (IMPORT_DEFAULT_PREFS_VALUES
-                                || !Objects.equals(textListTranslateTextData,
-                                        defaultTextListTranslateText)) {
-                            textTranslateListDataManager.writeValue(textListTranslateTextData);
-                        }
-                    }
+                    loadOrValidateTextListTranslateText(jsonObject, jsonPropName, fullPath, info, context, prefKey);
                     break;
                 case PreferenceReader.TYPE_UNKNOWN:
                 default:
@@ -1207,13 +937,452 @@ public abstract class JsonManager {
         return true;
     }
 
+    private static void loadOrValidateBoolean(JSONObject jsonObject, String jsonPropName,
+                                              String prefKeyOrPrefix, @Nullable String prefKey)
+            throws JSONException {
+        boolean value = jsonObject.getBoolean(jsonPropName);
+        if (prefKey != null) {
+            boolean defaultValue = PreferenceReader.getPrefDefaultBoolean(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || value != defaultValue) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setBoolean(prefKey, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateInt(JSONObject jsonObject, String jsonPropName,
+                                          String fullPath, String prefKeyOrPrefix,
+                                          @Nullable ImportFileInfo info, @NonNull Context context,
+                                          @Nullable String prefKey)
+            throws JSONException {
+        int value = jsonObject.getInt(jsonPropName);
+        int minValue;
+        int maxValue;
+        int stepValue;
+        switch (prefKeyOrPrefix) {
+            case PREF_MAX_LENGTH_PREFIX:
+                // non-negative
+                minValue = 0;
+                maxValue = Integer.MAX_VALUE;
+                stepValue = 1;
+                break;
+            case PREF_SHIFT_CODEPOINT_PREFIX:
+                minValue = context.getResources().getInteger(
+                        R.integer.config_shift_codepoint_min);
+                maxValue = context.getResources().getInteger(
+                        R.integer.config_shift_codepoint_max);
+                stepValue = context.getResources().getInteger(
+                        R.integer.config_shift_codepoint_step);
+                break;
+            case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
+                minValue = context.getResources().getInteger(
+                        R.integer.config_extract_monitor_text_limit_min);
+                maxValue = context.getResources().getInteger(
+                        R.integer.config_extract_monitor_text_limit_max);
+                stepValue = context.getResources().getInteger(
+                        R.integer.config_extract_monitor_text_limit_step);
+                break;
+            case PREF_LIMIT_RETURNED_TEXT_PREFIX:
+                minValue = context.getResources().getInteger(
+                        R.integer.config_returned_text_limit_min);
+                maxValue = context.getResources().getInteger(
+                        R.integer.config_returned_text_limit_max);
+                stepValue = context.getResources().getInteger(
+                        R.integer.config_returned_text_limit_step);
+                break;
+            case PREF_UPDATE_DELAY_PREFIX:
+                minValue = context.getResources().getInteger(
+                        R.integer.config_update_delay_min);
+                maxValue = context.getResources().getInteger(
+                        R.integer.config_update_delay_max);
+                stepValue = context.getResources().getInteger(
+                        R.integer.config_update_delay_step);
+                break;
+            case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
+            case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
+            case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
+            case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
+            case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
+            case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
+            case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+                minValue = context.getResources().getInteger(
+                        R.integer.config_inputconnection_method_delay_min);
+                maxValue = context.getResources().getInteger(
+                        R.integer.config_inputconnection_method_delay_max);
+                stepValue = context.getResources().getInteger(
+                        R.integer.config_inputconnection_method_delay_step);
+                break;
+            default:
+                minValue = Integer.MIN_VALUE;
+                maxValue = Integer.MAX_VALUE;
+                stepValue = 1;
+        }
+        int constrainedIntData = constrain(value, minValue, maxValue, stepValue);
+        if (constrainedIntData != value
+                && value != PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix)) {
+            if (value < minValue || value > maxValue) {
+                Log.e(TAG, fullPath + " ( " + value + ") isn't in the range "
+                        + minValue + " - " + maxValue);
+                if (info != null) {
+                    info.mWarnings.add(context.getString(R.string.value_not_in_range,
+                            fullPath, value, minValue, maxValue));
+                }
+                return;
+            } else {
+                Log.w(TAG, fullPath + " has an int ( " + value
+                        + ") that doesn't conform to the constraints: min=" + minValue
+                        + ", max=" + maxValue + ", step=" + stepValue);
+                if (info != null) {
+                    info.mWarnings.add(context.getString(R.string.invalid_step_value,
+                            fullPath));
+                }
+                // it should be relatively safe to just shift to the nearest step
+                value = constrainedIntData;
+            }
+        }
+        if (prefKey != null) {
+            int defaultValue = PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || value != defaultValue) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setInt(prefKey, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateLong(JSONObject jsonObject, String jsonPropName,
+                                           String prefKeyOrPrefix, @Nullable String prefKey)
+            throws JSONException {
+        long value = jsonObject.getLong(jsonPropName);
+        if (prefKey != null) {
+            long defaultValue = PreferenceReader.getPrefDefaultLong(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || value != defaultValue) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setLong(prefKey, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateFloat(JSONObject jsonObject, String jsonPropName,
+                                            String fullPath, String prefKeyOrPrefix,
+                                            @Nullable ImportFileInfo info, @NonNull Context context,
+                                            @Nullable String prefKey)
+            throws JSONException {
+        double value = jsonObject.getDouble(jsonPropName);
+        if (value > Float.MAX_VALUE || value < Float.MIN_VALUE) {
+            Log.e(TAG, value + " isn't a valid float for " + fullPath);
+            if (info != null) {
+                info.mWarnings.add(
+                        context.getString(R.string.invalid_float_data, fullPath));
+            }
+            return;
+        }
+        if (prefKey != null) {
+            float defaultValue = PreferenceReader.getPrefDefaultFloat(prefKeyOrPrefix);
+            float floatValue = (float) value;
+            if (IMPORT_DEFAULT_PREFS_VALUES || floatValue != defaultValue) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setFloat(prefKey, floatValue);
+            }
+        }
+    }
+
+    private static void loadOrValidateString(JSONObject jsonObject, String jsonPropName,
+                                             String fullPath, String prefKeyOrPrefix,
+                                             @Nullable ImportFileInfo info,
+                                             @NonNull Context context, @Nullable String prefKey,
+                                             @Nullable Map<String, String> namesMap)
+            throws JSONException {
+        String value = getString(jsonObject, jsonPropName);
+        String[] allowedStringValues;
+        switch (prefKeyOrPrefix) {
+            case PREF_INPUT_TYPE_CLASS_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.type_class_values);
+                break;
+            case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.type_text_variation_values);
+                break;
+            case PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.type_number_variation_values);
+                break;
+            case PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.type_datetime_variation_values);
+                break;
+            case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.type_text_multi_line_flag_values);
+                break;
+            case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.type_text_cap_flag_values);
+                break;
+            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.composing_text_behavior_values);
+                break;
+            case PREF_IME_OPTIONS_ACTION_PREFIX:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.ime_options_action_values);
+                break;
+            case PREF_THEME:
+                allowedStringValues = context.getResources().getStringArray(
+                        R.array.theme_values);
+                break;
+            default:
+                allowedStringValues = null;
+        }
+        if (allowedStringValues != null
+                && !ArrayUtils.contains(allowedStringValues, value)
+                && !TextUtils.equals(value,
+                PreferenceReader.getPrefDefaultString(prefKeyOrPrefix))) {
+            Log.e(TAG, fullPath + " has an invalid value: " + value);
+            if (info != null) {
+                info.mWarnings.add(context.getString(R.string.invalid_value,
+                        fullPath, value));
+            }
+            return;
+        }
+        if (prefKey != null) {
+            String defaultValue = PreferenceReader.getPrefDefaultString(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || !TextUtils.equals(value, defaultValue)) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setString(prefKey, value);
+            }
+        }
+        if (namesMap != null) {
+            switch (prefKeyOrPrefix) {
+                case PREF_TEST_GROUP_NAME_PREFIX:
+                    namesMap.put(prefKeyOrPrefix, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateSpanned(JSONObject jsonObject, String jsonPropName,
+                                              String prefKeyOrPrefix, @Nullable String prefKey)
+            throws JSONException {
+        Spanned value = getSpanned(jsonObject, jsonPropName);
+        if (prefKey != null) {
+            Spanned defaultValue = PreferenceReader.getPrefDefaultSpanned(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || !definitelyEqual(value, defaultValue)) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setSpanned(prefKey, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateCharSequence(JSONObject jsonObject, String jsonPropName,
+                                                   String prefKeyOrPrefix, @Nullable String prefKey,
+                                                   @Nullable Map<String, String> namesMap)
+            throws JSONException {
+        CharSequence value;
+        if (jsonObject.isNull(jsonPropName)) {
+            value = null;
+        } else if (jsonObject.get(jsonPropName) instanceof String) {
+            value = jsonObject.getString(jsonPropName);
+        } else {
+            value = getSpanned(jsonObject, jsonPropName);
+        }
+        if (prefKey != null) {
+            CharSequence defaultValue =
+                    PreferenceReader.getPrefDefaultCharSequence(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || !definitelyEqual(value, defaultValue)) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setCharSequence(prefKey, value);
+            }
+        }
+        if (namesMap != null) {
+            switch (prefKeyOrPrefix) {
+                case PREF_IME_LABEL_TEXT_PREFIX:
+                case PREF_IME_DEFAULT_TEXT_PREFIX:
+                case PREF_IME_HINT_TEXT_PREFIX:
+                    namesMap.put(prefKeyOrPrefix, value == null ? null : value.toString());
+            }
+        }
+    }
+
+    private static void loadOrValidateIntArray(JSONObject jsonObject, String jsonPropName,
+                                               String prefKeyOrPrefix, @Nullable String prefKey)
+            throws JSONException {
+        int[] value = getIntArray(jsonObject, jsonPropName);
+        if (prefKey != null) {
+            int[] defaultValue = PreferenceReader.getPrefDefaultIntArray(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || !Arrays.equals(value, defaultValue)) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setIntArray(prefKey, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateStringArray(JSONObject jsonObject, String jsonPropName,
+                                                  String prefKeyOrPrefix,
+                                                  @Nullable String prefKey) throws JSONException {
+        String[] value = getStringArray(jsonObject, jsonPropName);
+        if (prefKey != null) {
+            String[] defaultValue = PreferenceReader.getPrefDefaultStringArray(prefKeyOrPrefix);
+            if (IMPORT_DEFAULT_PREFS_VALUES || !Arrays.equals(value, defaultValue)) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                prefs.setStringArray(prefKey, value);
+            }
+        }
+    }
+
+    private static void loadOrValidateIntRange(JSONObject jsonObject, String jsonPropName,
+                                               String fullPath, String prefKeyOrPrefix,
+                                               @Nullable ImportFileInfo info,
+                                               @NonNull Context context,
+                                               @Nullable String prefKey)
+            throws JSONException {
+        int[] value = getIntArray(jsonObject, jsonPropName);
+        if (value != null && value.length != 2) {
+            Log.e(TAG, fullPath + " doesn't have exactly 2 values: " + Arrays.toString(value));
+            if (info != null) {
+                info.mWarnings.add(context.getString(R.string.invalid_data, fullPath));
+            }
+            return;
+        }
+        if (prefKeyOrPrefix.equals(PREF_RESTRICT_RANGE_PREFIX)) {
+            IntRange range = value == null
+                    ? null
+                    : new IntRange(value[0], value[1]);
+            if (!CodepointRangeDialogPreference.isValidRange(range)) {
+                Log.e(TAG, fullPath + " contains an invalid codepoint range: " + range);
+                if (info != null) {
+                    info.mWarnings.add(
+                            context.getString(R.string.invalid_data, fullPath));
+                }
+                return;
+            }
+            if (prefKey != null) {
+                SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+                CodepointRangeDialogPreference.DataManager codepointRangeDialogDataManager =
+                        new CodepointRangeDialogPreference.DataManager(prefs, prefKey);
+                IntRange defaultValue = codepointRangeDialogDataManager.readDefaultValue();
+                if (IMPORT_DEFAULT_PREFS_VALUES || !Objects.equals(range, defaultValue)) {
+                    codepointRangeDialogDataManager.writeValue(range);
+                }
+            }
+        } else {
+            Log.e(TAG, prefKey + " doesn't have handling to be imported");
+        }
+    }
+
+    private static void loadOrValidateLocaleArray(JSONObject jsonObject, String jsonPropName,
+                                                  String fullPath, @Nullable ImportFileInfo info,
+                                                  @NonNull Context context,
+                                                  @Nullable String prefKey)
+            throws JSONException {
+        //TODO: (EW) possibly could be more generic (or at least decoupled from the
+        // specific preference)
+        String[] localStrings = getStringArray(jsonObject, jsonPropName);
+        int localeCount = localStrings == null ? 0 : localStrings.length;
+        List<Locale> localeList = new ArrayList<>();
+        for (int i = 0; i < localeCount; i++) {
+            if (!LocaleEntryListPreference.isValidLocale(localStrings[i])) {
+                Log.e(TAG, fullPath + "[" + i + "] doesn't have a valid locale string: "
+                        + localStrings[i]);
+                if (info != null) {
+                    info.mWarnings.add(context.getString(R.string.invalid_locale,
+                            fullPath + "[" + i + "]", localStrings[i]));
+                }
+                continue;
+            }
+            localeList.add(LocaleEntryListPreference.constructLocaleFromString(localStrings[i]));
+        }
+        if (prefKey != null) {
+            SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+            LocaleEntryListPreference.DataManager localeEntryListDataManager =
+                    new LocaleEntryListPreference.DataManager(prefs, prefKey);
+            Locale[] defaultValue = localeEntryListDataManager.readDefaultValue();
+            Locale[] localeArray = localeList.toArray(new Locale[0]);
+            if (IMPORT_DEFAULT_PREFS_VALUES || !Arrays.equals(localeArray, defaultValue)) {
+                localeEntryListDataManager.writeValue(localeArray);
+            }
+        }
+    }
+
+    private static void loadOrValidateTextListString(JSONObject jsonObject, String jsonPropName,
+                                                     String fullPath, @Nullable ImportFileInfo info,
+                                                     @NonNull Context context,
+                                                     @Nullable String prefKey)
+            throws JSONException {
+        //TODO: (EW) possibly could be more generic (or at least decoupled from the
+        // specific preference)
+        JSONObject textListJsonObject = jsonObject.getJSONObject(jsonPropName);
+        String[] stringArray = getStringArray(textListJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP);
+        if (stringArray == null) {
+            Log.e(TAG, fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP + " is null");
+            if (info != null) {
+                info.mWarnings.add(context.getString(R.string.null_data,
+                        fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP));
+            }
+            return;
+        }
+        TextList<String> textList = new TextList<>(
+                stringArray,
+                textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
+        if (prefKey != null) {
+            SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+            TextListPreference.DataManager textListDataManager =
+                    new TextListPreference.DataManager(prefs, prefKey);
+            TextList<String> defaultValue = textListDataManager.readDefaultValue();
+            if (IMPORT_DEFAULT_PREFS_VALUES || !Objects.equals(textList, defaultValue)) {
+                textListDataManager.writeValue(textList);
+            }
+        }
+
+    }
+
+    private static void loadOrValidateTextListTranslateText(JSONObject jsonObject,
+                                                            String jsonPropName, String fullPath,
+                                                            @Nullable ImportFileInfo info,
+                                                            @NonNull Context context,
+                                                            @Nullable String prefKey)
+            throws JSONException {
+        //TODO: (EW) possibly could be more generic (or at least decoupled from the
+        // specific preference)
+        JSONObject textListJsonObject = jsonObject.getJSONObject(jsonPropName);
+        JSONObject[] translateTextJsonObjects = getJsonObjectArray(textListJsonObject,
+                TEXT_LIST_DATA_ARRAY_JSON_PROP);
+        if (translateTextJsonObjects == null) {
+            Log.e(TAG, fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP + " is null");
+            if (info != null) {
+                info.mWarnings.add(context.getString(R.string.null_data,
+                        fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP));
+            }
+            return;
+        }
+        TranslateText[] translateTextArray = new TranslateText[translateTextJsonObjects.length];
+        for (int i = 0; i < translateTextJsonObjects.length; i++) {
+            translateTextArray[i] = new TranslateText(
+                    translateTextJsonObjects[i].getString(TRANSLATE_TEXT_ORIGINAL_JSON_PROP),
+                    translateTextJsonObjects[i].getString(TRANSLATE_TEXT_TRANSLATION_JSON_PROP));
+        }
+        TextList<TranslateText> textListTranslateTextData = new TextList<>(
+                translateTextArray,
+                textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
+        if (prefKey != null) {
+            SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
+            TextTranslateListPreference.DataManager textTranslateListDataManager =
+                    new TextTranslateListPreference.DataManager(prefs, prefKey);
+            TextList<TranslateText> defaultTextListTranslateText =
+                    textTranslateListDataManager.readDefaultValue();
+            if (IMPORT_DEFAULT_PREFS_VALUES
+                    || !Objects.equals(textListTranslateTextData, defaultTextListTranslateText)) {
+                textTranslateListDataManager.writeValue(textListTranslateTextData);
+            }
+        }
+    }
+
     private static void logJsonException(JSONException e, String path,
                                          @Nullable ImportFileInfo info, @NonNull Context context) {
         String message = e.getMessage();
         Log.e(TAG, path + ": " + message);
         if (info != null) {
             if (message != null && message.matches(
-                    "Value .* at \\w+ of type [\\w\\.]+ cannot be converted to [\\w\\.]+")) {
+                    "Value .* at \\w+ of type [\\w.]+ cannot be converted to [\\w.]+")) {
                 info.mWarnings.add(context.getString(R.string.invalid_data_type, path));
             } else {
                 info.mWarnings.add(context.getString(R.string.failed_to_parse_data, path));
