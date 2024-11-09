@@ -16,8 +16,6 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
-import static com.wittmane.testingedittext.settings.PreferenceReader.DEFAULT_RESTRICT_SPECIFIC;
-
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -64,6 +62,8 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Data
     protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
         return new DataManager(prefs, key);
     }
+
+    public static final String[] DEFAULT_RESTRICT_SPECIFIC = new String[0];
 
     public static class DataManager extends TextListDataManager<String> {
         public DataManager(SharedPreferenceManager prefs, String key) {

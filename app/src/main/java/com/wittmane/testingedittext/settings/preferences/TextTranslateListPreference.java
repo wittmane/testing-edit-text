@@ -16,8 +16,6 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
-import static com.wittmane.testingedittext.settings.PreferenceReader.DEFAULT_TRANSLATE_SPECIFIC;
-
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -88,6 +86,8 @@ public class TextTranslateListPreference
     protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
         return new DataManager(prefs, key);
     }
+
+    public static final TranslateText[] DEFAULT_TRANSLATE_SPECIFIC = new TranslateText[0];
 
     public static class DataManager extends TextListDataManager<TranslateText> {
         public DataManager(SharedPreferenceManager prefs, String key) {

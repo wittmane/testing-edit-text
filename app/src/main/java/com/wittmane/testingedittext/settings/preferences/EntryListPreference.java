@@ -44,6 +44,7 @@ import android.widget.TextView.OnEditorActionListener;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.DataManager;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.preferences.EntryListPreference.DataManagerBase;
@@ -348,7 +349,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
     protected abstract TDataManager createDataManager(SharedPreferenceManager prefs, String key);
 
-    protected static abstract class DataManagerBase<T> {
+    public static abstract class DataManagerBase<T> implements DataManager<T> {
         private final SharedPreferenceManager mPrefs;
         protected String mKey;
 
@@ -359,6 +360,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
         protected abstract int getExtraDataLength();
 
+        @Override
         @NonNull
         public T readValue() {
             String[] pieces = mPrefs != null ? mPrefs.getStringArray(mKey, null) : null;
@@ -383,9 +385,11 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
         protected abstract T buildFullData(String[] rowData, String[] extraData);
 
+        @Override
         @NonNull
         public abstract T readDefaultValue();
 
+        @Override
         public void writeValue(@NonNull T fullData) {
             String[] rowData = flattenRowData(fullData);
             String[] extraData = flattenExtraData(fullData);

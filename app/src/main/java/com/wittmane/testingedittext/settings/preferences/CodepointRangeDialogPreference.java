@@ -16,8 +16,6 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
-import static com.wittmane.testingedittext.settings.PreferenceReader.DEFAULT_RESTRICT_RANGE;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -683,7 +681,10 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         mDataManager.mKey = key;
     }
 
-    public static class DataManager {
+    public static final IntRange DEFAULT_RESTRICT_RANGE = null;
+
+    public static class DataManager
+            implements com.wittmane.testingedittext.settings.DataManager<IntRange> {
         private final SharedPreferenceManager mPrefs;
         private String mKey;
 
@@ -693,6 +694,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         }
 
         @Nullable
+        @Override
         public IntRange readValue() {
             String rawValue = mPrefs != null ? mPrefs.getString(mKey, null) : null;
             if (TextUtils.isEmpty(rawValue)) {
@@ -713,10 +715,12 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
         }
 
         @Nullable
+        @Override
         public IntRange readDefaultValue() {
             return DEFAULT_RESTRICT_RANGE;
         }
 
+        @Override
         public void writeValue(final @Nullable IntRange value) {
             mPrefs.setString(mKey,
                     value == null ? null : value.getStart() + "-" + value.getEnd());

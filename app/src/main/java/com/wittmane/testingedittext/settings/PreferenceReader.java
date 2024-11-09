@@ -30,6 +30,9 @@ import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.function.Function;
+import com.wittmane.testingedittext.function.Predicate;
+import com.wittmane.testingedittext.function.TriFunction;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.settings.preferences.TextListPreference;
@@ -162,10 +165,6 @@ public class PreferenceReader {
     //#endregion
 
     //#region defaults
-    public static final String[] DEFAULT_RESTRICT_SPECIFIC = new String[0];
-    public static final IntRange DEFAULT_RESTRICT_RANGE = null;
-    public static final TranslateText[] DEFAULT_TRANSLATE_SPECIFIC = new TranslateText[0];
-
     public static boolean getPrefDefaultBoolean(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
@@ -261,7 +260,7 @@ public class PreferenceReader {
         }
     }
 
-    public static long getPrefDefaultFloat(String keyOrPrefix) {
+    public static float getPrefDefaultFloat(String keyOrPrefix) {
         switch (keyOrPrefix) {
             default:
                 Log.e(TAG, "float default missing for " + keyOrPrefix
@@ -324,7 +323,6 @@ public class PreferenceReader {
     public static int[] getPrefDefaultIntArray(String keyOrPrefix) {
         switch (keyOrPrefix) {
             case PREF_TEST_GROUP_IDS:
-                return new int[0];
             case PREF_TEST_FIELD_IDS_PREFIX:
                 return new int[0];
             default:
@@ -366,36 +364,119 @@ public class PreferenceReader {
         return mPrefs != null && mPrefs.contains(prefKey);
     }
 
+    public static class PrefInfo<T> {
+        public T value;
+        public boolean valueIsDefault;
+    }
+
     //#region generic read methods
     //#region core read methods
-    private boolean readBoolean(String prefKey, String prefKeyOrPrefix) {
-        boolean defaultValue = getPrefDefaultBoolean(prefKeyOrPrefix);
-        return mPrefs != null ? mPrefs.getBoolean(prefKey, defaultValue) : defaultValue;
+    private <T> PrefInfo<T> readWithInfo(String prefKey, String prefKeyOrPrefix,
+                                         Function<String, T> getDefault,
+                                         TriFunction<SharedPreferenceManager,String,T,T> getValue) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, getDefault, getValue, null);
+    }
+
+    private <T> PrefInfo<T> readWithInfo(String prefKey, String prefKeyOrPrefix,
+                                         Function<String, T> getDefault,
+                                         TriFunction<SharedPreferenceManager,String,T,T> getValue,
+                                         Predicate<String> allowNull) {
+        T defaultValue = getDefault.apply(prefKeyOrPrefix);
+        PrefInfo<T> info = new PrefInfo<>();
+        if (mPrefs == null || !mPrefs.contains(prefKey)) {
+            info.value = defaultValue;
+            info.valueIsDefault = true;
+        } else {
+            info.value = getValue.apply(mPrefs, prefKey, defaultValue);
+            if (info.value == null && allowNull != null && !allowNull.test(prefKeyOrPrefix)) {
+                Log.e(TAG, "Preference " + prefKey + " has a value of null.");
+                info.value = defaultValue;
+            }
+            info.valueIsDefault = SharedPreferenceManager.equals(info.value, defaultValue);
+        }
+        return info;
+    }
+
+    public PrefInfo<Boolean> readBooleanWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultBoolean,
+                SharedPreferenceManager::getBoolean);
+    }
+
+    public boolean readBoolean(String prefKey, String prefKeyOrPrefix) {
+        return readBooleanWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<Integer> readIntWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultInt,
+                SharedPreferenceManager::getInt);
     }
 
     public int readInt(String prefKey, String prefKeyOrPrefix) {
-        int defaultValue = getPrefDefaultInt(prefKeyOrPrefix);
-        return mPrefs != null ? mPrefs.getInt(prefKey, defaultValue) : defaultValue;
+        return readIntWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<Long> readLongWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultLong,
+                SharedPreferenceManager::getLong);
+    }
+
+    public long readLong(String prefKey, String prefKeyOrPrefix) {
+        return readLongWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<Float> readFloatWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultFloat,
+                SharedPreferenceManager::getFloat);
+    }
+
+    public float readFloat(String prefKey, String prefKeyOrPrefix) {
+        return readFloatWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<String> readStringWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultString,
+                SharedPreferenceManager::getString);
     }
 
     public String readString(String prefKey, String prefKeyOrPrefix) {
-        String defaultValue = getPrefDefaultString(prefKeyOrPrefix);
-        return mPrefs != null ? mPrefs.getString(prefKey, defaultValue) : defaultValue;
+        return readStringWithInfo(prefKey, prefKeyOrPrefix).value;
     }
 
-    private CharSequence readCharSequence(String prefKey, String prefKeyOrPrefix) {
-        CharSequence defaultValue = getPrefDefaultCharSequence(prefKeyOrPrefix);
-        return mPrefs != null ? mPrefs.getCharSequence(prefKey, defaultValue) : defaultValue;
+    public PrefInfo<Spanned> readSpannedWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultSpanned,
+                SharedPreferenceManager::getSpanned);
     }
 
-    private int[] readIntArray(String prefKey, String prefKeyOrPrefix) {
-        int[] defaultValue = getPrefDefaultIntArray(prefKeyOrPrefix);
-        int[] value = mPrefs != null ? mPrefs.getIntArray(prefKey, defaultValue) : defaultValue;
-        if (value == null && !prefAllowsNullIntArray(prefKeyOrPrefix)) {
-            Log.e(TAG, "Preference " + prefKey + " has a value of null.");
-            return new int[0];
-        }
-        return value;
+    public Spanned readSpanned(String prefKey, String prefKeyOrPrefix) {
+        return readSpannedWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<CharSequence> readCharSequenceWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultCharSequence,
+                SharedPreferenceManager::getCharSequence);
+    }
+
+    public CharSequence readCharSequence(String prefKey, String prefKeyOrPrefix) {
+        return readCharSequenceWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<int[]> readIntArrayWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultIntArray,
+                SharedPreferenceManager::getIntArray,
+                PreferenceReader::prefAllowsNullIntArray);
+    }
+
+    public int[] readIntArray(String prefKey, String prefKeyOrPrefix) {
+        return readIntArrayWithInfo(prefKey, prefKeyOrPrefix).value;
+    }
+
+    public PrefInfo<String[]> readStringArrayWithInfo(String prefKey, String prefKeyOrPrefix) {
+        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultStringArray,
+                SharedPreferenceManager::getStringArray);
+    }
+
+    public String[] readStringArray(String prefKey, String prefKeyOrPrefix) {
+        return readStringArrayWithInfo(prefKey, prefKeyOrPrefix).value;
     }
     //#endregion
 

@@ -822,4 +822,35 @@ public class SharedPreferenceManager implements SharedPreferences {
         }
         return spannedText;
     }
+
+    /**
+     * Check if two objects are equal. Some objects don't implement {@link Object#equals}
+     * reasonably, which this is meant to resolve (at least as far as what
+     * {@link SharedPreferenceManager} actually loads/saves for the object).
+     * @param a An object to be tested for equality.
+     * @param b An object to be tested for equality.
+     * @return Whether the objects are equal.
+     * @param <T> The type of the objects.
+     */
+    public static <T> boolean equals(T a, T b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (a instanceof Spanned && b instanceof Spanned) {
+            // since Spanned objects generally don't compare well (see
+            // https://stackoverflow.com/a/46403431), we'll check if what we save in a preference
+            // for each matches
+            return equals(
+                    getSpannedInfo((Spanned) a),
+                    getSpannedInfo((Spanned) b));
+        } else if (a instanceof int[] && b instanceof int[]) {
+            return Arrays.equals((int[]) a, (int[]) b);
+        } else if (a instanceof Object[] && b instanceof Object[]) {
+            return Arrays.equals((Object[]) a, (Object[]) b);
+        }
+        return a.equals(b);
+    }
 }
