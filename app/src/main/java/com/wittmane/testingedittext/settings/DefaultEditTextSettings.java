@@ -60,7 +60,8 @@ public class DefaultEditTextSettings extends TestFieldCustomEditorSettings {
         if (mLastInputType != inputType) {
             mLastInputType = inputType;
 
-            mPreferenceReader.loadTestFieldSpecificSetting(PREF_INPUT_TYPE_CLASS_PREFIX,
+            mPreferenceReader.loadTestFieldSpecificSetting(
+                    PreferenceKey.createFieldKey(PREF_INPUT_TYPE_CLASS_PREFIX, mTestField.mId),
                     mTestField);
         }
         return mTestField;

@@ -20,6 +20,8 @@ import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEX
 import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMPOSE;
 import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
 import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_IGNORE;
+import static com.wittmane.testingedittext.settings.PreferenceKey.createFieldDefaultKey;
+import static com.wittmane.testingedittext.settings.PreferenceKey.createFieldKey;
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Build;
@@ -360,6 +362,10 @@ public class PreferenceReader {
         mPrefs = prefs;
     }
 
+    public boolean contains(PreferenceKey prefKey) {
+        return prefKey != null && contains(prefKey.toString());
+    }
+
     public boolean contains(String prefKey) {
         return mPrefs != null && mPrefs.contains(prefKey);
     }
@@ -371,24 +377,24 @@ public class PreferenceReader {
 
     //#region generic read methods
     //#region core read methods
-    private <T> PrefInfo<T> readWithInfo(String prefKey, String prefKeyOrPrefix,
+    private <T> PrefInfo<T> readWithInfo(PreferenceKey prefKey,
                                          Function<String, T> getDefault,
                                          TriFunction<SharedPreferenceManager,String,T,T> getValue) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, getDefault, getValue, null);
+        return readWithInfo(prefKey, getDefault, getValue, null);
     }
 
-    private <T> PrefInfo<T> readWithInfo(String prefKey, String prefKeyOrPrefix,
+    private <T> PrefInfo<T> readWithInfo(PreferenceKey prefKey,
                                          Function<String, T> getDefault,
                                          TriFunction<SharedPreferenceManager,String,T,T> getValue,
                                          Predicate<String> allowNull) {
-        T defaultValue = getDefault.apply(prefKeyOrPrefix);
+        T defaultValue = getDefault.apply(prefKey == null ? null : prefKey.getStem());
         PrefInfo<T> info = new PrefInfo<>();
-        if (mPrefs == null || !mPrefs.contains(prefKey)) {
+        if (!contains(prefKey)) {
             info.value = defaultValue;
             info.valueIsDefault = true;
         } else {
-            info.value = getValue.apply(mPrefs, prefKey, defaultValue);
-            if (info.value == null && allowNull != null && !allowNull.test(prefKeyOrPrefix)) {
+            info.value = getValue.apply(mPrefs, prefKey.toString(), defaultValue);
+            if (info.value == null && allowNull != null && !allowNull.test(prefKey.getStem())) {
                 Log.e(TAG, "Preference " + prefKey + " has a value of null.");
                 info.value = defaultValue;
             }
@@ -397,157 +403,106 @@ public class PreferenceReader {
         return info;
     }
 
-    public PrefInfo<Boolean> readBooleanWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultBoolean,
+    public PrefInfo<Boolean> readBooleanWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultBoolean,
                 SharedPreferenceManager::getBoolean);
     }
 
-    public boolean readBoolean(String prefKey, String prefKeyOrPrefix) {
-        return readBooleanWithInfo(prefKey, prefKeyOrPrefix).value;
+    public boolean readBoolean(PreferenceKey prefKey) {
+        return readBooleanWithInfo(prefKey).value;
     }
 
-    public PrefInfo<Integer> readIntWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultInt,
+    public PrefInfo<Integer> readIntWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultInt,
                 SharedPreferenceManager::getInt);
     }
 
-    public int readInt(String prefKey, String prefKeyOrPrefix) {
-        return readIntWithInfo(prefKey, prefKeyOrPrefix).value;
+    public int readInt(PreferenceKey prefKey) {
+        return readIntWithInfo(prefKey).value;
     }
 
-    public PrefInfo<Long> readLongWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultLong,
+    public PrefInfo<Long> readLongWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultLong,
                 SharedPreferenceManager::getLong);
     }
 
-    public long readLong(String prefKey, String prefKeyOrPrefix) {
-        return readLongWithInfo(prefKey, prefKeyOrPrefix).value;
+    public long readLong(PreferenceKey prefKey) {
+        return readLongWithInfo(prefKey).value;
     }
 
-    public PrefInfo<Float> readFloatWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultFloat,
+    public PrefInfo<Float> readFloatWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultFloat,
                 SharedPreferenceManager::getFloat);
     }
 
-    public float readFloat(String prefKey, String prefKeyOrPrefix) {
-        return readFloatWithInfo(prefKey, prefKeyOrPrefix).value;
+    public float readFloat(PreferenceKey prefKey) {
+        return readFloatWithInfo(prefKey).value;
     }
 
-    public PrefInfo<String> readStringWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultString,
+    public PrefInfo<String> readStringWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultString,
                 SharedPreferenceManager::getString);
     }
 
-    public String readString(String prefKey, String prefKeyOrPrefix) {
-        return readStringWithInfo(prefKey, prefKeyOrPrefix).value;
+    public String readString(PreferenceKey prefKey) {
+        return readStringWithInfo(prefKey).value;
     }
 
-    public PrefInfo<Spanned> readSpannedWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultSpanned,
+    public PrefInfo<Spanned> readSpannedWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultSpanned,
                 SharedPreferenceManager::getSpanned);
     }
 
-    public Spanned readSpanned(String prefKey, String prefKeyOrPrefix) {
-        return readSpannedWithInfo(prefKey, prefKeyOrPrefix).value;
+    public Spanned readSpanned(PreferenceKey prefKey) {
+        return readSpannedWithInfo(prefKey).value;
     }
 
-    public PrefInfo<CharSequence> readCharSequenceWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultCharSequence,
+    public PrefInfo<CharSequence> readCharSequenceWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultCharSequence,
                 SharedPreferenceManager::getCharSequence);
     }
 
-    public CharSequence readCharSequence(String prefKey, String prefKeyOrPrefix) {
-        return readCharSequenceWithInfo(prefKey, prefKeyOrPrefix).value;
+    public CharSequence readCharSequence(PreferenceKey prefKey) {
+        return readCharSequenceWithInfo(prefKey).value;
     }
 
-    public PrefInfo<int[]> readIntArrayWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultIntArray,
+    public PrefInfo<int[]> readIntArrayWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultIntArray,
                 SharedPreferenceManager::getIntArray,
                 PreferenceReader::prefAllowsNullIntArray);
     }
 
-    public int[] readIntArray(String prefKey, String prefKeyOrPrefix) {
-        return readIntArrayWithInfo(prefKey, prefKeyOrPrefix).value;
+    public int[] readIntArray(PreferenceKey prefKey) {
+        return readIntArrayWithInfo(prefKey).value;
     }
 
-    public PrefInfo<String[]> readStringArrayWithInfo(String prefKey, String prefKeyOrPrefix) {
-        return readWithInfo(prefKey, prefKeyOrPrefix, PreferenceReader::getPrefDefaultStringArray,
+    public PrefInfo<String[]> readStringArrayWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, PreferenceReader::getPrefDefaultStringArray,
                 SharedPreferenceManager::getStringArray);
     }
 
-    public String[] readStringArray(String prefKey, String prefKeyOrPrefix) {
-        return readStringArrayWithInfo(prefKey, prefKeyOrPrefix).value;
+    public String[] readStringArray(PreferenceKey prefKey) {
+        return readStringArrayWithInfo(prefKey).value;
     }
     //#endregion
-
-    //TODO: (EW) should these read* methods be private and only called internally and have helper
-    // methods to load blocks of data?
-
-    //#region base property read methods
-    public boolean readBoolean(String prefKey) {
-        return readBoolean(prefKey, prefKey);
-    }
-
-    public int readInt(String prefKey) {
-        return readInt(prefKey, prefKey);
-    }
-
-    public String readString(String prefKey) {
-        return readString(prefKey, prefKey);
-    }
-
-    public int[] readIntArray(String prefKey) {
-        return readIntArray(prefKey, prefKey);
-    }
-    //#endregion
-
-    //#region test group property read methods
-    public String readTestGroupString(int groupId, String prefKeyPrefix) {
-        return readString(prefKeyPrefix + GROUP_INFIX + groupId, prefKeyPrefix);
-    }
-
-    public int[] readTestGroupIntArray(int groupId, String prefKeyPrefix) {
-        return readIntArray(prefKeyPrefix + GROUP_INFIX + groupId, prefKeyPrefix);
-    }
-    //#endregion
-
-    //#region test field property read methods
-    public boolean readTestFieldBoolean(int fieldId, String prefKeyPrefix) {
-        return readBoolean(prefKeyPrefix + getSuffix(fieldId), prefKeyPrefix);
-    }
-
-    public int readTestFieldInt(int fieldId, String prefKeyPrefix) {
-        return readInt(prefKeyPrefix + getSuffix(fieldId), prefKeyPrefix);
-    }
-
-    public String readTestFieldString(int fieldId, String prefKeyPrefix) {
-        return readString(prefKeyPrefix + getSuffix(fieldId), prefKeyPrefix);
-    }
-
-    private CharSequence readTestFieldCharSequence(int fieldId, String prefKeyPrefix) {
-        return readCharSequence(prefKeyPrefix + getSuffix(fieldId), prefKeyPrefix);
-    }
-
 
     //TODO: (EW) consider decoupling these method from the specific preference class (maybe have
     // the preference classes call this class to read)
 
     //#region preference class specific methods
-    private static Locale[] readTestFieldTextLocales(final SharedPreferenceManager prefs,
-                                                     int fieldId) {
-        return (new LocaleEntryListPreference.DataManager(prefs,
-                PREF_TEXT_LOCALES_PREFIX + getSuffix(fieldId))).readValue();
+    private Locale[] readTextLocales(PreferenceKey prefKey) {
+        return (new LocaleEntryListPreference.DataManager(mPrefs,
+                prefKey == null ? null : prefKey.toString())).readValue();
     }
 
-    private static Locale[] readTestFieldImeHintLocales(final SharedPreferenceManager prefs,
-                                                        int fieldId) {
-        return (new LocaleEntryListPreference.DataManager(prefs,
-                PREF_IME_HINT_LOCALES_PREFIX + getSuffix(fieldId))).readValue();
+    private Locale[] readImeHintLocales(PreferenceKey prefKey) {
+        return (new LocaleEntryListPreference.DataManager(mPrefs,
+                prefKey == null ? null : prefKey.toString())).readValue();
     }
 
-    private String[] readRestrictSpecific(int fieldId) {
+    private String[] readRestrictSpecific(PreferenceKey prefKey) {
         TextList<String> textList = (new TextListPreference.DataManager(mPrefs,
-                PREF_RESTRICT_SPECIFIC_PREFIX + getSuffix(fieldId))).readValue();
+                prefKey == null ? null : prefKey.toString())).readValue();
         String[] result = new String[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
             if (textList.escapeChars()) {
@@ -560,16 +515,16 @@ public class PreferenceReader {
     }
 
     @Nullable
-    private IntRange readRestrictRange(int fieldId) {
+    private IntRange readRestrictRange(PreferenceKey prefKey) {
         return (new CodepointRangeDialogPreference.DataManager(mPrefs,
-                PREF_RESTRICT_RANGE_PREFIX + getSuffix(fieldId)))
+                prefKey == null ? null : prefKey.toString()))
                 .readValue();
     }
 
-    private TranslateText[] readTranslateSpecific(int fieldId) {
+    private TranslateText[] readTranslateSpecific(PreferenceKey prefKey) {
         TextList<TranslateText> textList =
                 (new TextTranslateListPreference.DataManager(mPrefs,
-                        PREF_TRANSLATE_SPECIFIC_PREFIX + getSuffix(fieldId)))
+                        prefKey == null ? null : prefKey.toString()))
                         .readValue();
         TranslateText[] result = new TranslateText[textList.getDataArray().length];
         for (int i = 0; i < textList.getDataArray().length; i++) {
@@ -663,183 +618,144 @@ public class PreferenceReader {
         return sb.toString();
     }
     //#endregion
-
-    private static String getSuffix(int fieldId) {
-        return fieldId == BASE_FIELD_ID ? BASE_SUFFIX : (FIELD_INFIX + fieldId);
-    }
-    //#endregion
     //#endregion
 
     //#region object loading methods
     /* package */ void loadTestFieldDefaultableSettings(AppLevelDefaults testFieldOrDefault) {
         for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-            loadTestFieldDefaultableSetting(prefKeyPrefix, testFieldOrDefault);
+            PreferenceKey prefKey = testFieldOrDefault instanceof TestField
+                    ? createFieldKey(prefKeyPrefix, ((TestField) testFieldOrDefault).mId)
+                    : createFieldDefaultKey(prefKeyPrefix);
+            loadTestFieldDefaultableSetting(prefKey, testFieldOrDefault);
         }
     }
 
-    /* package*/ void loadTestFieldDefaultableSetting(String prefKeyPrefix,
+    /* package*/ void loadTestFieldDefaultableSetting(PreferenceKey prefKey,
                                                       AppLevelDefaults testFieldOrDefault) {
-        int fieldId = testFieldOrDefault instanceof TestField
-                ? ((TestField) testFieldOrDefault).mId
-                : BASE_FIELD_ID;
-        switch (prefKeyPrefix) {
+        if (prefKey == null) {
+            return;
+        }
+        switch (prefKey.getStem()) {
             case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
-                testFieldOrDefault.mModifyCommittedText =
-                        readTestFieldBoolean(fieldId, PREF_MODIFY_COMMITTED_TEXT_PREFIX);
+                testFieldOrDefault.mModifyCommittedText = readBoolean(prefKey);
                 break;
             case PREF_MODIFY_COMPOSED_TEXT_PREFIX:
-                testFieldOrDefault.mModifyComposedText =
-                        readTestFieldBoolean(fieldId, PREF_MODIFY_COMPOSED_TEXT_PREFIX);
+                testFieldOrDefault.mModifyComposedText = readBoolean(prefKey);
                 break;
             case PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX:
-                testFieldOrDefault.mModifyComposedChangesOnly =
-                        readTestFieldBoolean(fieldId, PREF_MODIFY_COMPOSED_CHANGES_ONLY_PREFIX);
+                testFieldOrDefault.mModifyComposedChangesOnly = readBoolean(prefKey);
                 break;
             case PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX:
-                testFieldOrDefault.mConsiderComposedChangesFromEnd =
-                        readTestFieldBoolean(fieldId,
-                                PREF_CONSIDER_COMPOSED_CHANGES_FROM_END_PREFIX);
+                testFieldOrDefault.mConsiderComposedChangesFromEnd = readBoolean(prefKey);
                 break;
             case PREF_RESTRICT_TO_INCLUDE_PREFIX:
-                testFieldOrDefault.mRestrictToInclude =
-                        readTestFieldBoolean(fieldId, PREF_RESTRICT_TO_INCLUDE_PREFIX);
+                testFieldOrDefault.mRestrictToInclude = readBoolean(prefKey);
                 break;
             case PREF_RESTRICT_SPECIFIC_PREFIX:
-                testFieldOrDefault.mRestrictSpecific = readRestrictSpecific(fieldId);
+                testFieldOrDefault.mRestrictSpecific = readRestrictSpecific(prefKey);
                 break;
             case PREF_RESTRICT_RANGE_PREFIX:
-                testFieldOrDefault.mRestrictRange = readRestrictRange(fieldId);
+                testFieldOrDefault.mRestrictRange = readRestrictRange(prefKey);
                 break;
             case PREF_TRANSLATE_SPECIFIC_PREFIX:
-                testFieldOrDefault.mTranslateSpecific = readTranslateSpecific(fieldId);
+                testFieldOrDefault.mTranslateSpecific = readTranslateSpecific(prefKey);
                 break;
             case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
-                testFieldOrDefault.mTranslateFullMatchOnly =
-                        readTestFieldBoolean(fieldId, PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX);
+                testFieldOrDefault.mTranslateFullMatchOnly = readBoolean(prefKey);
                 break;
             case PREF_SHIFT_CODEPOINT_PREFIX:
-                testFieldOrDefault.mShiftCodepoint =
-                        readTestFieldInt(fieldId, PREF_SHIFT_CODEPOINT_PREFIX);
+                testFieldOrDefault.mShiftCodepoint = readInt(prefKey);
                 break;
 
             case PREF_SKIP_EXTRACTING_TEXT_PREFIX:
-                testFieldOrDefault.mSkipExtractingText =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_EXTRACTING_TEXT_PREFIX);
+                testFieldOrDefault.mSkipExtractingText = readBoolean(prefKey);
                 break;
             case PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX:
-                testFieldOrDefault.mIgnoreExtractedTextMonitor =
-                        readTestFieldBoolean(fieldId, PREF_IGNORE_EXTRACTED_TEXT_MONITOR_PREFIX);
+                testFieldOrDefault.mIgnoreExtractedTextMonitor = readBoolean(prefKey);
                 break;
             case PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX:
-                testFieldOrDefault.mUpdateSelectionBeforeExtractedText =
-                        readTestFieldBoolean(fieldId,
-                                PREF_UPDATE_SELECTION_BEFORE_EXTRACTED_TEXT_PREFIX);
+                testFieldOrDefault.mUpdateSelectionBeforeExtractedText = readBoolean(prefKey);
                 break;
             case PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX:
-                testFieldOrDefault.mUpdateExtractedTextOnlyOnNetChanges =
-                        readTestFieldBoolean(fieldId,
-                                PREF_UPDATE_EXTRACTED_TEXT_ONLY_ON_NET_CHANGES_PREFIX);
+                testFieldOrDefault.mUpdateExtractedTextOnlyOnNetChanges = readBoolean(prefKey);
                 break;
             case PREF_EXTRACT_FULL_TEXT_PREFIX:
-                testFieldOrDefault.mExtractFullText =
-                        readTestFieldBoolean(fieldId, PREF_EXTRACT_FULL_TEXT_PREFIX);
+                testFieldOrDefault.mExtractFullText = readBoolean(prefKey);
                 break;
             case PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX:
-                testFieldOrDefault.mExtractMonitorTextLimit =
-                        readTestFieldInt(fieldId, PREF_LIMIT_EXTRACT_MONITOR_TEXT_PREFIX);
+                testFieldOrDefault.mExtractMonitorTextLimit = readInt(prefKey);
                 break;
             case PREF_LIMIT_RETURNED_TEXT_PREFIX:
-                testFieldOrDefault.mReturnedTextLimit =
-                        readTestFieldInt(fieldId, PREF_LIMIT_RETURNED_TEXT_PREFIX);
+                testFieldOrDefault.mReturnedTextLimit = readInt(prefKey);
                 break;
 
             case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
-                testFieldOrDefault.mDeleteThroughComposingText =
-                        readTestFieldBoolean(fieldId, PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX);
+                testFieldOrDefault.mDeleteThroughComposingText = readBoolean(prefKey);
                 break;
             case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
-                testFieldOrDefault.mKeepEmptyComposingPosition =
-                        readTestFieldBoolean(fieldId, PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX);
+                testFieldOrDefault.mKeepEmptyComposingPosition = readBoolean(prefKey);
                 break;
 
             case PREF_SKIP_TAKESNAPSHOT_PREFIX:
-                testFieldOrDefault.mSkipTakeSnapshot =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_TAKESNAPSHOT_PREFIX);
+                testFieldOrDefault.mSkipTakeSnapshot = readBoolean(prefKey);
                 break;
             case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
-                testFieldOrDefault.mSkipGetSurroundingText =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_GETSURROUNDINGTEXT_PREFIX);
+                testFieldOrDefault.mSkipGetSurroundingText = readBoolean(prefKey);
                 break;
             case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
-                testFieldOrDefault.mSkipPerformSpellCheck =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_PERFORMSPELLCHECK_PREFIX);
+                testFieldOrDefault.mSkipPerformSpellCheck = readBoolean(prefKey);
                 break;
             case PREF_SKIP_SETIMECONSUMESINPUT_PREFIX:
-                testFieldOrDefault.mSkipSetImeConsumesInput =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_SETIMECONSUMESINPUT_PREFIX);
+                testFieldOrDefault.mSkipSetImeConsumesInput = readBoolean(prefKey);
                 break;
             case PREF_SKIP_COMMITCONTENT_PREFIX:
-                testFieldOrDefault.mSkipCommitContent =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_COMMITCONTENT_PREFIX);
+                testFieldOrDefault.mSkipCommitContent = readBoolean(prefKey);
                 break;
             case PREF_SKIP_CLOSECONNECTION_PREFIX:
-                testFieldOrDefault.mSkipCloseConnection =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_CLOSECONNECTION_PREFIX);
+                testFieldOrDefault.mSkipCloseConnection = readBoolean(prefKey);
                 break;
             case PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX:
-                testFieldOrDefault.mSkipDeleteSurroundingTextInCodePoints =
-                        readTestFieldBoolean(fieldId,
-                                PREF_SKIP_DELETESURROUNDINGTEXTINCODEPOINTS_PREFIX);
+                testFieldOrDefault.mSkipDeleteSurroundingTextInCodePoints = readBoolean(prefKey);
                 break;
             case PREF_SKIP_REQUESTCURSORUPDATES_PREFIX:
-                testFieldOrDefault.mSkipRequestCursorUpdates =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_REQUESTCURSORUPDATES_PREFIX);
+                testFieldOrDefault.mSkipRequestCursorUpdates = readBoolean(prefKey);
                 break;
             case PREF_SKIP_COMMITCORRECTION_PREFIX:
-                testFieldOrDefault.mSkipCommitCorrection =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_COMMITCORRECTION_PREFIX);
+                testFieldOrDefault.mSkipCommitCorrection = readBoolean(prefKey);
                 break;
             case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
-                testFieldOrDefault.mSkipGetSelectedText =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_GETSELECTEDTEXT_PREFIX);
+                testFieldOrDefault.mSkipGetSelectedText = readBoolean(prefKey);
                 break;
             case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
-                testFieldOrDefault.mSkipSetComposingRegion =
-                        readTestFieldBoolean(fieldId, PREF_SKIP_SETCOMPOSINGREGION_PREFIX);
+                testFieldOrDefault.mSkipSetComposingRegion = readBoolean(prefKey);
                 break;
 
             case PREF_UPDATE_DELAY_PREFIX:
-                testFieldOrDefault.mUpdateDelay =
-                        readTestFieldInt(fieldId, PREF_UPDATE_DELAY_PREFIX);
+                testFieldOrDefault.mUpdateDelay = readInt(prefKey);
                 break;
             case PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX:
-                testFieldOrDefault.mFinishComposingTextDelay =
-                        readTestFieldInt(fieldId, PREF_FINISHCOMPOSINGTEXT_DELAY_PREFIX);
+                testFieldOrDefault.mFinishComposingTextDelay = readInt(prefKey);
                 break;
             case PREF_GETSURROUNDINGTEXT_DELAY_PREFIX:
-                testFieldOrDefault.mGetSurroundingTextDelay =
-                        readTestFieldInt(fieldId, PREF_GETSURROUNDINGTEXT_DELAY_PREFIX);
+                testFieldOrDefault.mGetSurroundingTextDelay = readInt(prefKey);
                 break;
             case PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX:
-                testFieldOrDefault.mGetTextBeforeCursorDelay =
-                        readTestFieldInt(fieldId, PREF_GETTEXTBEFORECURSOR_DELAY_PREFIX);
+                testFieldOrDefault.mGetTextBeforeCursorDelay = readInt(prefKey);
                 break;
             case PREF_GETSELECTEDTEXT_DELAY_PREFIX:
-                testFieldOrDefault.mGetSelectedTextDelay =
-                        readTestFieldInt(fieldId, PREF_GETSELECTEDTEXT_DELAY_PREFIX);
+                testFieldOrDefault.mGetSelectedTextDelay = readInt(prefKey);
                 break;
             case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
-                testFieldOrDefault.mGetTextAfterCursorDelay =
-                        readTestFieldInt(fieldId, PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX);
+                testFieldOrDefault.mGetTextAfterCursorDelay = readInt(prefKey);
                 break;
             case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
-                testFieldOrDefault.mGetCursorCapsModeDelay =
-                        readTestFieldInt(fieldId, PREF_GETCURSORCAPSMODE_DELAY_PREFIX);
+                testFieldOrDefault.mGetCursorCapsModeDelay = readInt(prefKey);
                 break;
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
-                testFieldOrDefault.mGetExtractedTextDelay =
-                        readTestFieldInt(fieldId, PREF_GETEXTRACTEDTEXT_DELAY_PREFIX);
+                testFieldOrDefault.mGetExtractedTextDelay = readInt(prefKey);
                 break;
+            default:
+                Log.w(TAG, "Test field defaultable preference " + prefKey + " wasn't processed");
         }
     }
 
@@ -894,23 +810,25 @@ public class PreferenceReader {
                 PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
-            loadTestFieldSpecificSetting(prefKeyPrefix, testField);
+            loadTestFieldSpecificSetting(createFieldKey(prefKeyPrefix, testField.mId),
+                    testField);
         }
     }
 
-    /* package*/ void loadTestFieldSpecificSetting(String prefKeyPrefix, TestField testField) {
+    /* package*/ void loadTestFieldSpecificSetting(PreferenceKey prefKey, TestField testField) {
+        if (prefKey == null) {
+            return;
+        }
         int fieldId = testField.mId;
-        switch (prefKeyPrefix) {
+        switch (prefKey.getStem()) {
             case PREF_IME_LABEL_TEXT_PREFIX:
-                testField.mLabelText =
-                        readTestFieldCharSequence(fieldId, PREF_IME_LABEL_TEXT_PREFIX);
+                testField.mLabelText = readCharSequence(prefKey);
                 break;
             case PREF_IME_DEFAULT_TEXT_PREFIX:
-                testField.mDefaultText =
-                        readTestFieldCharSequence(fieldId, PREF_IME_DEFAULT_TEXT_PREFIX);
+                testField.mDefaultText = readCharSequence(prefKey);
                 break;
             case PREF_IME_HINT_TEXT_PREFIX:
-                testField.mHintText = readTestFieldCharSequence(fieldId, PREF_IME_HINT_TEXT_PREFIX);
+                testField.mHintText = readCharSequence(prefKey);
                 break;
             case PREF_INPUT_TYPE_CLASS_PREFIX:
             case PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX:
@@ -931,8 +849,8 @@ public class PreferenceReader {
             case PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX:
             case PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX:
                 testField.mInputType = readTestFieldInputType(fieldId);
-                testField.mNullInputTypeMultiline =
-                        readTestFieldBoolean(fieldId, PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX);
+                testField.mNullInputTypeMultiline = readBoolean(
+                        createFieldKey(PREF_NULL_INPUT_TYPE_MULTILINE_PREFIX, fieldId));
                 // the following settings only apply to null input types since as far as I can tell,
                 // the others are expected to create the input connection to fully support rich
                 // input, are expected to send selection info (possibly based on the same
@@ -941,20 +859,22 @@ public class PreferenceReader {
                 // all of the rich editing specified in documentation for InputConnection (that
                 // isn't noted as being optional)
                 if (testField.mInputType == EditorInfo.TYPE_NULL) {
-                    testField.mCreateInputConnection = readTestFieldBoolean(fieldId,
-                            PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX);
-                    testField.mSendSelectionInfo = readTestFieldBoolean(fieldId,
-                            PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX);
-                    testField.mSendText = readTestFieldBoolean(fieldId,
-                            PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX);
+                    testField.mCreateInputConnection = readBoolean(createFieldKey(
+                            PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX, fieldId));
+                    testField.mSendSelectionInfo = readBoolean(createFieldKey(
+                            PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX, fieldId));
+                    testField.mSendText = readBoolean(createFieldKey(
+                            PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX, fieldId));
                     if (testField.mCreateInputConnection) {
                         testField.mComposingTextBehavior = getComposingTextBehaviorInt(
-                                readTestFieldString(fieldId,
-                                        PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX));
-                        testField.mAllowDeleteSurroundingText = readTestFieldBoolean(fieldId,
-                                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX);
-                        testField.mAllowSettingSelection = readTestFieldBoolean(fieldId,
-                                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX);
+                                readString(createFieldKey(
+                                        PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
+                                        fieldId)));
+                        testField.mAllowDeleteSurroundingText = readBoolean(createFieldKey(
+                                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
+                                fieldId));
+                        testField.mAllowSettingSelection = readBoolean(createFieldKey(
+                                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX, fieldId));
                     } else {
                         // composition (or custom management) is only possible if an input
                         // connection is created
@@ -987,56 +907,47 @@ public class PreferenceReader {
                 testField.mImeOptions = readTestFieldImeOptions(fieldId);
                 break;
             case PREF_IME_ACTION_ID_PREFIX:
-                testField.mImeActionId = readTestFieldInt(fieldId, PREF_IME_ACTION_ID_PREFIX);
+                testField.mImeActionId = readInt(prefKey);
                 break;
             case PREF_IME_ACTION_LABEL_PREFIX:
-                testField.mImeActionLabel =
-                        readTestFieldString(fieldId, PREF_IME_ACTION_LABEL_PREFIX);
+                testField.mImeActionLabel = readString(prefKey);
                 break;
             case PREF_PRIVATE_IME_OPTIONS_PREFIX:
-                testField.mPrivateImeOptions =
-                        readTestFieldString(fieldId, PREF_PRIVATE_IME_OPTIONS_PREFIX);
+                testField.mPrivateImeOptions = readString(prefKey);
                 break;
             case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
-                testField.mSelectAllOnFocus =
-                        readTestFieldBoolean(fieldId, PREF_SELECT_ALL_ON_FOCUS_PREFIX);
+                testField.mSelectAllOnFocus = readBoolean(prefKey);
                 break;
             case PREF_MAX_LENGTH_PREFIX:
-                testField.mMaxLength = readTestFieldInt(fieldId, PREF_MAX_LENGTH_PREFIX);
+                testField.mMaxLength = readInt(prefKey);
                 break;
             case PREF_ALLOW_UNDO_PREFIX:
-                testField.mAllowUndo = readTestFieldBoolean(fieldId, PREF_ALLOW_UNDO_PREFIX);
+                testField.mAllowUndo = readBoolean(prefKey);
                 break;
             case PREF_TEXT_LOCALES_PREFIX:
-                testField.mTextLocales = readTestFieldTextLocales(mPrefs, fieldId);
+                testField.mTextLocales = readTextLocales(prefKey);
                 break;
             case PREF_IME_HINT_LOCALES_PREFIX:
-                testField.mImeHintLocales = readTestFieldImeHintLocales(mPrefs, fieldId);
+                testField.mImeHintLocales = readImeHintLocales(prefKey);
                 break;
 
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
-                testField.mOverrideTextInputModification =
-                        readTestFieldBoolean(fieldId, PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX);
+                testField.mOverrideTextInputModification = readBoolean(prefKey);
                 break;
             case PREF_OVERRIDE_TEXT_RETURN_PREFIX:
-                testField.mOverrideTextReturn =
-                        readTestFieldBoolean(fieldId, PREF_OVERRIDE_TEXT_RETURN_PREFIX);
+                testField.mOverrideTextReturn = readBoolean(prefKey);
                 break;
             case PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX:
-                testField.mOverrideTextComposition =
-                        readTestFieldBoolean(fieldId, PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
+                testField.mOverrideTextComposition = readBoolean(prefKey);
                 break;
             case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
-                testField.mOverrideTargetVersion = readTestFieldBoolean(fieldId,
-                        PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX);
+                testField.mOverrideTargetVersion = readBoolean(prefKey);
                 break;
             case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
-                testField.mOverrideSystemBehavior = readTestFieldBoolean(fieldId,
-                        PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX);
+                testField.mOverrideSystemBehavior = readBoolean(prefKey);
                 break;
             default:
-                Log.w(TAG, "Preference " + prefKeyPrefix + FIELD_INFIX + fieldId
-                        + " wasn't processed");
+                Log.w(TAG, "Test field specific preference " + prefKey + " wasn't processed");
         }
     }
 
@@ -1062,7 +973,7 @@ public class PreferenceReader {
 
     //#region compound preferences
     protected int readTestFieldInputType(int fieldId) {
-        String inputTypeClass = readTestFieldString(fieldId, PREF_INPUT_TYPE_CLASS_PREFIX);
+        String inputTypeClass = readString(createFieldKey(PREF_INPUT_TYPE_CLASS_PREFIX, fieldId));
         String variation;
         int inputType;
         switch (inputTypeClass) {
@@ -1071,7 +982,8 @@ public class PreferenceReader {
                 break;
             case "TYPE_CLASS_DATETIME":
                 inputType = InputType.TYPE_CLASS_DATETIME;
-                variation = readTestFieldString(fieldId, PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX);
+                variation = readString(
+                        createFieldKey(PREF_INPUT_TYPE_DATETIME_VARIATION_PREFIX, fieldId));
                 switch (variation) {
                     case "TYPE_DATETIME_VARIATION_NORMAL":
                         inputType |= InputType.TYPE_DATETIME_VARIATION_NORMAL;
@@ -1089,7 +1001,8 @@ public class PreferenceReader {
                 break;
             case "TYPE_CLASS_NUMBER":
                 inputType = InputType.TYPE_CLASS_NUMBER;
-                variation = readTestFieldString(fieldId, PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX);
+                variation = readString(
+                        createFieldKey(PREF_INPUT_TYPE_NUMBER_VARIATION_PREFIX, fieldId));
                 switch (variation) {
                     case "TYPE_NUMBER_VARIATION_NORMAL":
                         inputType |= InputType.TYPE_NUMBER_VARIATION_NORMAL;
@@ -1101,10 +1014,12 @@ public class PreferenceReader {
                         Log.e(TAG, "Unexpected input type number variation: " + variation);
                         break;
                 }
-                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX)) {
+                if (readBoolean(
+                        createFieldKey(PREF_INPUT_TYPE_NUMBER_FLAG_SIGNED_PREFIX, fieldId))) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_SIGNED;
                 }
-                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX)) {
+                if (readBoolean(
+                        createFieldKey(PREF_INPUT_TYPE_NUMBER_FLAG_DECIMAL_PREFIX, fieldId))) {
                     inputType |= InputType.TYPE_NUMBER_FLAG_DECIMAL;
                 }
                 break;
@@ -1113,7 +1028,8 @@ public class PreferenceReader {
                 break;
             case "TYPE_CLASS_TEXT":
                 inputType = InputType.TYPE_CLASS_TEXT;
-                variation = readTestFieldString(fieldId, PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX);
+                variation = readString(
+                        createFieldKey(PREF_INPUT_TYPE_TEXT_VARIATION_PREFIX, fieldId));
                 switch (variation) {
                     case "TYPE_TEXT_VARIATION_NORMAL":
                         inputType |= InputType.TYPE_TEXT_VARIATION_NORMAL;
@@ -1164,8 +1080,8 @@ public class PreferenceReader {
                         Log.e(TAG, "Unexpected input type text variation: " + variation);
                         break;
                 }
-                String multiLineFlag =
-                        readTestFieldString(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX);
+                String multiLineFlag = readString(
+                        createFieldKey(PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX, fieldId));
                 switch (multiLineFlag) {
                     case "TYPE_TEXT_FLAG_MULTI_LINE":
                         inputType |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
@@ -1174,7 +1090,8 @@ public class PreferenceReader {
                         inputType |= InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE;
                         break;
                 }
-                String capFlag = readTestFieldString(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX);
+                String capFlag = readString(
+                        createFieldKey(PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX, fieldId));
                 switch (capFlag) {
                     case "TYPE_TEXT_FLAG_CAP_CHARACTERS":
                         inputType |= InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS;
@@ -1186,14 +1103,16 @@ public class PreferenceReader {
                         inputType |= InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
                         break;
                 }
-                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX)) {
+                if (readBoolean(
+                        createFieldKey(PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX, fieldId))) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
                 }
-                if (readTestFieldBoolean(fieldId, PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX)) {
+                if (readBoolean(
+                        createFieldKey(PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX, fieldId))) {
                     inputType |= InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
                 }
-                if (readTestFieldBoolean(fieldId,
-                        PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX)) {
+                if (readBoolean(
+                        createFieldKey(PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX, fieldId))) {
                     inputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                 }
                 break;
@@ -1206,7 +1125,8 @@ public class PreferenceReader {
     }
 
     private int readTestFieldImeOptions(int fieldId) {
-        String imeOptionsAction = readTestFieldString(fieldId, PREF_IME_OPTIONS_ACTION_PREFIX);
+        String imeOptionsAction = readString(
+                createFieldKey(PREF_IME_OPTIONS_ACTION_PREFIX, fieldId));
         int imeOptions;
         switch (imeOptionsAction) {
             case "IME_ACTION_UNSPECIFIED":
@@ -1238,28 +1158,30 @@ public class PreferenceReader {
                 imeOptions = EditorInfo.IME_NULL;
                 break;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX)) {
+        if (readBoolean(createFieldKey(PREF_IME_OPTIONS_FLAG_FORCE_ASCII_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_FORCE_ASCII;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX)) {
+        if (readBoolean(createFieldKey(PREF_IME_OPTIONS_FLAG_NAVIGATE_NEXT_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_NEXT;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX)) {
+        if (readBoolean(createFieldKey(PREF_IME_OPTIONS_FLAG_NAVIGATE_PREVIOUS_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX)) {
+        if (readBoolean(
+                createFieldKey(PREF_IME_OPTIONS_FLAG_NO_ACCESSORY_ACTION_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ACCESSORY_ACTION;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX)) {
+        if (readBoolean(createFieldKey(PREF_IME_OPTIONS_FLAG_NO_ENTER_ACTION_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_ENTER_ACTION;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX)) {
+        if (readBoolean(createFieldKey(PREF_IME_OPTIONS_FLAG_NO_EXTRACT_UI_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_EXTRACT_UI;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX)) {
+        if (readBoolean(createFieldKey(PREF_IME_OPTIONS_FLAG_NO_FULLSCREEN_PREFIX, fieldId))) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_FULLSCREEN;
         }
-        if (readTestFieldBoolean(fieldId, PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX)
+        if (readBoolean(
+                createFieldKey(PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX, fieldId))
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             imeOptions |=  EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
         }

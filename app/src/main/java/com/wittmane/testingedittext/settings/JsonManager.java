@@ -16,6 +16,10 @@
 
 package com.wittmane.testingedittext.settings;
 
+import static com.wittmane.testingedittext.settings.PreferenceKey.createBasicKey;
+import static com.wittmane.testingedittext.settings.PreferenceKey.createFieldDefaultKey;
+import static com.wittmane.testingedittext.settings.PreferenceKey.createFieldKey;
+import static com.wittmane.testingedittext.settings.PreferenceKey.createGroupKey;
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.content.Context;
@@ -29,6 +33,7 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.function.BiFunction;
+import com.wittmane.testingedittext.function.Function;
 import com.wittmane.testingedittext.function.TriConsumer;
 import com.wittmane.testingedittext.settings.PreferenceReader.PrefInfo;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
@@ -75,15 +80,15 @@ public abstract class JsonManager {
             if (exportFieldDefaults) {
                 JSONObject fieldDefaultsJsonObject = new JSONObject();
                 for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-                    String defaultsPrefKey = defaultsPrefKeyPrefix + BASE_SUFFIX;
-                    addPrefDataToJson(fieldDefaultsJsonObject, defaultsPrefKeyPrefix, defaultsPrefKey,
+                    addPrefDataToJson(fieldDefaultsJsonObject,
+                            createFieldDefaultKey(defaultsPrefKeyPrefix),
                             preferenceReader);
                 }
                 jsonObject.put(FIELD_DEFAULTS_JSON_PROP, fieldDefaultsJsonObject);
             }
 
             if (groupInfoList != null && preferenceReader.contains(PREF_TEST_GROUP_IDS)) {
-                int[] groupIds = preferenceReader.readIntArray(PREF_TEST_GROUP_IDS);
+                int[] groupIds = preferenceReader.readIntArray(createBasicKey(PREF_TEST_GROUP_IDS));
 
                 if (IterableUtils.any(groupInfoList, groupInfo -> groupInfo.mInclude)
                         || !IterableUtils.any(groupInfoList,
@@ -110,7 +115,7 @@ public abstract class JsonManager {
                         int groupId = groupIds[groupIndex];
                         GroupInfo groupInfo = groupInfoList.get(groupIndex);
                         if (preferenceReader.contains(
-                                PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId)) {
+                                createGroupKey(PREF_TEST_FIELD_IDS_PREFIX, groupId))) {
                             addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo,
                                     embedFieldDefaults, preferenceReader);
                         }
@@ -122,7 +127,7 @@ public abstract class JsonManager {
             if (exportOtherSettings) {
                 JSONObject otherSettingsJsonObject = new JSONObject();
                 for (String miscPrefKey : MISC_PREF_KEYS) {
-                    addPrefDataToJson(otherSettingsJsonObject, miscPrefKey, miscPrefKey,
+                    addPrefDataToJson(otherSettingsJsonObject, createBasicKey(miscPrefKey),
                             preferenceReader);
                 }
                 jsonObject.put(OTHER_SETTINGS_JSON_PROP, otherSettingsJsonObject);
@@ -141,10 +146,10 @@ public abstract class JsonManager {
         JSONObject groupJsonObject = new JSONObject();
 
         for (String groupPrefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
-            String groupPrefKey = groupPrefKeyPrefix + GROUP_INFIX + groupId;
+            PreferenceKey prefKey = createGroupKey(groupPrefKeyPrefix, groupId);
 
             if (groupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
-                if (preferenceReader.contains(groupPrefKey)) {
+                if (preferenceReader.contains(prefKey)) {
                     JSONArray fieldsJsonArray = new JSONArray();
 
                     addGroupFieldsJson(fieldsJsonArray, groupId, groupInfo, embedFieldDefaults,
@@ -153,8 +158,7 @@ public abstract class JsonManager {
                     groupJsonObject.put(FIELDS_JSON_PROP, fieldsJsonArray);
                 }
             } else {
-                addPrefDataToJson(groupJsonObject, groupPrefKeyPrefix, groupPrefKey,
-                        preferenceReader);
+                addPrefDataToJson(groupJsonObject, prefKey, preferenceReader);
             }
         }
 
@@ -165,8 +169,7 @@ public abstract class JsonManager {
                                            GroupInfo groupInfo, boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
-        int[] fieldIds =
-                preferenceReader.readTestGroupIntArray(groupId, PREF_TEST_FIELD_IDS_PREFIX);
+        int[] fieldIds = getFieldIds(groupId, preferenceReader);
         for (int fieldIndex = 0; fieldIndex < fieldIds.length; fieldIndex++) {
             int fieldId = fieldIds[fieldIndex];
             if (!groupInfo.mFields.get(fieldIndex).mInclude) {
@@ -176,37 +179,46 @@ public abstract class JsonManager {
         }
     }
 
+    private static int[] getFieldIds(int groupId, PreferenceReader preferenceReader) {
+        return preferenceReader.readIntArray(
+                createGroupKey(PREF_TEST_FIELD_IDS_PREFIX, groupId));
+    }
+
     private static JSONObject getFieldJson(int fieldId, boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
         JSONObject fieldJsonObject = new JSONObject();
 
         for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
-            String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
 
             if (DEFAULT_OVERRIDE_PREF_PREFIX_MAP.containsKey(fieldPrefKeyPrefix)) {
-                String suffix;
+                boolean useFieldDefaults;
                 // embed defaults if requested and the field doesn't already override them,
                 // otherwise just load the override values
                 if (embedFieldDefaults
-                        && !preferenceReader.readTestFieldBoolean(fieldId, fieldPrefKeyPrefix)) {
-                    suffix = BASE_SUFFIX;
+                        && !preferenceReader.readBoolean(
+                                createFieldKey(fieldPrefKeyPrefix, fieldId))) {
+                    useFieldDefaults = true;
                     String jsonPropName = prefKeyPrefixToJsonName(fieldPrefKeyPrefix);
                     fieldJsonObject.put(jsonPropName, true);
                 } else {
-                    suffix = FIELD_INFIX + fieldId;
-                    addPrefDataToJson(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey,
+                    useFieldDefaults = false;
+                    addPrefDataToJson(fieldJsonObject,
+                            createFieldKey(fieldPrefKeyPrefix, fieldId),
                             preferenceReader);
                 }
                 String[] fieldDefaultsPrefKeys =
                         DEFAULT_OVERRIDE_PREF_PREFIX_MAP.get(fieldPrefKeyPrefix);
                 for (String fieldDefaultPrefKeyPrefix : fieldDefaultsPrefKeys) {
-                    String fieldDefaultPrefKey = fieldDefaultPrefKeyPrefix + suffix;
-                    addPrefDataToJson(fieldJsonObject, fieldDefaultPrefKeyPrefix,
-                            fieldDefaultPrefKey, preferenceReader);
+                    addPrefDataToJson(fieldJsonObject,
+                            useFieldDefaults
+                                    ? createFieldDefaultKey(fieldDefaultPrefKeyPrefix)
+                                    : createFieldKey(fieldDefaultPrefKeyPrefix, fieldId),
+                            preferenceReader);
                 }
             } else {
-                addPrefDataToJson(fieldJsonObject, fieldPrefKeyPrefix, fieldPrefKey,
+                addPrefDataToJson(fieldJsonObject,
+                        createFieldKey(fieldPrefKeyPrefix, fieldId),
                         preferenceReader);
             }
         }
@@ -214,50 +226,41 @@ public abstract class JsonManager {
         return fieldJsonObject;
     }
 
-    private static void addPrefDataToJson(JSONObject jsonObject, String prefKeyOrPrefix,
-                                          String prefKey, PreferenceReader preferenceReader)
+    private static void addPrefDataToJson(JSONObject jsonObject, PreferenceKey prefKey,
+                                          PreferenceReader preferenceReader)
             throws JSONException {
         if (!EXPORT_UNSET_PREFS && !preferenceReader.contains(prefKey)) {
             return;
         }
-        String jsonPropName = prefKeyPrefixToJsonName(prefKeyOrPrefix);
-        int dataType = PreferenceReader.prefDataType(prefKeyOrPrefix);
+        String jsonPropName = prefKeyPrefixToJsonName(prefKey.getStem());
+        int dataType = PreferenceReader.prefDataType(prefKey.getStem());
         switch (dataType) {
             case PreferenceReader.TYPE_BOOLEAN:
-                addBooleanPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addBooleanPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_INT:
-                addIntPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addIntPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_LONG:
-                addLongPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addLongPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_FLOAT:
-                addFloatPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addFloatPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_STRING:
-                addStringPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addStringPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_SPANNED:
-                addSpannedPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addSpannedPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_CHAR_SEQUENCE:
-                addCharSequencePrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addCharSequencePrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_INT_ARRAY:
-                addIntArrayPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addIntArrayPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_STRING_ARRAY:
-                addStringArrayPrefToJson(jsonObject, jsonPropName, prefKeyOrPrefix, prefKey,
-                        preferenceReader);
+                addStringArrayPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_INT_RANGE:
                 addIntRangePrefToJson(jsonObject, jsonPropName, prefKey);
@@ -274,34 +277,33 @@ public abstract class JsonManager {
             case PreferenceReader.TYPE_UNKNOWN:
             default:
                 //TODO: (EW) probably handle gracefully, but hard crash for now to catch issues
-                throw new RuntimeException("Unknown data type for " + prefKeyOrPrefix);
+                throw new RuntimeException("Unknown data type for " + prefKey);
         }
     }
 
-    private static <T> void addPrefToJson(String prefKeyOrPrefix, String prefKey,
-                                          BiFunction<String, String, PrefInfo<T>> readPref,
+    private static <T> void addPrefToJson(PreferenceKey prefKey,
+                                          Function<PreferenceKey, PrefInfo<T>> readPref,
                                           String jsonPropName,
                                           AddPropToJsonFunction<T, JSONObject> addToJson)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, readPref,
-                value -> addToJson.apply(jsonPropName, value));
+        addPrefToJson(prefKey, readPref, value -> addToJson.apply(jsonPropName, value));
     }
 
-    private static <T> void addPrefToJson(String prefKeyOrPrefix, String prefKey,
-                                          BiFunction<String, String, PrefInfo<T>> readPref,
+    private static <T> void addPrefToJson(PreferenceKey prefKey,
+                                          Function<PreferenceKey, PrefInfo<T>> readPref,
                                           AddPropToJsonConsumer<T> addToJson)
             throws JSONException {
-        PrefInfo<T> info = readPref.apply(prefKey, prefKeyOrPrefix);
+        PrefInfo<T> info = readPref.apply(prefKey);
         if (EXPORT_DEFAULT_PREFS_VALUES || !info.valueIsDefault) {
             addToJson.accept(info.value);
         }
     }
 
-    private static <T> void addPrefToJson(String prefKey,
+    private static <T> void addPrefToJson(PreferenceKey prefKey,
             BiFunction<SharedPreferenceManager, String, DataManager<T>> getDataManager,
             AddPropToJsonConsumer<T> addToJson) throws JSONException {
         SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
-        DataManager<T> dataManager = getDataManager.apply(prefs, prefKey);
+        DataManager<T> dataManager = getDataManager.apply(prefs, prefKey.toString());
         T defaultValue = dataManager.readDefaultValue();
         T value = dataManager.readValue();
         if (EXPORT_DEFAULT_PREFS_VALUES || !SharedPreferenceManager.equals(value, defaultValue)) {
@@ -318,50 +320,43 @@ public abstract class JsonManager {
     }
 
     private static void addBooleanPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                             String prefKeyOrPrefix, String prefKey,
+                                             PreferenceKey prefKey,
                                              PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readBooleanWithInfo, jsonPropName,
+        addPrefToJson(prefKey, preferenceReader::readBooleanWithInfo, jsonPropName,
                 jsonObject::put);
     }
 
     private static void addIntPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                         String prefKeyOrPrefix, String prefKey,
-                                         PreferenceReader preferenceReader)
+                                         PreferenceKey prefKey, PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readIntWithInfo, jsonPropName,
-                jsonObject::put);
+        addPrefToJson(prefKey, preferenceReader::readIntWithInfo, jsonPropName, jsonObject::put);
     }
 
     private static void addLongPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                          String prefKeyOrPrefix, String prefKey,
-                                          PreferenceReader preferenceReader)
+                                          PreferenceKey prefKey, PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readLongWithInfo, jsonPropName,
-                jsonObject::put);
+        addPrefToJson(prefKey, preferenceReader::readLongWithInfo, jsonPropName, jsonObject::put);
     }
 
     private static void addFloatPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                           String prefKeyOrPrefix, String prefKey,
-                                           PreferenceReader preferenceReader)
+                                           PreferenceKey prefKey, PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readFloatWithInfo, jsonPropName,
-                jsonObject::put);
+        addPrefToJson(prefKey, preferenceReader::readFloatWithInfo, jsonPropName, jsonObject::put);
     }
 
     private static void addStringPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                            String prefKeyOrPrefix, String prefKey,
+                                            PreferenceKey prefKey,
                                             PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readStringWithInfo, jsonPropName,
-                jsonObject::put);
+        addPrefToJson(prefKey, preferenceReader::readStringWithInfo, jsonPropName, jsonObject::put);
     }
 
     private static void addSpannedPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                             String prefKeyOrPrefix, String prefKey,
+                                             PreferenceKey prefKey,
                                              PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readSpannedWithInfo, value -> {
+        addPrefToJson(prefKey, preferenceReader::readSpannedWithInfo, value -> {
             // get the data that SharedPreferenceManager uses to save spanned objects
             addArray(jsonObject, jsonPropName, value == null
                     ? null
@@ -370,10 +365,10 @@ public abstract class JsonManager {
     }
 
     private static void addCharSequencePrefToJson(JSONObject jsonObject, String jsonPropName,
-                                                  String prefKeyOrPrefix, String prefKey,
+                                                  PreferenceKey prefKey,
                                                   PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readCharSequenceWithInfo, value -> {
+        addPrefToJson(prefKey, preferenceReader::readCharSequenceWithInfo, value -> {
             if (value instanceof Spanned) {
                 // get the data that SharedPreferenceManager uses to save spanned objects
                 //TODO: (EW) possibly should embed some indication of what data this holds
@@ -391,23 +386,23 @@ public abstract class JsonManager {
     }
 
     private static void addIntArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                              String prefKeyOrPrefix, String prefKey,
+                                              PreferenceKey prefKey,
                                               PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readIntArrayWithInfo,
+        addPrefToJson(prefKey, preferenceReader::readIntArrayWithInfo,
                 value -> addArray(jsonObject, jsonPropName, value));
     }
 
     private static void addStringArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                                 String prefKeyOrPrefix, String prefKey,
+                                                 PreferenceKey prefKey,
                                                  PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKeyOrPrefix, prefKey, preferenceReader::readStringArrayWithInfo,
+        addPrefToJson(prefKey, preferenceReader::readStringArrayWithInfo,
                 value -> addArray(jsonObject, jsonPropName, value));
     }
 
     private static void addIntRangePrefToJson(JSONObject jsonObject, String jsonPropName,
-                                              String prefKey)
+                                              PreferenceKey prefKey)
             throws JSONException {
         //TODO: (EW) make more generic. the only use case for the int range currently is the
         // codepoint range preference. maybe just convert this preference to use an int
@@ -423,7 +418,7 @@ public abstract class JsonManager {
     }
 
     private static void addLocaleArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                                 String prefKey)
+                                                 PreferenceKey prefKey)
             throws JSONException {
         //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
         // preference)
@@ -438,7 +433,7 @@ public abstract class JsonManager {
     }
 
     private static void addTextListStringPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                                    String prefKey)
+                                                    PreferenceKey prefKey)
             throws JSONException {
         //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
         // preference)
@@ -452,7 +447,8 @@ public abstract class JsonManager {
     }
 
     private static void addTextListTranslateTextPrefToJson(JSONObject jsonObject,
-                                                           String jsonPropName, String prefKey)
+                                                           String jsonPropName,
+                                                           PreferenceKey prefKey)
             throws JSONException {
         //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
         // preference)
@@ -1497,8 +1493,7 @@ public abstract class JsonManager {
                 fieldIdsArray = toPrimitiveArray(groupFieldIds);
             } else {
                 fieldIdsArray = ArrayUtils.join(
-                        preferenceReader.readTestGroupIntArray(groupId,
-                                PREF_TEST_FIELD_IDS_PREFIX),
+                        getFieldIds(groupId, preferenceReader),
                         toPrimitiveArray(groupFieldIds));
             }
             prefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId, fieldIdsArray);

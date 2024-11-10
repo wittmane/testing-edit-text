@@ -226,6 +226,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return sortedPrefKeys;
     }
 
+    private static boolean containsIdSuffix(String prefKey, String infix) {
+        return prefKey.matches(".*" + Pattern.quote(infix) + "\\d+$");
+    }
+
     private void logPreferences() {
         if (!LIST_PREFS) {
             return;
@@ -263,10 +267,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     /* package */ void loadSettings() {
         for (String prefKey : MISC_PREF_KEYS) {
-            loadSetting(prefKey);
+            loadBasicSetting(PreferenceKey.createBasicKey(prefKey));
         }
         mPreferenceReader.loadTestFieldDefaultableSettings(mTestFieldDefaults);
-        mTestGroupIds = mPreferenceReader.readIntArray(PREF_TEST_GROUP_IDS);
+        mTestGroupIds = mPreferenceReader.readIntArray(
+                PreferenceKey.createBasicKey(PREF_TEST_GROUP_IDS));
         mTestGroups.clear();
         mTestFields.clear();
         for (int groupId : mTestGroupIds) {
@@ -276,10 +281,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private TestGroup loadExistingGroup(int groupId) {
         //TODO: (EW) see if PREF_TEST_GROUP_NAME_PREFIX can only be loaded in 1 call
-        String groupName =
-                mPreferenceReader.readTestGroupString(groupId, PREF_TEST_GROUP_NAME_PREFIX);
-        int[] groupFieldIds =
-                mPreferenceReader.readTestGroupIntArray(groupId, PREF_TEST_FIELD_IDS_PREFIX);
+        String groupName = mPreferenceReader.readString(
+                PreferenceKey.createGroupKey(PREF_TEST_GROUP_NAME_PREFIX, groupId));
+        int[] groupFieldIds = mPreferenceReader.readIntArray(
+                PreferenceKey.createGroupKey(PREF_TEST_FIELD_IDS_PREFIX, groupId));
         TestGroup group = new TestGroup(groupId, groupName, groupFieldIds);
         mTestGroups.put(groupId, group);
 
@@ -298,110 +303,78 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return field;
     }
 
-    private void loadSetting(String prefKey) {
-        switch (prefKey) {
+    private void loadSetting(String prefKeyString) {
+        PreferenceKey prefKey = PreferenceKey.parse(prefKeyString);
+        if (prefKey == null) {
+            return;
+        }
+        if (prefKey.isFieldDefault()) {
+            mPreferenceReader.loadTestFieldDefaultableSetting(prefKey, mTestFieldDefaults);
+        } else if (prefKey.isGroup()) {
+            if (!mTestGroups.containsKey(prefKey.getId())
+                    && !mPreferenceReader.contains(prefKey)) {
+                // this is most likely from deleting an old preference when the parent is deleted,
+                // so we don't need to bother loading this value
+                return;
+            }
+            if (!isGroupIdValid(prefKey.getId())) {
+                Log.e(TAG, "The group " + prefKey.getId() + " for pref " + prefKey
+                        + " doesn't exist");
+                return;
+            }
+            loadTestGroupSetting(prefKey);
+        } else if (prefKey.isField()) {
+            if (!mTestFields.containsKey(prefKey.getId())
+                    && !mPreferenceReader.contains(prefKey)) {
+                // this is most likely from deleting an old preference when the parent is deleted,
+                // so we don't need to bother loading this value
+                return;
+            }
+            if (!isFieldIdValid(prefKey.getId())) {
+                Log.e(TAG, "The field " + prefKey.getId() + " for pref " + prefKey
+                        + " doesn't exist");
+                return;
+            }
+            TestField testField = getField(prefKey.getId());
+            mPreferenceReader.loadTestFieldSpecificSetting(prefKey, testField);
+            mPreferenceReader.loadTestFieldDefaultableSetting(prefKey, testField);
+        } else {
+            loadBasicSetting(prefKey);
+        }
+    }
+
+    private void loadBasicSetting(PreferenceKey prefKey) {
+        if (prefKey == null) {
+            return;
+        }
+        switch (prefKey.toString()) {
             case PREF_TEST_GROUP_IDS:
                 // internal state is updated while these are modified since they aren't managed by a
                 // simple Preference, so we don't need to do anything when these change
                 break;
             case PREF_THEME:
-                mTheme = mPreferenceReader.readString(PREF_THEME);
+                mTheme = mPreferenceReader.readString(prefKey);
                 break;
             case PREF_SHOW_REFERENCE_EDITTEXT:
-                mShowReferenceEditText =
-                        mPreferenceReader.readBoolean(PREF_SHOW_REFERENCE_EDITTEXT);
+                mShowReferenceEditText = mPreferenceReader.readBoolean(prefKey);
                 break;
             default:
-                // try loading as a specific field or group's setting
-                loadPrefixedSetting(prefKey);
-                break;
+                Log.w(TAG, "Basic preference " + prefKey + " wasn't processed");
         }
     }
 
-    private void loadPrefixedSetting(String prefKey) {
-        if (prefKey == null) {
-            return;
-        }
-        if (prefKey.endsWith(BASE_SUFFIX)) {
-            mPreferenceReader.loadTestFieldDefaultableSetting(
-                    prefKey.substring(0, prefKey.length() - BASE_SUFFIX.length()),
-                    mTestFieldDefaults);
-        } else if (containsIdSuffix(prefKey, GROUP_INFIX)) {
-            PrefKeyPieces prefKeyPieces = PrefKeyPieces.parse(prefKey, GROUP_INFIX, mTestGroups,
-                    Settings::isGroupIdValid);
-            if (prefKeyPieces == null) {
-                return;
-            }
-            loadTestGroupSetting(prefKeyPieces.mPrefix, prefKeyPieces.mId);
-        } else if (containsIdSuffix(prefKey, FIELD_INFIX)) {
-            PrefKeyPieces prefKeyPieces = PrefKeyPieces.parse(prefKey, FIELD_INFIX, mTestFields,
-                    Settings::isFieldIdValid);
-            if (prefKeyPieces == null) {
-                return;
-            }
-            TestField testField = getField(prefKeyPieces.mId);
-            mPreferenceReader.loadTestFieldSpecificSetting(prefKeyPieces.mPrefix, testField);
-            mPreferenceReader.loadTestFieldDefaultableSetting(prefKeyPieces.mPrefix, testField);
-        } else {
-            Log.w(TAG, "Preference " + prefKey + " couldn't be processed as a prefixed setting");
-        }
-    }
-
-    private static boolean containsIdSuffix(String prefKey, String infix) {
-        return prefKey.matches(".*" + Pattern.quote(infix) + "\\d+$");
-    }
-
-    private static class PrefKeyPieces {
-        public final String mPrefix;
-        public final String mInfix;
-        public final int mId;
-
-        public PrefKeyPieces(String prefix, String infix, int id) {
-            mPrefix = prefix;
-            mInfix = infix;
-            mId = id;
-        }
-
-        public static PrefKeyPieces parse(String prefKey, String infix, Map<Integer, ?> target,
-                                          Predicate<Integer> isIdValid) {
-            int prefixLength = prefKey.lastIndexOf(infix);
-            String infixName = infix.replaceAll("^_", "").replaceAll("_$", "").replaceAll("_", " ");
-            int id;
-            try {
-                id = Integer.parseInt(prefKey.substring(prefixLength + infix.length()));
-            } catch (NumberFormatException ignored) {
-                Log.e(TAG, "Failed to parse " + infixName + " ID for pref " + prefKey);
-                return null;
-            }
-            if (!target.containsKey(id) && !getInstance().mPrefs.contains(prefKey)) {
-                // this is most likely from deleting an old preference when the parent is deleted,
-                // so we don't need to bother loading this value
-                return null;
-            }
-            if (!isIdValid.test(id)) {
-                Log.e(TAG, "The " + infixName + " " + id + " for pref " + prefKey
-                        + " doesn't exist");
-                return null;
-            }
-            String prefKeyPrefix = prefKey.substring(0, prefixLength);
-            return new PrefKeyPieces(prefKeyPrefix, infix, id);
-        }
-    }
-
-    private void loadTestGroupSetting(String prefKeyPrefix, int groupId) {
-        switch (prefKeyPrefix) {
+    private void loadTestGroupSetting(PreferenceKey prefKey) {
+        switch (prefKey.getStem()) {
             case PREF_TEST_FIELD_IDS_PREFIX:
                 // internal state is updated while these are modified since they aren't managed by a
                 // simple Preference, so we don't need to do anything when these change
                 break;
             case PREF_TEST_GROUP_NAME_PREFIX:
                 //TODO: (EW) see if PREF_TEST_GROUP_NAME_PREFIX can only be loaded in 1 call
-                getGroupById(groupId).mName = mPreferenceReader.readTestGroupString(groupId,
-                        PREF_TEST_GROUP_NAME_PREFIX);
+                getGroupById(prefKey.getId()).mName = mPreferenceReader.readString(prefKey);
                 break;
             default:
-                Log.w(TAG, "Preference " + prefKeyPrefix + GROUP_INFIX + groupId
-                        + " wasn't processed");
+                Log.w(TAG, "Group preference " + prefKey + " wasn't processed");
         }
     }
 
