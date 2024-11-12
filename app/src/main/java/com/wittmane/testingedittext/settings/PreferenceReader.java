@@ -42,8 +42,7 @@ import com.wittmane.testingedittext.settings.preferences.TextTranslateListPrefer
 
 import java.util.Locale;
 
-//TODO: (EW) make package private
-public class PreferenceReader {
+/* package */ class PreferenceReader {
     private static final String TAG = PreferenceReader.class.getSimpleName();
 
     //#region data types

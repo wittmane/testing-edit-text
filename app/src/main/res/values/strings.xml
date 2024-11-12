@@ -41,6 +41,7 @@
     <string name="invalid_value"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid value (<xliff:g id="VALUE">%s</xliff:g>).</string>
     <string name="invalid_locale"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid locale (<xliff:g id="VALUE">%s</xliff:g>).</string>
     <string name="invalid_data_type"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid data type.</string>
+    <string name="unexpected_data_format"><xliff:g id="JSON_PATH">%s</xliff:g> has an unexpected data format.</string>
     <string name="null_data"><xliff:g id="JSON_PATH">%s</xliff:g> is null.</string>
     <string name="failed_to_parse_data">Failed to parse data for <xliff:g id="JSON_PATH">%s</xliff:g>.</string>
     <string name="unexpected_property">Unexpected property: <xliff:g id="JSON_PATH">%s</xliff:g></string>

@@ -71,6 +71,12 @@ public abstract class JsonManager {
     private static final String TEXT_LIST_DATA_ARRAY_JSON_PROP = "dataArray";
     private static final String TRANSLATE_TEXT_ORIGINAL_JSON_PROP = "original";
     private static final String TRANSLATE_TEXT_TRANSLATION_JSON_PROP = "translation";
+    private static final String CUSTOM_OBJECT_DATA_FORMAT_JSON_PROP = "format";
+    private static final String CUSTOM_OBJECT_DATA_JSON_PROP = "data";
+
+    private static final int DATA_FORMAT_SPANNED = 1;
+
+    private static final String UNEXPECTED_CUSTOM_OBJECT_MESSAGE = "unexpected data format";
 
     public static String getJson(boolean exportFieldDefaults, List<GroupInfo> groupInfoList,
                                  boolean embedFieldDefaults, boolean exportOtherSettings) {
@@ -356,12 +362,8 @@ public abstract class JsonManager {
                                              PreferenceKey prefKey,
                                              PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKey, preferenceReader::readSpannedWithInfo, value -> {
-            // get the data that SharedPreferenceManager uses to save spanned objects
-            addArray(jsonObject, jsonPropName, value == null
-                    ? null
-                    : SharedPreferenceManager.getSpannedInfo(value));
-        });
+        addPrefToJson(prefKey, preferenceReader::readSpannedWithInfo,
+                value -> addSpanned(jsonObject, jsonPropName, value));
     }
 
     private static void addCharSequencePrefToJson(JSONObject jsonObject, String jsonPropName,
@@ -370,13 +372,7 @@ public abstract class JsonManager {
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readCharSequenceWithInfo, value -> {
             if (value instanceof Spanned) {
-                // get the data that SharedPreferenceManager uses to save spanned objects
-                //TODO: (EW) possibly should embed some indication of what data this holds
-                // so that if other supported CharSequence type are supported in the future
-                // or we find a better way to export the data, we can maintain compatibility
-                // between varying versions between the exporting and importing app.
-                addArray(jsonObject, jsonPropName,
-                        SharedPreferenceManager.getSpannedInfo((Spanned) value));
+                addSpanned(jsonObject, jsonPropName, (Spanned)value);
             } else if (value == null || value instanceof String) {
                 addObject(jsonObject, jsonPropName, value);
             } else {
@@ -500,6 +496,23 @@ public abstract class JsonManager {
             jsonObject.put(jsonPropName, JSONObject.NULL);
         } else {
             jsonObject.put(jsonPropName, data);
+        }
+    }
+
+    private static void addSpanned(JSONObject jsonObject, String jsonPropName, Spanned value)
+            throws JSONException {
+        if (value == null) {
+            jsonObject.put(jsonPropName, JSONObject.NULL);
+        } else {
+            // embed an indication of what data this holds so that if other CharSequence types are
+            // supported in the future or we find a better way to export the data, we can maintain
+            // compatibility between varying versions between the exporting and importing app
+            JSONObject dataJsonObject = new JSONObject();
+            dataJsonObject.put(CUSTOM_OBJECT_DATA_FORMAT_JSON_PROP, DATA_FORMAT_SPANNED);
+            // get the data that SharedPreferenceManager uses to save spanned objects
+            addArray(dataJsonObject, CUSTOM_OBJECT_DATA_JSON_PROP,
+                    SharedPreferenceManager.getSpannedInfo(value));
+            jsonObject.put(jsonPropName, dataJsonObject);
         }
     }
 
@@ -1250,6 +1263,7 @@ public abstract class JsonManager {
         setPref(prefKey, textListTranslateTextData, TextTranslateListPreference.DataManager::new);
     }
 
+    //TODO: (EW) rename - this is a confusing name that sounds like it would always save
     private static <T> void setPref(@Nullable String prefKey, String prefKeyOrPrefix, T value,
                                     TriConsumer<SharedPreferenceManager, String, T> setPref) {
         if (prefKey != null) {
@@ -1283,6 +1297,8 @@ public abstract class JsonManager {
             if (message != null && message.matches(
                     "Value .* at \\w+ of type [\\w.]+ cannot be converted to [\\w.]+")) {
                 info.mWarnings.add(context.getString(R.string.invalid_data_type, path));
+            } else if (message != null && message.equals(UNEXPECTED_CUSTOM_OBJECT_MESSAGE)) {
+                info.mWarnings.add(context.getString(R.string.unexpected_data_format, path));
             } else {
                 info.mWarnings.add(context.getString(R.string.failed_to_parse_data, path));
             }
@@ -1357,9 +1373,13 @@ public abstract class JsonManager {
         if (jsonObject.isNull(jsonPropName)) {
             return null;
         }
-        String[] spannedInfo = getStringArray(jsonObject, jsonPropName);
-        //TODO: (EW) figure out how to get validation issue from this
-        return SharedPreferenceManager.buildSpanned(spannedInfo);
+        JSONObject dataJsonObject = jsonObject.getJSONObject(jsonPropName);
+        int dataFormat = dataJsonObject.getInt(CUSTOM_OBJECT_DATA_FORMAT_JSON_PROP);
+        if (dataFormat == DATA_FORMAT_SPANNED) {
+            String[] spannedInfo = getStringArray(dataJsonObject, CUSTOM_OBJECT_DATA_JSON_PROP);
+            return SharedPreferenceManager.buildSpanned(spannedInfo);
+        }
+        throw new JSONException(UNEXPECTED_CUSTOM_OBJECT_MESSAGE);
     }
 
     public static void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
