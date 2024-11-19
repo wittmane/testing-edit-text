@@ -602,14 +602,27 @@ public abstract class JsonManager {
         public boolean mInclude;
     }
 
-    private static Set<String> getProps(JSONObject jsonObject) {
-        Set<String> props = new HashSet<>();
-        Iterator<String> keys = jsonObject.keys();
-        while(keys.hasNext()) {
-            String key = keys.next();
-            props.add(key);
+    private static class UnusedPropertyTracker {
+        private final Set<String> mUnusedProperties;
+
+        public UnusedPropertyTracker(JSONObject jsonObject) {
+            mUnusedProperties = new HashSet<>();
+            Iterator<String> keys = jsonObject.keys();
+            while(keys.hasNext()) {
+                String key = keys.next();
+                mUnusedProperties.add(key);
+            }
         }
-        return props;
+
+        public boolean contains(String property) {
+            boolean result = mUnusedProperties.contains(property);
+            mUnusedProperties.remove(property);
+            return result;
+        }
+
+        public Set<String> getUnusedProperties() {
+            return mUnusedProperties;
+        }
     }
 
     private static JSONObject getJsonObject(JSONObject jsonObject, String propName)
@@ -624,13 +637,9 @@ public abstract class JsonManager {
 
         try {
             info.mJsonObject = new JSONObject(rawJson);
-            Set<String> props = getProps(info.mJsonObject);
+            UnusedPropertyTracker props = new UnusedPropertyTracker(info.mJsonObject);
 
-            //TODO: (EW) see if there is a good way to reduce duplicate code with tracking the
-            // unexpected properties
             if (props.contains(GROUPS_JSON_PROP)) {
-                props.remove(GROUPS_JSON_PROP);
-
                 List<GroupInfo> groups = new ArrayList<>();
                 JSONArray groupsJsonArray = info.mJsonObject.getJSONArray(GROUPS_JSON_PROP);
                 for (int i = 0; i < groupsJsonArray.length(); i++) {
@@ -645,10 +654,7 @@ public abstract class JsonManager {
                 }
                 info.mGroups = groups;
             } else if (props.contains(FIELDS_JSON_PROP)) {
-                props.remove(FIELDS_JSON_PROP);
-
                 List<GroupInfo> groups = new ArrayList<>();
-
                 GroupInfo groupInfo = new GroupInfo();
 
                 // build the ad-hoc group to load
@@ -668,11 +674,9 @@ public abstract class JsonManager {
             }
 
             if (props.contains(FIELD_DEFAULTS_JSON_PROP)) {
-                props.remove(FIELD_DEFAULTS_JSON_PROP);
-
                 JSONObject fieldDefaultsJsonObject =
                         info.mJsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP);
-                if (!validateGroupedSettingsJson(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES,
+                if (!validateSettingsClusterJson(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES,
                         fieldDefaultsJsonObject, info, FIELD_DEFAULTS_JSON_PROP, context)) {
                     return info;
                 }
@@ -680,18 +684,16 @@ public abstract class JsonManager {
             }
 
             if (props.contains(OTHER_SETTINGS_JSON_PROP)) {
-                props.remove(OTHER_SETTINGS_JSON_PROP);
-
                 JSONObject otherSettingsJsonObject =
                         info.mJsonObject.getJSONObject(OTHER_SETTINGS_JSON_PROP);
-                if (!validateGroupedSettingsJson(MISC_PREF_KEYS,
+                if (!validateSettingsClusterJson(MISC_PREF_KEYS,
                         otherSettingsJsonObject, info, OTHER_SETTINGS_JSON_PROP, context)) {
                     return info;
                 }
                 info.mIsOtherSettingsIncluded = true;
             }
 
-            info.mUnexpectedProps.addAll(props);
+            info.mUnexpectedProps.addAll(props.getUnusedProperties());
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
             info.mError = context.getString(R.string.failed_to_parse_import_file);
@@ -708,11 +710,9 @@ public abstract class JsonManager {
         Map<String, String> namesMap = new HashMap<>();
         List<FieldInfo> fields = new ArrayList<>();
 
-        Set<String> props = getProps(groupJsonObject);
+        UnusedPropertyTracker props = new UnusedPropertyTracker(groupJsonObject);
 
         if (props.contains(FIELDS_JSON_PROP)) {
-            props.remove(FIELDS_JSON_PROP);
-
             JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(FIELDS_JSON_PROP);
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
                 FieldInfo fieldInfo = new FieldInfo();
@@ -729,8 +729,6 @@ public abstract class JsonManager {
         for (String testGroupPrefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
             String jsonProp = prefKeyPrefixToJsonName(testGroupPrefKeyPrefix);
             if (props.contains(jsonProp)) {
-                props.remove(jsonProp);
-
                 if (!testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
                     if (!validatePrefData(groupJsonObject, jsonProp, path, testGroupPrefKeyPrefix,
                             info, context, namesMap)) {
@@ -740,7 +738,7 @@ public abstract class JsonManager {
             }
         }
 
-        for (String prop : props) {
+        for (String prop : props.getUnusedProperties()) {
             info.mUnexpectedProps.add(path + "." + prop);
         }
 
@@ -757,13 +755,11 @@ public abstract class JsonManager {
                                              FieldInfo fieldInfo) {
         Map<String, String> namesMap = new HashMap<>();
 
-        Set<String> props = getProps(fieldJsonObject);
+        UnusedPropertyTracker props = new UnusedPropertyTracker(fieldJsonObject);
 
         for (String testFieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
             String jsonProp = prefKeyPrefixToJsonName(testFieldPrefKeyPrefix);
             if (props.contains(jsonProp)) {
-                props.remove(jsonProp);
-
                 if (!validatePrefData(fieldJsonObject, jsonProp, path, testFieldPrefKeyPrefix, info,
                         context, namesMap)) {
                     return false;
@@ -774,8 +770,6 @@ public abstract class JsonManager {
         for (String defaultableTestFieldPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
             String jsonProp = prefKeyPrefixToJsonName(defaultableTestFieldPrefKeyPrefix);
             if (props.contains(jsonProp)) {
-                props.remove(jsonProp);
-
                 if (!validatePrefData(fieldJsonObject, jsonProp, path,
                         defaultableTestFieldPrefKeyPrefix, info, context, null)) {
                     return false;
@@ -783,7 +777,7 @@ public abstract class JsonManager {
             }
         }
 
-        for (String prop : props) {
+        for (String prop : props.getUnusedProperties()) {
             info.mUnexpectedProps.add(path + "." + prop);
         }
 
@@ -798,19 +792,15 @@ public abstract class JsonManager {
         return true;
     }
 
-    //TODO: (EW) rename - it sounds too much like it's referring to field groups. maybe use
-    // something different, like "cluster"
-    private static boolean validateGroupedSettingsJson(String[] keyOrKeyPrefixArray,
+    private static boolean validateSettingsClusterJson(String[] keyOrKeyPrefixArray,
                                                        JSONObject jsonObject,
                                                        ImportFileInfo info, String path,
                                                        Context context) {
-        Set<String> props = getProps(jsonObject);
+        UnusedPropertyTracker props = new UnusedPropertyTracker(jsonObject);
 
         for (String prefKeyPrefix : keyOrKeyPrefixArray) {
             String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
             if (props.contains(jsonProp)) {
-                props.remove(jsonProp);
-
                 if (!validatePrefData(jsonObject, jsonProp, path, prefKeyPrefix, info, context,
                         null)) {
                     return false;
@@ -818,7 +808,7 @@ public abstract class JsonManager {
             }
         }
 
-        for (String prop : props) {
+        for (String prop : props.getUnusedProperties()) {
             info.mUnexpectedProps.add(path + "." + prop);
         }
 
