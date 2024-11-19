@@ -269,16 +269,17 @@ public abstract class JsonManager {
                 addStringArrayPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_INT_RANGE:
-                addIntRangePrefToJson(jsonObject, jsonPropName, prefKey);
+                addIntRangePrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_LOCALE_ARRAY:
-                addLocaleArrayPrefToJson(jsonObject, jsonPropName, prefKey);
+                addLocaleArrayPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_TEXT_LIST_STRING:
-                addTextListStringPrefToJson(jsonObject, jsonPropName, prefKey);
+                addTextListStringPrefToJson(jsonObject, jsonPropName, prefKey, preferenceReader);
                 break;
             case PreferenceReader.TYPE_TEXT_LIST_TRANSLATE_TEXT:
-                addTextListTranslateTextPrefToJson(jsonObject, jsonPropName, prefKey);
+                addTextListTranslateTextPrefToJson(jsonObject, jsonPropName, prefKey,
+                        preferenceReader);
                 break;
             case PreferenceReader.TYPE_UNKNOWN:
             default:
@@ -302,18 +303,6 @@ public abstract class JsonManager {
         PrefInfo<T> info = readPref.apply(prefKey);
         if (EXPORT_DEFAULT_PREFS_VALUES || !info.valueIsDefault) {
             addToJson.accept(info.value);
-        }
-    }
-
-    private static <T> void addPrefToJson(PreferenceKey prefKey,
-            BiFunction<SharedPreferenceManager, String, DataManager<T>> getDataManager,
-            AddPropToJsonConsumer<T> addToJson) throws JSONException {
-        SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
-        DataManager<T> dataManager = getDataManager.apply(prefs, prefKey.toString());
-        T defaultValue = dataManager.readDefaultValue();
-        T value = dataManager.readValue();
-        if (EXPORT_DEFAULT_PREFS_VALUES || !SharedPreferenceManager.equals(value, defaultValue)) {
-            addToJson.accept(value);
         }
     }
 
@@ -398,57 +387,52 @@ public abstract class JsonManager {
     }
 
     private static void addIntRangePrefToJson(JSONObject jsonObject, String jsonPropName,
-                                              PreferenceKey prefKey)
+                                              PreferenceKey prefKey,
+                                              PreferenceReader preferenceReader)
             throws JSONException {
-        //TODO: (EW) make more generic. the only use case for the int range currently is the
-        // codepoint range preference. maybe just convert this preference to use an int
-        // array and just have extra validation on the length when reading the data.
-        addPrefToJson(prefKey, CodepointRangeDialogPreference.DataManager::new, value -> {
+        addPrefToJson(prefKey, preferenceReader::readIntRangeWithInfo, value -> {
             addArray(jsonObject, jsonPropName, value == null
                     ? null
-                    : new int[] {
-                            value.getStart(),
-                            value.getEnd()
-                    });
+                    : new int[] { value.getStart(), value.getEnd() });
         });
     }
 
     private static void addLocaleArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                                 PreferenceKey prefKey)
+                                                 PreferenceKey prefKey,
+                                                 PreferenceReader preferenceReader)
             throws JSONException {
-        //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
-        // preference)
-        addPrefToJson(prefKey, LocaleEntryListPreference.DataManager::new, value -> {
-            String[] localeStrings = new String[value.length];
-            for (int i = 0; i < value.length; i++) {
-                localeStrings[i] = LocaleEntryListPreference.getLocaleString(
-                        value[i]);
+        addPrefToJson(prefKey, preferenceReader::readLocaleArrayWithInfo, value -> {
+            String[] localeStrings;
+            if (value == null) {
+                localeStrings = null;
+            } else {
+                localeStrings = new String[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    localeStrings[i] = LocaleEntryListPreference.getLocaleString(value[i]);
+                }
             }
             addArray(jsonObject, jsonPropName, localeStrings);
         });
     }
 
     private static void addTextListStringPrefToJson(JSONObject jsonObject, String jsonPropName,
-                                                    PreferenceKey prefKey)
+                                                    PreferenceKey prefKey,
+                                                    PreferenceReader preferenceReader)
             throws JSONException {
-        //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
-        // preference)
-        addPrefToJson(prefKey, TextListPreference.DataManager::new, value -> {
-            JSONObject textListStringJsonObject = new JSONObject();
-            textListStringJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP, value.escapeChars());
-            addArray(textListStringJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP,
-                    value.getDataArray());
-            jsonObject.put(jsonPropName, textListStringJsonObject);
+        addPrefToJson(prefKey, preferenceReader::readTextListStringWithInfo, value -> {
+            JSONObject textListJsonObject = new JSONObject();
+            textListJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP, value.escapeChars());
+            addArray(textListJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP, value.getDataArray());
+            jsonObject.put(jsonPropName, textListJsonObject);
         });
     }
 
     private static void addTextListTranslateTextPrefToJson(JSONObject jsonObject,
                                                            String jsonPropName,
-                                                           PreferenceKey prefKey)
+                                                           PreferenceKey prefKey,
+                                                           PreferenceReader preferenceReader)
             throws JSONException {
-        //TODO: (EW) possibly could be more generic (or at least decoupled from the specific
-        // preference)
-        addPrefToJson(prefKey, TextTranslateListPreference.DataManager::new, value -> {
+        addPrefToJson(prefKey, preferenceReader::readTextListTranslateTextWithInfo, value -> {
             JSONObject translateTextJsonObject = new JSONObject();
             translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP, value.escapeChars());
             JSONObject[] translateTextArray = new JSONObject[value.getDataArray().length];
@@ -1177,8 +1161,6 @@ public abstract class JsonManager {
                                                   @NonNull Context context,
                                                   @Nullable String prefKey)
             throws JSONException {
-        //TODO: (EW) possibly could be more generic (or at least decoupled from the
-        // specific preference)
         String[] localStrings = getStringArray(jsonObject, jsonPropName);
         int localeCount = localStrings == null ? 0 : localStrings.length;
         List<Locale> localeList = new ArrayList<>();
@@ -1203,8 +1185,6 @@ public abstract class JsonManager {
                                                      @NonNull Context context,
                                                      @Nullable String prefKey)
             throws JSONException {
-        //TODO: (EW) possibly could be more generic (or at least decoupled from the
-        // specific preference)
         JSONObject textListJsonObject = jsonObject.getJSONObject(jsonPropName);
         String[] stringArray = getStringArray(textListJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP);
         if (stringArray == null) {
@@ -1228,8 +1208,6 @@ public abstract class JsonManager {
                                                             @NonNull Context context,
                                                             @Nullable String prefKey)
             throws JSONException {
-        //TODO: (EW) possibly could be more generic (or at least decoupled from the
-        // specific preference)
         JSONObject textListJsonObject = jsonObject.getJSONObject(jsonPropName);
         JSONObject[] translateTextJsonObjects = getJsonObjectArray(textListJsonObject,
                 TEXT_LIST_DATA_ARRAY_JSON_PROP);

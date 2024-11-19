@@ -32,6 +32,7 @@ import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.function.BiFunction;
 import com.wittmane.testingedittext.function.Function;
 import com.wittmane.testingedittext.function.Predicate;
 import com.wittmane.testingedittext.function.TriFunction;
@@ -376,6 +377,14 @@ import java.util.Locale;
 
     //#region generic read methods
     //#region core read methods
+    public <T> PrefInfo<T> readWithInfo(PreferenceKey prefKey,
+            BiFunction<SharedPreferenceManager, String, DataManager<T>> getDataManager) {
+        DataManager<T> dataManager = getDataManager.apply(mPrefs,
+                prefKey == null ? null : prefKey.toString());
+        return readWithInfo(prefKey, key -> dataManager.readDefaultValue(),
+                (prefs, key, defaultValue) -> dataManager.readValue());
+    }
+
     private <T> PrefInfo<T> readWithInfo(PreferenceKey prefKey,
                                          Function<String, T> getDefault,
                                          TriFunction<SharedPreferenceManager,String,T,T> getValue) {
@@ -483,138 +492,43 @@ import java.util.Locale;
     public String[] readStringArray(PreferenceKey prefKey) {
         return readStringArrayWithInfo(prefKey).value;
     }
+
+    public PrefInfo<Locale[]> readLocaleArrayWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, LocaleEntryListPreference.DataManager::new);
+    }
+
+    public Locale[] readLocaleArray(PreferenceKey prefKey) {
+        return readLocaleArrayWithInfo(prefKey).value;
+    }
+
+    public PrefInfo<TextList<String>> readTextListStringWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, TextListPreference.DataManager::new);
+    }
+
+    public TextList<String> readTextListString(PreferenceKey prefKey) {
+        return readTextListStringWithInfo(prefKey).value;
+    }
+
+    public PrefInfo<TextList<TranslateText>> readTextListTranslateTextWithInfo(PreferenceKey prefKey) {
+        return readWithInfo(prefKey, TextTranslateListPreference.DataManager::new);
+    }
+
+    public TextList<TranslateText> readTextListTranslateText(PreferenceKey prefKey) {
+        return readTextListTranslateTextWithInfo(prefKey).value;
+    }
     //#endregion
 
-    //TODO: (EW) consider decoupling these method from the specific preference class (maybe have
-    // the preference classes call this class to read)
-
     //#region preference class specific methods
-    private Locale[] readTextLocales(PreferenceKey prefKey) {
-        return (new LocaleEntryListPreference.DataManager(mPrefs,
-                prefKey == null ? null : prefKey.toString())).readValue();
+    public PrefInfo<IntRange> readIntRangeWithInfo(PreferenceKey prefKey) {
+        //TODO: (EW) the DataManager class is reasonably generic (other than some error log
+        // messages), but the class it's contained in is specific, so referencing that here seems
+        // ugly. if this preference just used an int array preference, I think this would be more
+        // clean.
+        return readWithInfo(prefKey, CodepointRangeDialogPreference.DataManager::new);
     }
 
-    private Locale[] readImeHintLocales(PreferenceKey prefKey) {
-        return (new LocaleEntryListPreference.DataManager(mPrefs,
-                prefKey == null ? null : prefKey.toString())).readValue();
-    }
-
-    private String[] readRestrictSpecific(PreferenceKey prefKey) {
-        TextList<String> textList = (new TextListPreference.DataManager(mPrefs,
-                prefKey == null ? null : prefKey.toString())).readValue();
-        String[] result = new String[textList.getDataArray().length];
-        for (int i = 0; i < textList.getDataArray().length; i++) {
-            if (textList.escapeChars()) {
-                result[i] = escapeChars(textList.getDataArray()[i]);
-            } else {
-                result[i] = textList.getDataArray()[i];
-            }
-        }
-        return result;
-    }
-
-    @Nullable
-    private IntRange readRestrictRange(PreferenceKey prefKey) {
-        return (new CodepointRangeDialogPreference.DataManager(mPrefs,
-                prefKey == null ? null : prefKey.toString()))
-                .readValue();
-    }
-
-    private TranslateText[] readTranslateSpecific(PreferenceKey prefKey) {
-        TextList<TranslateText> textList =
-                (new TextTranslateListPreference.DataManager(mPrefs,
-                        prefKey == null ? null : prefKey.toString()))
-                        .readValue();
-        TranslateText[] result = new TranslateText[textList.getDataArray().length];
-        for (int i = 0; i < textList.getDataArray().length; i++) {
-            if (textList.escapeChars()) {
-                result[i] = new TranslateText(escapeChars(textList.getDataArray()[i].getOriginal()),
-                        escapeChars(textList.getDataArray()[i].getTranslation()));
-            } else {
-                result[i] = textList.getDataArray()[i];
-            }
-        }
-        return result;
-    }
-
-    private static String escapeChars(String text) {
-        if (text == null) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder();
-        boolean escapeNextChar = false;
-        char[] unicode;
-        int i = 0;
-        while (i < text.length()) {
-            char current = text.charAt(i);
-            if (escapeNextChar) {
-                switch (current) {
-                    case 'n':
-                        sb.append('\n');
-                        break;
-                    case 'r':
-                        sb.append('\r');
-                        break;
-                    case 't':
-                        sb.append('\t');
-                        break;
-                    case '0':
-                        sb.append('\0');
-                        break;
-                    case 'u':
-                        unicode = new char[4];
-                        int unicodeIndex = 0;
-                        while (unicodeIndex < unicode.length
-                                && i + unicodeIndex + 1 < text.length()) {
-                            char unicodeChar = text.charAt(i + unicodeIndex + 1);
-                            if (!((unicodeChar >= '0' && unicodeChar <= '9')
-                                    || (unicodeChar >= 'a' && unicodeChar <= 'f'))) {
-                                break;
-                            }
-                            unicode[unicodeIndex] = unicodeChar;
-                            unicodeIndex++;
-                        }
-                        if (unicodeIndex != unicode.length) {
-                            Log.e(TAG, "Invalid escape character at " + (i + unicodeIndex + 1)
-                                    + ": \"" + text + "\"");
-                            if (unicodeIndex == 0) {
-                                // no hex digits were listed, so treat as just an unnecessary escape
-                                // of the 'u' character and just use the original character
-                                // (skipping '\'). don't increment i to process the current char
-                                // again as not being escaped
-                                escapeNextChar = false;
-                                continue;
-                            }
-                            // assume leading 0s were just skipped. shift the existing values and
-                            // insert 0s.
-                            int shift = unicode.length - unicodeIndex;
-                            for (int j = unicode.length - 1; j >= 0; j--) {
-                                unicode[j] = j - shift >= 0 ? unicode[j - shift] : '0';
-                            }
-                        }
-                        sb.append((char)Integer.parseInt(new String(unicode), 16));
-                        i += unicodeIndex;
-                        break;
-                    case '\\':
-                        sb.append('\\');
-                        break;
-                    default:
-                        Log.e(TAG, "Invalid escape character at " + i + ": \"" + text + "\"");
-                        // treat as just an unnecessary escape of the character and just use the
-                        // original character (skipping '\'). don't increment i to process the
-                        // current char again as not being escaped
-                        escapeNextChar = false;
-                        continue;
-                }
-                escapeNextChar = false;
-            } else if (text.charAt(i) == '\\') {
-                escapeNextChar = true;
-            } else {
-                sb.append(current);
-            }
-            i++;
-        }
-        return sb.toString();
+    public IntRange readIntRange(PreferenceKey prefKey) {
+        return readIntRangeWithInfo(prefKey).value;
     }
     //#endregion
     //#endregion
@@ -651,13 +565,14 @@ import java.util.Locale;
                 testFieldOrDefault.mRestrictToInclude = readBoolean(prefKey);
                 break;
             case PREF_RESTRICT_SPECIFIC_PREFIX:
-                testFieldOrDefault.mRestrictSpecific = readRestrictSpecific(prefKey);
+                testFieldOrDefault.mRestrictSpecific = getStrings(readTextListString(prefKey));
                 break;
             case PREF_RESTRICT_RANGE_PREFIX:
-                testFieldOrDefault.mRestrictRange = readRestrictRange(prefKey);
+                testFieldOrDefault.mRestrictRange = readIntRange(prefKey);
                 break;
             case PREF_TRANSLATE_SPECIFIC_PREFIX:
-                testFieldOrDefault.mTranslateSpecific = readTranslateSpecific(prefKey);
+                testFieldOrDefault.mTranslateSpecific =
+                        getTranslateTexts(readTextListTranslateText(prefKey));
                 break;
             case PREF_TRANSLATE_FULL_MATCH_ONLY_PREFIX:
                 testFieldOrDefault.mTranslateFullMatchOnly = readBoolean(prefKey);
@@ -756,6 +671,114 @@ import java.util.Locale;
             default:
                 Log.w(TAG, "Test field defaultable preference " + prefKey + " wasn't processed");
         }
+    }
+
+    private static String[] getStrings(TextList<String> textList) {
+        if (textList == null) {
+            return null;
+        }
+        String[] result = new String[textList.getDataArray().length];
+        for (int i = 0; i < textList.getDataArray().length; i++) {
+            if (textList.escapeChars()) {
+                result[i] = escapeChars(textList.getDataArray()[i]);
+            } else {
+                result[i] = textList.getDataArray()[i];
+            }
+        }
+        return result;
+    }
+
+    private static TranslateText[] getTranslateTexts(TextList<TranslateText> textList) {
+        TranslateText[] result = new TranslateText[textList.getDataArray().length];
+        for (int i = 0; i < textList.getDataArray().length; i++) {
+            if (textList.escapeChars()) {
+                result[i] = new TranslateText(escapeChars(textList.getDataArray()[i].getOriginal()),
+                        escapeChars(textList.getDataArray()[i].getTranslation()));
+            } else {
+                result[i] = textList.getDataArray()[i];
+            }
+        }
+        return result;
+    }
+
+    private static String escapeChars(String text) {
+        if (text == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean escapeNextChar = false;
+        char[] unicode;
+        int i = 0;
+        while (i < text.length()) {
+            char current = text.charAt(i);
+            if (escapeNextChar) {
+                switch (current) {
+                    case 'n':
+                        sb.append('\n');
+                        break;
+                    case 'r':
+                        sb.append('\r');
+                        break;
+                    case 't':
+                        sb.append('\t');
+                        break;
+                    case '0':
+                        sb.append('\0');
+                        break;
+                    case 'u':
+                        unicode = new char[4];
+                        int unicodeIndex = 0;
+                        while (unicodeIndex < unicode.length
+                                && i + unicodeIndex + 1 < text.length()) {
+                            char unicodeChar = text.charAt(i + unicodeIndex + 1);
+                            if (!((unicodeChar >= '0' && unicodeChar <= '9')
+                                    || (unicodeChar >= 'a' && unicodeChar <= 'f'))) {
+                                break;
+                            }
+                            unicode[unicodeIndex] = unicodeChar;
+                            unicodeIndex++;
+                        }
+                        if (unicodeIndex != unicode.length) {
+                            Log.e(TAG, "Invalid escape character at " + (i + unicodeIndex + 1)
+                                    + ": \"" + text + "\"");
+                            if (unicodeIndex == 0) {
+                                // no hex digits were listed, so treat as just an unnecessary escape
+                                // of the 'u' character and just use the original character
+                                // (skipping '\'). don't increment i to process the current char
+                                // again as not being escaped
+                                escapeNextChar = false;
+                                continue;
+                            }
+                            // assume leading 0s were just skipped. shift the existing values and
+                            // insert 0s.
+                            int shift = unicode.length - unicodeIndex;
+                            for (int j = unicode.length - 1; j >= 0; j--) {
+                                unicode[j] = j - shift >= 0 ? unicode[j - shift] : '0';
+                            }
+                        }
+                        sb.append((char)Integer.parseInt(new String(unicode), 16));
+                        i += unicodeIndex;
+                        break;
+                    case '\\':
+                        sb.append('\\');
+                        break;
+                    default:
+                        Log.e(TAG, "Invalid escape character at " + i + ": \"" + text + "\"");
+                        // treat as just an unnecessary escape of the character and just use the
+                        // original character (skipping '\'). don't increment i to process the
+                        // current char again as not being escaped
+                        escapeNextChar = false;
+                        continue;
+                }
+                escapeNextChar = false;
+            } else if (text.charAt(i) == '\\') {
+                escapeNextChar = true;
+            } else {
+                sb.append(current);
+            }
+            i++;
+        }
+        return sb.toString();
     }
 
     /* package */ void loadTestFieldSpecificSettings(TestField testField) {
@@ -924,10 +947,10 @@ import java.util.Locale;
                 testField.mAllowUndo = readBoolean(prefKey);
                 break;
             case PREF_TEXT_LOCALES_PREFIX:
-                testField.mTextLocales = readTextLocales(prefKey);
+                testField.mTextLocales = readLocaleArray(prefKey);
                 break;
             case PREF_IME_HINT_LOCALES_PREFIX:
-                testField.mImeHintLocales = readImeHintLocales(prefKey);
+                testField.mImeHintLocales = readLocaleArray(prefKey);
                 break;
 
             case PREF_OVERRIDE_TEXT_INPUT_MODIFICATION_PREFIX:
