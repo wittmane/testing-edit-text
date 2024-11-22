@@ -36,10 +36,11 @@ import com.wittmane.testingedittext.function.BiFunction;
 import com.wittmane.testingedittext.function.Function;
 import com.wittmane.testingedittext.function.Predicate;
 import com.wittmane.testingedittext.function.TriFunction;
-import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
-import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
-import com.wittmane.testingedittext.settings.preferences.TextListPreference;
-import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
+import com.wittmane.testingedittext.settings.datamanager.DataManager;
+import com.wittmane.testingedittext.settings.datamanager.IntRangeDataManager;
+import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
+import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
+import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
 
 import java.util.Locale;
 
@@ -376,7 +377,6 @@ import java.util.Locale;
     }
 
     //#region generic read methods
-    //#region core read methods
     public <T> PrefInfo<T> readWithInfo(PreferenceKey prefKey,
             BiFunction<SharedPreferenceManager, String, DataManager<T>> getDataManager) {
         DataManager<T> dataManager = getDataManager.apply(mPrefs,
@@ -494,7 +494,7 @@ import java.util.Locale;
     }
 
     public PrefInfo<Locale[]> readLocaleArrayWithInfo(PreferenceKey prefKey) {
-        return readWithInfo(prefKey, LocaleEntryListPreference.DataManager::new);
+        return readWithInfo(prefKey, LocaleArrayDataManager::new);
     }
 
     public Locale[] readLocaleArray(PreferenceKey prefKey) {
@@ -502,7 +502,7 @@ import java.util.Locale;
     }
 
     public PrefInfo<TextList<String>> readTextListStringWithInfo(PreferenceKey prefKey) {
-        return readWithInfo(prefKey, TextListPreference.DataManager::new);
+        return readWithInfo(prefKey, StringTextListDataManager::new);
     }
 
     public TextList<String> readTextListString(PreferenceKey prefKey) {
@@ -510,27 +510,20 @@ import java.util.Locale;
     }
 
     public PrefInfo<TextList<TranslateText>> readTextListTranslateTextWithInfo(PreferenceKey prefKey) {
-        return readWithInfo(prefKey, TextTranslateListPreference.DataManager::new);
+        return readWithInfo(prefKey, TranslateTextTextListDataManager::new);
     }
 
     public TextList<TranslateText> readTextListTranslateText(PreferenceKey prefKey) {
         return readTextListTranslateTextWithInfo(prefKey).value;
     }
-    //#endregion
 
-    //#region preference class specific methods
     public PrefInfo<IntRange> readIntRangeWithInfo(PreferenceKey prefKey) {
-        //TODO: (EW) the DataManager class is reasonably generic (other than some error log
-        // messages), but the class it's contained in is specific, so referencing that here seems
-        // ugly. if this preference just used an int array preference, I think this would be more
-        // clean.
-        return readWithInfo(prefKey, CodepointRangeDialogPreference.DataManager::new);
+        return readWithInfo(prefKey, IntRangeDataManager::new);
     }
 
     public IntRange readIntRange(PreferenceKey prefKey) {
         return readIntRangeWithInfo(prefKey).value;
     }
-    //#endregion
     //#endregion
 
     //#region object loading methods

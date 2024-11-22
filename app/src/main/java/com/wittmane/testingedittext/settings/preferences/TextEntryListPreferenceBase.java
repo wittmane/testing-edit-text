@@ -18,7 +18,6 @@ package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TableRow;
@@ -26,11 +25,9 @@ import android.widget.TableRow;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.TextList;
-import com.wittmane.testingedittext.settings.preferences.TextEntryListPreferenceBase.TextListDataManager;
+import com.wittmane.testingedittext.settings.datamanager.TextListDataManager;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -72,62 +69,10 @@ public abstract class TextEntryListPreferenceBase<T, TDataManager extends TextLi
         mEscapeCharactersCheckBox.setChecked(data.escapeChars());
     }
 
-    protected static abstract class TextListDataManager<T> extends DataManagerBase<TextList<T>> {
-
-        protected TextListDataManager(SharedPreferenceManager prefs, String key) {
-            super(prefs, key);
-        }
-
-        @Override
-        protected int getExtraDataLength() {
-            return 1;
-        }
-
-        @Override
-        protected TextList<T> buildFullData(String[] rowData, String[] extraData) {
-            boolean escapeChars;
-            if (extraData[0].equals("1")) {
-                escapeChars = true;
-            } else if (extraData[0].equals("0")) {
-                escapeChars = false;
-            } else {
-                Log.e(TAG, "Invalid escape character flag (" + extraData[0] + ") from preference "
-                        + mKey);
-                escapeChars = false;
-            }
-
-            return new TextList<T>(buildDataArray(rowData), escapeChars);
-        }
-
-        @NonNull
-        @Override
-        public TextList<T> readDefaultValue() {
-            return new TextList<T>(getDefaultDataArray(), false);
-        }
-
-        @NonNull
-        protected abstract T[] buildDataArray(final @NonNull String[] data);
-
-        @NonNull
-        protected abstract T[] getDefaultDataArray();
-
-        @NonNull
-        protected String[] flattenExtraData(final @NonNull TextList<T> fullData) {
-            return new String[] { fullData.escapeChars() ? "1" : "0" };
-        }
-    }
-
     @Override
     protected T[] getRowData(TextList<T> textList) {
         return textList.getDataArray();
     }
-
-    /**
-     * Build a data object for the row based on the values entered in the UI.
-     * @param rowContent The views that make up the row.
-     * @return The data that should be saved from the row.
-     */
-    protected abstract T getRowData(View[] rowContent);
 
     /**
      * Convert a list to an array.
@@ -139,13 +84,7 @@ public abstract class TextEntryListPreferenceBase<T, TDataManager extends TextLi
     @NonNull
     @Override
     protected TextList<T> getUIData() {
-        List<T> rowData = new ArrayList<>();
-        for (Row row : mRows) {
-            if (canRemoveAsExtraLine(row.mContent)) {
-                continue;
-            }
-            rowData.add(getRowData(row.mContent));
-        }
-        return new TextList<T>(createArray(rowData), mEscapeCharactersCheckBox.isChecked());
+        return new TextList<T>(createArray(getUIRowDataList()),
+                mEscapeCharactersCheckBox.isChecked());
     }
 }

@@ -44,10 +44,9 @@ import android.widget.TextView.OnEditorActionListener;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.DataManager;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.EntryListPreference.DataManagerBase;
+import com.wittmane.testingedittext.settings.datamanager.ListDataManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +58,7 @@ import java.util.List;
  * @param <TDataManager> Type for reading and writing the preference data
  */
 public abstract class EntryListPreference<TRowData, TFullData,
-        TDataManager extends DataManagerBase<TFullData>>
+        TDataManager extends ListDataManager<TFullData>>
         extends DialogPreferenceBase {
     private static final String TAG = EntryListPreference.class.getSimpleName();
 
@@ -339,73 +338,37 @@ public abstract class EntryListPreference<TRowData, TFullData,
      */
     protected abstract TFullData getUIData();
 
+    /**
+     * Get the data for the rows from the UI that needs to be saved.
+     * @return The UI row data to save.
+     */
+    protected List<TRowData> getUIRowDataList() {
+        List<TRowData> rowData = new ArrayList<>();
+        for (Row row : mRows) {
+            if (canRemoveAsExtraLine(row.mContent)) {
+                continue;
+            }
+            rowData.add(getUIRowData(row.mContent));
+        }
+        return rowData;
+    }
+
+    /**
+     * Build a data object for the row based on the values entered in the UI.
+     * @param rowContent The views that make up the row.
+     * @return The data that should be saved from the row.
+     */
+    protected abstract TRowData getUIRowData(View[] rowContent);
+
     @Override
     public void setKey(String key) {
         super.setKey(key);
         if (mDataManager != null) {
-            mDataManager.mKey = key;
+            mDataManager = createDataManager(getPrefs(), getKey());
         }
     }
 
     protected abstract TDataManager createDataManager(SharedPreferenceManager prefs, String key);
-
-    public static abstract class DataManagerBase<T> implements DataManager<T> {
-        private final SharedPreferenceManager mPrefs;
-        protected String mKey;
-
-        protected DataManagerBase(SharedPreferenceManager prefs, String key) {
-            mPrefs = prefs;
-            mKey = key;
-        }
-
-        protected abstract int getExtraDataLength();
-
-        @Override
-        @NonNull
-        public T readValue() {
-            String[] pieces = mPrefs != null ? mPrefs.getStringArray(mKey, null) : null;
-            if (pieces == null) {
-                return readDefaultValue();
-            }
-
-            String[] extraData = new String[getExtraDataLength()];
-            if (extraData.length > 0) {
-                System.arraycopy(pieces, 0, extraData, 0, extraData.length);
-            }
-
-            // create a new array excluding any extra data
-            String[] rowData = new String[pieces.length - extraData.length];
-            if (pieces.length > extraData.length) {
-                System.arraycopy(pieces, extraData.length, rowData, 0,
-                        pieces.length - extraData.length);
-            }
-
-            return buildFullData(rowData, extraData);
-        }
-
-        protected abstract T buildFullData(String[] rowData, String[] extraData);
-
-        @Override
-        @NonNull
-        public abstract T readDefaultValue();
-
-        @Override
-        public void writeValue(@NonNull T fullData) {
-            String[] rowData = flattenRowData(fullData);
-            String[] extraData = flattenExtraData(fullData);
-            String[] dataForSave = new String[rowData.length + extraData.length];
-            System.arraycopy(extraData, 0, dataForSave, 0, extraData.length);
-            System.arraycopy(rowData, 0, dataForSave, extraData.length, rowData.length);
-
-            mPrefs.setStringArray(mKey, dataForSave);
-        }
-
-        @NonNull
-        protected abstract String[] flattenRowData(final @NonNull T fullData);
-
-        @NonNull
-        protected abstract String[] flattenExtraData(final @NonNull T fullData);
-    }
 
     public void clearValue() {
         getPrefs().remove(getKey());

@@ -36,10 +36,13 @@ import com.wittmane.testingedittext.function.BiFunction;
 import com.wittmane.testingedittext.function.Function;
 import com.wittmane.testingedittext.function.TriConsumer;
 import com.wittmane.testingedittext.settings.PreferenceReader.PrefInfo;
+import com.wittmane.testingedittext.settings.datamanager.DataManager;
+import com.wittmane.testingedittext.settings.datamanager.IntRangeDataManager;
+import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
+import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
+import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
-import com.wittmane.testingedittext.settings.preferences.TextListPreference;
-import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference;
 import com.wittmane.testingedittext.util.IterableUtils;
 
 import org.json.JSONArray;
@@ -408,7 +411,7 @@ public abstract class JsonManager {
             } else {
                 localeStrings = new String[value.length];
                 for (int i = 0; i < value.length; i++) {
-                    localeStrings[i] = LocaleEntryListPreference.getLocaleString(value[i]);
+                    localeStrings[i] = LocaleArrayDataManager.getLocaleString(value[i]);
                 }
             }
             addArray(jsonObject, jsonPropName, localeStrings);
@@ -1150,7 +1153,7 @@ public abstract class JsonManager {
                 }
                 return;
             }
-            setPref(prefKey, range, CodepointRangeDialogPreference.DataManager::new);
+            setPref(prefKey, range, IntRangeDataManager::new);
         } else {
             Log.e(TAG, prefKey + " doesn't have handling to be imported");
         }
@@ -1174,10 +1177,10 @@ public abstract class JsonManager {
                 }
                 continue;
             }
-            localeList.add(LocaleEntryListPreference.constructLocaleFromString(localStrings[i]));
+            localeList.add(LocaleArrayDataManager.constructLocaleFromString(localStrings[i]));
         }
         Locale[] localeArray = localeList.toArray(new Locale[0]);
-        setPref(prefKey, localeArray, LocaleEntryListPreference.DataManager::new);
+        setPref(prefKey, localeArray, LocaleArrayDataManager::new);
     }
 
     private static void loadOrValidateTextListString(JSONObject jsonObject, String jsonPropName,
@@ -1198,7 +1201,7 @@ public abstract class JsonManager {
         TextList<String> textList = new TextList<>(
                 stringArray,
                 textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-        setPref(prefKey, textList, TextListPreference.DataManager::new);
+        setPref(prefKey, textList, StringTextListDataManager::new);
 
     }
 
@@ -1228,7 +1231,7 @@ public abstract class JsonManager {
         TextList<TranslateText> textListTranslateTextData = new TextList<>(
                 translateTextArray,
                 textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-        setPref(prefKey, textListTranslateTextData, TextTranslateListPreference.DataManager::new);
+        setPref(prefKey, textListTranslateTextData, TranslateTextTextListDataManager::new);
     }
 
     //TODO: (EW) rename - this is a confusing name that sounds like it would always save

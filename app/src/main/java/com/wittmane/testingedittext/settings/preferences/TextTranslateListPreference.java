@@ -26,14 +26,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.TextList;
 import com.wittmane.testingedittext.settings.TranslateText;
-import com.wittmane.testingedittext.settings.preferences.TextTranslateListPreference.DataManager;
+import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
 
 import java.util.List;
 
 public class TextTranslateListPreference
-        extends TextEntryListPreferenceBase<TranslateText, DataManager> {
+        extends TextEntryListPreferenceBase<TranslateText, TranslateTextTextListDataManager> {
 
     public TextTranslateListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -68,7 +67,7 @@ public class TextTranslateListPreference
     }
 
     @Override
-    protected TranslateText getRowData(View[] rowContent) {
+    protected TranslateText getUIRowData(View[] rowContent) {
         TranslateText translation = new TranslateText();
         translation.setOriginal(
                 ((EditText)rowContent[0]).getText().toString());
@@ -83,54 +82,9 @@ public class TextTranslateListPreference
     }
 
     @Override
-    protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
-        return new DataManager(prefs, key);
-    }
-
-    public static final TranslateText[] DEFAULT_TRANSLATE_SPECIFIC = new TranslateText[0];
-
-    public static class DataManager extends TextListDataManager<TranslateText> {
-        public DataManager(SharedPreferenceManager prefs, String key) {
-            super(prefs, key);
-        }
-
-        @Override
-        protected @NonNull TranslateText[] buildDataArray(final @NonNull String[] data) {
-            // add 1 in case there is an odd number of pieces after the escaped characters flag
-            // (assume the last translation is "")
-            TranslateText[] translationArray = new TranslateText[(data.length + 1) / 2];
-            // copy all of the pieces (alternating between original and translation) except for
-            // piece 0 (escape characters flag) to the translation array
-            for (int i = 0; i < data.length; i++) {
-                int index = i / 2;
-                if (i % 2 == 0) {
-                    translationArray[index] = new TranslateText();
-                    translationArray[index].setOriginal(data[i]);
-                } else {
-                    translationArray[index].setTranslation(data[i]);
-                }
-            }
-
-            return translationArray;
-        }
-
-        @NonNull
-        @Override
-        protected TranslateText[] getDefaultDataArray() {
-            return DEFAULT_TRANSLATE_SPECIFIC;
-        }
-
-        @NonNull
-        @Override
-        protected String[] flattenRowData(@NonNull TextList<TranslateText> fullData) {
-            TranslateText[] dataArray = fullData.getDataArray();
-            String[] result = new String[dataArray.length * 2];
-            for (int i = 0; i < dataArray.length; i++) {
-                result[i * 2] = dataArray[i].getOriginal();
-                result[i * 2 + 1] = dataArray[i].getTranslation();
-            }
-            return result;
-        }
+    protected TranslateTextTextListDataManager createDataManager(SharedPreferenceManager prefs,
+                                                                 String key) {
+        return new TranslateTextTextListDataManager(prefs, key);
     }
 
     @Override

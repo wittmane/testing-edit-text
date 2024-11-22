@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.settings.datamanager;
 
 public interface DataManager<T> {
     T readValue();

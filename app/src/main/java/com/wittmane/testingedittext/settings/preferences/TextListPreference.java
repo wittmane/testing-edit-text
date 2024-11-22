@@ -25,12 +25,12 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.TextList;
-import com.wittmane.testingedittext.settings.preferences.TextListPreference.DataManager;
+import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
 
 import java.util.List;
 
-public class TextListPreference extends TextEntryListPreferenceBase<String, DataManager> {
+public class TextListPreference
+        extends TextEntryListPreferenceBase<String, StringTextListDataManager> {
 
     public TextListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -49,7 +49,7 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Data
     }
 
     @Override
-    protected String getRowData(View[] rowContent) {
+    protected String getUIRowData(View[] rowContent) {
         return ((EditText)rowContent[0]).getText().toString();
     }
 
@@ -59,34 +59,9 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Data
     }
 
     @Override
-    protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
-        return new DataManager(prefs, key);
-    }
-
-    public static final String[] DEFAULT_RESTRICT_SPECIFIC = new String[0];
-
-    public static class DataManager extends TextListDataManager<String> {
-        public DataManager(SharedPreferenceManager prefs, String key) {
-            super(prefs, key);
-        }
-
-        @Override
-        protected @NonNull String[] buildDataArray(final @NonNull String[] data) {
-            return data;
-        }
-
-        @NonNull
-        @Override
-        protected String[] getDefaultDataArray() {
-            return DEFAULT_RESTRICT_SPECIFIC;
-        }
-
-        @NonNull
-        @Override
-        protected String[] flattenRowData(@NonNull TextList<String> fullData) {
-            return fullData.getDataArray();
-        }
-
+    protected StringTextListDataManager createDataManager(SharedPreferenceManager prefs,
+                                                          String key) {
+        return new StringTextListDataManager(prefs, key);
     }
 
     @Override

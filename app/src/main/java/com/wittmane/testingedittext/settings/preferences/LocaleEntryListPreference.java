@@ -40,15 +40,19 @@ import com.wittmane.testingedittext.settings.AlphaFilter;
 import com.wittmane.testingedittext.settings.AlphaNumericFilter;
 import com.wittmane.testingedittext.settings.LowerCaseFilter;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference.DataManager;
+import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
 
-import java.util.List;
 import java.util.Locale;
 
-public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale, DataManager> {
+public class LocaleEntryListPreference extends EntryListPreference<Locale, Locale[], LocaleArrayDataManager> {
 
     public LocaleEntryListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    @Override
+    protected Locale[] getRowData(final Locale[] fullData) {
+        return fullData;
     }
 
     @Override
@@ -144,10 +148,30 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
         };
     }
 
+    private EditText createEditText(CharSequence text, int hintResId, boolean caps) {
+        EditText editText = new EditText(getContext());
+        editText.setSingleLine();
+        LinearLayout.LayoutParams editTextLayoutParams = new LinearLayout.LayoutParams(
+                0, LayoutParams.WRAP_CONTENT, 1f);
+        editText.setLayoutParams(editTextLayoutParams);
+        editText.setImeOptions(EditorInfo.IME_ACTION_NEXT);
+        if (!TextUtils.isEmpty(text)) {
+            editText.setText(text);
+        }
+        editText.setHint(hintResId);
+        editText.setInputType(InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE
+                | (caps ? InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS : 0));
+        return editText;
+    }
+
+    @Override
+    protected void setExtraDataUI(Locale[] data) {
+    }
+
     @Override
     protected boolean isDataValid() {
         for (Locale locale : getUIData()) {
-            if (!isValidLocale(getLocaleString(locale))) {
+            if (!isValidLocale(LocaleArrayDataManager.getLocaleString(locale))) {
                 return false;
             }
         }
@@ -166,31 +190,14 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
                         + "(?:[_-](?:" + variantSubtagRegex + "))*$");
     }
 
-    protected EditText createEditText(CharSequence text, int hintResId, boolean caps) {
-        EditText editText = new EditText(getContext());
-        editText.setSingleLine();
-        LinearLayout.LayoutParams editTextLayoutParams = new LinearLayout.LayoutParams(
-                0, LayoutParams.WRAP_CONTENT, 1f);
-        editText.setLayoutParams(editTextLayoutParams);
-        editText.setImeOptions(EditorInfo.IME_ACTION_NEXT);
-        if (!TextUtils.isEmpty(text)) {
-            editText.setText(text);
-        }
-        editText.setHint(hintResId);
-        editText.setInputType(InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE
-                | (caps ? InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS : 0));
-        return editText;
+    @NonNull
+    @Override
+    protected Locale[] getUIData() {
+        return getUIRowDataList().toArray(new Locale[0]);
     }
 
     @Override
-    protected boolean isRowEmpty(Locale rowData) {
-        return TextUtils.isEmpty(rowData.getLanguage())
-                && TextUtils.isEmpty(rowData.getCountry())
-                && TextUtils.isEmpty(rowData.getVariant());
-    }
-
-    @Override
-    protected Locale getRowData(View[] rowContent) {
+    protected Locale getUIRowData(View[] rowContent) {
         EditText languageView = (EditText)rowContent[0];
         EditText countryView = (EditText)rowContent[1];
         EditText variantView = (EditText)rowContent[2];
@@ -201,44 +208,15 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
     }
 
     @Override
-    protected Locale[] createArray(List<Locale> list) {
-        return list.toArray(new Locale[0]);
+    protected boolean isRowEmpty(Locale rowData) {
+        return TextUtils.isEmpty(rowData.getLanguage())
+                && TextUtils.isEmpty(rowData.getCountry())
+                && TextUtils.isEmpty(rowData.getVariant());
     }
 
     @Override
-    protected DataManager createDataManager(SharedPreferenceManager prefs, String key) {
-        return new DataManager(prefs, key);
-    }
-
-    public static class DataManager extends SimpleDataManager<Locale> {
-
-        public DataManager(SharedPreferenceManager prefs, String key) {
-            super(prefs, key);
-        }
-
-        @Override
-        protected Locale[] buildRowData(String[] rowData) {
-            Locale[] localeArray = new Locale[rowData.length];
-            for (int i = 0; i < rowData.length; i++) {
-                localeArray[i] = constructLocaleFromString(rowData[i]);
-            }
-            return localeArray;
-        }
-
-        @NonNull
-        public Locale[] readDefaultValue() {
-            return new Locale[0];
-        }
-
-        @NonNull
-        @Override
-        protected String[] flattenRowData(final @NonNull Locale[] localeArray) {
-            String[] rowData = new String[localeArray.length];
-            for (int i = 0; i < localeArray.length; i++) {
-                rowData[i] = getLocaleString(localeArray[i]);
-            }
-            return rowData;
-        }
+    protected LocaleArrayDataManager createDataManager(SharedPreferenceManager prefs, String key) {
+        return new LocaleArrayDataManager(prefs, key);
     }
 
     @Override
@@ -255,40 +233,5 @@ public class LocaleEntryListPreference extends SimpleEntryListPreference<Locale,
             sb.append(dataArray[i].getDisplayName());
         }
         return sb.toString();
-    }
-
-    /**
-     * Creates a locale from a string specification.
-     * @param localeString a string specification of a locale, in a format of "ll_cc_variant" where
-     * "ll" is a language code, "cc" is a country code.
-     */
-    public static Locale constructLocaleFromString(final String localeString) {
-        final String[] elements = localeString.split("_", 3);
-        final Locale locale;
-        if (elements.length == 1) {
-            locale = new Locale(elements[0] /* language */);
-        } else if (elements.length == 2) {
-            locale = new Locale(elements[0] /* language */, elements[1] /* country */);
-        } else { // elements.length == 3
-            locale = new Locale(elements[0] /* language */, elements[1] /* country */,
-                    elements[2] /* variant */);
-        }
-        return locale;
-    }
-
-    /**
-     * Creates a string specification for a locale.
-     * @param locale the locale.
-     * @return a string specification of a locale, in a format of "ll_cc_variant" where "ll" is a
-     * language code, "cc" is a country code.
-     */
-    public static String getLocaleString(final Locale locale) {
-        if (!TextUtils.isEmpty(locale.getVariant())) {
-            return locale.getLanguage() + "_" + locale.getCountry() + "_" + locale.getVariant();
-        }
-        if (!TextUtils.isEmpty(locale.getCountry())) {
-            return locale.getLanguage() + "_" + locale.getCountry();
-        }
-        return locale.getLanguage();
     }
 }

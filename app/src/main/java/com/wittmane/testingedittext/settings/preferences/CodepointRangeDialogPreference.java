@@ -40,7 +40,7 @@ import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.IntRange;
 import com.wittmane.testingedittext.settings.NumericFilter;
-import com.wittmane.testingedittext.settings.SharedPreferenceManager;
+import com.wittmane.testingedittext.settings.datamanager.IntRangeDataManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +62,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     private EditText mEndUnicodeView;
     private CheckBox mSplitUnicodeCheckbox;
 
-    private DataManager mDataManager;
+    private IntRangeDataManager mDataManager;
 
     public CodepointRangeDialogPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -73,7 +73,7 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
         super.onAttachedToHierarchy(preferenceManager);
-        mDataManager = new DataManager(getPrefs(), getKey());
+        createDataManager();
     }
 
     @Override
@@ -678,55 +678,11 @@ public class CodepointRangeDialogPreference extends DialogPreferenceBase {
     @Override
     public void setKey(String key) {
         super.setKey(key);
-        mDataManager.mKey = key;
+        createDataManager();
     }
 
-    public static final IntRange DEFAULT_RESTRICT_RANGE = null;
-
-    public static class DataManager
-            implements com.wittmane.testingedittext.settings.DataManager<IntRange> {
-        private final SharedPreferenceManager mPrefs;
-        private String mKey;
-
-        public DataManager(SharedPreferenceManager prefs, String key) {
-            mPrefs = prefs;
-            mKey = key;
-        }
-
-        @Nullable
-        @Override
-        public IntRange readValue() {
-            String rawValue = mPrefs != null ? mPrefs.getString(mKey, null) : null;
-            if (TextUtils.isEmpty(rawValue)) {
-                return null;
-            }
-            String[] pieces = rawValue.split("-");
-            if (pieces.length != 2) {
-                Log.e(TAG, "Unexpected number of codepoints in range preference: "
-                        + rawValue);
-                return null;
-            }
-            try {
-                return new IntRange(Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
-            } catch (NumberFormatException e) {
-                Log.e(TAG, "Unexpected codepoint in range preference: " + rawValue);
-                return null;
-            }
-        }
-
-        @Nullable
-        @Override
-        public IntRange readDefaultValue() {
-            return DEFAULT_RESTRICT_RANGE;
-        }
-
-        @Override
-        public void writeValue(final @Nullable IntRange value) {
-            //TODO: (EW) consider changing this to use an int array and just have extra validation
-            // on the length when reading the data.
-            mPrefs.setString(mKey,
-                    value == null ? null : value.getStart() + "-" + value.getEnd());
-        }
+    private void createDataManager() {
+        mDataManager = new IntRangeDataManager(getPrefs(), getKey());
     }
 
     public String getValueText(final @Nullable IntRange value) {
