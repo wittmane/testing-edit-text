@@ -16,9 +16,10 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
+import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName;
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.getFieldDisplayName;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
@@ -257,14 +258,6 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
         for (int i = 0; i < Settings.getTestFieldGroupCount(); i++) {
             group.addPreference(new IndividualTestFieldGroupPreference(context, i));
         }
-    }
-
-    public static String getGroupDisplayName(final Context context, final int groupIndex) {
-        final String groupName = Settings.getTestFieldGroupName(groupIndex);
-        if (groupName == null) {
-            return context.getString(R.string.test_group_default_name, (groupIndex + 1));
-        }
-        return groupName;
     }
 
     /**

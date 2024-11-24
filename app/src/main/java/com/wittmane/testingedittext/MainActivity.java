@@ -16,7 +16,7 @@
 
 package com.wittmane.testingedittext;
 
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.getGroupDisplayName;
+import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName;
 
 import android.content.Context;
 import android.content.Intent;

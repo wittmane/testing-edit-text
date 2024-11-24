@@ -17,6 +17,7 @@
 package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
+import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
@@ -213,28 +214,6 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             testFieldPrefCategory.addPreference(
                     new IndividualTestFieldPreference(context, groupIndex, i));
         }
-    }
-
-    public static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
-                                                   final int fieldIndex) {
-        TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
-
-        CharSequence labelText = fieldSettings.getLabelText();
-        if (!TextUtils.isEmpty(labelText)) {
-            return labelText;
-        }
-
-        CharSequence defaultText = fieldSettings.getDefaultText();
-        if (!TextUtils.isEmpty(defaultText)) {
-            return defaultText;
-        }
-
-        CharSequence hintText = fieldSettings.getHintText();
-        if (!TextUtils.isEmpty(hintText)) {
-            return hintText;
-        }
-
-        return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
     }
 
     /**

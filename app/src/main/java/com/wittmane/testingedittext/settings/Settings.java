@@ -24,6 +24,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -738,6 +739,36 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         int[] copy = new int[array.length];
         System.arraycopy(array, 0, copy, 0, array.length);
         return copy;
+    }
+
+    public static String getGroupDisplayName(final Context context, final int groupIndex) {
+        final String groupName = getTestFieldGroupName(groupIndex);
+        if (groupName == null) {
+            return context.getString(R.string.test_group_default_name, (groupIndex + 1));
+        }
+        return groupName;
+    }
+
+    public static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
+                                                   final int fieldIndex) {
+        TestFieldSettings fieldSettings = getTestFieldSettings(groupIndex, fieldIndex);
+
+        CharSequence labelText = fieldSettings.getLabelText();
+        if (!TextUtils.isEmpty(labelText)) {
+            return labelText;
+        }
+
+        CharSequence defaultText = fieldSettings.getDefaultText();
+        if (!TextUtils.isEmpty(defaultText)) {
+            return defaultText;
+        }
+
+        CharSequence hintText = fieldSettings.getHintText();
+        if (!TextUtils.isEmpty(hintText)) {
+            return hintText;
+        }
+
+        return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
     }
 
     public static TestFieldSettings getTestFieldSettings(int groupIndex, int fieldIndex) {

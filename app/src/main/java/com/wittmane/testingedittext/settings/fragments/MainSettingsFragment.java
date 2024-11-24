@@ -16,8 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.getGroupDisplayName;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.getFieldDisplayName;
+import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
+import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
 
 import android.app.ActionBar;
@@ -253,13 +253,11 @@ public class MainSettingsFragment extends PreferenceFragment {
         int groupCount = Settings.getTestFieldGroupCount();
         for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
             GroupTransferInfo groupInfo = new GroupTransferInfo();
-            //TODO: (EW) this method probably should be moved to Settings
             groupInfo.setName(getGroupDisplayName(getActivity(), groupIndex));
             groupInfo.setFields(new ArrayList<>());
             int fieldCount = Settings.getTestFieldCount(groupIndex);
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
                 FieldTransferInfo fieldInfo = new FieldTransferInfo();
-                //TODO: (EW) this method probably should be moved to Settings
                 fieldInfo.setName(
                         getFieldDisplayName(getActivity(), groupIndex, fieldIndex).toString());
                 groupInfo.getFields().add(fieldInfo);
