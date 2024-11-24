@@ -63,8 +63,8 @@ import java.util.Set;
 public abstract class JsonManager {
     private static final String TAG = JsonManager.class.getSimpleName();
 
-    private static final boolean EXPORT_UNSET_PREFS = true;
-    private static final boolean EXPORT_DEFAULT_PREFS_VALUES = true;
+    private static final boolean EXPORT_UNSET_PREFS = false;
+    private static final boolean EXPORT_DEFAULT_PREFS_VALUES = false;
     private static final boolean IMPORT_DEFAULT_PREFS_VALUES = false;
 
     private static final String FIELD_DEFAULTS_JSON_PROP = "fieldDefaults";
@@ -742,12 +742,14 @@ public abstract class JsonManager {
     }
 
     private static void loadPrefData(JsonObject jsonObject, String jsonPropName,
-                                     String prefKeyOrPrefix, @NonNull Context context,
-                                     @NonNull String prefKey) {
-        Consumer<String> prefSetter = validatePropValue(jsonObject, jsonPropName, prefKeyOrPrefix,
+                                     PreferenceKey prefKey, @NonNull Context context) {
+        if (prefKey == null) {
+            return;
+        }
+        Consumer<String> prefSetter = validatePropValue(jsonObject, jsonPropName, prefKey.getStem(),
                 null, context, null);
         if (prefSetter != null) {
-            prefSetter.accept(prefKey);
+            prefSetter.accept(prefKey.toString());
         }
     }
 
@@ -783,11 +785,14 @@ public abstract class JsonManager {
                     return validateIntRange(jsonObject, jsonPropName, prefKeyOrPrefix, info,
                             context);
                 case PreferenceReader.TYPE_LOCALE_ARRAY:
-                    return validateLocaleArray(jsonObject, jsonPropName, info, context);
+                    return validateLocaleArray(jsonObject, jsonPropName, prefKeyOrPrefix, info,
+                            context);
                 case PreferenceReader.TYPE_TEXT_LIST_STRING:
-                    return validateTextListString(jsonObject, jsonPropName, info, context);
+                    return validateTextListString(jsonObject, jsonPropName, prefKeyOrPrefix, info,
+                            context);
                 case PreferenceReader.TYPE_TEXT_LIST_TRANSLATE_TEXT:
-                    return validateTextListTranslateText(jsonObject, jsonPropName, info, context);
+                    return validateTextListTranslateText(jsonObject, jsonPropName, prefKeyOrPrefix,
+                            info, context);
                 case PreferenceReader.TYPE_UNKNOWN:
                 default:
                     //TODO: (EW) probably handle gracefully, but hard crash for now to catch issues
@@ -808,8 +813,9 @@ public abstract class JsonManager {
     }
 
     private static Consumer<String> validateInt(JsonObject jsonObject, String jsonPropName,
-                                    String prefKeyOrPrefix,
-                                    @Nullable ImportFileInfo info, @NonNull Context context)
+                                                String prefKeyOrPrefix,
+                                                @Nullable ImportFileInfo info,
+                                                @NonNull Context context)
             throws JSONException {
         int value = jsonObject.getInt(jsonPropName);
         int minValue;
@@ -1064,10 +1070,11 @@ public abstract class JsonManager {
                 return null;
             }
         }
-        return preferenceSetter(range, IntRangeDataManager::new);
+        return preferenceSetter(prefKeyOrPrefix, range, IntRangeDataManager::new);
     }
 
     private static Consumer<String> validateLocaleArray(JsonObject jsonObject, String jsonPropName,
+                                                        String prefKeyOrPrefix,
                                                         @Nullable ImportFileInfo info,
                                                         @NonNull Context context)
             throws JSONException {
@@ -1088,11 +1095,12 @@ public abstract class JsonManager {
             localeList.add(LocaleArrayDataManager.constructLocaleFromString(localStrings[i]));
         }
         Locale[] localeArray = localeList.toArray(new Locale[0]);
-        return preferenceSetter(localeArray, LocaleArrayDataManager::new);
+        return preferenceSetter(prefKeyOrPrefix, localeArray, LocaleArrayDataManager::new);
     }
 
     private static Consumer<String> validateTextListString(JsonObject jsonObject,
                                                            String jsonPropName,
+                                                           String prefKeyOrPrefix,
                                                            @Nullable ImportFileInfo info,
                                                            @NonNull Context context)
             throws JSONException {
@@ -1110,11 +1118,12 @@ public abstract class JsonManager {
         TextList<String> textList = new TextList<>(
                 stringArray,
                 textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-        return preferenceSetter(textList, StringTextListDataManager::new);
+        return preferenceSetter(prefKeyOrPrefix, textList, StringTextListDataManager::new);
     }
 
     private static Consumer<String> validateTextListTranslateText(JsonObject jsonObject,
                                                                   String jsonPropName,
+                                                                  String prefKeyOrPrefix,
                                                                   @Nullable ImportFileInfo info,
                                                                   @NonNull Context context)
             throws JSONException {
@@ -1139,14 +1148,18 @@ public abstract class JsonManager {
         TextList<TranslateText> textListTranslateTextData = new TextList<>(
                 translateTextArray,
                 textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-        return preferenceSetter(textListTranslateTextData, TranslateTextTextListDataManager::new);
+        return preferenceSetter(prefKeyOrPrefix, textListTranslateTextData,
+                TranslateTextTextListDataManager::new);
     }
 
-    //TODO: (EW) probably should pass around the rich PrefKey object rather than prefKey and
-    // prefKeyOrPrefix separately
     private static <T> Consumer<String> preferenceSetter(String prefKeyOrPrefix, T value,
             TriConsumer<SharedPreferenceManager, String, T> setPref) {
         return (prefKey) -> {
+            if (prefKey == null || !prefKey.startsWith(prefKeyOrPrefix)) {
+                Log.e(TAG, "Unexpected preference key " + prefKey
+                        + ". It should start with " + prefKeyOrPrefix);
+                return;
+            }
             Spanned defaultValue = PreferenceReader.getPrefDefaultSpanned(prefKeyOrPrefix);
             if (IMPORT_DEFAULT_PREFS_VALUES
                     || !SharedPreferenceManager.equals(value, defaultValue)) {
@@ -1156,9 +1169,14 @@ public abstract class JsonManager {
         };
     }
 
-    private static <T> Consumer<String> preferenceSetter(T value,
+    private static <T> Consumer<String> preferenceSetter(String prefKeyOrPrefix, T value,
             BiFunction<SharedPreferenceManager, String, DataManager<T>> getDataManager) {
         return (prefKey) -> {
+            if (prefKey == null || !prefKey.startsWith(prefKeyOrPrefix)) {
+                Log.e(TAG, "Unexpected preference key " + prefKey
+                        + ". It should start with " + prefKeyOrPrefix);
+                return;
+            }
             SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
             DataManager<T> dataManager = getDataManager.apply(prefs, prefKey);
             T defaultValue = dataManager.readDefaultValue();
@@ -1309,13 +1327,12 @@ public abstract class JsonManager {
 
             if (replaceFieldDefaults) {
                 for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-                    String prefKey = prefKeyPrefix + BASE_SUFFIX;
-                    prefs.remove(prefKey);
+                    PreferenceKey prefKey = PreferenceKey.createFieldDefaultKey(prefKeyPrefix);
+                    prefs.remove(prefKey.toString());
                     if (fieldDefaultsJsonObject != null) {
                         String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
                         if (fieldDefaultsJsonObject.has(jsonProp)) {
-                            loadPrefData(fieldDefaultsJsonObject, jsonProp, prefKeyPrefix, context,
-                                    prefKey);
+                            loadPrefData(fieldDefaultsJsonObject, jsonProp, prefKey, context);
                         }
                     }
                 }
@@ -1329,8 +1346,8 @@ public abstract class JsonManager {
                     if (otherSettingsJsonObject != null) {
                         String jsonProp = prefKeyPrefixToJsonName(prefKey);
                         if (otherSettingsJsonObject.has(jsonProp)) {
-                            loadPrefData(otherSettingsJsonObject, jsonProp, prefKey, context,
-                                    prefKey);
+                            loadPrefData(otherSettingsJsonObject, jsonProp,
+                                    PreferenceKey.createBasicKey(prefKey), context);
                         }
                     }
                 }
@@ -1394,7 +1411,9 @@ public abstract class JsonManager {
                         getFieldIds(groupId, preferenceReader),
                         toPrimitiveArray(groupFieldIds));
             }
-            prefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId, fieldIdsArray);
+            prefs.setIntArray(
+                    PreferenceKey.createGroupKey(PREF_TEST_FIELD_IDS_PREFIX, groupId).toString(),
+                    fieldIdsArray);
         }
 
         if (groupInfo.mInclude) {
@@ -1403,11 +1422,11 @@ public abstract class JsonManager {
                     continue;
                 }
 
-                String prefKey = prefKeyPrefix + GROUP_INFIX + groupId;
-                prefs.remove(prefKey);
+                PreferenceKey prefKey = PreferenceKey.createGroupKey(prefKeyPrefix, groupId);
+                prefs.remove(prefKey.toString());
                 String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
                 if (groupJsonObject.has(jsonProp)) {
-                    loadPrefData(groupJsonObject, jsonProp, prefKeyPrefix, context, prefKey);
+                    loadPrefData(groupJsonObject, jsonProp, prefKey, context);
                 }
             }
         }
@@ -1419,8 +1438,8 @@ public abstract class JsonManager {
         SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
 
         for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
-            String fieldPrefKey = fieldPrefKeyPrefix + FIELD_INFIX + fieldId;
-            prefs.remove(fieldPrefKey);
+            PreferenceKey fieldPrefKey = PreferenceKey.createFieldKey(fieldPrefKeyPrefix, fieldId);
+            prefs.remove(fieldPrefKey.toString());
             String jsonProp = prefKeyPrefixToJsonName(fieldPrefKeyPrefix);
 
             if (DEFAULT_OVERRIDE_PREF_PREFIX_MAP.containsKey(fieldPrefKeyPrefix)) {
@@ -1430,29 +1449,28 @@ public abstract class JsonManager {
                 if (embedFieldDefaults
                         && !tryGetBoolean(fieldJsonObject, jsonProp, false)) {
                     defaultableValueJsonObject = fieldDefaultsJsonObject;
-                    prefs.setBoolean(fieldPrefKey, true);
+                    prefs.setBoolean(fieldPrefKey.toString(), true);
                 } else {
                     defaultableValueJsonObject = fieldJsonObject;
                     if (fieldJsonObject.has(jsonProp)) {
-                        loadPrefData(fieldJsonObject, jsonProp, fieldPrefKeyPrefix, context,
-                                fieldPrefKey);
+                        loadPrefData(fieldJsonObject, jsonProp, fieldPrefKey, context);
                     }
                 }
                 String[] fieldDefaultsPrefKeys =
                         DEFAULT_OVERRIDE_PREF_PREFIX_MAP.get(fieldPrefKeyPrefix);
                 for (String fieldDefaultPrefKeyPrefix : fieldDefaultsPrefKeys) {
-                    String fieldDefaultPrefKey = fieldDefaultPrefKeyPrefix + FIELD_INFIX + fieldId;
+                    PreferenceKey fieldDefaultPrefKey =
+                            PreferenceKey.createFieldKey(fieldDefaultPrefKeyPrefix, fieldId);
                     String fieldDefaultJsonProp =
                             prefKeyPrefixToJsonName(fieldDefaultPrefKeyPrefix);
                     if (defaultableValueJsonObject.has(fieldDefaultJsonProp)) {
                         loadPrefData(defaultableValueJsonObject, fieldDefaultJsonProp,
-                                fieldDefaultPrefKeyPrefix, context, fieldDefaultPrefKey);
+                                fieldDefaultPrefKey, context);
                     }
                 }
             } else {
                 if (fieldJsonObject.has(jsonProp)) {
-                    loadPrefData(fieldJsonObject, jsonProp, fieldPrefKeyPrefix, context,
-                            fieldPrefKey);
+                    loadPrefData(fieldJsonObject, jsonProp, fieldPrefKey, context);
                 }
             }
         }
