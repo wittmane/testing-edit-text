@@ -82,7 +82,7 @@ public abstract class JsonManager {
 
     private static final String UNEXPECTED_CUSTOM_OBJECT_MESSAGE = "unexpected data format";
 
-    public static String getJson(boolean exportFieldDefaults, List<GroupInfo> groupInfoList,
+    public static String getJson(boolean exportFieldDefaults, List<GroupTransferInfo> groupInfoList,
                                  boolean embedFieldDefaults, boolean exportOtherSettings) {
         PreferenceReader preferenceReader = Settings.getInstance().getPreferenceReader();
         JsonObject jsonObject = new JsonObject();
@@ -100,17 +100,17 @@ public abstract class JsonManager {
             if (groupInfoList != null && preferenceReader.contains(PREF_TEST_GROUP_IDS)) {
                 int[] groupIds = preferenceReader.readIntArray(createBasicKey(PREF_TEST_GROUP_IDS));
 
-                if (IterableUtils.any(groupInfoList, groupInfo -> groupInfo.mInclude)
+                if (IterableUtils.any(groupInfoList, GroupTransferInfo::isIncluded)
                         || !IterableUtils.any(groupInfoList,
-                                groupInfo -> IterableUtils.any(groupInfo.mFields,
-                                        fieldInfo -> fieldInfo.mInclude))) {
+                                groupInfo -> IterableUtils.any(groupInfo.getFields(),
+                                        fieldInfo -> fieldInfo.isIncluded()))) {
                     // either at least one group was flagged to include or there are no fields and
                     // no groups to include
                     JsonArray groupsJsonArray = new JsonArray();
                     for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
                         int groupId = groupIds[groupIndex];
-                        GroupInfo groupInfo = groupInfoList.get(groupIndex);
-                        if (groupInfoList.get(groupIndex).mInclude) {
+                        GroupTransferInfo groupInfo = groupInfoList.get(groupIndex);
+                        if (groupInfoList.get(groupIndex).isIncluded()) {
                             groupsJsonArray.put(
                                     getGroupJson(groupId, groupInfo, embedFieldDefaults,
                                             preferenceReader));
@@ -123,7 +123,7 @@ public abstract class JsonManager {
                     JsonArray looseFieldsJsonArray = new JsonArray();
                     for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
                         int groupId = groupIds[groupIndex];
-                        GroupInfo groupInfo = groupInfoList.get(groupIndex);
+                        GroupTransferInfo groupInfo = groupInfoList.get(groupIndex);
                         if (preferenceReader.contains(
                                 createGroupKey(PREF_TEST_FIELD_IDS_PREFIX, groupId))) {
                             addGroupFieldsJson(looseFieldsJsonArray, groupId, groupInfo,
@@ -149,7 +149,7 @@ public abstract class JsonManager {
         return jsonObject.toString();
     }
 
-    private static JsonObject getGroupJson(int groupId, GroupInfo groupInfo,
+    private static JsonObject getGroupJson(int groupId, GroupTransferInfo groupInfo,
                                            boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
@@ -176,13 +176,13 @@ public abstract class JsonManager {
     }
 
     private static void addGroupFieldsJson(JsonArray fieldsJsonArray, int groupId,
-                                           GroupInfo groupInfo, boolean embedFieldDefaults,
+                                           GroupTransferInfo groupInfo, boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
         int[] fieldIds = getFieldIds(groupId, preferenceReader);
         for (int fieldIndex = 0; fieldIndex < fieldIds.length; fieldIndex++) {
             int fieldId = fieldIds[fieldIndex];
-            if (!groupInfo.mFields.get(fieldIndex).mInclude) {
+            if (!groupInfo.getFields().get(fieldIndex).isIncluded()) {
                 continue;
             }
             fieldsJsonArray.put(getFieldJson(fieldId, embedFieldDefaults, preferenceReader));
@@ -487,7 +487,7 @@ public abstract class JsonManager {
         private final List<String> mWarnings = new ArrayList<>();
         private final List<String> mUnexpectedProps = new ArrayList<>();
         private JsonObject mJsonObject;
-        private List<GroupInfo> mGroups;
+        private List<GroupTransferInfo> mGroups;
         private boolean mIsFieldDefaultsIncluded;
         private boolean mIsOtherSettingsIncluded;
 
@@ -507,7 +507,7 @@ public abstract class JsonManager {
             return mJsonObject;
         }
 
-        public List<GroupInfo> getGroups() {
+        public List<GroupTransferInfo> getGroups() {
             return mGroups;
         }
 
@@ -519,16 +519,61 @@ public abstract class JsonManager {
             return mIsOtherSettingsIncluded;
         }
     }
-    //TODO: (EW) don't make properties public
-    public static class GroupInfo {
-        public List<FieldInfo> mFields;
-        public String mName;
-        public boolean mInclude;
-        public boolean mIsAdHoc;
+
+    public static class GroupTransferInfo {
+        private List<FieldTransferInfo> mFields;
+        private String mName;
+        private boolean mInclude;
+        private boolean mIsAdHoc;
+
+        public List<FieldTransferInfo> getFields() {
+            return mFields;
+        }
+
+        public void setFields(List<FieldTransferInfo> fields) {
+            mFields = fields;
+        }
+
+        public String getName() {
+            return mName;
+        }
+
+        public void setName(String name) {
+            mName = name;
+        }
+
+        public void setIncluded(boolean include) {
+            mInclude = include;
+        }
+
+        public boolean isIncluded() {
+            return mInclude;
+        }
+
+        public boolean isAdHoc() {
+            return mIsAdHoc;
+        }
     }
-    public static class FieldInfo {
-        public String mName;
-        public boolean mInclude;
+
+    public static class FieldTransferInfo {
+        private String mName;
+        private boolean mInclude;
+
+        public String getName() {
+            return mName;
+        }
+
+        public void setName(String name) {
+            mName = name;
+        }
+
+        public void setIncluded(boolean include) {
+            mInclude = include;
+        }
+
+        public boolean isIncluded() {
+            return mInclude;
+        }
     }
 
     private static class UnusedPropertyTracker {
@@ -569,10 +614,10 @@ public abstract class JsonManager {
             UnusedPropertyTracker props = new UnusedPropertyTracker(info.mJsonObject);
 
             if (props.contains(GROUPS_JSON_PROP)) {
-                List<GroupInfo> groups = new ArrayList<>();
+                List<GroupTransferInfo> groups = new ArrayList<>();
                 JsonArray groupsJsonArray = info.mJsonObject.getJsonArray(GROUPS_JSON_PROP);
                 for (int i = 0; i < groupsJsonArray.length(); i++) {
-                    GroupInfo groupInfo = new GroupInfo();
+                    GroupTransferInfo groupInfo = new GroupTransferInfo();
                     JsonObject groupJsonObject = groupsJsonArray.getJsonObject(i);
                     if (!validateGroupJson(groupJsonObject, info, i, context, groupInfo)) {
                         return info;
@@ -581,8 +626,8 @@ public abstract class JsonManager {
                 }
                 info.mGroups = groups;
             } else if (props.contains(FIELDS_JSON_PROP)) {
-                List<GroupInfo> groups = new ArrayList<>();
-                GroupInfo groupInfo = new GroupInfo();
+                List<GroupTransferInfo> groups = new ArrayList<>();
+                GroupTransferInfo groupInfo = new GroupTransferInfo();
 
                 // build the ad-hoc group to load
                 JsonObject groupJsonObject = new JsonObject();
@@ -593,7 +638,7 @@ public abstract class JsonManager {
                     return info;
                 }
                 groupInfo.mIsAdHoc = true;
-                groupInfo.mName = context.getText(R.string.ad_hoc_import_group_name).toString();
+                groupInfo.setName(context.getText(R.string.ad_hoc_import_group_name).toString());
                 groups.add(groupInfo);
 
                 info.mGroups = groups;
@@ -630,17 +675,18 @@ public abstract class JsonManager {
     }
 
     private static boolean validateGroupJson(JsonObject groupJsonObject, ImportFileInfo info,
-                                             int groupIndex, Context context, GroupInfo groupInfo)
+                                             int groupIndex, Context context,
+                                             GroupTransferInfo groupInfo)
             throws JSONException {
         Map<String, String> namesMap = new HashMap<>();
-        List<FieldInfo> fields = new ArrayList<>();
+        List<FieldTransferInfo> fields = new ArrayList<>();
 
         UnusedPropertyTracker props = new UnusedPropertyTracker(groupJsonObject);
 
         if (props.contains(FIELDS_JSON_PROP)) {
             JsonArray fieldsJsonArray = groupJsonObject.getJsonArray(FIELDS_JSON_PROP);
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
-                FieldInfo fieldInfo = new FieldInfo();
+                FieldTransferInfo fieldInfo = new FieldTransferInfo();
                 JsonObject fieldJsonObject = fieldsJsonArray.getJsonObject(i);
                 if (!validateFieldJson(fieldJsonObject, info, i, context, fieldInfo)) {
                     return false;
@@ -663,16 +709,17 @@ public abstract class JsonManager {
             info.mUnexpectedProps.add(groupJsonObject.fullPath(prop));
         }
 
-        groupInfo.mFields = fields;
+        groupInfo.setFields(fields);
         String name = getName(namesMap, new String[] { PREF_TEST_GROUP_NAME_PREFIX });
-        groupInfo.mName = name != null
+        groupInfo.setName(name != null
                 ? name
-                : context.getString(R.string.test_group_default_name, groupIndex + 1);
+                : context.getString(R.string.test_group_default_name, groupIndex + 1));
         return true;
     }
 
     private static boolean validateFieldJson(JsonObject fieldJsonObject, ImportFileInfo info,
-                                             int fieldIndex, Context context, FieldInfo fieldInfo) {
+                                             int fieldIndex, Context context,
+                                             FieldTransferInfo fieldInfo) {
         Map<String, String> namesMap = new HashMap<>();
 
         UnusedPropertyTracker props = new UnusedPropertyTracker(fieldJsonObject);
@@ -702,9 +749,9 @@ public abstract class JsonManager {
                 PREF_IME_DEFAULT_TEXT_PREFIX,
                 PREF_IME_HINT_TEXT_PREFIX
         });
-        fieldInfo.mName = name != null
+        fieldInfo.setName(name != null
                 ? name
-                : context.getString(R.string.test_field_default_name, fieldIndex + 1);
+                : context.getString(R.string.test_field_default_name, fieldIndex + 1));
         return true;
     }
 
@@ -1281,7 +1328,7 @@ public abstract class JsonManager {
     }
 
     public static void importSettings(JsonObject jsonObject, boolean replaceFieldDefaults,
-                                      boolean replaceFields, List<GroupInfo> groupInfoList,
+                                      boolean replaceFields, List<GroupTransferInfo> groupInfoList,
                                       boolean embedFieldDefaults, boolean replaceOtherSettings,
                                       Context context) {
         Settings instance = Settings.getInstance();
@@ -1362,12 +1409,12 @@ public abstract class JsonManager {
     }
 
     private static void importGroupJson(JsonObject groupJsonObject,
-                                        GroupInfo groupInfo, List<Integer> groupIds,
+                                        GroupTransferInfo groupInfo, List<Integer> groupIds,
                                         List<Integer> fieldIds, boolean embedFieldDefaults,
                                         JsonObject fieldDefaultsJsonObject, Context context)
             throws JSONException {
         int groupId;
-        if (groupInfo.mInclude) {
+        if (groupInfo.isIncluded()) {
             groupId = Settings.getNextId(groupIds);
             groupIds.add(groupId);
         } else {
@@ -1380,8 +1427,9 @@ public abstract class JsonManager {
     }
 
     private static void addGroupFromJson(JsonObject groupJsonObject, int groupId,
-                                         List<Integer> fieldIds, GroupInfo groupInfo,
-                                         boolean embedFieldDefaults, JsonObject fieldDefaultsJsonObject,
+                                         List<Integer> fieldIds, GroupTransferInfo groupInfo,
+                                         boolean embedFieldDefaults,
+                                         JsonObject fieldDefaultsJsonObject,
                                          Context context)
             throws JSONException {
         SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
@@ -1392,7 +1440,7 @@ public abstract class JsonManager {
 
             List<Integer> groupFieldIds = new ArrayList<>();
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
-                if (!groupInfo.mFields.get(i).mInclude) {
+                if (!groupInfo.getFields().get(i).isIncluded()) {
                     continue;
                 }
                 int fieldId = Settings.getNextId(fieldIds);
@@ -1404,7 +1452,7 @@ public abstract class JsonManager {
             }
 
             int[] fieldIdsArray;
-            if (groupInfo.mInclude) {
+            if (groupInfo.isIncluded()) {
                 fieldIdsArray = toPrimitiveArray(groupFieldIds);
             } else {
                 fieldIdsArray = ArrayUtils.join(
@@ -1416,7 +1464,7 @@ public abstract class JsonManager {
                     fieldIdsArray);
         }
 
-        if (groupInfo.mInclude) {
+        if (groupInfo.isIncluded()) {
             for (String prefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
                 if (prefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
                     continue;

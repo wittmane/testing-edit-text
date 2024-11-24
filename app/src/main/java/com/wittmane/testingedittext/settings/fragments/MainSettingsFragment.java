@@ -45,8 +45,8 @@ import com.wittmane.testingedittext.settings.ImportExportContentDialog;
 import com.wittmane.testingedittext.settings.ImportExportSourceDialog;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.JsonManager;
-import com.wittmane.testingedittext.settings.JsonManager.FieldInfo;
-import com.wittmane.testingedittext.settings.JsonManager.GroupInfo;
+import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
+import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
 import com.wittmane.testingedittext.settings.json.JsonObject;
 
@@ -213,7 +213,7 @@ public class MainSettingsFragment extends PreferenceFragment {
     }
 
     private void importSettings(JsonObject jsonObject, boolean replaceFieldDefaults,
-                                boolean replaceFields, List<GroupInfo> groupInfoList,
+                                boolean replaceFields, List<GroupTransferInfo> groupInfoList,
                                 boolean embedFieldDefaults, boolean replaceOtherSettings) {
         if (replaceFieldDefaults || replaceFields || replaceOtherSettings) {
             showWarningConfirmationDialog(R.string.import_settings,
@@ -231,7 +231,7 @@ public class MainSettingsFragment extends PreferenceFragment {
 
     //TODO: (EW) name better
     private void importSettingsCore(JsonObject jsonObject, boolean replaceFieldDefaults,
-                                    boolean replaceFields, List<GroupInfo> groupInfoList,
+                                    boolean replaceFields, List<GroupTransferInfo> groupInfoList,
                                     boolean embedFieldDefaults, boolean replaceOtherSettings) {
         int oldThemeId = Settings.getThemeId(getActivity());
 
@@ -249,20 +249,20 @@ public class MainSettingsFragment extends PreferenceFragment {
     }
 
     private void promptExportSettings() {
-        List<GroupInfo> mGroupsForExport = new ArrayList<>();
+        List<GroupTransferInfo> mGroupsForExport = new ArrayList<>();
         int groupCount = Settings.getTestFieldGroupCount();
         for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
-            GroupInfo groupInfo = new GroupInfo();
+            GroupTransferInfo groupInfo = new GroupTransferInfo();
             //TODO: (EW) this method probably should be moved to Settings
-            groupInfo.mName = getGroupDisplayName(getActivity(), groupIndex);
-            groupInfo.mFields = new ArrayList<>();
+            groupInfo.setName(getGroupDisplayName(getActivity(), groupIndex));
+            groupInfo.setFields(new ArrayList<>());
             int fieldCount = Settings.getTestFieldCount(groupIndex);
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
-                FieldInfo fieldInfo = new FieldInfo();
+                FieldTransferInfo fieldInfo = new FieldTransferInfo();
                 //TODO: (EW) this method probably should be moved to Settings
-                fieldInfo.mName =
-                        getFieldDisplayName(getActivity(), groupIndex, fieldIndex).toString();
-                groupInfo.mFields.add(fieldInfo);
+                fieldInfo.setName(
+                        getFieldDisplayName(getActivity(), groupIndex, fieldIndex).toString());
+                groupInfo.getFields().add(fieldInfo);
             }
             mGroupsForExport.add(groupInfo);
         }

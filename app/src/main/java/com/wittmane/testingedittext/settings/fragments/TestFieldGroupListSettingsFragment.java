@@ -229,7 +229,7 @@ public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     }
 
     static class FieldEntry {
-        int mFieldId;
+        private final int mFieldId;
         private final String mDisplayName;
 
         public FieldEntry(Context context, int groupIndex, int fieldIndex) {
