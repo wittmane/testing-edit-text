@@ -38,9 +38,8 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.JsonManager.FieldInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
+import com.wittmane.testingedittext.settings.json.JsonObject;
 import com.wittmane.testingedittext.util.IterableUtils;
-
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +69,7 @@ public class ImportExportContentDialog extends AlertDialog {
 
     private ImportExportContentDialog(Context context, boolean includeFieldDefaults,
                                       @Nullable List<GroupInfo> groupInfoList,
-                                      boolean includeOtherSettings, JSONObject jsonObject,
+                                      boolean includeOtherSettings, JsonObject jsonObject,
                                       Importer importer, Exporter exporter) {
         super(context);
         mIsImport = importer != null;
@@ -414,7 +413,7 @@ public class ImportExportContentDialog extends AlertDialog {
     }
 
     public interface Importer {
-        void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
+        void importSettings(JsonObject jsonObject, boolean replaceFieldDefaults,
                             boolean replaceFields, List<GroupInfo> groupInfoList,
                             boolean embedFieldDefaults, boolean replaceOtherSettings);
     }

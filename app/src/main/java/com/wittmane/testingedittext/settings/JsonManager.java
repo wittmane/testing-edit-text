@@ -42,13 +42,13 @@ import com.wittmane.testingedittext.settings.datamanager.IntRangeDataManager;
 import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
 import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
 import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
+import com.wittmane.testingedittext.settings.json.JsonArray;
+import com.wittmane.testingedittext.settings.json.JsonObject;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.util.IterableUtils;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,8 +63,8 @@ import java.util.Set;
 public abstract class JsonManager {
     private static final String TAG = JsonManager.class.getSimpleName();
 
-    private static final boolean EXPORT_UNSET_PREFS = false;
-    private static final boolean EXPORT_DEFAULT_PREFS_VALUES = false;
+    private static final boolean EXPORT_UNSET_PREFS = true;
+    private static final boolean EXPORT_DEFAULT_PREFS_VALUES = true;
     private static final boolean IMPORT_DEFAULT_PREFS_VALUES = false;
 
     private static final String FIELD_DEFAULTS_JSON_PROP = "fieldDefaults";
@@ -85,10 +85,10 @@ public abstract class JsonManager {
     public static String getJson(boolean exportFieldDefaults, List<GroupInfo> groupInfoList,
                                  boolean embedFieldDefaults, boolean exportOtherSettings) {
         PreferenceReader preferenceReader = Settings.getInstance().getPreferenceReader();
-        JSONObject jsonObject = new JSONObject();
+        JsonObject jsonObject = new JsonObject();
         try {
             if (exportFieldDefaults) {
-                JSONObject fieldDefaultsJsonObject = new JSONObject();
+                JsonObject fieldDefaultsJsonObject = new JsonObject();
                 for (String defaultsPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
                     addPrefDataToJson(fieldDefaultsJsonObject,
                             createFieldDefaultKey(defaultsPrefKeyPrefix),
@@ -106,7 +106,7 @@ public abstract class JsonManager {
                                         fieldInfo -> fieldInfo.mInclude))) {
                     // either at least one group was flagged to include or there are no fields and
                     // no groups to include
-                    JSONArray groupsJsonArray = new JSONArray();
+                    JsonArray groupsJsonArray = new JsonArray();
                     for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
                         int groupId = groupIds[groupIndex];
                         GroupInfo groupInfo = groupInfoList.get(groupIndex);
@@ -120,7 +120,7 @@ public abstract class JsonManager {
                 } else {
                     // there are no groups flagged to include, so skip the groups themselves and
                     // just collect the fields that are flagged to include from any group
-                    JSONArray looseFieldsJsonArray = new JSONArray();
+                    JsonArray looseFieldsJsonArray = new JsonArray();
                     for (int groupIndex = 0; groupIndex < groupIds.length; groupIndex++) {
                         int groupId = groupIds[groupIndex];
                         GroupInfo groupInfo = groupInfoList.get(groupIndex);
@@ -135,7 +135,7 @@ public abstract class JsonManager {
             }
 
             if (exportOtherSettings) {
-                JSONObject otherSettingsJsonObject = new JSONObject();
+                JsonObject otherSettingsJsonObject = new JsonObject();
                 for (String miscPrefKey : MISC_PREF_KEYS) {
                     addPrefDataToJson(otherSettingsJsonObject, createBasicKey(miscPrefKey),
                             preferenceReader);
@@ -149,18 +149,18 @@ public abstract class JsonManager {
         return jsonObject.toString();
     }
 
-    private static JSONObject getGroupJson(int groupId, GroupInfo groupInfo,
+    private static JsonObject getGroupJson(int groupId, GroupInfo groupInfo,
                                            boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
-        JSONObject groupJsonObject = new JSONObject();
+        JsonObject groupJsonObject = new JsonObject();
 
         for (String groupPrefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
             PreferenceKey prefKey = createGroupKey(groupPrefKeyPrefix, groupId);
 
             if (groupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
                 if (preferenceReader.contains(prefKey)) {
-                    JSONArray fieldsJsonArray = new JSONArray();
+                    JsonArray fieldsJsonArray = new JsonArray();
 
                     addGroupFieldsJson(fieldsJsonArray, groupId, groupInfo, embedFieldDefaults,
                             preferenceReader);
@@ -175,7 +175,7 @@ public abstract class JsonManager {
         return groupJsonObject;
     }
 
-    private static void addGroupFieldsJson(JSONArray fieldsJsonArray, int groupId,
+    private static void addGroupFieldsJson(JsonArray fieldsJsonArray, int groupId,
                                            GroupInfo groupInfo, boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
@@ -194,10 +194,10 @@ public abstract class JsonManager {
                 createGroupKey(PREF_TEST_FIELD_IDS_PREFIX, groupId));
     }
 
-    private static JSONObject getFieldJson(int fieldId, boolean embedFieldDefaults,
+    private static JsonObject getFieldJson(int fieldId, boolean embedFieldDefaults,
                                            PreferenceReader preferenceReader)
             throws JSONException {
-        JSONObject fieldJsonObject = new JSONObject();
+        JsonObject fieldJsonObject = new JsonObject();
 
         for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
 
@@ -236,7 +236,7 @@ public abstract class JsonManager {
         return fieldJsonObject;
     }
 
-    private static void addPrefDataToJson(JSONObject jsonObject, PreferenceKey prefKey,
+    private static void addPrefDataToJson(JsonObject jsonObject, PreferenceKey prefKey,
                                           PreferenceReader preferenceReader)
             throws JSONException {
         if (!EXPORT_UNSET_PREFS && !preferenceReader.contains(prefKey)) {
@@ -295,7 +295,7 @@ public abstract class JsonManager {
     private static <T> void addPrefToJson(PreferenceKey prefKey,
                                           Function<PreferenceKey, PrefInfo<T>> readPref,
                                           String jsonPropName,
-                                          AddPropToJsonFunction<T, JSONObject> addToJson)
+                                          AddPropToJsonFunction<T, JsonObject> addToJson)
             throws JSONException {
         addPrefToJson(prefKey, readPref, value -> addToJson.apply(jsonPropName, value));
     }
@@ -318,7 +318,7 @@ public abstract class JsonManager {
         void accept(T propValue) throws JSONException;
     }
 
-    private static void addBooleanPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addBooleanPrefToJson(JsonObject jsonObject, String jsonPropName,
                                              PreferenceKey prefKey,
                                              PreferenceReader preferenceReader)
             throws JSONException {
@@ -326,82 +326,75 @@ public abstract class JsonManager {
                 jsonObject::put);
     }
 
-    private static void addIntPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addIntPrefToJson(JsonObject jsonObject, String jsonPropName,
                                          PreferenceKey prefKey, PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readIntWithInfo, jsonPropName, jsonObject::put);
     }
 
-    private static void addLongPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addLongPrefToJson(JsonObject jsonObject, String jsonPropName,
                                           PreferenceKey prefKey, PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readLongWithInfo, jsonPropName, jsonObject::put);
     }
 
-    private static void addFloatPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addFloatPrefToJson(JsonObject jsonObject, String jsonPropName,
                                            PreferenceKey prefKey, PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readFloatWithInfo, jsonPropName, jsonObject::put);
     }
 
-    private static void addStringPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addStringPrefToJson(JsonObject jsonObject, String jsonPropName,
                                             PreferenceKey prefKey,
                                             PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readStringWithInfo, jsonPropName, jsonObject::put);
     }
 
-    private static void addSpannedPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addSpannedPrefToJson(JsonObject jsonObject, String jsonPropName,
                                              PreferenceKey prefKey,
                                              PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKey, preferenceReader::readSpannedWithInfo,
-                value -> addSpanned(jsonObject, jsonPropName, value));
+        addPrefToJson(prefKey, preferenceReader::readSpannedWithInfo, jsonPropName,
+                jsonObject::put);
     }
 
-    private static void addCharSequencePrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addCharSequencePrefToJson(JsonObject jsonObject, String jsonPropName,
                                                   PreferenceKey prefKey,
                                                   PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKey, preferenceReader::readCharSequenceWithInfo, value -> {
-            if (value instanceof Spanned) {
-                addSpanned(jsonObject, jsonPropName, (Spanned)value);
-            } else if (value == null || value instanceof String) {
-                addObject(jsonObject, jsonPropName, value);
-            } else {
-                jsonObject.put(jsonPropName, value.toString());
-            }
-        });
+        addPrefToJson(prefKey, preferenceReader::readCharSequenceWithInfo, jsonPropName,
+                jsonObject::put);
     }
 
-    private static void addIntArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addIntArrayPrefToJson(JsonObject jsonObject, String jsonPropName,
                                               PreferenceKey prefKey,
                                               PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKey, preferenceReader::readIntArrayWithInfo,
-                value -> addArray(jsonObject, jsonPropName, value));
+        addPrefToJson(prefKey, preferenceReader::readIntArrayWithInfo, jsonPropName,
+                jsonObject::put);
     }
 
-    private static void addStringArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addStringArrayPrefToJson(JsonObject jsonObject, String jsonPropName,
                                                  PreferenceKey prefKey,
                                                  PreferenceReader preferenceReader)
             throws JSONException {
-        addPrefToJson(prefKey, preferenceReader::readStringArrayWithInfo,
-                value -> addArray(jsonObject, jsonPropName, value));
+        addPrefToJson(prefKey, preferenceReader::readStringArrayWithInfo, jsonPropName,
+                jsonObject::put);
     }
 
-    private static void addIntRangePrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addIntRangePrefToJson(JsonObject jsonObject, String jsonPropName,
                                               PreferenceKey prefKey,
                                               PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readIntRangeWithInfo, value -> {
-            addArray(jsonObject, jsonPropName, value == null
+            jsonObject.put(jsonPropName, value == null
                     ? null
                     : new int[] { value.getStart(), value.getEnd() });
         });
     }
 
-    private static void addLocaleArrayPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addLocaleArrayPrefToJson(JsonObject jsonObject, String jsonPropName,
                                                  PreferenceKey prefKey,
                                                  PreferenceReader preferenceReader)
             throws JSONException {
@@ -415,93 +408,41 @@ public abstract class JsonManager {
                     localeStrings[i] = LocaleArrayDataManager.getLocaleString(value[i]);
                 }
             }
-            addArray(jsonObject, jsonPropName, localeStrings);
+            jsonObject.put(jsonPropName, localeStrings);
         });
     }
 
-    private static void addTextListStringPrefToJson(JSONObject jsonObject, String jsonPropName,
+    private static void addTextListStringPrefToJson(JsonObject jsonObject, String jsonPropName,
                                                     PreferenceKey prefKey,
                                                     PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readTextListStringWithInfo, value -> {
-            JSONObject textListJsonObject = new JSONObject();
+            JsonObject textListJsonObject = new JsonObject();
             textListJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP, value.escapeChars());
-            addArray(textListJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP, value.getDataArray());
+            textListJsonObject.put(TEXT_LIST_DATA_ARRAY_JSON_PROP, value.getDataArray());
             jsonObject.put(jsonPropName, textListJsonObject);
         });
     }
 
-    private static void addTextListTranslateTextPrefToJson(JSONObject jsonObject,
+    private static void addTextListTranslateTextPrefToJson(JsonObject jsonObject,
                                                            String jsonPropName,
                                                            PreferenceKey prefKey,
                                                            PreferenceReader preferenceReader)
             throws JSONException {
         addPrefToJson(prefKey, preferenceReader::readTextListTranslateTextWithInfo, value -> {
-            JSONObject translateTextJsonObject = new JSONObject();
+            JsonObject translateTextJsonObject = new JsonObject();
             translateTextJsonObject.put(TEXT_LIST_ESCAPE_CHARS_JSON_PROP, value.escapeChars());
-            JSONObject[] translateTextArray = new JSONObject[value.getDataArray().length];
+            JsonObject[] translateTextArray = new JsonObject[value.getDataArray().length];
             for (int i = 0; i < translateTextArray.length; i++) {
-                translateTextArray[i] = new JSONObject();
+                translateTextArray[i] = new JsonObject();
                 translateTextArray[i].put(TRANSLATE_TEXT_ORIGINAL_JSON_PROP,
                         value.getDataArray()[i].getOriginal());
                 translateTextArray[i].put(TRANSLATE_TEXT_TRANSLATION_JSON_PROP,
                         value.getDataArray()[i].getTranslation());
             }
-            addArray(translateTextJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP, translateTextArray);
+            translateTextJsonObject.put(TEXT_LIST_DATA_ARRAY_JSON_PROP, translateTextArray);
             jsonObject.put(jsonPropName, translateTextJsonObject);
         });
-    }
-
-    private static <T> void addArray(JSONObject jsonObject, String jsonPropName, T[] data)
-            throws JSONException {
-        if (data == null) {
-            jsonObject.put(jsonPropName, JSONObject.NULL);
-        } else {
-            JSONArray jsonArray = new JSONArray();
-            for (T value : data) {
-                jsonArray.put(value);
-            }
-            jsonObject.put(jsonPropName, jsonArray);
-        }
-    }
-
-    private static void addArray(JSONObject jsonObject, String jsonPropName, int[] data)
-            throws JSONException {
-        if (data == null) {
-            jsonObject.put(jsonPropName, JSONObject.NULL);
-        } else {
-            JSONArray jsonArray = new JSONArray();
-            for (int value : data) {
-                jsonArray.put(value);
-            }
-            jsonObject.put(jsonPropName, jsonArray);
-        }
-    }
-
-    private static void addObject(JSONObject jsonObject, String jsonPropName, Object data)
-            throws JSONException {
-        if (data == null) {
-            jsonObject.put(jsonPropName, JSONObject.NULL);
-        } else {
-            jsonObject.put(jsonPropName, data);
-        }
-    }
-
-    private static void addSpanned(JSONObject jsonObject, String jsonPropName, Spanned value)
-            throws JSONException {
-        if (value == null) {
-            jsonObject.put(jsonPropName, JSONObject.NULL);
-        } else {
-            // embed an indication of what data this holds so that if other CharSequence types are
-            // supported in the future or we find a better way to export the data, we can maintain
-            // compatibility between varying versions between the exporting and importing app
-            JSONObject dataJsonObject = new JSONObject();
-            dataJsonObject.put(CUSTOM_OBJECT_DATA_FORMAT_JSON_PROP, DATA_FORMAT_SPANNED);
-            // get the data that SharedPreferenceManager uses to save spanned objects
-            addArray(dataJsonObject, CUSTOM_OBJECT_DATA_JSON_PROP,
-                    SharedPreferenceManager.getSpannedInfo(value));
-            jsonObject.put(jsonPropName, dataJsonObject);
-        }
     }
 
     private static String prefKeyPrefixToJsonName(String prefKeyOrKeyPrefix) {
@@ -545,7 +486,7 @@ public abstract class JsonManager {
         private String mError;
         private final List<String> mWarnings = new ArrayList<>();
         private final List<String> mUnexpectedProps = new ArrayList<>();
-        private JSONObject mJsonObject;
+        private JsonObject mJsonObject;
         private List<GroupInfo> mGroups;
         private boolean mIsFieldDefaultsIncluded;
         private boolean mIsOtherSettingsIncluded;
@@ -562,7 +503,7 @@ public abstract class JsonManager {
             return mUnexpectedProps;
         }
 
-        public JSONObject getJsonObject() {
+        public JsonObject getJsonObject() {
             return mJsonObject;
         }
 
@@ -593,7 +534,7 @@ public abstract class JsonManager {
     private static class UnusedPropertyTracker {
         private final Set<String> mUnusedProperties;
 
-        public UnusedPropertyTracker(JSONObject jsonObject) {
+        public UnusedPropertyTracker(JsonObject jsonObject) {
             mUnusedProperties = new HashSet<>();
             Iterator<String> keys = jsonObject.keys();
             while(keys.hasNext()) {
@@ -613,10 +554,10 @@ public abstract class JsonManager {
         }
     }
 
-    private static JSONObject getJsonObject(JSONObject jsonObject, String propName)
+    private static JsonObject getJsonObject(JsonObject jsonObject, String propName)
             throws JSONException {
         return jsonObject.has(propName)
-                ? jsonObject.getJSONObject(propName)
+                ? jsonObject.getJsonObject(propName)
                 : null;
     }
 
@@ -624,18 +565,16 @@ public abstract class JsonManager {
         ImportFileInfo info = new ImportFileInfo();
 
         try {
-            info.mJsonObject = new JSONObject(rawJson);
+            info.mJsonObject = new JsonObject(rawJson);
             UnusedPropertyTracker props = new UnusedPropertyTracker(info.mJsonObject);
 
             if (props.contains(GROUPS_JSON_PROP)) {
                 List<GroupInfo> groups = new ArrayList<>();
-                JSONArray groupsJsonArray = info.mJsonObject.getJSONArray(GROUPS_JSON_PROP);
+                JsonArray groupsJsonArray = info.mJsonObject.getJsonArray(GROUPS_JSON_PROP);
                 for (int i = 0; i < groupsJsonArray.length(); i++) {
                     GroupInfo groupInfo = new GroupInfo();
-                    JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
-                    if (!validateGroupJson(groupJsonObject, info, i,
-                            GROUPS_JSON_PROP + "[" + i + "]",
-                            context, groupInfo)) {
+                    JsonObject groupJsonObject = groupsJsonArray.getJsonObject(i);
+                    if (!validateGroupJson(groupJsonObject, info, i, context, groupInfo)) {
                         return info;
                     }
                     groups.add(groupInfo);
@@ -646,12 +585,11 @@ public abstract class JsonManager {
                 GroupInfo groupInfo = new GroupInfo();
 
                 // build the ad-hoc group to load
-                JSONObject groupJsonObject = new JSONObject();
-                JSONArray looseFieldsJsonArray = info.mJsonObject.getJSONArray(FIELDS_JSON_PROP);
+                JsonObject groupJsonObject = new JsonObject();
+                JsonArray looseFieldsJsonArray = info.mJsonObject.getJsonArray(FIELDS_JSON_PROP);
                 groupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
 
-                if (!validateGroupJson(groupJsonObject, info, 0, null,
-                        context, groupInfo)) {
+                if (!validateGroupJson(groupJsonObject, info, 0, context, groupInfo)) {
                     return info;
                 }
                 groupInfo.mIsAdHoc = true;
@@ -662,20 +600,20 @@ public abstract class JsonManager {
             }
 
             if (props.contains(FIELD_DEFAULTS_JSON_PROP)) {
-                JSONObject fieldDefaultsJsonObject =
-                        info.mJsonObject.getJSONObject(FIELD_DEFAULTS_JSON_PROP);
+                JsonObject fieldDefaultsJsonObject =
+                        info.mJsonObject.getJsonObject(FIELD_DEFAULTS_JSON_PROP);
                 if (!validateSettingsClusterJson(DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES,
-                        fieldDefaultsJsonObject, info, FIELD_DEFAULTS_JSON_PROP, context)) {
+                        fieldDefaultsJsonObject, info, context)) {
                     return info;
                 }
                 info.mIsFieldDefaultsIncluded = true;
             }
 
             if (props.contains(OTHER_SETTINGS_JSON_PROP)) {
-                JSONObject otherSettingsJsonObject =
-                        info.mJsonObject.getJSONObject(OTHER_SETTINGS_JSON_PROP);
-                if (!validateSettingsClusterJson(MISC_PREF_KEYS,
-                        otherSettingsJsonObject, info, OTHER_SETTINGS_JSON_PROP, context)) {
+                JsonObject otherSettingsJsonObject =
+                        info.mJsonObject.getJsonObject(OTHER_SETTINGS_JSON_PROP);
+                if (!validateSettingsClusterJson(MISC_PREF_KEYS, otherSettingsJsonObject, info,
+                        context)) {
                     return info;
                 }
                 info.mIsOtherSettingsIncluded = true;
@@ -691,9 +629,8 @@ public abstract class JsonManager {
         return info;
     }
 
-    private static boolean validateGroupJson(JSONObject groupJsonObject, ImportFileInfo info,
-                                             int groupIndex, String path, Context context,
-                                             GroupInfo groupInfo)
+    private static boolean validateGroupJson(JsonObject groupJsonObject, ImportFileInfo info,
+                                             int groupIndex, Context context, GroupInfo groupInfo)
             throws JSONException {
         Map<String, String> namesMap = new HashMap<>();
         List<FieldInfo> fields = new ArrayList<>();
@@ -701,13 +638,11 @@ public abstract class JsonManager {
         UnusedPropertyTracker props = new UnusedPropertyTracker(groupJsonObject);
 
         if (props.contains(FIELDS_JSON_PROP)) {
-            JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(FIELDS_JSON_PROP);
+            JsonArray fieldsJsonArray = groupJsonObject.getJsonArray(FIELDS_JSON_PROP);
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
                 FieldInfo fieldInfo = new FieldInfo();
-                JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
-                if (!validateFieldJson(fieldJsonObject, info, i,
-                        (path != null ? path + "." : "") + FIELDS_JSON_PROP + "[" + i + "]",
-                        context, fieldInfo)) {
+                JsonObject fieldJsonObject = fieldsJsonArray.getJsonObject(i);
+                if (!validateFieldJson(fieldJsonObject, info, i, context, fieldInfo)) {
                     return false;
                 }
                 fields.add(fieldInfo);
@@ -718,14 +653,14 @@ public abstract class JsonManager {
             String jsonProp = prefKeyPrefixToJsonName(testGroupPrefKeyPrefix);
             if (props.contains(jsonProp)) {
                 if (!testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
-                    validatePropValue(groupJsonObject, jsonProp, path, testGroupPrefKeyPrefix,
-                            info, context, namesMap);
+                    validatePropValue(groupJsonObject, jsonProp, testGroupPrefKeyPrefix, info,
+                            context, namesMap);
                 }
             }
         }
 
         for (String prop : props.getUnusedProperties()) {
-            info.mUnexpectedProps.add(path + "." + prop);
+            info.mUnexpectedProps.add(groupJsonObject.fullPath(prop));
         }
 
         groupInfo.mFields = fields;
@@ -736,9 +671,8 @@ public abstract class JsonManager {
         return true;
     }
 
-    private static boolean validateFieldJson(JSONObject fieldJsonObject, ImportFileInfo info,
-                                             int fieldIndex, String path, Context context,
-                                             FieldInfo fieldInfo) {
+    private static boolean validateFieldJson(JsonObject fieldJsonObject, ImportFileInfo info,
+                                             int fieldIndex, Context context, FieldInfo fieldInfo) {
         Map<String, String> namesMap = new HashMap<>();
 
         UnusedPropertyTracker props = new UnusedPropertyTracker(fieldJsonObject);
@@ -746,21 +680,21 @@ public abstract class JsonManager {
         for (String testFieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
             String jsonProp = prefKeyPrefixToJsonName(testFieldPrefKeyPrefix);
             if (props.contains(jsonProp)) {
-                validatePropValue(fieldJsonObject, jsonProp, path, testFieldPrefKeyPrefix, info,
-                        context, namesMap);
+                validatePropValue(fieldJsonObject, jsonProp, testFieldPrefKeyPrefix, info, context,
+                        namesMap);
             }
         }
 
         for (String defaultableTestFieldPrefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
             String jsonProp = prefKeyPrefixToJsonName(defaultableTestFieldPrefKeyPrefix);
             if (props.contains(jsonProp)) {
-                validatePropValue(fieldJsonObject, jsonProp, path,
-                        defaultableTestFieldPrefKeyPrefix, info, context, null);
+                validatePropValue(fieldJsonObject, jsonProp, defaultableTestFieldPrefKeyPrefix,
+                        info, context, null);
             }
         }
 
         for (String prop : props.getUnusedProperties()) {
-            info.mUnexpectedProps.add(path + "." + prop);
+            info.mUnexpectedProps.add(fieldJsonObject.fullPath(prop));
         }
 
         String name = getName(namesMap, new String[] {
@@ -775,20 +709,20 @@ public abstract class JsonManager {
     }
 
     private static boolean validateSettingsClusterJson(String[] keyOrKeyPrefixArray,
-                                                       JSONObject jsonObject,
-                                                       ImportFileInfo info, String path,
+                                                       JsonObject jsonObject,
+                                                       ImportFileInfo info,
                                                        Context context) {
         UnusedPropertyTracker props = new UnusedPropertyTracker(jsonObject);
 
         for (String prefKeyPrefix : keyOrKeyPrefixArray) {
             String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
             if (props.contains(jsonProp)) {
-                validatePropValue(jsonObject, jsonProp, path, prefKeyPrefix, info, context, null);
+                validatePropValue(jsonObject, jsonProp, prefKeyPrefix, info, context, null);
             }
         }
 
         for (String prop : props.getUnusedProperties()) {
-            info.mUnexpectedProps.add(path + "." + prop);
+            info.mUnexpectedProps.add(jsonObject.fullPath(prop));
         }
 
         return true;
@@ -807,38 +741,35 @@ public abstract class JsonManager {
         return null;
     }
 
-    private static void loadPrefData(JSONObject jsonObject, String jsonPropName, String path,
+    private static void loadPrefData(JsonObject jsonObject, String jsonPropName,
                                      String prefKeyOrPrefix, @NonNull Context context,
                                      @NonNull String prefKey) {
-        Consumer<String> prefSetter = validatePropValue(jsonObject, jsonPropName, path,
-                prefKeyOrPrefix, null, context, null);
+        Consumer<String> prefSetter = validatePropValue(jsonObject, jsonPropName, prefKeyOrPrefix,
+                null, context, null);
         if (prefSetter != null) {
             prefSetter.accept(prefKey);
         }
     }
 
-    private static Consumer<String> validatePropValue(JSONObject jsonObject, String jsonPropName,
-                                                      String path, String prefKeyOrPrefix,
+    private static Consumer<String> validatePropValue(JsonObject jsonObject, String jsonPropName,
+                                                      String prefKeyOrPrefix,
                                                       @Nullable ImportFileInfo info,
                                                       @NonNull Context context,
                                                       @Nullable Map<String, String> namesMap) {
-        String fullPath = (path == null ? "" : (path + ".")) + jsonPropName;
         int dataType = PreferenceReader.prefDataType(prefKeyOrPrefix);
         try {
             switch (dataType) {
                 case PreferenceReader.TYPE_BOOLEAN:
                     return validateBoolean(jsonObject, jsonPropName, prefKeyOrPrefix);
                 case PreferenceReader.TYPE_INT:
-                    return validateInt(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info,
-                            context);
+                    return validateInt(jsonObject, jsonPropName, prefKeyOrPrefix, info, context);
                 case PreferenceReader.TYPE_LONG:
                     return validateLong(jsonObject, jsonPropName, prefKeyOrPrefix);
                 case PreferenceReader.TYPE_FLOAT:
-                    return validateFloat(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info,
-                            context);
+                    return validateFloat(jsonObject, jsonPropName, prefKeyOrPrefix, info, context);
                 case PreferenceReader.TYPE_STRING:
-                    return validateString(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix, info,
-                            context, namesMap);
+                    return validateString(jsonObject, jsonPropName, prefKeyOrPrefix, info, context,
+                            namesMap);
                 case PreferenceReader.TYPE_SPANNED:
                     return validateSpanned(jsonObject, jsonPropName, prefKeyOrPrefix);
                 case PreferenceReader.TYPE_CHAR_SEQUENCE:
@@ -849,28 +780,26 @@ public abstract class JsonManager {
                 case PreferenceReader.TYPE_STRING_ARRAY:
                     return validateStringArray(jsonObject, jsonPropName, prefKeyOrPrefix);
                 case PreferenceReader.TYPE_INT_RANGE:
-                    return validateIntRange(jsonObject, jsonPropName, fullPath, prefKeyOrPrefix,
-                            info, context);
+                    return validateIntRange(jsonObject, jsonPropName, prefKeyOrPrefix, info,
+                            context);
                 case PreferenceReader.TYPE_LOCALE_ARRAY:
-                    return validateLocaleArray(jsonObject, jsonPropName, fullPath, info, context);
+                    return validateLocaleArray(jsonObject, jsonPropName, info, context);
                 case PreferenceReader.TYPE_TEXT_LIST_STRING:
-                    return validateTextListString(jsonObject, jsonPropName, fullPath, info,
-                            context);
+                    return validateTextListString(jsonObject, jsonPropName, info, context);
                 case PreferenceReader.TYPE_TEXT_LIST_TRANSLATE_TEXT:
-                    return validateTextListTranslateText(jsonObject, jsonPropName, fullPath, info,
-                            context);
+                    return validateTextListTranslateText(jsonObject, jsonPropName, info, context);
                 case PreferenceReader.TYPE_UNKNOWN:
                 default:
                     //TODO: (EW) probably handle gracefully, but hard crash for now to catch issues
                     throw new RuntimeException("Unknown data type for " + prefKeyOrPrefix);
             }
         } catch (JSONException e) {
-            logJsonException(e, fullPath, info, context);
+            logJsonException(e, jsonObject.fullPath(jsonPropName), info, context);
             return null;
         }
     }
 
-    private static Consumer<String> validateBoolean(JSONObject jsonObject, String jsonPropName,
+    private static Consumer<String> validateBoolean(JsonObject jsonObject, String jsonPropName,
                                                     String prefKeyOrPrefix)
             throws JSONException {
         // just need to try getting the data for basic types to ensure the right data type is set
@@ -878,8 +807,8 @@ public abstract class JsonManager {
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setBoolean);
     }
 
-    private static Consumer<String> validateInt(JSONObject jsonObject, String jsonPropName,
-                                    String fullPath, String prefKeyOrPrefix,
+    private static Consumer<String> validateInt(JsonObject jsonObject, String jsonPropName,
+                                    String prefKeyOrPrefix,
                                     @Nullable ImportFileInfo info, @NonNull Context context)
             throws JSONException {
         int value = jsonObject.getInt(jsonPropName);
@@ -947,6 +876,7 @@ public abstract class JsonManager {
         int constrainedIntData = constrain(value, minValue, maxValue, stepValue);
         if (constrainedIntData != value
                 && value != PreferenceReader.getPrefDefaultInt(prefKeyOrPrefix)) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             if (value < minValue || value > maxValue) {
                 Log.e(TAG, fullPath + " ( " + value + ") isn't in the range "
                         + minValue + " - " + maxValue);
@@ -969,20 +899,21 @@ public abstract class JsonManager {
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setInt);
     }
 
-    private static Consumer<String> validateLong(JSONObject jsonObject, String jsonPropName,
+    private static Consumer<String> validateLong(JsonObject jsonObject, String jsonPropName,
                                                  String prefKeyOrPrefix)
             throws JSONException {
         long value = jsonObject.getLong(jsonPropName);
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setLong);
     }
 
-    private static Consumer<String> validateFloat(JSONObject jsonObject, String jsonPropName,
-                                                  String fullPath, String prefKeyOrPrefix,
+    private static Consumer<String> validateFloat(JsonObject jsonObject, String jsonPropName,
+                                                  String prefKeyOrPrefix,
                                                   @Nullable ImportFileInfo info,
                                                   @NonNull Context context)
             throws JSONException {
         double value = jsonObject.getDouble(jsonPropName);
         if (value > Float.MAX_VALUE || value < Float.MIN_VALUE) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             Log.e(TAG, value + " isn't a valid float for " + fullPath);
             if (info != null) {
                 info.mWarnings.add(
@@ -993,8 +924,8 @@ public abstract class JsonManager {
         return preferenceSetter(prefKeyOrPrefix, (float) value, SharedPreferenceManager::setFloat);
     }
 
-    private static Consumer<String> validateString(JSONObject jsonObject, String jsonPropName,
-                                                   String fullPath, String prefKeyOrPrefix,
+    private static Consumer<String> validateString(JsonObject jsonObject, String jsonPropName,
+                                                   String prefKeyOrPrefix,
                                                    @Nullable ImportFileInfo info,
                                                    @NonNull Context context,
                                                    @Nullable Map<String, String> namesMap)
@@ -1045,6 +976,7 @@ public abstract class JsonManager {
                 && !ArrayUtils.contains(allowedStringValues, value)
                 && !TextUtils.equals(value,
                 PreferenceReader.getPrefDefaultString(prefKeyOrPrefix))) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             Log.e(TAG, fullPath + " has an invalid value: " + value);
             if (info != null) {
                 info.mWarnings.add(context.getString(R.string.invalid_value,
@@ -1061,14 +993,14 @@ public abstract class JsonManager {
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setString);
     }
 
-    private static Consumer<String> validateSpanned(JSONObject jsonObject, String jsonPropName,
+    private static Consumer<String> validateSpanned(JsonObject jsonObject, String jsonPropName,
                                                     String prefKeyOrPrefix)
             throws JSONException {
         Spanned value = getSpanned(jsonObject, jsonPropName);
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setSpanned);
     }
 
-    private static Consumer<String> validateCharSequence(JSONObject jsonObject, String jsonPropName,
+    private static Consumer<String> validateCharSequence(JsonObject jsonObject, String jsonPropName,
                                                          String prefKeyOrPrefix,
                                                          @Nullable Map<String, String> namesMap)
             throws JSONException {
@@ -1091,27 +1023,28 @@ public abstract class JsonManager {
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setCharSequence);
     }
 
-    private static Consumer<String> validateIntArray(JSONObject jsonObject, String jsonPropName,
+    private static Consumer<String> validateIntArray(JsonObject jsonObject, String jsonPropName,
                                                      String prefKeyOrPrefix)
             throws JSONException {
         int[] value = getIntArray(jsonObject, jsonPropName);
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setIntArray);
     }
 
-    private static Consumer<String> validateStringArray(JSONObject jsonObject, String jsonPropName,
+    private static Consumer<String> validateStringArray(JsonObject jsonObject, String jsonPropName,
                                                         String prefKeyOrPrefix)
             throws JSONException {
         String[] value = getStringArray(jsonObject, jsonPropName);
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setStringArray);
     }
 
-    private static Consumer<String> validateIntRange(JSONObject jsonObject, String jsonPropName,
-                                                     String fullPath, String prefKeyOrPrefix,
+    private static Consumer<String> validateIntRange(JsonObject jsonObject, String jsonPropName,
+                                                     String prefKeyOrPrefix,
                                                      @Nullable ImportFileInfo info,
                                                      @NonNull Context context)
             throws JSONException {
         int[] value = getIntArray(jsonObject, jsonPropName);
         if (value != null && value.length != 2) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             Log.e(TAG, fullPath + " doesn't have exactly 2 values: " + Arrays.toString(value));
             if (info != null) {
                 info.mWarnings.add(context.getString(R.string.invalid_data, fullPath));
@@ -1122,6 +1055,7 @@ public abstract class JsonManager {
                 ? null
                 : new IntRange(value[0], value[1]);
         if (prefKeyOrPrefix.equals(PREF_RESTRICT_RANGE_PREFIX)) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             if (!CodepointRangeDialogPreference.isValidRange(range)) {
                 Log.e(TAG, fullPath + " contains an invalid codepoint range: " + range);
                 if (info != null) {
@@ -1133,8 +1067,7 @@ public abstract class JsonManager {
         return preferenceSetter(range, IntRangeDataManager::new);
     }
 
-    private static Consumer<String> validateLocaleArray(JSONObject jsonObject, String jsonPropName,
-                                                        String fullPath,
+    private static Consumer<String> validateLocaleArray(JsonObject jsonObject, String jsonPropName,
                                                         @Nullable ImportFileInfo info,
                                                         @NonNull Context context)
             throws JSONException {
@@ -1143,6 +1076,7 @@ public abstract class JsonManager {
         List<Locale> localeList = new ArrayList<>();
         for (int i = 0; i < localeCount; i++) {
             if (!LocaleEntryListPreference.isValidLocale(localStrings[i])) {
+                String fullPath = jsonObject.fullPath(jsonPropName);
                 Log.e(TAG, fullPath + "[" + i + "] doesn't have a valid locale string: "
                         + localStrings[i]);
                 if (info != null) {
@@ -1157,15 +1091,15 @@ public abstract class JsonManager {
         return preferenceSetter(localeArray, LocaleArrayDataManager::new);
     }
 
-    private static Consumer<String> validateTextListString(JSONObject jsonObject,
+    private static Consumer<String> validateTextListString(JsonObject jsonObject,
                                                            String jsonPropName,
-                                                           String fullPath,
                                                            @Nullable ImportFileInfo info,
                                                            @NonNull Context context)
             throws JSONException {
-        JSONObject textListJsonObject = jsonObject.getJSONObject(jsonPropName);
+        JsonObject textListJsonObject = jsonObject.getJsonObject(jsonPropName);
         String[] stringArray = getStringArray(textListJsonObject, TEXT_LIST_DATA_ARRAY_JSON_PROP);
         if (stringArray == null) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             Log.e(TAG, fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP + " is null");
             if (info != null) {
                 info.mWarnings.add(context.getString(R.string.null_data,
@@ -1179,16 +1113,16 @@ public abstract class JsonManager {
         return preferenceSetter(textList, StringTextListDataManager::new);
     }
 
-    private static Consumer<String> validateTextListTranslateText(JSONObject jsonObject,
+    private static Consumer<String> validateTextListTranslateText(JsonObject jsonObject,
                                                                   String jsonPropName,
-                                                                  String fullPath,
                                                                   @Nullable ImportFileInfo info,
                                                                   @NonNull Context context)
             throws JSONException {
-        JSONObject textListJsonObject = jsonObject.getJSONObject(jsonPropName);
-        JSONObject[] translateTextJsonObjects = getJsonObjectArray(textListJsonObject,
+        JsonObject textListJsonObject = jsonObject.getJsonObject(jsonPropName);
+        JsonObject[] translateTextJsonObjects = getJsonObjectArray(textListJsonObject,
                 TEXT_LIST_DATA_ARRAY_JSON_PROP);
         if (translateTextJsonObjects == null) {
+            String fullPath = jsonObject.fullPath(jsonPropName);
             Log.e(TAG, fullPath + "." + TEXT_LIST_DATA_ARRAY_JSON_PROP + " is null");
             if (info != null) {
                 info.mWarnings.add(context.getString(R.string.null_data,
@@ -1267,7 +1201,7 @@ public abstract class JsonManager {
         return (int) stepUpperEdge;
     }
 
-    private static String getString(JSONObject jsonObject, String jsonPropName)
+    private static String getString(JsonObject jsonObject, String jsonPropName)
             throws JSONException {
         if (jsonObject.isNull(jsonPropName)) {
             return null;
@@ -1275,25 +1209,25 @@ public abstract class JsonManager {
         return jsonObject.getString(jsonPropName);
     }
 
-    private static JSONObject[] getJsonObjectArray(JSONObject jsonObject, String jsonPropName)
+    private static JsonObject[] getJsonObjectArray(JsonObject jsonObject, String jsonPropName)
             throws JSONException {
         if (jsonObject.isNull(jsonPropName)) {
             return null;
         }
-        JSONArray jsonArray = jsonObject.getJSONArray(jsonPropName);
-        JSONObject[] result = new JSONObject[jsonArray.length()];
+        JsonArray jsonArray = jsonObject.getJsonArray(jsonPropName);
+        JsonObject[] result = new JsonObject[jsonArray.length()];
         for (int i = 0; i < result.length; i++) {
-            result[i] = jsonArray.getJSONObject(i);
+            result[i] = jsonArray.getJsonObject(i);
         }
         return result;
     }
 
-    private static String[] getStringArray(JSONObject jsonObject, String jsonPropName)
+    private static String[] getStringArray(JsonObject jsonObject, String jsonPropName)
             throws JSONException {
         if (jsonObject.isNull(jsonPropName)) {
             return null;
         }
-        JSONArray jsonArray = jsonObject.getJSONArray(jsonPropName);
+        JsonArray jsonArray = jsonObject.getJsonArray(jsonPropName);
         String[] result = new String[jsonArray.length()];
         for (int i = 0; i < result.length; i++) {
             result[i] = jsonArray.getString(i);
@@ -1301,12 +1235,12 @@ public abstract class JsonManager {
         return result;
     }
 
-    private static int[] getIntArray(JSONObject jsonObject, String jsonPropName)
+    private static int[] getIntArray(JsonObject jsonObject, String jsonPropName)
             throws JSONException {
         if (jsonObject.isNull(jsonPropName)) {
             return null;
         }
-        JSONArray jsonArray = jsonObject.getJSONArray(jsonPropName);
+        JsonArray jsonArray = jsonObject.getJsonArray(jsonPropName);
         int[] result = new int[jsonArray.length()];
         for (int i = 0; i < result.length; i++) {
             result[i] = jsonArray.getInt(i);
@@ -1314,12 +1248,12 @@ public abstract class JsonManager {
         return result;
     }
 
-    private static Spanned getSpanned(JSONObject jsonObject, String jsonPropName)
+    private static Spanned getSpanned(JsonObject jsonObject, String jsonPropName)
             throws JSONException {
         if (jsonObject.isNull(jsonPropName)) {
             return null;
         }
-        JSONObject dataJsonObject = jsonObject.getJSONObject(jsonPropName);
+        JsonObject dataJsonObject = jsonObject.getJsonObject(jsonPropName);
         int dataFormat = dataJsonObject.getInt(CUSTOM_OBJECT_DATA_FORMAT_JSON_PROP);
         if (dataFormat == DATA_FORMAT_SPANNED) {
             String[] spannedInfo = getStringArray(dataJsonObject, CUSTOM_OBJECT_DATA_JSON_PROP);
@@ -1328,7 +1262,7 @@ public abstract class JsonManager {
         throw new JSONException(UNEXPECTED_CUSTOM_OBJECT_MESSAGE);
     }
 
-    public static void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
+    public static void importSettings(JsonObject jsonObject, boolean replaceFieldDefaults,
                                       boolean replaceFields, List<GroupInfo> groupInfoList,
                                       boolean embedFieldDefaults, boolean replaceOtherSettings,
                                       Context context) {
@@ -1336,7 +1270,7 @@ public abstract class JsonManager {
         SharedPreferenceManager prefs = instance.getPrefManager();
         prefs.unregisterOnSharedPreferenceChangeListener(instance);
         try {
-            JSONObject fieldDefaultsJsonObject =
+            JsonObject fieldDefaultsJsonObject =
                     getJsonObject(jsonObject, FIELD_DEFAULTS_JSON_PROP);
 
             if (replaceFields) {
@@ -1351,24 +1285,23 @@ public abstract class JsonManager {
                 fieldIds.addAll(instance.getFieldIds());
             }
             if (jsonObject.has(GROUPS_JSON_PROP)) {
-                JSONArray groupsJsonArray = jsonObject.getJSONArray(GROUPS_JSON_PROP);
+                JsonArray groupsJsonArray = jsonObject.getJsonArray(GROUPS_JSON_PROP);
 
                 for (int i = 0; i < groupsJsonArray.length(); i++) {
-                    JSONObject groupJsonObject = groupsJsonArray.getJSONObject(i);
+                    JsonObject groupJsonObject = groupsJsonArray.getJsonObject(i);
 
-                    importGroupJson(groupJsonObject, GROUPS_JSON_PROP + "[" + i + "]",
-                            groupInfoList.get(i), groupIds, fieldIds, embedFieldDefaults,
-                            fieldDefaultsJsonObject, context);
+                    importGroupJson(groupJsonObject, groupInfoList.get(i), groupIds, fieldIds,
+                            embedFieldDefaults, fieldDefaultsJsonObject, context);
                 }
 
                 prefs.setIntArray(PREF_TEST_GROUP_IDS, toPrimitiveArray(groupIds));
             } else if (jsonObject.has(FIELDS_JSON_PROP) && groupInfoList.size() == 1) {
                 // build the ad-hoc group to load
-                JSONObject groupJsonObject = new JSONObject();
-                JSONArray looseFieldsJsonArray = jsonObject.getJSONArray(FIELDS_JSON_PROP);
+                JsonObject groupJsonObject = new JsonObject();
+                JsonArray looseFieldsJsonArray = jsonObject.getJsonArray(FIELDS_JSON_PROP);
                 groupJsonObject.put(FIELDS_JSON_PROP, looseFieldsJsonArray);
 
-                importGroupJson(groupJsonObject, null, groupInfoList.get(0), groupIds, fieldIds,
+                importGroupJson(groupJsonObject, groupInfoList.get(0), groupIds, fieldIds,
                         embedFieldDefaults, fieldDefaultsJsonObject, context);
 
                 prefs.setIntArray(PREF_TEST_GROUP_IDS, toPrimitiveArray(groupIds));
@@ -1381,22 +1314,22 @@ public abstract class JsonManager {
                     if (fieldDefaultsJsonObject != null) {
                         String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
                         if (fieldDefaultsJsonObject.has(jsonProp)) {
-                            loadPrefData(fieldDefaultsJsonObject, jsonProp, null, prefKeyPrefix,
-                                    context, prefKey);
+                            loadPrefData(fieldDefaultsJsonObject, jsonProp, prefKeyPrefix, context,
+                                    prefKey);
                         }
                     }
                 }
             }
 
             if (replaceOtherSettings) {
-                JSONObject otherSettingsJsonObject =
+                JsonObject otherSettingsJsonObject =
                         getJsonObject(jsonObject, OTHER_SETTINGS_JSON_PROP);
                 for (String prefKey : MISC_PREF_KEYS) {
                     prefs.remove(prefKey);
                     if (otherSettingsJsonObject != null) {
                         String jsonProp = prefKeyPrefixToJsonName(prefKey);
                         if (otherSettingsJsonObject.has(jsonProp)) {
-                            loadPrefData(otherSettingsJsonObject, jsonProp, null, prefKey, context,
+                            loadPrefData(otherSettingsJsonObject, jsonProp, prefKey, context,
                                     prefKey);
                         }
                     }
@@ -1411,10 +1344,10 @@ public abstract class JsonManager {
         instance.loadSettings();
     }
 
-    private static void importGroupJson(JSONObject groupJsonObject, String path,
+    private static void importGroupJson(JsonObject groupJsonObject,
                                         GroupInfo groupInfo, List<Integer> groupIds,
                                         List<Integer> fieldIds, boolean embedFieldDefaults,
-                                        JSONObject fieldDefaultsJsonObject, Context context)
+                                        JsonObject fieldDefaultsJsonObject, Context context)
             throws JSONException {
         int groupId;
         if (groupInfo.mInclude) {
@@ -1424,21 +1357,21 @@ public abstract class JsonManager {
             // add any fields to the last group
             groupId = Settings.getTestGroupId(Settings.getTestFieldGroupCount() - 1);
         }
-        addGroupJson(groupJsonObject, groupId, path,
+        addGroupFromJson(groupJsonObject, groupId,
                 fieldIds, groupInfo, embedFieldDefaults, fieldDefaultsJsonObject,
                 context);
     }
 
-    private static void addGroupJson(JSONObject groupJsonObject, int groupId, String path,
-                                     List<Integer> fieldIds, GroupInfo groupInfo,
-                                     boolean embedFieldDefaults, JSONObject fieldDefaultsJsonObject,
-                                     Context context)
+    private static void addGroupFromJson(JsonObject groupJsonObject, int groupId,
+                                         List<Integer> fieldIds, GroupInfo groupInfo,
+                                         boolean embedFieldDefaults, JsonObject fieldDefaultsJsonObject,
+                                         Context context)
             throws JSONException {
         SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
         PreferenceReader preferenceReader = Settings.getInstance().getPreferenceReader();
 
         if (groupJsonObject.has(FIELDS_JSON_PROP)) {
-            JSONArray fieldsJsonArray = groupJsonObject.getJSONArray(FIELDS_JSON_PROP);
+            JsonArray fieldsJsonArray = groupJsonObject.getJsonArray(FIELDS_JSON_PROP);
 
             List<Integer> groupFieldIds = new ArrayList<>();
             for (int i = 0; i < fieldsJsonArray.length(); i++) {
@@ -1448,10 +1381,9 @@ public abstract class JsonManager {
                 int fieldId = Settings.getNextId(fieldIds);
                 fieldIds.add(fieldId);
                 groupFieldIds.add(fieldId);
-                JSONObject fieldJsonObject = fieldsJsonArray.getJSONObject(i);
-                addFieldJson(fieldJsonObject, fieldId,
-                        (path != null ? path + "." : "") + FIELDS_JSON_PROP + "[" + i + "]",
-                        embedFieldDefaults, fieldDefaultsJsonObject, context);
+                JsonObject fieldJsonObject = fieldsJsonArray.getJsonObject(i);
+                addFieldFromJson(fieldJsonObject, fieldId, embedFieldDefaults,
+                        fieldDefaultsJsonObject, context);
             }
 
             int[] fieldIdsArray;
@@ -1475,15 +1407,15 @@ public abstract class JsonManager {
                 prefs.remove(prefKey);
                 String jsonProp = prefKeyPrefixToJsonName(prefKeyPrefix);
                 if (groupJsonObject.has(jsonProp)) {
-                    loadPrefData(groupJsonObject, jsonProp, path, prefKeyPrefix, context, prefKey);
+                    loadPrefData(groupJsonObject, jsonProp, prefKeyPrefix, context, prefKey);
                 }
             }
         }
     }
 
-    private static void addFieldJson(JSONObject fieldJsonObject, int fieldId, String path,
-                                     boolean embedFieldDefaults, JSONObject fieldDefaultsJsonObject,
-                                     Context context) {
+    private static void addFieldFromJson(JsonObject fieldJsonObject, int fieldId,
+                                         boolean embedFieldDefaults,
+                                         JsonObject fieldDefaultsJsonObject, Context context) {
         SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
 
         for (String fieldPrefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
@@ -1492,20 +1424,17 @@ public abstract class JsonManager {
             String jsonProp = prefKeyPrefixToJsonName(fieldPrefKeyPrefix);
 
             if (DEFAULT_OVERRIDE_PREF_PREFIX_MAP.containsKey(fieldPrefKeyPrefix)) {
-                JSONObject defaultableValueJsonObject;
-                String defaultableValuePath;
+                JsonObject defaultableValueJsonObject;
                 // embed defaults if requested and the field doesn't already override them,
                 // otherwise just save the override values
                 if (embedFieldDefaults
                         && !tryGetBoolean(fieldJsonObject, jsonProp, false)) {
                     defaultableValueJsonObject = fieldDefaultsJsonObject;
-                    defaultableValuePath = FIELD_DEFAULTS_JSON_PROP;
                     prefs.setBoolean(fieldPrefKey, true);
                 } else {
                     defaultableValueJsonObject = fieldJsonObject;
-                    defaultableValuePath = path;
                     if (fieldJsonObject.has(jsonProp)) {
-                        loadPrefData(fieldJsonObject, jsonProp, path, fieldPrefKeyPrefix, context,
+                        loadPrefData(fieldJsonObject, jsonProp, fieldPrefKeyPrefix, context,
                                 fieldPrefKey);
                     }
                 }
@@ -1517,20 +1446,19 @@ public abstract class JsonManager {
                             prefKeyPrefixToJsonName(fieldDefaultPrefKeyPrefix);
                     if (defaultableValueJsonObject.has(fieldDefaultJsonProp)) {
                         loadPrefData(defaultableValueJsonObject, fieldDefaultJsonProp,
-                                defaultableValuePath, fieldDefaultPrefKeyPrefix, context,
-                                fieldDefaultPrefKey);
+                                fieldDefaultPrefKeyPrefix, context, fieldDefaultPrefKey);
                     }
                 }
             } else {
                 if (fieldJsonObject.has(jsonProp)) {
-                    loadPrefData(fieldJsonObject, jsonProp, path, fieldPrefKeyPrefix, context,
+                    loadPrefData(fieldJsonObject, jsonProp, fieldPrefKeyPrefix, context,
                             fieldPrefKey);
                 }
             }
         }
     }
 
-    private static boolean tryGetBoolean(JSONObject jsonObject, String prop, boolean defaultValue) {
+    private static boolean tryGetBoolean(JsonObject jsonObject, String prop, boolean defaultValue) {
         if (jsonObject == null || !jsonObject.has(prop)) {
             return defaultValue;
         }

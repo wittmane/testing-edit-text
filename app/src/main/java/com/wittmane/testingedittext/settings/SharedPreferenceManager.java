@@ -759,6 +759,7 @@ public class SharedPreferenceManager implements SharedPreferences {
         }
     }
 
+    @NonNull
     public static String[] getSpannedInfo(@NonNull Spanned value) {
         String[] spannedInfo = null;
         Object[] spans = value.getSpans(0, value.length(), Object.class);

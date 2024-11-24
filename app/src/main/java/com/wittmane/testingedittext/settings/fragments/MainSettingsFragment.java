@@ -48,8 +48,7 @@ import com.wittmane.testingedittext.settings.JsonManager;
 import com.wittmane.testingedittext.settings.JsonManager.FieldInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
-
-import org.json.JSONObject;
+import com.wittmane.testingedittext.settings.json.JsonObject;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -213,7 +212,7 @@ public class MainSettingsFragment extends PreferenceFragment {
         }
     }
 
-    private void importSettings(JSONObject jsonObject, boolean replaceFieldDefaults,
+    private void importSettings(JsonObject jsonObject, boolean replaceFieldDefaults,
                                 boolean replaceFields, List<GroupInfo> groupInfoList,
                                 boolean embedFieldDefaults, boolean replaceOtherSettings) {
         if (replaceFieldDefaults || replaceFields || replaceOtherSettings) {
@@ -231,7 +230,7 @@ public class MainSettingsFragment extends PreferenceFragment {
     }
 
     //TODO: (EW) name better
-    private void importSettingsCore(JSONObject jsonObject, boolean replaceFieldDefaults,
+    private void importSettingsCore(JsonObject jsonObject, boolean replaceFieldDefaults,
                                     boolean replaceFields, List<GroupInfo> groupInfoList,
                                     boolean embedFieldDefaults, boolean replaceOtherSettings) {
         int oldThemeId = Settings.getThemeId(getActivity());
