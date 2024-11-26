@@ -532,14 +532,16 @@ import java.util.Locale;
             PreferenceKey prefKey = testFieldOrDefault instanceof TestField
                     ? createFieldKey(prefKeyPrefix, ((TestField) testFieldOrDefault).mId)
                     : createFieldDefaultKey(prefKeyPrefix);
-            loadTestFieldDefaultableSetting(prefKey, testFieldOrDefault);
+            if (!loadTestFieldDefaultableSetting(prefKey, testFieldOrDefault)) {
+                Log.e(TAG, "Test field defaultable preference " + prefKey + " wasn't processed");
+            }
         }
     }
 
-    /* package*/ void loadTestFieldDefaultableSetting(PreferenceKey prefKey,
-                                                      AppLevelDefaults testFieldOrDefault) {
+    /* package*/ boolean loadTestFieldDefaultableSetting(PreferenceKey prefKey,
+                                                         AppLevelDefaults testFieldOrDefault) {
         if (prefKey == null) {
-            return;
+            return false;
         }
         switch (prefKey.getStem()) {
             case PREF_MODIFY_COMMITTED_TEXT_PREFIX:
@@ -662,8 +664,9 @@ import java.util.Locale;
                 testFieldOrDefault.mGetExtractedTextDelay = readInt(prefKey);
                 break;
             default:
-                Log.w(TAG, "Test field defaultable preference " + prefKey + " wasn't processed");
+                return false;
         }
+        return true;
     }
 
     private static String[] getStrings(TextList<String> textList) {
@@ -825,14 +828,16 @@ import java.util.Locale;
                 PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX,
         };
         for (String prefKeyPrefix : testFieldPrefKeyPrefixes) {
-            loadTestFieldSpecificSetting(createFieldKey(prefKeyPrefix, testField.mId),
-                    testField);
+            PreferenceKey prefKey = createFieldKey(prefKeyPrefix, testField.mId);
+            if (!loadTestFieldSpecificSetting(prefKey, testField)) {
+                Log.e(TAG, "Test field specific preference " + prefKey + " wasn't processed");
+            }
         }
     }
 
-    /* package*/ void loadTestFieldSpecificSetting(PreferenceKey prefKey, TestField testField) {
+    /* package*/ boolean loadTestFieldSpecificSetting(PreferenceKey prefKey, TestField testField) {
         if (prefKey == null) {
-            return;
+            return false;
         }
         int fieldId = testField.mId;
         switch (prefKey.getStem()) {
@@ -962,8 +967,9 @@ import java.util.Locale;
                 testField.mOverrideSystemBehavior = readBoolean(prefKey);
                 break;
             default:
-                Log.w(TAG, "Test field specific preference " + prefKey + " wasn't processed");
+                return false;
         }
+        return true;
     }
 
     private static int getComposingTextBehaviorInt(

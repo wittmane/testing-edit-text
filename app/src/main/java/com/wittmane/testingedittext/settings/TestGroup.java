@@ -20,6 +20,9 @@ import androidx.annotation.NonNull;
 
 import java.util.Arrays;
 
+/**
+ * Cached preference values for a group
+ */
 /* package */ class TestGroup {
     public final int mId;
 

@@ -18,6 +18,9 @@ package com.wittmane.testingedittext.settings;
 
 import java.util.Locale;
 
+/**
+ * Cached preference values for a field
+ */
 /* package */ class TestField  extends AppLevelDefaults {
     public final int mId;
 

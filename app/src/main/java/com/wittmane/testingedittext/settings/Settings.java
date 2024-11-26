@@ -268,7 +268,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     /* package */ void loadSettings() {
         for (String prefKey : MISC_PREF_KEYS) {
-            loadBasicSetting(PreferenceKey.createBasicKey(prefKey));
+            if (!loadBasicSetting(PreferenceKey.createBasicKey(prefKey))) {
+                Log.e(TAG, "Basic preference " + prefKey + " wasn't processed");
+            }
         }
         mPreferenceReader.loadTestFieldDefaultableSettings(mTestFieldDefaults);
         mTestGroupIds = mPreferenceReader.readIntArray(
@@ -310,7 +312,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return;
         }
         if (prefKey.isFieldDefault()) {
-            mPreferenceReader.loadTestFieldDefaultableSetting(prefKey, mTestFieldDefaults);
+            if (!mPreferenceReader.loadTestFieldDefaultableSetting(prefKey, mTestFieldDefaults)) {
+                Log.w(TAG, "Test field defaultable preference " + prefKey + " wasn't processed");
+            }
         } else if (prefKey.isGroup()) {
             if (!mTestGroups.containsKey(prefKey.getId())
                     && !mPreferenceReader.contains(prefKey)) {
@@ -323,7 +327,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                         + " doesn't exist");
                 return;
             }
-            loadTestGroupSetting(prefKey);
+            if (!loadTestGroupSetting(prefKey)) {
+                Log.w(TAG, "Group preference " + prefKey + " wasn't processed");
+            }
         } else if (prefKey.isField()) {
             if (!mTestFields.containsKey(prefKey.getId())
                     && !mPreferenceReader.contains(prefKey)) {
@@ -337,16 +343,21 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 return;
             }
             TestField testField = getField(prefKey.getId());
-            mPreferenceReader.loadTestFieldSpecificSetting(prefKey, testField);
-            mPreferenceReader.loadTestFieldDefaultableSetting(prefKey, testField);
+            if (!mPreferenceReader.loadTestFieldSpecificSetting(prefKey, testField)
+                    && !mPreferenceReader.loadTestFieldDefaultableSetting(prefKey, testField)) {
+                Log.w(TAG, "Test field preference " + prefKey + " wasn't processed");
+
+            }
         } else {
-            loadBasicSetting(prefKey);
+            if (!loadBasicSetting(prefKey)) {
+                Log.w(TAG, "Basic preference " + prefKey + " wasn't processed");
+            }
         }
     }
 
-    private void loadBasicSetting(PreferenceKey prefKey) {
+    private boolean loadBasicSetting(PreferenceKey prefKey) {
         if (prefKey == null) {
-            return;
+            return false;
         }
         switch (prefKey.toString()) {
             case PREF_TEST_GROUP_IDS:
@@ -360,11 +371,12 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 mShowReferenceEditText = mPreferenceReader.readBoolean(prefKey);
                 break;
             default:
-                Log.w(TAG, "Basic preference " + prefKey + " wasn't processed");
+                return false;
         }
+        return true;
     }
 
-    private void loadTestGroupSetting(PreferenceKey prefKey) {
+    private boolean loadTestGroupSetting(PreferenceKey prefKey) {
         switch (prefKey.getStem()) {
             case PREF_TEST_FIELD_IDS_PREFIX:
                 // internal state is updated while these are modified since they aren't managed by a
@@ -375,8 +387,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 getGroupById(prefKey.getId()).mName = mPreferenceReader.readString(prefKey);
                 break;
             default:
-                Log.w(TAG, "Group preference " + prefKey + " wasn't processed");
+                return false;
         }
+        return true;
     }
 
     private static int indexOf(List<TestField> fields, int id) {
