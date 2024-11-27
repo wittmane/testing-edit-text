@@ -59,7 +59,8 @@
     <string name="export_test_field_option_specific_fields">Export specific fields</string>
     <string name="import_from_file">From file</string>
     <string name="export_to_file">To file</string>
-    <string name="import_export_direct">Direct</string>
+    <string name="import_from_clipboard">From clipboard</string>
+    <string name="export_to_clipboard">To clipboard</string>
     <string name="copy_to_clipboard">Copy</string>
     <string name="paste_from_clipboard">Paste</string>
     <string name="settings_copied_to_clipboard">The settings data was copied to the clipboard</string>

@@ -283,7 +283,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     private TestGroup loadExistingGroup(int groupId) {
-        //TODO: (EW) see if PREF_TEST_GROUP_NAME_PREFIX can only be loaded in 1 call
         String groupName = mPreferenceReader.readString(
                 PreferenceKey.createGroupKey(PREF_TEST_GROUP_NAME_PREFIX, groupId));
         int[] groupFieldIds = mPreferenceReader.readIntArray(
@@ -383,7 +382,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 // simple Preference, so we don't need to do anything when these change
                 break;
             case PREF_TEST_GROUP_NAME_PREFIX:
-                //TODO: (EW) see if PREF_TEST_GROUP_NAME_PREFIX can only be loaded in 1 call
                 getGroupById(prefKey.getId()).mName = mPreferenceReader.readString(prefKey);
                 break;
             default:

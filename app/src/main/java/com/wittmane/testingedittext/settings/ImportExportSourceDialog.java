@@ -25,8 +25,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
@@ -36,6 +38,8 @@ import com.wittmane.testingedittext.settings.NonEditable.NonEditableFactory;
 
 public class ImportExportSourceDialog extends AlertDialog {
     private static final String TAG = ImportExportSourceDialog.class.getSimpleName();
+
+    private static final boolean SHOW_JSON_ON_SCREEN = false;
 
     private final boolean mIsImport;
     private final String mExportData;
@@ -62,7 +66,19 @@ public class ImportExportSourceDialog extends AlertDialog {
                     if (((RadioButton)findViewById(R.id.fileSource)).isChecked()) {
                         onClickListener.accept(null);
                     } else {
-                        CharSequence text = ((EditText)findViewById(R.id.directText)).getText();
+                        CharSequence text;
+                        if (SHOW_JSON_ON_SCREEN) {
+                            text = ((EditText) findViewById(R.id.directText)).getText();
+                        } else {
+                            if (mIsImport) {
+                                // get the settings json string from the clipboard
+                                text = getFromClipboard();
+                            } else {
+                                text = exportData;
+                                // copy the settings json string to the clipboard
+                                setToClipboard(exportData);
+                            }
+                        }
                         onClickListener.accept(TextUtils.isEmpty(text) ? "" : text.toString());
                     }
                 });
@@ -81,52 +97,79 @@ public class ImportExportSourceDialog extends AlertDialog {
         fileSourceButton.setOnClickListener(v -> findViewById(R.id.sourceGroup).requestFocus());
 
         RadioButton clipboardSourceButton = findViewById(R.id.clipboardSource);
+        clipboardSourceButton.setText(
+                mIsImport ? R.string.import_from_clipboard : R.string.export_to_clipboard);
 
-        EditText directText = findViewById(R.id.directText);
-        if (!mIsImport) {
-            directText.setText(mExportData);
-            // block editing - only meant for copying
-            directText.setEditableFactory(NonEditableFactory.getInstance());
-            directText.setShowSoftInputOnFocus(false);
-        }
-        directText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                // since the user is interacting with the text field, automatically flag that as the
+        if (SHOW_JSON_ON_SCREEN) {
+            EditText directText = findViewById(R.id.directText);
+            if (!mIsImport) {
+                directText.setText(mExportData);
+                // block editing - only meant for copying
+                directText.setEditableFactory(NonEditableFactory.getInstance());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    directText.setShowSoftInputOnFocus(false);
+                }
+            }
+            directText.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
+                    // since the user is interacting with the text field, automatically flag that as
+                    // the means to import/export
+                    clipboardSourceButton.setChecked(true);
+                }
+            });
+
+            Button textActionButton = findViewById(R.id.textAction);
+            textActionButton.setText(
+                    mIsImport ? R.string.paste_from_clipboard : R.string.copy_to_clipboard);
+            textActionButton.setOnClickListener(v -> {
+                // since the user is interacting with the clipboard, automatically flag that as the
                 // means to import/export
                 clipboardSourceButton.setChecked(true);
-            }
-        });
+                if (mIsImport) {
+                    // paste the settings json string from the clipboard to the text field (replace
+                    // anything existing)
+                    CharSequence clipboardText = getFromClipboard();
+                    directText.setText(clipboardText);
+                } else {
+                    // copy the settings json string from the text field to the clipboard
+                    setToClipboard(directText.getText().toString());
+                }
+            });
+        } else {
+            LinearLayout screenSourceContent = findViewById(R.id.screenSourceContent);
+            screenSourceContent.setVisibility(View.GONE);
+        }
+    }
 
-        Button textActionButton = findViewById(R.id.textAction);
-        textActionButton.setText(
-                mIsImport ? R.string.paste_from_clipboard : R.string.copy_to_clipboard);
-        textActionButton.setOnClickListener(v -> {
-            ClipboardManager clipboard =
-                    (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-            // since the user is interacting with the clipboard, automatically flag that as the
-            // means to import/export
-            clipboardSourceButton.setChecked(true);
-            if (mIsImport) {
-                // paste the settings json string from the clipboard to the text field (replace
-                // anything existing)
-                ClipData clipData = clipboard.getPrimaryClip();
-                if (clipData != null) {
-                    ClipData.Item item = clipData.getItemAt(0);
-                    directText.setText(item.getText().toString());
-                }
-            } else {
-                // copy the settings json string from the text field to the clipboard
-                ClipData clipData =
-                        ClipData.newPlainText("settings json", directText.getText().toString());
-                clipboard.setPrimaryClip(clipData);
-                // more recent versions already show a toast-like notification of copying data to
-                // the clipboard, so only show a custom toast for older versions
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    Toast.makeText(getContext(),
-                            getContext().getString(R.string.settings_copied_to_clipboard),
-                            Toast.LENGTH_LONG).show();
-                }
+    private ClipboardManager getClipboardManager() {
+        return (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+    }
+
+    private String getFromClipboard() {
+        ClipboardManager clipboard = getClipboardManager();
+        // paste the settings json string from the clipboard to the text field (replace
+        // anything existing)
+        ClipData clipData = clipboard.getPrimaryClip();
+        if (clipData != null) {
+            ClipData.Item item = clipData.getItemAt(0);
+            CharSequence clipboardText = item.getText();
+            if (clipboardText != null) {
+                return clipboardText.toString();
             }
-        });
+        }
+        return null;
+    }
+
+    private void setToClipboard(String text) {
+        ClipboardManager clipboard = getClipboardManager();
+        ClipData clipData = ClipData.newPlainText("settings json", text);
+        clipboard.setPrimaryClip(clipData);
+        // more recent versions already show a toast-like notification of copying data to
+        // the clipboard, so only show a custom toast for older versions
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Toast.makeText(getContext(),
+                    getContext().getString(R.string.settings_copied_to_clipboard),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 }
