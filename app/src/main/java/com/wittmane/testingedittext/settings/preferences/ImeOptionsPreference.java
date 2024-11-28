@@ -24,6 +24,7 @@ import android.view.inputmethod.EditorInfo;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.ImeOptionsSettingsFragment;
 
 import java.util.ArrayList;
@@ -63,7 +64,8 @@ public class ImeOptionsPreference extends PerTestFieldPreference {
     }
 
     public static String getImeOptionsDescription(int groupIndex, int fieldIndex, Context context) {
-        int imeOptions = Settings.getTestFieldImeOptions(groupIndex, fieldIndex);
+        TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+        int imeOptions = fieldSettings.getImeOptions();
         int imeOptionsAction = imeOptions & EditorInfo.IME_MASK_ACTION;
         String imeOptionsActionBaseDisplay;
         List<String> imeOptionsActionDetails = new ArrayList<>();

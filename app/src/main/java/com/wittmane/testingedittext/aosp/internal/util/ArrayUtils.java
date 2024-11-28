@@ -327,6 +327,50 @@ public class ArrayUtils {
         return ret;
     }
 
+    // (EW) custom
+    public static @NonNull int[] join(@Nullable int[]... intArrays) {
+        int totalLength = 0;
+        if (intArrays != null) {
+            for (int[] intArray : intArrays) {
+                totalLength += intArray == null ? 0 : intArray.length;
+            }
+        }
+        int[] result = new int[totalLength];
+        if (intArrays != null) {
+            int position = 0;
+            for (int[] intArray : intArrays) {
+                if (intArray == null) {
+                    continue;
+                }
+                System.arraycopy(intArray, 0, result, position, intArray.length);
+                position += intArray.length;
+            }
+        }
+        return result;
+    }
+
+    // (EW) custom
+    public static @NonNull String[] join(@Nullable String[]... stringArrays) {
+        int totalLength = 0;
+        if (stringArrays != null) {
+            for (String[] stringArray : stringArrays) {
+                totalLength += stringArray == null ? 0 : stringArray.length;
+            }
+        }
+        String[] result = new String[totalLength];
+        if (stringArrays != null) {
+            int position = 0;
+            for (String[] stringArray : stringArrays) {
+                if (stringArray == null) {
+                    continue;
+                }
+                System.arraycopy(stringArray, 0, result, position, stringArray.length);
+                position += stringArray.length;
+            }
+        }
+        return result;
+    }
+
     // (EW) from libcore.util
     public static final class EmptyArray {
         private EmptyArray() {}

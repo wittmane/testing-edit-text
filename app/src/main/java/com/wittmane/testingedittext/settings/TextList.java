@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,6 +18,9 @@ package com.wittmane.testingedittext.settings;
 
 import androidx.annotation.NonNull;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public class TextList<T> {
     private final @NonNull T[] mDataArray;
     private final boolean mEscapeChars;
@@ -34,5 +37,19 @@ public class TextList<T> {
 
     public boolean escapeChars() {
         return mEscapeChars;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TextList)) {
+            return false;
+        }
+        TextList<?> other = (TextList<?>) o;
+        return Arrays.equals(mDataArray, other.mDataArray) && mEscapeChars == other.mEscapeChars;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(Arrays.hashCode(mDataArray), mEscapeChars);
     }
 }

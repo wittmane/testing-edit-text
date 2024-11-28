@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.ImeActionSettingsFragment;
 
 public class ImeActionPreference extends PerTestFieldPreference {
@@ -59,9 +60,9 @@ public class ImeActionPreference extends PerTestFieldPreference {
     }
 
     public static String getImeActionDescription(int groupIndex, int fieldIndex, Context context) {
-
-        int imeActionId = Settings.getTestFieldImeActionId(groupIndex, fieldIndex);
-        String imeActionLabel = Settings.getTestFieldImeActionLabel(groupIndex, fieldIndex);
+        TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+        int imeActionId = fieldSettings.getImeActionId();
+        String imeActionLabel = fieldSettings.getImeActionLabel();
         if (imeActionId == 0 && TextUtils.isEmpty(imeActionLabel)) {
             return "";
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.DialogPreference;
@@ -23,6 +24,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
@@ -69,6 +71,22 @@ public abstract class DialogPreferenceBase extends DialogPreference {
                     .append('\n')
                     .append(mValueSummary));
         }
+    }
+
+    /**
+     * Set the enabled state of the accept button for the dialog.
+     * @param enabled True if the button should be enabled, false otherwise.
+     */
+    protected void setAcceptButtonEnabled(boolean enabled) {
+        AlertDialog dialog = (AlertDialog)getDialog();
+        if (dialog == null) {
+            return;
+        }
+        Button acceptButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (acceptButton == null) {
+            return;
+        }
+        acceptButton.setEnabled(enabled);
     }
 
     protected abstract void updateValueSummary();

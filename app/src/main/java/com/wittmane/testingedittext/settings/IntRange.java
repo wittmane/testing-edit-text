@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.settings;
 
+import java.util.Objects;
+
 public class IntRange {
     private final int mStart;
     private final int mEnd;
@@ -36,5 +38,19 @@ public class IntRange {
     @Override
     public String toString() {
         return "[" + mStart + ", " + mEnd + "]";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof IntRange)) {
+            return false;
+        }
+        IntRange other = (IntRange) o;
+        return mStart == other.mStart && mEnd == other.mEnd;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mStart, mEnd);
     }
 }

@@ -112,7 +112,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.SpanUtils;
-import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;

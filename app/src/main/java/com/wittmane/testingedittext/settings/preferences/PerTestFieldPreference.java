@@ -28,7 +28,7 @@ import com.wittmane.testingedittext.R;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.wittmane.testingedittext.settings.Settings.BASE_FIELD_INDEX;
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
 
 /**

@@ -16,13 +16,14 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.Settings;
 
 public class ImeOptionsSettingsFragment extends PerTestFieldSettingsFragment {
 
@@ -34,7 +35,7 @@ public class ImeOptionsSettingsFragment extends PerTestFieldSettingsFragment {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             PreferenceScreen preferenceScreen = getPreferenceScreen();
             SwitchPreference noPersonalizedLearningFlagPref = (SwitchPreference) findPreference(
-                    getPrefKey(Settings.PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX));
+                    getPrefKey(PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX));
             preferenceScreen.removePreference(noPersonalizedLearningFlagPref);
         }
     }

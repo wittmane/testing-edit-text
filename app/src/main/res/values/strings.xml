@@ -20,6 +20,54 @@
     <string name="framework_edittext">Framework EditText</string>
     <string name="custom_edittext">Custom EditText</string>
 
+    <string name="import_settings">Import settings</string>
+    <string name="export_settings">Export settings</string>
+    <string name="failed_to_access_file">Failed to access file</string>
+    <string name="failed_to_import_settings">Failed to import settings</string>
+    <string name="failed_to_export_settings">Failed to export settings</string>
+    <string name="import_settings_successful">Settings successfully imported</string>
+    <string name="export_settings_successful">Settings successfully exported</string>
+    <string name="failed_to_find_file">Failed to find the file</string>
+    <string name="failed_to_read_file">Failed to read the file</string>
+    <string name="failed_to_open_file">Failed to open to the file</string>
+    <string name="failed_to_write_file">Failed to write to the file</string>
+    <string name="failed_to_generate_export_data">Failed to generate export data</string>
+    <string name="import_warnings">Import file contains problems</string>
+    <string name="failed_to_parse_import_file">Failed to parse settings import file.</string>
+    <string name="value_not_in_range"><xliff:g id="JSON_PATH">%s</xliff:g> has a value (<xliff:g id="VALUE">%d</xliff:g>) that is not in the range <xliff:g id="MIN_VALUE">%d</xliff:g> to <xliff:g id="MAX_VALUE">%d</xliff:g>.</string>
+    <string name="invalid_step_value"><xliff:g id="JSON_PATH">%s</xliff:g> doesn\'t fit into a step evenly.</string>
+    <string name="invalid_float_data"><xliff:g id="JSON_PATH">%s</xliff:g> has invalid float data.</string>
+    <string name="invalid_data"><xliff:g id="JSON_PATH">%s</xliff:g> has invalid data.</string>
+    <string name="invalid_value"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid value (<xliff:g id="VALUE">%s</xliff:g>).</string>
+    <string name="invalid_locale"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid locale (<xliff:g id="VALUE">%s</xliff:g>).</string>
+    <string name="invalid_data_type"><xliff:g id="JSON_PATH">%s</xliff:g> has an invalid data type.</string>
+    <string name="unexpected_data_format"><xliff:g id="JSON_PATH">%s</xliff:g> has an unexpected data format.</string>
+    <string name="null_data"><xliff:g id="JSON_PATH">%s</xliff:g> is null.</string>
+    <string name="failed_to_parse_data">Failed to parse data for <xliff:g id="JSON_PATH">%s</xliff:g>.</string>
+    <string name="unexpected_property">Unexpected property: <xliff:g id="JSON_PATH">%s</xliff:g></string>
+    <string name="confirm_ignore_import_warnings">The following issues were encountered in the settings import file. Do you want to ignore the issues and continue importing what could be read?</string>
+    <string name="replace_existing_settings_confirmation">This will replace existing settings. Are you sure you want to continue?</string>
+    <string name="field_defaults">Field Defaults</string>
+    <string name="test_fields">Test Fields</string>
+    <string name="embed_field_defaults">Embed defaults</string>
+    <string name="other_settings">Other Settings</string>
+    <string name="import_test_field_option_replace_all">Replace all</string>
+    <string name="import_test_field_option_add_specific_groups">Add specific groups</string>
+    <string name="import_test_field_option_add_specific_fields">Add specific fields</string>
+    <string name="export_test_field_option_all">Export all</string>
+    <string name="export_test_field_option_specific_groups">Export specific groups</string>
+    <string name="export_test_field_option_specific_fields">Export specific fields</string>
+    <string name="import_from_file">From file</string>
+    <string name="export_to_file">To file</string>
+    <string name="import_from_clipboard">From clipboard</string>
+    <string name="export_to_clipboard">To clipboard</string>
+    <string name="copy_to_clipboard">Copy</string>
+    <string name="paste_from_clipboard">Paste</string>
+    <string name="settings_copied_to_clipboard">The settings data was copied to the clipboard</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
+    <string name="ad_hoc_import_group_name">Group</string>
+
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
     <string name="button_default">Default</string>

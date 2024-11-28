@@ -24,11 +24,13 @@ import android.text.SpannedString;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +42,8 @@ import java.util.Set;
  */
 public class SharedPreferenceManager implements SharedPreferences {
     private static final String TAG = SharedPreferenceManager.class.getSimpleName();
+    private static final boolean LOG_READS = false;
+    private static final boolean LOG_WRITES = false;
 
     private static final String SPANNED_STRING_PREF_PREFIX =
             createTypePrefix("ca64cdf7e8164fd2ac8d6be6c23785e2");
@@ -132,6 +136,9 @@ public class SharedPreferenceManager implements SharedPreferences {
 
     @Override
     public Map<String, ?> getAll() {
+        if (LOG_READS) {
+            Log.d(TAG, "getAll");
+        }
         Map<String, ?> baseAllPrefs = mPrefs.getAll();
         Map<String, Object> allPrefs = new HashMap<>();
         for (String prefKey : baseAllPrefs.keySet()) {
@@ -143,6 +150,9 @@ public class SharedPreferenceManager implements SharedPreferences {
     @Nullable
     @Override
     public String getString(String key, @Nullable String defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getString: " + key);
+        }
         mLoadedPrefKeys.add(key);
         String value = mPrefs.getString(key, defaultValue);
         String specialTypeName = getSpecialTypeName(value);
@@ -158,30 +168,45 @@ public class SharedPreferenceManager implements SharedPreferences {
     @Nullable
     @Override
     public Set<String> getStringSet(String key, @Nullable Set<String> defaultValues) {
+        if (LOG_READS) {
+            Log.d(TAG, "getStringSet: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getStringSet(key, defaultValues);
     }
 
     @Override
     public int getInt(String key, int defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getInt: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getInt(key, defaultValue);
     }
 
     @Override
     public long getLong(String key, long defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getLong: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getLong(key, defaultValue);
     }
 
     @Override
     public float getFloat(String key, float defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getFloat: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getFloat(key, defaultValue);
     }
 
     @Override
     public boolean getBoolean(String key, boolean defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getBoolean: " + key);
+        }
         mLoadedPrefKeys.add(key);
         return mPrefs.getBoolean(key, defaultValue);
     }
@@ -197,6 +222,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public Spanned getSpanned(String key, @Nullable Spanned defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getSpanned: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -224,47 +252,7 @@ public class SharedPreferenceManager implements SharedPreferences {
             // preference data is corrupt somehow. treat as if it was empty.
             return defaultValue;
         }
-        if (spannedInfo == null) {
-            return null;
-        }
-        if (spannedInfo.length < 1) {
-            // StringArraySerializer.deserialize may return an empty array when the text is blank
-            return new SpannedString("");
-        }
-        String baseText = spannedInfo[0];
-        if (spannedInfo.length == 1) {
-            // no html for building a spannable
-            return new SpannedString(baseText);
-        }
-        String html = spannedInfo[1];
-        SpannableStringBuilder spannedText = new SpannableStringBuilder(Html.fromHtml(html));
-        // for some reason converting to html and back to a spanned adds new lines at the end, so
-        // they need to be removed, and to be safe, this might as well just handle any other new
-        // line mismatches that might occur too
-        int i = 0;
-        while (i < baseText.length() || i < spannedText.length()) {
-            boolean baseCharIsNewLine = i < baseText.length() && baseText.charAt(i) == '\n';
-            boolean spannedCharIsNewLine =
-                    i < spannedText.length() && spannedText.charAt(i) == '\n';
-            if (baseCharIsNewLine && !spannedCharIsNewLine) {
-                // html dropped a newline, so it needs to be added
-                spannedText.insert(i, "\n");
-                i++;
-            } else if (!baseCharIsNewLine && spannedCharIsNewLine) {
-                // html inserted an extra newline, so it needs to be removed
-                spannedText.delete(i, i + 1);
-                // don't increment i because we may need to remove multiple adjacent new lines
-            } else {
-                i++;
-            }
-        }
-        if (!spannedText.toString().equals(baseText)) {
-            Log.e(TAG, "HTML spanned text doesn't match the base text: \nbase=\"" + baseText
-                    + "\"\nspanned=\"" + spannedText.toString() + "\"");
-            // prioritize accurate text over keeping spans
-            return new SpannedString(baseText);
-        }
-        return spannedText;
+        return buildSpanned(spannedInfo);
     }
 
     /**
@@ -278,6 +266,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public String[] getStringArray(String key, @Nullable String[] defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getStringArray: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -341,6 +332,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public int[] getIntArray(String key, @Nullable int[] defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getIntArray: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -394,6 +388,9 @@ public class SharedPreferenceManager implements SharedPreferences {
      */
     @Nullable
     public CharSequence getCharSequence(String key, @Nullable CharSequence defaultValue) {
+        if (LOG_READS) {
+            Log.d(TAG, "getCharSequence: " + key);
+        }
         mLoadedPrefKeys.add(key);
         if (!contains(key)) {
             return defaultValue;
@@ -578,36 +575,55 @@ public class SharedPreferenceManager implements SharedPreferences {
                 Log.e(TAG, "The value for " + key + " appears to be a " + specialTypeName
                         + " but is being set as a String, which may cause issues");
             }
+            if (LOG_WRITES) {
+                Log.d(TAG, "putString: key=" + key
+                        + ", value=" + (value != null ? "\"" + value + "\"" : "null"));
+            }
             mEditor.putString(key, value);
             return this;
         }
 
         @Override
         public Editor putStringSet(String key, @Nullable Set<String> value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putStringSet: key=" + key + ", value=" + value);
+            }
             mEditor.putStringSet(key, value);
             return this;
         }
 
         @Override
         public Editor putInt(String key, int value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putInt: key=" + key + ", value=" + value);
+            }
             mEditor.putInt(key, value);
             return this;
         }
 
         @Override
         public Editor putLong(String key, long value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putLong: key=" + key + ", value=" + value);
+            }
             mEditor.putLong(key, value);
             return this;
         }
 
         @Override
         public Editor putFloat(String key, float value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putFloat: key=" + key + ", value=" + value);
+            }
             mEditor.putFloat(key, value);
             return this;
         }
 
         @Override
         public Editor putBoolean(String key, boolean value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putBoolean: key=" + key + ", value=" + value);
+            }
             mEditor.putBoolean(key, value);
             return this;
         }
@@ -619,27 +635,15 @@ public class SharedPreferenceManager implements SharedPreferences {
          * @param value The new value for the preference.
          */
         public Editor putSpanned(String key, @Nullable Spanned value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putSpanned: key=" + key
+                        + ", value=" + (value != null ? "\"" + value + "\"" : "null"));
+            }
             String serializedSpannedInfo;
             if (value == null) {
                 serializedSpannedInfo = "";
             } else {
-                String[] spannedInfo = null;
-                Object[] spans = value.getSpans(0, value.length(), Object.class);
-                if (spans.length > 0) {
-                    // save spans by converting it to html. this isn't guaranteed to save all spans,
-                    // but there doesn't seem to be a good way to persistently store and recover
-                    // random spans, so this may be the best option for now. we probably could also
-                    // store a list of the span types and their positions to try to recover specific
-                    // ones that don't get saved with the html if that becomes necessary.
-                    spannedInfo = new String[]{
-                            value.toString(),
-                            Html.toHtml(new SpannableStringBuilder(value))
-                    };
-                }
-                if (spannedInfo == null) {
-                    spannedInfo = new String[]{value.toString()};
-                }
-                serializedSpannedInfo = StringArraySerializer.serialize(spannedInfo);
+                serializedSpannedInfo = StringArraySerializer.serialize(getSpannedInfo(value));
             }
             mEditor.putString(key, SPANNED_STRING_PREF_PREFIX + serializedSpannedInfo);
             return this;
@@ -671,6 +675,9 @@ public class SharedPreferenceManager implements SharedPreferences {
          * @param value The new value for the preference.
          */
         public Editor putStringArray(String key, @Nullable String[] value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putStringArray: key=" + key + ", value=" + Arrays.toString(value));
+            }
             String serializedArrayInfo;
             if (value == null) {
                 serializedArrayInfo = "";
@@ -700,6 +707,9 @@ public class SharedPreferenceManager implements SharedPreferences {
          * @param value The new value for the preference.
          */
         public Editor putIntArray(String key, @Nullable int[] value) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "putIntArray: key=" + key + ", value=" + Arrays.toString(value));
+            }
             String serializedArrayInfo;
             if (value == null) {
                 serializedArrayInfo = "";
@@ -716,24 +726,132 @@ public class SharedPreferenceManager implements SharedPreferences {
 
         @Override
         public Editor remove(String key) {
+            if (LOG_WRITES) {
+                Log.d(TAG, "remove: key=" + key);
+            }
             mEditor.remove(key);
             return this;
         }
 
         @Override
         public Editor clear() {
+            if (LOG_WRITES) {
+                Log.d(TAG, "clear");
+            }
             mEditor.clear();
             return this;
         }
 
         @Override
         public boolean commit() {
+            if (LOG_WRITES) {
+                Log.d(TAG, "commit");
+            }
             return mEditor.commit();
         }
 
         @Override
         public void apply() {
+            if (LOG_WRITES) {
+                Log.d(TAG, "apply");
+            }
             mEditor.apply();
         }
+    }
+
+    @NonNull
+    public static String[] getSpannedInfo(@NonNull Spanned value) {
+        String[] spannedInfo = null;
+        Object[] spans = value.getSpans(0, value.length(), Object.class);
+        if (spans.length > 0) {
+            // save spans by converting it to html. this isn't guaranteed to save all spans, but
+            // there doesn't seem to be a good way to persistently store and recover random spans,
+            // so this may be the best option for now. we probably could also store a list of the
+            // span types and their positions to try to recover specific ones that don't get saved
+            // with the html if that becomes necessary.
+            spannedInfo = new String[]{
+                    value.toString(),
+                    Html.toHtml(new SpannableStringBuilder(value))
+            };
+        }
+        if (spannedInfo == null) {
+            spannedInfo = new String[]{ value.toString() };
+        }
+        return spannedInfo;
+    }
+
+    public static Spanned buildSpanned(String[] spannedInfo) {
+        if (spannedInfo == null) {
+            return null;
+        }
+        if (spannedInfo.length < 1) {
+            // StringArraySerializer.deserialize may return an empty array when the text is blank
+            return new SpannedString("");
+        }
+        String baseText = spannedInfo[0];
+        if (spannedInfo.length == 1) {
+            // no html for building a spannable
+            return new SpannedString(baseText);
+        }
+        String html = spannedInfo[1];
+        SpannableStringBuilder spannedText = new SpannableStringBuilder(Html.fromHtml(html));
+        // for some reason converting to html and back to a spanned adds new lines at the end, so
+        // they need to be removed, and to be safe, this might as well just handle any other new
+        // line mismatches that might occur too
+        int i = 0;
+        while (i < baseText.length() || i < spannedText.length()) {
+            boolean baseCharIsNewLine = i < baseText.length() && baseText.charAt(i) == '\n';
+            boolean spannedCharIsNewLine =
+                    i < spannedText.length() && spannedText.charAt(i) == '\n';
+            if (baseCharIsNewLine && !spannedCharIsNewLine) {
+                // html dropped a newline, so it needs to be added
+                spannedText.insert(i, "\n");
+                i++;
+            } else if (!baseCharIsNewLine && spannedCharIsNewLine) {
+                // html inserted an extra newline, so it needs to be removed
+                spannedText.delete(i, i + 1);
+                // don't increment i because we may need to remove multiple adjacent new lines
+            } else {
+                i++;
+            }
+        }
+        if (!spannedText.toString().equals(baseText)) {
+            Log.e(TAG, "HTML spanned text doesn't match the base text: \nbase=\"" + baseText
+                    + "\"\nspanned=\"" + spannedText.toString() + "\"");
+            // prioritize accurate text over keeping spans
+            return new SpannedString(baseText);
+        }
+        return spannedText;
+    }
+
+    /**
+     * Check if two objects are equal. Some objects don't implement {@link Object#equals}
+     * reasonably, which this is meant to resolve (at least as far as what
+     * {@link SharedPreferenceManager} actually loads/saves for the object).
+     * @param a An object to be tested for equality.
+     * @param b An object to be tested for equality.
+     * @return Whether the objects are equal.
+     * @param <T> The type of the objects.
+     */
+    public static <T> boolean equals(T a, T b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (a instanceof Spanned && b instanceof Spanned) {
+            // since Spanned objects generally don't compare well (see
+            // https://stackoverflow.com/a/46403431), we'll check if what we save in a preference
+            // for each matches
+            return equals(
+                    getSpannedInfo((Spanned) a),
+                    getSpannedInfo((Spanned) b));
+        } else if (a instanceof int[] && b instanceof int[]) {
+            return Arrays.equals((int[]) a, (int[]) b);
+        } else if (a instanceof Object[] && b instanceof Object[]) {
+            return Arrays.equals((Object[]) a, (Object[]) b);
+        }
+        return a.equals(b);
     }
 }

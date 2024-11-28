@@ -16,8 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
-import static com.wittmane.testingedittext.settings.Settings.GROUP_INFIX;
-import static com.wittmane.testingedittext.settings.Settings.PREF_TEST_GROUP_NAME_PREFIX;
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
+import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
@@ -42,6 +42,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.DraggableListAdapter;
 import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.FieldEntry;
 import com.wittmane.testingedittext.settings.preferences.PerTestFieldPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
@@ -169,9 +170,14 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     static void showWarningConfirmationDialog(int titleId, int messageId, Runnable onConfirm,
                                               Context context) {
+        showWarningConfirmationDialog(titleId, context.getString(messageId), onConfirm, context);
+    }
+
+    static void showWarningConfirmationDialog(int titleId, String message, Runnable onConfirm,
+                                              Context context) {
         new AlertDialog.Builder(context)
                 .setTitle(titleId)
-                .setMessage(messageId)
+                .setMessage(message)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
                 .setNegativeButton(android.R.string.no, null)
@@ -210,26 +216,6 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         }
     }
 
-    static CharSequence getFieldDisplayName(final Context context, final int groupIndex,
-                                            final int fieldIndex) {
-        CharSequence labelText = Settings.getTestFieldLabelText(groupIndex, fieldIndex);
-        if (!TextUtils.isEmpty(labelText)) {
-            return labelText;
-        }
-
-        CharSequence defaultText = Settings.getTestFieldDefaultText(groupIndex, fieldIndex);
-        if (!TextUtils.isEmpty(defaultText)) {
-            return defaultText;
-        }
-
-        CharSequence hintText = Settings.getTestFieldHintText(groupIndex, fieldIndex);
-        if (!TextUtils.isEmpty(hintText)) {
-            return hintText;
-        }
-
-        return context.getString(R.string.test_field_default_name, (fieldIndex + 1));
-    }
-
     /**
      * Preference to link to the main settings screen for a specific test field.
      */
@@ -254,6 +240,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             Context context = getContext();
             int groupIndex = getGroupIndex();
             int fieldIndex = getFieldIndex();
+            TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
             setTitle(getFieldDisplayName(context, groupIndex, fieldIndex));
             String[] summaryInfo = new String[] {
                     getLabeledProperty(R.string.input_type,
@@ -268,19 +255,14 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                             ImeActionPreference.getImeActionDescription(groupIndex, fieldIndex,
                                     context),
                             context),
-                    getLabeledPrivateImeOptions(
-                            Settings.getTestFieldPrivateImeOptions(groupIndex, fieldIndex),
-                            context),
-                    Settings.shouldTestFieldSelectAllOnFocus(groupIndex, fieldIndex)
-                            ? context.getString(R.string.select_all_on_focus) : null,
-                    getLabeledMaxLength(Settings.getTestFieldMaxLength(groupIndex, fieldIndex),
-                            context),
-                    Settings.shouldTestFieldAllowUndo(groupIndex, fieldIndex)
-                            ? context.getString(R.string.allow_undo) : null,
-                    getLabeledTextLocales(
-                            Settings.getTestFieldTextLocales(groupIndex, fieldIndex), context),
-                    getLabeledImeHintLocales(
-                            Settings.getTestFieldImeHintLocales(groupIndex, fieldIndex), context)
+                    getLabeledPrivateImeOptions(fieldSettings.getPrivateImeOptions(), context),
+                    fieldSettings.shouldSelectAllOnFocus()
+                            ? context.getString(R.string.select_all_on_focus)
+                            : null,
+                    getLabeledMaxLength(fieldSettings.getMaxLength(), context),
+                    fieldSettings.shouldAllowUndo() ? context.getString(R.string.allow_undo) : null,
+                    getLabeledTextLocales(fieldSettings.getTextLocales(), context),
+                    getLabeledImeHintLocales(fieldSettings.getImeHintLocales(), context)
             };
             StringBuilder sb = new StringBuilder();
             for (String summaryPiece : summaryInfo) {

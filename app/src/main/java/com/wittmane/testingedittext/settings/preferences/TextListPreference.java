@@ -16,8 +16,6 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
-import static com.wittmane.testingedittext.settings.Settings.DEFAULT_RESTRICT_SPECIFIC;
-
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -27,11 +25,12 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.preferences.TextListPreference.Reader;
+import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
 
 import java.util.List;
 
-public class TextListPreference extends TextEntryListPreferenceBase<String, Reader> {
+public class TextListPreference
+        extends TextEntryListPreferenceBase<String, StringTextListDataManager> {
 
     public TextListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -50,7 +49,7 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Read
     }
 
     @Override
-    protected String getRowData(View[] rowContent) {
+    protected String getUIRowData(View[] rowContent) {
         return ((EditText)rowContent[0]).getText().toString();
     }
 
@@ -60,31 +59,9 @@ public class TextListPreference extends TextEntryListPreferenceBase<String, Read
     }
 
     @Override
-    protected String[] flattenDataArray(final @NonNull String[] dataArray) {
-        return dataArray;
-    }
-
-    @Override
-    protected Reader createReader(SharedPreferenceManager prefs, String key) {
-        return new Reader(prefs, key);
-    }
-
-    public static class Reader extends TextEntryListPreferenceBase.TextListReader<String> {
-        public Reader(SharedPreferenceManager prefs, String key) {
-            super(prefs, key);
-        }
-
-        @Override
-        protected @NonNull String[] buildDataArray(final @NonNull String[] data) {
-            return data;
-        }
-
-        @NonNull
-        @Override
-        protected String[] getDefaultDataArray() {
-            return DEFAULT_RESTRICT_SPECIFIC;
-        }
-
+    protected StringTextListDataManager createDataManager(SharedPreferenceManager prefs,
+                                                          String key) {
+        return new StringTextListDataManager(prefs, key);
     }
 
     @Override

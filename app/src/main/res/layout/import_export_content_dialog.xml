@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2024 Eli Wittman
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- (EW) matching padding for contentPanel/scrollView/message from AOSP's
+         alert_dialog.xml to match the general look of the normal AlertDialog.
+         customPanel/custom already adds 5dp top and bottom padding.
+         contentPanel/scrollView/message has a total top padding of 7, bottom
+         padding of 17, start padding of 19, and end padding of 15. -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:paddingBottom="12dp"
+        android:paddingStart="19dp"
+        android:paddingEnd="15dp"
+        android:overScrollMode="ifContentScrolls">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_defaults"
+                android:checked="true"
+                android:id="@+id/fieldDefaults" />
+
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/test_fields"
+                android:checked="true"
+                android:id="@+id/testFields" />
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="30dp"
+                android:id="@+id/testFieldDetails">
+
+                <Spinner
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/testFieldOption" />
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="30dp"
+                    android:id="@+id/testFieldDynamicDetails">
+
+                </LinearLayout>
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/embed_field_defaults"
+                    android:checked="false"
+                    android:enabled="false"
+                    android:id="@+id/embedFieldDefaults" />
+
+            </LinearLayout>
+
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/other_settings"
+                android:checked="true"
+                android:id="@+id/otherSettings" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

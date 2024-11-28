@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@
  */
 
 package com.wittmane.testingedittext.settings;
+
+import android.text.TextUtils;
+
+import java.util.Objects;
 
 public class TranslateText {
     private String mOriginal;
@@ -42,5 +46,20 @@ public class TranslateText {
 
     public String getTranslation() {
         return mTranslation;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TranslateText)) {
+            return false;
+        }
+        TranslateText other = (TranslateText) o;
+        return TextUtils.equals(mOriginal, other.mOriginal)
+                && TextUtils.equals(mTranslation, other.mTranslation);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mOriginal, mTranslation);
     }
 }

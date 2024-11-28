@@ -16,10 +16,11 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
+
 import android.os.Bundle;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.Settings;
 
 public class ComposingTextSettingsFragment extends PerTestFieldSettingsFragment {
     private static final String TAG = ComposingTextSettingsFragment.class.getSimpleName();
@@ -29,6 +30,6 @@ public class ComposingTextSettingsFragment extends PerTestFieldSettingsFragment 
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_composing_text);
 
-        manageOverrideToggle(Settings.PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
+        manageOverrideToggle(PREF_OVERRIDE_TEXT_COMPOSITION_PREFIX);
     }
 }
