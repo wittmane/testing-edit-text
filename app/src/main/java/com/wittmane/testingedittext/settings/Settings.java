@@ -86,8 +86,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         logPreferences();
 
-        convertInputTypeNullPrefs(mPrefs);
-
         if (!mPrefs.contains(PREF_TEST_GROUP_IDS)) {
             // create a default group and field the first time the app is opened
             Log.d(TAG, "creating defaults");
@@ -110,53 +108,6 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     /* package */ PreferenceReader getPreferenceReader() {
         return mPreferenceReader;
-    }
-
-    private static void convertInputTypeNullPrefs(final SharedPreferenceManager prefs) {
-        String[] prefKeyPrefixes = new String[] {
-                PREF_NULL_INPUT_TYPE_CREATE_INPUT_CONNECTION_PREFIX,
-                PREF_NULL_INPUT_TYPE_SEND_SELECTION_INFO_PREFIX,
-                PREF_NULL_INPUT_TYPE_SEND_TEXT_PREFIX,
-                PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX,
-                PREF_NULL_INPUT_TYPE_ALLOW_DELETE_SURROUNDING_TEXT_PREFIX,
-                PREF_NULL_INPUT_TYPE_ALLOW_SETTING_SELECTION_PREFIX
-        };
-        int[] groupIds = prefs.getIntArray(PREF_TEST_GROUP_IDS, new int[0]);
-        if (groupIds == null) {
-            return;
-        }
-        for (int groupId : groupIds) {
-            int[] fieldIds = prefs.getIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + groupId,
-                    new int[0]);
-            if (fieldIds == null) {
-                continue;
-            }
-            for (int fieldId : fieldIds) {
-                for (String newPrefKeyPrefix : prefKeyPrefixes) {
-                    String oldPrefKeyPrefix = newPrefKeyPrefix.replace("null_input_type_", "");
-                    String oldPrefKey = oldPrefKeyPrefix + FIELD_INFIX + fieldId;
-                    String newPrefKey = newPrefKeyPrefix + FIELD_INFIX + fieldId;
-
-                    if (!prefs.contains(oldPrefKey)) {
-                        continue;
-                    }
-
-                    if (newPrefKeyPrefix.equals(
-                            PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX)) {
-                        String val = prefs.getString(oldPrefKey, null);
-                        Log.d(TAG, "Write " + newPrefKey + ": " + val);
-                        prefs.setString(newPrefKey, val);
-                    } else {
-                        boolean val = prefs.getBoolean(oldPrefKey, false);
-                        Log.d(TAG, "Write " + newPrefKey + ": " + val);
-                        prefs.setBoolean(newPrefKey, val);
-                    }
-
-                    prefs.remove(oldPrefKey);
-                    Log.d(TAG, "Delete " + oldPrefKey);
-                }
-            }
-        }
     }
 
     private String[] sortPrefKeys(Set<String> allPrefs) {
