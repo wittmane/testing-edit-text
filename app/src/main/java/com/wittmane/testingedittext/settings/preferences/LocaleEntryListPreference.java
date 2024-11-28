@@ -44,7 +44,8 @@ import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
 
 import java.util.Locale;
 
-public class LocaleEntryListPreference extends EntryListPreference<Locale, Locale[], LocaleArrayDataManager> {
+public class LocaleEntryListPreference
+        extends EntryListPreference<Locale, Locale[], LocaleArrayDataManager> {
 
     public LocaleEntryListPreference(final Context context, final AttributeSet attrs) {
         super(context, attrs);

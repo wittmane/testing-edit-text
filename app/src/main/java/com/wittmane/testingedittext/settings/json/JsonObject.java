@@ -43,6 +43,8 @@ public class JsonObject {
 
     private static final int DATA_FORMAT_SPANNED = 1;
 
+    public static final String UNEXPECTED_CUSTOM_OBJECT_MESSAGE = "unexpected data format";
+
     /* package*/ final JSONObject mJsonObject;
     /* package*/ String mPath;
 
@@ -131,7 +133,6 @@ public class JsonObject {
         return value;
     }
 
-
     @Nullable
     public Object remove(@Nullable String name) {
         return wrapIfNeeded(mJsonObject.remove(name), name);
@@ -168,7 +169,38 @@ public class JsonObject {
 
     @Nullable
     public String getString(@NonNull String name) throws JSONException {
+        if (isNull(name)) {
+            return null;
+        }
         return mJsonObject.getString(name);
+    }
+
+    @Nullable
+    public String[] getStringArray(String name)
+            throws JSONException {
+        if (isNull(name)) {
+            return null;
+        }
+        JsonArray jsonArray = getJsonArray(name);
+        String[] result = new String[jsonArray.length()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = jsonArray.getString(i);
+        }
+        return result;
+    }
+
+    @Nullable
+    public int[] getIntArray(String name)
+            throws JSONException {
+        if (isNull(name)) {
+            return null;
+        }
+        JsonArray jsonArray = getJsonArray(name);
+        int[] result = new int[jsonArray.length()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = jsonArray.getInt(i);
+        }
+        return result;
     }
 
     @NonNull
@@ -179,6 +211,33 @@ public class JsonObject {
     @NonNull
     public JsonObject getJsonObject(@NonNull String name) throws JSONException {
         return wrap(mJsonObject.getJSONObject(name), name);
+    }
+
+    public JsonObject[] getJsonObjectArray(String name)
+            throws JSONException {
+        if (isNull(name)) {
+            return null;
+        }
+        JsonArray jsonArray = getJsonArray(name);
+        JsonObject[] result = new JsonObject[jsonArray.length()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = jsonArray.getJsonObject(i);
+        }
+        return result;
+    }
+
+    public Spanned getSpanned(String jsonPropName)
+            throws JSONException {
+        if (isNull(jsonPropName)) {
+            return null;
+        }
+        JsonObject dataJsonObject = getJsonObject(jsonPropName);
+        int dataFormat = dataJsonObject.getInt(CUSTOM_OBJECT_DATA_FORMAT_JSON_PROP);
+        if (dataFormat == DATA_FORMAT_SPANNED) {
+            String[] spannedInfo = dataJsonObject.getStringArray(CUSTOM_OBJECT_DATA_JSON_PROP);
+            return SharedPreferenceManager.buildSpanned(spannedInfo);
+        }
+        throw new JSONException(UNEXPECTED_CUSTOM_OBJECT_MESSAGE);
     }
 
     @NonNull

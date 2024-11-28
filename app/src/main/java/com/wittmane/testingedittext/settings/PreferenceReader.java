@@ -318,7 +318,9 @@ import java.util.Locale;
                 return null;
             default:
                 Log.e(TAG, "CharSequence default missing for " + keyOrPrefix
-                        + (prefDataType(keyOrPrefix) != TYPE_CHAR_SEQUENCE ? " (not a CharSequence)" : ""));
+                        + (prefDataType(keyOrPrefix) != TYPE_CHAR_SEQUENCE
+                                ? " (not a CharSequence)"
+                                : ""));
                 return null;
         }
     }
@@ -340,8 +342,8 @@ import java.util.Locale;
             default:
                 Log.e(TAG, "String[] default missing for " + keyOrPrefix
                         + (prefDataType(keyOrPrefix) != TYPE_STRING_ARRAY
-                        ? " (not a String[])"
-                        : ""));
+                                ? " (not a String[])"
+                                : ""));
                 return null;
         }
     }
@@ -509,7 +511,8 @@ import java.util.Locale;
         return readTextListStringWithInfo(prefKey).value;
     }
 
-    public PrefInfo<TextList<TranslateText>> readTextListTranslateTextWithInfo(PreferenceKey prefKey) {
+    public PrefInfo<TextList<TranslateText>> readTextListTranslateTextWithInfo(
+            PreferenceKey prefKey) {
         return readWithInfo(prefKey, TranslateTextTextListDataManager::new);
     }
 
@@ -527,7 +530,7 @@ import java.util.Locale;
     //#endregion
 
     //#region object loading methods
-    /* package */ void loadTestFieldDefaultableSettings(AppLevelDefaults testFieldOrDefault) {
+    /* package */ void loadTestFieldDefaultableSettings(AppLevelFieldDefaults testFieldOrDefault) {
         for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
             PreferenceKey prefKey = testFieldOrDefault instanceof TestField
                     ? createFieldKey(prefKeyPrefix, ((TestField) testFieldOrDefault).mId)
@@ -539,7 +542,7 @@ import java.util.Locale;
     }
 
     /* package*/ boolean loadTestFieldDefaultableSetting(PreferenceKey prefKey,
-                                                         AppLevelDefaults testFieldOrDefault) {
+                                                         AppLevelFieldDefaults testFieldOrDefault) {
         if (prefKey == null) {
             return false;
         }

@@ -114,7 +114,7 @@ public class MainSettingsFragment extends PreferenceFragment {
                     startActivityForResult(intent, IMPORT_SETTINGS_FILE);
                 } else {
                     // settings data was directly entered
-                    importSettings(rawJsonString);
+                    processSettingsImportData(rawJsonString);
                 }
             });
         } else if (itemId == R.id.action_export_settings) {
@@ -138,13 +138,13 @@ public class MainSettingsFragment extends PreferenceFragment {
             if (resultCode != Activity.RESULT_OK || uri == null) {
                 showErrorDialog(R.string.failed_to_import_settings, R.string.failed_to_access_file);
             } else {
-                importSettings(uri);
+                processSettingsImportFile(uri);
             }
         } else if (requestCode == EXPORT_SETTINGS_FILE) {
             if (resultCode != Activity.RESULT_OK || uri == null) {
                 showErrorDialog(R.string.failed_to_export_settings, R.string.failed_to_access_file);
             } else {
-                exportSettings(uri);
+                exportSettingsToFile(uri);
             }
         }
     }
@@ -162,7 +162,7 @@ public class MainSettingsFragment extends PreferenceFragment {
                 .show();
     }
 
-    private void importSettings(Uri uri) {
+    private void processSettingsImportFile(Uri uri) {
         StringBuilder stringBuilder = new StringBuilder();
         try (InputStream inputStream =
                      getActivity().getContentResolver().openInputStream(uri);
@@ -181,10 +181,10 @@ public class MainSettingsFragment extends PreferenceFragment {
             showErrorDialog(R.string.failed_to_import_settings, R.string.failed_to_read_file);
             return;
         }
-        importSettings(stringBuilder.toString());
+        processSettingsImportData(stringBuilder.toString());
     }
 
-    private void importSettings(String rawJson) {
+    private void processSettingsImportData(String rawJson) {
         ImportFileInfo info = JsonManager.validateJson(rawJson, getActivity());
         if (info.getError() != null) {
             showErrorDialog(R.string.failed_to_import_settings, info.getError());
@@ -205,34 +205,35 @@ public class MainSettingsFragment extends PreferenceFragment {
             message.insert(0, "\n\n");
             message.insert(0, getActivity().getString(R.string.confirm_ignore_import_warnings));
             showWarningConfirmationDialog(R.string.import_warnings, message.toString(), () -> {
-                ImportExportContentDialog.promptImport(getActivity(), info, this::importSettings);
+                promptImportContent(info);
             }, getActivity());
         } else {
-            ImportExportContentDialog.promptImport(getActivity(), info, this::importSettings);
+            promptImportContent(info);
         }
+    }
+
+    private void promptImportContent(ImportFileInfo info) {
+        ImportExportContentDialog.promptImport(getActivity(), info,
+                (jsonObject, replaceFieldDefaults, replaceFields, groupInfoList, embedFieldDefaults,
+                 replaceOtherSettings) -> {
+                    Runnable importSettings = () -> {
+                        importSettings(jsonObject, replaceFieldDefaults, replaceFields,
+                                groupInfoList, embedFieldDefaults, replaceOtherSettings);
+                    };
+                    if (replaceFieldDefaults || replaceFields || replaceOtherSettings) {
+                        showWarningConfirmationDialog(R.string.import_settings,
+                                R.string.replace_existing_settings_confirmation,
+                                importSettings,
+                                getActivity());
+                    } else {
+                        importSettings.run();
+                    }
+                });
     }
 
     private void importSettings(JsonObject jsonObject, boolean replaceFieldDefaults,
                                 boolean replaceFields, List<GroupTransferInfo> groupInfoList,
                                 boolean embedFieldDefaults, boolean replaceOtherSettings) {
-        if (replaceFieldDefaults || replaceFields || replaceOtherSettings) {
-            showWarningConfirmationDialog(R.string.import_settings,
-                    R.string.replace_existing_settings_confirmation,
-                    () -> {
-                        importSettingsCore(jsonObject, replaceFieldDefaults, replaceFields,
-                                groupInfoList, embedFieldDefaults, replaceOtherSettings);
-                    },
-                    getActivity());
-        } else {
-            importSettingsCore(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
-                    embedFieldDefaults, replaceOtherSettings);
-        }
-    }
-
-    //TODO: (EW) name better
-    private void importSettingsCore(JsonObject jsonObject, boolean replaceFieldDefaults,
-                                    boolean replaceFields, List<GroupTransferInfo> groupInfoList,
-                                    boolean embedFieldDefaults, boolean replaceOtherSettings) {
         int oldThemeId = Settings.getThemeId(getActivity());
 
         JsonManager.importSettings(jsonObject, replaceFieldDefaults, replaceFields, groupInfoList,
@@ -291,7 +292,7 @@ public class MainSettingsFragment extends PreferenceFragment {
         });
     }
 
-    private void exportSettings(Uri uri) {
+    private void exportSettingsToFile(Uri uri) {
         if (mExportData == null) {
             return;
         }

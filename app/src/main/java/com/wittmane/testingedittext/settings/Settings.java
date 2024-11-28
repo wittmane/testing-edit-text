@@ -53,7 +53,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     private int[] mTestGroupIds;
     private final Map<Integer, TestGroup> mTestGroups = new HashMap<>();
     private final Map<Integer, TestField> mTestFields = new HashMap<>();
-    private final AppLevelDefaults mTestFieldDefaults = new AppLevelDefaults();
+    private final AppLevelFieldDefaults mTestFieldDefaults = new AppLevelFieldDefaults();
 
     private String mTheme;
     private boolean mShowReferenceEditText;
@@ -330,8 +330,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 Log.w(TAG, "Group preference " + prefKey + " wasn't processed");
             }
         } else if (prefKey.isField()) {
-            if (!mTestFields.containsKey(prefKey.getId())
-                    && !mPreferenceReader.contains(prefKey)) {
+            if (!mTestFields.containsKey(prefKey.getId()) && !mPreferenceReader.contains(prefKey)) {
                 // this is most likely from deleting an old preference when the parent is deleted,
                 // so we don't need to bother loading this value
                 return;
@@ -668,16 +667,16 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private static void removeTestGroupPrefs(Editor editor, int groupId) {
         for (String prefKeyPrefix : TEST_GROUP_PREF_KEY_PREFIXES) {
-            editor.remove(prefKeyPrefix + GROUP_INFIX + groupId);
+            editor.remove(PreferenceKey.createGroupKey(prefKeyPrefix, groupId).toString());
         }
     }
 
     private static void removeTestFieldPrefs(Editor editor, int idToRemove) {
         for (String prefKeyPrefix : TEST_FIELD_PREF_KEY_PREFIXES) {
-            editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);
+            editor.remove(PreferenceKey.createFieldKey(prefKeyPrefix, idToRemove).toString());
         }
         for (String prefKeyPrefix : DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES) {
-            editor.remove(prefKeyPrefix + FIELD_INFIX + idToRemove);
+            editor.remove(PreferenceKey.createFieldKey(prefKeyPrefix, idToRemove).toString());
         }
     }
 
@@ -790,7 +789,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
         /* package */ abstract TestField getField();
 
-        private AppLevelDefaults getTestFieldOrBase(Predicate<TestField> override) {
+        private AppLevelFieldDefaults getTestFieldOrBase(Predicate<TestField> override) {
             TestField testField = getField();
             if (!override.test(testField)) {
                 return getInstance().mTestFieldDefaults;
@@ -798,23 +797,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return testField;
         }
 
-        private AppLevelDefaults getTestFieldOrBaseForTextInputModification() {
+        private AppLevelFieldDefaults getTestFieldOrBaseForTextInputModification() {
             return getTestFieldOrBase(testField -> testField.mOverrideTextInputModification);
         }
 
-        private AppLevelDefaults getTestFieldOrBaseForTextReturn() {
+        private AppLevelFieldDefaults getTestFieldOrBaseForTextReturn() {
             return getTestFieldOrBase(testField -> testField.mOverrideTextReturn);
         }
 
-        private AppLevelDefaults getTestFieldOrBaseForTextComposition() {
+        private AppLevelFieldDefaults getTestFieldOrBaseForTextComposition() {
             return getTestFieldOrBase(testField -> testField.mOverrideTextComposition);
         }
 
-        private AppLevelDefaults getTestFieldOrBaseForTargetVersion() {
+        private AppLevelFieldDefaults getTestFieldOrBaseForTargetVersion() {
             return getTestFieldOrBase(testField -> testField.mOverrideTargetVersion);
         }
 
-        private AppLevelDefaults getTestFieldOrBaseForSystemBehavior() {
+        private AppLevelFieldDefaults getTestFieldOrBaseForSystemBehavior() {
             return getTestFieldOrBase(testField -> testField.mOverrideSystemBehavior);
         }
 

@@ -21,7 +21,7 @@ import java.util.Locale;
 /**
  * Cached preference values for a field
  */
-/* package */ class TestField  extends AppLevelDefaults {
+/* package */ class TestField  extends AppLevelFieldDefaults {
     public final int mId;
 
     public int mInputType;

@@ -16,7 +16,7 @@
 
 package com.wittmane.testingedittext.settings;
 
-/* package */ class AppLevelDefaults {
+/* package */ class AppLevelFieldDefaults {
     public boolean mModifyCommittedText;
     public boolean mModifyComposedText;
     public boolean mConsiderComposedChangesFromEnd;

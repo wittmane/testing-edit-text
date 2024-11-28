@@ -31,8 +31,8 @@ public abstract class ListDataManager<T> implements DataManager<T> {
 
     protected abstract int getExtraDataLength();
 
-    @Override
     @NonNull
+    @Override
     public T readValue() {
         String[] pieces = mPrefs != null ? mPrefs.getStringArray(mKey, null) : null;
         if (pieces == null) {
@@ -56,8 +56,8 @@ public abstract class ListDataManager<T> implements DataManager<T> {
 
     protected abstract T buildFullData(String[] rowData, String[] extraData);
 
-    @Override
     @NonNull
+    @Override
     public abstract T readDefaultValue();
 
     @Override

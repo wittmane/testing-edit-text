@@ -179,31 +179,18 @@ public class ImportExportContentDialog extends AlertDialog {
         });
 
         testFieldsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            // enable/disable the options for what/how to import/export fields to match whether
+            // fields actually are going to be imported/exported
             testFieldOptionSpinner.setEnabled(isChecked);
             for (int i = 0; i < testFieldDynamicDetails.getChildCount(); i++) {
                 testFieldDynamicDetails.getChildAt(i).setEnabled(isChecked);
             }
             updateEmbedFieldDefaultsEnabled();
+
             updateAcceptButtonState();
         });
 
-        final List<SpinnerEntry> spinnerEntries = new ArrayList<>();
-        spinnerEntries.add(new SpinnerEntry(IMPORT_EXPORT_FIELDS_ALL,
-                getContext().getString(mIsImport
-                        ? R.string.import_test_field_option_replace_all
-                        : R.string.export_test_field_option_all)));
-        spinnerEntries.add(new SpinnerEntry(IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS,
-                getContext().getString(mIsImport
-                        ? R.string.import_test_field_option_add_specific_groups
-                        : R.string.export_test_field_option_specific_groups)));
-        spinnerEntries.add(new SpinnerEntry(IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS,
-                getContext().getString(mIsImport
-                        ? R.string.import_test_field_option_add_specific_fields
-                        : R.string.export_test_field_option_specific_fields)));
-        ArrayAdapter<SpinnerEntry> adapter = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_item, spinnerEntries);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        testFieldOptionSpinner.setAdapter(adapter);
+        testFieldOptionSpinner.setAdapter(buildFieldOptions(getContext(), mIsImport));
 
         if (mGroups == null) {
             testFieldsCheckbox.setChecked(false);
@@ -328,6 +315,26 @@ public class ImportExportContentDialog extends AlertDialog {
         otherSettingsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             updateAcceptButtonState();
         });
+    }
+
+    private static ArrayAdapter<SpinnerEntry> buildFieldOptions(Context context, boolean isImport) {
+        final List<SpinnerEntry> spinnerEntries = new ArrayList<>();
+        spinnerEntries.add(new SpinnerEntry(IMPORT_EXPORT_FIELDS_ALL,
+                context.getString(isImport
+                        ? R.string.import_test_field_option_replace_all
+                        : R.string.export_test_field_option_all)));
+        spinnerEntries.add(new SpinnerEntry(IMPORT_EXPORT_FIELDS_SPECIFIC_GROUPS,
+                context.getString(isImport
+                        ? R.string.import_test_field_option_add_specific_groups
+                        : R.string.export_test_field_option_specific_groups)));
+        spinnerEntries.add(new SpinnerEntry(IMPORT_EXPORT_FIELDS_SPECIFIC_FIELDS,
+                context.getString(isImport
+                        ? R.string.import_test_field_option_add_specific_fields
+                        : R.string.export_test_field_option_specific_fields)));
+        ArrayAdapter<SpinnerEntry> adapter = new ArrayAdapter<>(context,
+                android.R.layout.simple_spinner_item, spinnerEntries);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        return adapter;
     }
 
     private static boolean areAllChecked(Iterable<CheckBox> checkBoxes) {

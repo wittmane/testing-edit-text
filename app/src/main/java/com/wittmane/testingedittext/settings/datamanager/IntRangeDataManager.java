@@ -65,8 +65,6 @@ public class IntRangeDataManager implements DataManager<IntRange> {
 
     @Override
     public void writeValue(final @Nullable IntRange value) {
-        //TODO: (EW) consider changing this to use an int array and just have extra validation
-        // on the length when reading the data.
         mPrefs.setString(mKey,
                 value == null ? null : value.getStart() + "-" + value.getEnd());
     }
