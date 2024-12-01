@@ -111,9 +111,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.wittmane.testingedittext.SpanUtils;
+import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.text.style.SpellCheckSpan;
-import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.content.UndoManager;
 import com.wittmane.testingedittext.aosp.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.content.UndoOwner;
@@ -123,8 +122,9 @@ import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
-import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.widget.EditText.OnEditorActionListener;
+import com.wittmane.testingedittext.util.SpanUtils;
+import com.wittmane.testingedittext.wrapper.BreakIterator;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

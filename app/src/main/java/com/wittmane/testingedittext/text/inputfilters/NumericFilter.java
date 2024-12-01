@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.text.inputfilters;
 
 /**
- * An InputFilter that only allows a-z, A-Z, and 0-9.
+ * An InputFilter that only allows 0-9.
  */
-public class AlphaNumericFilter extends AlphaFilter {
+public class NumericFilter extends CharFilter {
 
     @Override
     protected boolean isValidChar(char c) {
-        return super.isValidChar(c) || (c >= '0' && c <= '9');
+        return c >= '0' && c <= '9';
+    }
+
+    @Override
+    protected char convertChar(char c) {
+        return c;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.text.inputfilters;
 
 /**
- * An InputFilter that converts characters to lower case.
+ * An InputFilter that only allows a-z, A-Z, and 0-9.
  */
-public class LowerCaseFilter extends CharFilter {
+public class AlphaNumericFilter extends AlphaFilter {
 
     @Override
     protected boolean isValidChar(char c) {
-        return true;
-    }
-
-    @Override
-    protected char convertChar(char c) {
-        return Character.toLowerCase(c);
+        return super.isValidChar(c) || (c >= '0' && c <= '9');
     }
 }

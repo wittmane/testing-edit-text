@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.widget;
 
 import androidx.annotation.Nullable;
 import android.annotation.SuppressLint;
@@ -47,7 +47,6 @@ import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
 
-import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
 

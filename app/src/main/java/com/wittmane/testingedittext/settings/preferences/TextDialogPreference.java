@@ -35,7 +35,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.PlainTextFilter;
+import com.wittmane.testingedittext.text.inputfilters.PlainTextFilter;
 
 public class TextDialogPreference extends DialogPreferenceBase {
     private static final String TAG = TextDialogPreference.class.getSimpleName();

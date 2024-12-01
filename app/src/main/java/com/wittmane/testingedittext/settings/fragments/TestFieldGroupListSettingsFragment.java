@@ -41,11 +41,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.DraggableGroupedListAdapter;
-import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
+import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter;
 
 public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
     private static final String TAG = TestFieldGroupListSettingsFragment.class.getSimpleName();

@@ -32,6 +32,9 @@ import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.datatype.IntRange;
+import com.wittmane.testingedittext.datatype.TextList;
+import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.function.BiFunction;
 import com.wittmane.testingedittext.function.Function;
 import com.wittmane.testingedittext.function.Predicate;

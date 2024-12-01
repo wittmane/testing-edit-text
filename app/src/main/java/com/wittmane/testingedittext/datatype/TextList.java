@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.datatype;
 
 import androidx.annotation.NonNull;
 

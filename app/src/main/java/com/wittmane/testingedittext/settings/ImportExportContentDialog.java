@@ -35,10 +35,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.json.JsonObject;
 import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
-import com.wittmane.testingedittext.settings.json.JsonObject;
+import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.IterableUtils;
 
 import java.util.ArrayList;

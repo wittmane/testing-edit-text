@@ -25,9 +25,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.TranslateText;
+import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
+import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
 import java.util.List;
 

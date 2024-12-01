@@ -34,7 +34,7 @@ import android.widget.Toast;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.function.Consumer;
-import com.wittmane.testingedittext.settings.NonEditable.NonEditableFactory;
+import com.wittmane.testingedittext.text.NonEditable.NonEditableFactory;
 
 public class ImportExportSourceDialog extends AlertDialog {
     private static final String TAG = ImportExportSourceDialog.class.getSimpleName();

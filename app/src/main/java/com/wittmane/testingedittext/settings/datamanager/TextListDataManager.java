@@ -20,8 +20,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.datatype.TextList;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.TextList;
 
 public abstract class TextListDataManager<T> extends ListDataManager<TextList<T>> {
     private static final String TAG = TextListDataManager.class.getSimpleName();

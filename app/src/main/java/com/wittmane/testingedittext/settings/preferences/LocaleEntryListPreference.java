@@ -36,11 +36,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.AlphaFilter;
-import com.wittmane.testingedittext.settings.AlphaNumericFilter;
-import com.wittmane.testingedittext.settings.LowerCaseFilter;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
+import com.wittmane.testingedittext.text.inputfilters.AlphaFilter;
+import com.wittmane.testingedittext.text.inputfilters.AlphaNumericFilter;
+import com.wittmane.testingedittext.text.inputfilters.LowerCaseFilter;
 
 import java.util.Locale;
 

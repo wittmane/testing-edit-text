@@ -48,11 +48,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.wittmane.ThemedActivity;
-import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
+import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.SpanUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

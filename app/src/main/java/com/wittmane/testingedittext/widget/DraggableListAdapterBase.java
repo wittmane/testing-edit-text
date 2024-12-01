@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.widget;
 
 import static android.view.View.DRAG_FLAG_OPAQUE;
 import static android.view.View.INVISIBLE;

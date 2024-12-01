@@ -18,6 +18,9 @@ package com.wittmane.testingedittext.settings;
 
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.datatype.IntRange;
+import com.wittmane.testingedittext.datatype.TranslateText;
+
 public interface EditorSettings {
     int COMPOSING_TEXT_BEHAVIOR_INVISIBLE = 0;
     int COMPOSING_TEXT_BEHAVIOR_COMPOSE = 1;

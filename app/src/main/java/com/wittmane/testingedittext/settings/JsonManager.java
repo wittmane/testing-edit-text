@@ -16,12 +16,12 @@
 
 package com.wittmane.testingedittext.settings;
 
+import static com.wittmane.testingedittext.json.JsonObject.UNEXPECTED_CUSTOM_OBJECT_MESSAGE;
 import static com.wittmane.testingedittext.settings.PreferenceKey.createBasicKey;
 import static com.wittmane.testingedittext.settings.PreferenceKey.createFieldDefaultKey;
 import static com.wittmane.testingedittext.settings.PreferenceKey.createFieldKey;
 import static com.wittmane.testingedittext.settings.PreferenceKey.createGroupKey;
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
-import static com.wittmane.testingedittext.settings.json.JsonObject.UNEXPECTED_CUSTOM_OBJECT_MESSAGE;
 
 import android.content.Context;
 import android.text.Spanned;
@@ -33,18 +33,21 @@ import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.datatype.IntRange;
+import com.wittmane.testingedittext.datatype.TextList;
+import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.function.BiFunction;
 import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.function.Function;
 import com.wittmane.testingedittext.function.TriConsumer;
+import com.wittmane.testingedittext.json.JsonArray;
+import com.wittmane.testingedittext.json.JsonObject;
 import com.wittmane.testingedittext.settings.PreferenceReader.PrefInfo;
 import com.wittmane.testingedittext.settings.datamanager.DataManager;
 import com.wittmane.testingedittext.settings.datamanager.IntRangeDataManager;
 import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
 import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
 import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
-import com.wittmane.testingedittext.settings.json.JsonArray;
-import com.wittmane.testingedittext.settings.json.JsonObject;
 import com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 import com.wittmane.testingedittext.util.IterableUtils;

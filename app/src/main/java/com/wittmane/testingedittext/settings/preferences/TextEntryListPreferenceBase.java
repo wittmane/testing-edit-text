@@ -25,7 +25,7 @@ import android.widget.TableRow;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.TextList;
+import com.wittmane.testingedittext.datatype.TextList;
 import com.wittmane.testingedittext.settings.datamanager.TextListDataManager;
 
 import java.util.List;

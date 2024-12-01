@@ -21,7 +21,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.wittmane.testingedittext.settings.IntRange;
+import com.wittmane.testingedittext.datatype.IntRange;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
 public class IntRangeDataManager implements DataManager<IntRange> {

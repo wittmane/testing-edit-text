@@ -16,6 +16,9 @@
 
 package com.wittmane.testingedittext.settings;
 
+import com.wittmane.testingedittext.datatype.IntRange;
+import com.wittmane.testingedittext.datatype.TranslateText;
+
 /* package */ class AppLevelFieldDefaults {
     public boolean mModifyCommittedText;
     public boolean mModifyComposedText;

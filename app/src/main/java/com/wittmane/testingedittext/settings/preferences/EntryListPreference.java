@@ -44,9 +44,9 @@ import android.widget.TextView.OnEditorActionListener;
 import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.datamanager.ListDataManager;
+import com.wittmane.testingedittext.util.IconUtils;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings.json;
+package com.wittmane.testingedittext.json;
 
 import android.text.Spanned;
 

@@ -39,8 +39,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.DraggableListAdapter;
-import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.FieldEntry;
@@ -49,6 +47,8 @@ import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
 import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
 import com.wittmane.testingedittext.settings.preferences.TextDialogPreference;
+import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.widget.DraggableListAdapter;
 
 import java.util.ArrayList;
 import java.util.List;

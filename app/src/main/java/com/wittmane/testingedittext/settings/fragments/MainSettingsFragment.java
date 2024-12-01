@@ -38,9 +38,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-import com.wittmane.ThemedActivity;
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.IconUtils;
+import com.wittmane.testingedittext.ThemedActivity;
+import com.wittmane.testingedittext.json.JsonObject;
 import com.wittmane.testingedittext.settings.ImportExportContentDialog;
 import com.wittmane.testingedittext.settings.ImportExportSourceDialog;
 import com.wittmane.testingedittext.settings.Settings;
@@ -48,7 +48,7 @@ import com.wittmane.testingedittext.settings.JsonManager;
 import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
-import com.wittmane.testingedittext.settings.json.JsonObject;
+import com.wittmane.testingedittext.util.IconUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

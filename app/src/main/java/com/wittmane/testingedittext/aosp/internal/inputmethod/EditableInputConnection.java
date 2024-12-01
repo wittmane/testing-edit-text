@@ -58,11 +58,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.widget.EditText;
+import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.settings.EditorSettings;
-import com.wittmane.testingedittext.settings.TranslateText;
+import com.wittmane.testingedittext.util.CodePointUtils;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -532,7 +532,7 @@ public class EditableInputConnection implements InputConnection {
                                      EditorSettings settings) {
         boolean restrictToInclude = settings.shouldRestrictToInclude();
         String[] specificRestrictions = settings.getRestrictSpecific();
-        com.wittmane.testingedittext.settings.IntRange codepointRangeRestriction =
+        com.wittmane.testingedittext.datatype.IntRange codepointRangeRestriction =
                 settings.getRestrictRange();
 
         int codePointIndex = startCodePointToSkip;

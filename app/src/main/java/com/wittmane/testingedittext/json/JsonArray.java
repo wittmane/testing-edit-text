@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings.json;
+package com.wittmane.testingedittext.json;
 
-import static com.wittmane.testingedittext.settings.json.JsonObject.toInternalJsonType;
+import static com.wittmane.testingedittext.json.JsonObject.toInternalJsonType;
 
 import androidx.annotation.NonNull;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.util;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;

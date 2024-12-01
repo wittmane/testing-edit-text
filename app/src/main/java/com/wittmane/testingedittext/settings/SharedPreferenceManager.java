@@ -27,7 +27,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.wittmane.testingedittext.settings.StringArraySerializer.InvalidSerializedDataException;
+import com.wittmane.testingedittext.util.StringArraySerializer;
+import com.wittmane.testingedittext.util.StringArraySerializer.InvalidSerializedDataException;
 
 import java.util.ArrayList;
 import java.util.Arrays;

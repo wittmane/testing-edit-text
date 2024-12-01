@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,8 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.ExtendingSeekBar;
-import com.wittmane.testingedittext.settings.ExtendingSeekBar.OnExtendingSeekBarChangeListener;
+import com.wittmane.testingedittext.widget.ExtendingSeekBar;
+import com.wittmane.testingedittext.widget.ExtendingSeekBar.OnExtendingSeekBarChangeListener;
 
 public class SeekBarDialogPreference extends DialogPreferenceBase
         implements OnExtendingSeekBarChangeListener {

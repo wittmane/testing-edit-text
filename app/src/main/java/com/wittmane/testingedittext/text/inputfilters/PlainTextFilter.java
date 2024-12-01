@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.text.inputfilters;
+
+import android.text.InputFilter;
+import android.text.Spanned;
 
 /**
- * An InputFilter that only allows 0-9.
+ * Input filter to remove spans
  */
-public class NumericFilter extends CharFilter {
-
+public class PlainTextFilter implements InputFilter {
     @Override
-    protected boolean isValidChar(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    @Override
-    protected char convertChar(char c) {
-        return c;
+    public CharSequence filter(CharSequence source, int sourceStart, int sourceEnd,
+                               Spanned dest, int destStart, int destEnd) {
+        if (source instanceof Spanned) {
+            return source.toString();
+        }
+        // keep the original
+        return null;
     }
 }

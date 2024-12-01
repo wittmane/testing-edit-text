@@ -36,11 +36,11 @@ import android.widget.EditText;
 
 import androidx.annotation.Nullable;
 
-import com.wittmane.testingedittext.CodePointUtils;
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.IntRange;
-import com.wittmane.testingedittext.settings.NumericFilter;
+import com.wittmane.testingedittext.datatype.IntRange;
 import com.wittmane.testingedittext.settings.datamanager.IntRangeDataManager;
+import com.wittmane.testingedittext.text.inputfilters.NumericFilter;
+import com.wittmane.testingedittext.util.CodePointUtils;
 
 import java.util.ArrayList;
 import java.util.List;

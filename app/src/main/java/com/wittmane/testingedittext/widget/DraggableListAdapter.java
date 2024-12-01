@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.widget;
 
 import android.content.Context;
 import android.view.View;
@@ -22,7 +22,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.DraggableListAdapter.ListItemBuilder;
+import com.wittmane.testingedittext.widget.DraggableListAdapter.ListItemBuilder;
 
 /**
  * Adapter for a {@link ListView} to allow dragging to reorder objects in the list. Items can be

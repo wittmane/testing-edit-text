@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.widget;
 
 import android.content.Context;
 import android.view.View;
@@ -22,7 +22,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.settings.DraggableGroupedListAdapter.ListItemBuilder;
+import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter.ListItemBuilder;
 
 import java.util.ArrayList;
 import java.util.List;

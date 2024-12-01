@@ -32,6 +32,8 @@ import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.datatype.IntRange;
+import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.function.Predicate;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager.Editor;
 

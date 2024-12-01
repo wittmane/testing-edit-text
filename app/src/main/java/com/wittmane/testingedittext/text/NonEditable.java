@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane.testingedittext.settings;
+package com.wittmane.testingedittext.text;
 
 import android.text.Editable;
 import android.text.InputFilter;

@@ -42,8 +42,8 @@ import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.Lin
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
 import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
-import com.wittmane.testingedittext.settings.IconUtils;
 import com.wittmane.testingedittext.settings.EditorSettings;
+import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Matrix;

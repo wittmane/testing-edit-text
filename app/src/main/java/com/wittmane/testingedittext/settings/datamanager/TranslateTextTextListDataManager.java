@@ -18,9 +18,9 @@ package com.wittmane.testingedittext.settings.datamanager;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.datatype.TextList;
+import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
-import com.wittmane.testingedittext.settings.TextList;
-import com.wittmane.testingedittext.settings.TranslateText;
 
 public class TranslateTextTextListDataManager extends TextListDataManager<TranslateText> {
     public TranslateTextTextListDataManager(SharedPreferenceManager prefs, String key) {

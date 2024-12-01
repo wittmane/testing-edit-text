@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.settings;
-
-import android.text.InputFilter;
-import android.text.Spanned;
+package com.wittmane.testingedittext.text.inputfilters;
 
 /**
- * Input filter to remove spans
+ * An InputFilter that converts characters to lower case.
  */
-public class PlainTextFilter implements InputFilter {
+public class LowerCaseFilter extends CharFilter {
+
     @Override
-    public CharSequence filter(CharSequence source, int sourceStart, int sourceEnd,
-                               Spanned dest, int destStart, int destEnd) {
-        if (source instanceof Spanned) {
-            return source.toString();
-        }
-        // keep the original
-        return null;
+    protected boolean isValidChar(char c) {
+        return true;
+    }
+
+    @Override
+    protected char convertChar(char c) {
+        return Character.toLowerCase(c);
     }
 }

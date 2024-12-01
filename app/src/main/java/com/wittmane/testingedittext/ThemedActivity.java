@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.wittmane;
+package com.wittmane.testingedittext;
 
 import android.app.Activity;
 import android.content.Intent;
