@@ -40,7 +40,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
-import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
@@ -59,6 +58,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
+import com.wittmane.testingedittext.aosp.view.HiddenInputMethodManager;
+import com.wittmane.testingedittext.aosp.view.inputmethod.HiddenEditorInfo;
 import com.wittmane.testingedittext.aosp.widget.EditText;
 import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.settings.EditorSettings;
@@ -158,31 +159,6 @@ public class EditableInputConnection implements InputConnection {
     // composition nor moving it invisibly seems perfect. we could add a setting for it, but at
     // least for now, we'll just match AOSP functionality and move it invisibly.
     private final Editable mInvisibleComposition;
-
-    // (EW) from InputMethodManager
-    private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
-
-    // (EW) from EditorInfo
-    /**
-     * The maximum length of initialSurroundingText. When the input text from
-     * {@code setInitialSurroundingText(CharSequence)} is longer than this, trimming shall be
-     * performed to keep memory efficiency.
-     */
-    static final int MEMORY_EFFICIENT_TEXT_LENGTH = 2048;
-
-    // (EW) from InputMethodManager. InputMethodManager.Handler#handleMessage (I think ultimately
-    // triggered from IInputMethodClient.Stub#onBindMethod) also resets this in the AOSP version,
-    // but I think that is due to it managing input methods and being reused. since a new input
-    // connection gets created when switching input methods, that same reset shouldn't apply.
-    /**
-     * The monitor mode for
-     * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
-     */
-    private int mRequestUpdateCursorAnchorInfoMonitorMode = REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE;
-
-    // (EW) from InputMethodManager. I'm not certain if this synchronization is necessary outside of
-    // InputMethodManager, but it probably doesn't hurt to keep.
-    protected final Object mH = new Object();
 
     // Keeps track of nested begin/end batch edit to ensure this connection always has a
     // balanced impact on its associated EditText.
@@ -1610,12 +1586,8 @@ public class EditableInputConnection implements InputConnection {
             // CursorAnchorInfo is temporarily unavailable.
             return false;
         }
-        // (EW) AOSP version calls InputMethodManager#setUpdateCursorAnchorInfoMode, but that is
-        // hidden and marked with UnsupportedAppUsage. it's used to track the mode, mostly so
-        // InputMethodManager#isCursorAnchorInfoEnabled can be checked in
-        // Editor.CursorAnchorInfoNotifier#updatePosition. we just need to track it separately
-        // since we're not allowed to use those for some reason.
-        setUpdateCursorAnchorInfoMode(cursorUpdateMode);
+        HiddenInputMethodManager.getSupplementalObject(mIMM, this)
+                .setUpdateCursorAnchorInfoMode(cursorUpdateMode);
         if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0) {
             if (mEditText.isInLayout()) {
                 // In this case, the view hierarchy is currently undergoing a layout pass.
@@ -1628,68 +1600,6 @@ public class EditableInputConnection implements InputConnection {
             }
         }
         return true;
-    }
-
-    // (EW) from InputMethodManager
-    /**
-     * Return true if the current input method wants to be notified when cursor/anchor location
-     * is changed.
-     */
-    public boolean isCursorAnchorInfoEnabled() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            return false;
-        }
-        synchronized (mH) {
-            final boolean isImmediate = (mRequestUpdateCursorAnchorInfoMonitorMode &
-                    InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0;
-            final boolean isMonitoring = (mRequestUpdateCursorAnchorInfoMonitorMode &
-                    InputConnection.CURSOR_UPDATE_MONITOR) != 0;
-            return isImmediate || isMonitoring;
-        }
-    }
-
-    // (EW) based on InputMethodManager#updateCursorAnchorInfo
-    public boolean isCursorAnchorInfoModeImmediate() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            return false;
-        }
-        synchronized (mH) {
-            return (mRequestUpdateCursorAnchorInfoMonitorMode &
-                    InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0;
-        }
-    }
-
-    // (EW) based on InputMethodManager#updateCursorAnchorInfo
-    public void clearCursorAnchorInfoModeImmediate() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            return;
-        }
-        synchronized (mH) {
-            // Clear immediate bit (if any).
-            mRequestUpdateCursorAnchorInfoMonitorMode &= ~InputConnection.CURSOR_UPDATE_IMMEDIATE;
-        }
-    }
-
-    // (EW) from InputMethodManager
-    /**
-     * Set the requested mode for
-     * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
-     */
-    private void setUpdateCursorAnchorInfoMode(int flags) {
-        synchronized (mH) {
-            mRequestUpdateCursorAnchorInfoMonitorMode = flags;
-        }
-    }
-
-    // (EW) from InputMethodManager
-    /**
-     * Get the requested mode for
-     * {@link InputMethodManager#updateCursorAnchorInfo(View, CursorAnchorInfo)}.
-     */
-    public int getUpdateCursorAnchorInfoMode() {
-        synchronized (mH) {
-            return mRequestUpdateCursorAnchorInfoMonitorMode;
-        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -2402,8 +2312,8 @@ public class EditableInputConnection implements InputConnection {
         }
 
         final SurroundingText surroundingText = getSurroundingTextInternal(
-                MEMORY_EFFICIENT_TEXT_LENGTH / 2,
-                MEMORY_EFFICIENT_TEXT_LENGTH / 2, GET_TEXT_WITH_STYLES);
+                HiddenEditorInfo.MEMORY_EFFICIENT_TEXT_LENGTH / 2,
+                HiddenEditorInfo.MEMORY_EFFICIENT_TEXT_LENGTH / 2, GET_TEXT_WITH_STYLES);
         if (surroundingText == null) {
             return null;
         }

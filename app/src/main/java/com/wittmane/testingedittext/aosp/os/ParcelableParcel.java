@@ -19,6 +19,8 @@ package com.wittmane.testingedittext.aosp.os;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.wittmane.testingedittext.aosp.util.MathUtils;
+
 // (EW) the AOSP version of this is hidden from apps, so it had to be copied here
 /**
  * Parcelable containing a raw Parcel of data.
@@ -41,7 +43,7 @@ public class ParcelableParcel implements Parcelable {
         }
 
         int pos = src.dataPosition();
-        src.setDataPosition(addOrThrow(pos, size));
+        src.setDataPosition(MathUtils.addOrThrow(pos, size));
         mParcel.appendFrom(src, pos, size);
     }
 
@@ -79,25 +81,4 @@ public class ParcelableParcel implements Parcelable {
             return new ParcelableParcel[size];
         }
     };
-
-    // (EW) from android.util.MathUtils
-    /**
-     * Returns the sum of the two parameters, or throws an exception if the resulting sum would
-     * cause an overflow or underflow.
-     * @throws IllegalArgumentException when overflow or underflow would occur.
-     */
-    private static int addOrThrow(int a, int b) throws IllegalArgumentException {
-        if (b == 0) {
-            return a;
-        }
-
-        if (b > 0 && a <= (Integer.MAX_VALUE - b)) {
-            return a + b;
-        }
-
-        if (b < 0 && a >= (Integer.MIN_VALUE - b)) {
-            return a + b;
-        }
-        throw new IllegalArgumentException("Addition overflow: " + a + " + " + b);
-    }
 }

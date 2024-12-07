@@ -122,6 +122,7 @@ import com.wittmane.testingedittext.aosp.text.HiddenLayout;
 import com.wittmane.testingedittext.aosp.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.text.HiddenTextUtils;
+import com.wittmane.testingedittext.aosp.view.HiddenInputMethodManager;
 import com.wittmane.testingedittext.aosp.widget.EditText.OnEditorActionListener;
 import com.wittmane.testingedittext.util.SpanUtils;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
@@ -4320,13 +4321,9 @@ class Editor {
             if (!imm.isActive(mEditText)) {
                 return;
             }
-            // Skip if the IME has not requested the cursor/anchor position.
-            // (EW) AOSP version calls InputMethodManager#isCursorAnchorInfoEnabled, but that is
-            // hidden and restricted, and we couldn't call
-            // InputMethodManager#setUpdateCursorAnchorInfoMode in EditableInputConnection, also due
-            // to it being hidden and restricted, so we have to manage the mode separately.
-            EditableInputConnection inputConnection = mEditText.getInputConnection();
-            if (inputConnection == null || !inputConnection.isCursorAnchorInfoEnabled()) {
+            HiddenInputMethodManager immHelper = HiddenInputMethodManager.getSupplementalObject(imm,
+                    mEditText.getInputConnection());
+            if (!immHelper.isCursorAnchorInfoEnabled()) {
                 return;
             }
             Layout layout = mEditText.getLayout();
@@ -4337,11 +4334,7 @@ class Editor {
             boolean includeCharacterBounds;
             boolean includeInsertionMarker;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // (EW) AOSP version calls InputMethodManager#getUpdateCursorAnchorInfoMode, but
-                // that is hidden, and we couldn't call
-                // InputMethodManager#setUpdateCursorAnchorInfoMode in EditableInputConnection, also
-                // due to it being hidden and restricted, so we have to manage the mode separately.
-                int mode = inputConnection.getUpdateCursorAnchorInfoMode();
+                int mode = immHelper.getUpdateCursorAnchorInfoMode();
                 includeEditorBounds =
                         (mode & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
                 includeCharacterBounds =
@@ -4448,27 +4441,7 @@ class Editor {
                 }
             }
 
-            CursorAnchorInfo cursorAnchorInfo = builder.build();
-
-            // (EW) logic pulled from InputMethodManager#updateCursorAnchorInfo because we couldn't
-            // call InputMethodManager#setUpdateCursorAnchorInfoMode in EditableInputConnection due
-            // to it being hidden and restricted, so we have to manage the mode here instead.
-            if (!inputConnection.isCursorAnchorInfoModeImmediate()
-                    && Objects.equals(mLastCursorAnchorInfo, cursorAnchorInfo)) {
-                if (DEBUG_CURSOR_ANCHOR_INFO) {
-                    Log.w(TAG, "Ignoring redundant updateCursorAnchorInfo: info="
-                            + cursorAnchorInfo);
-                }
-                return;
-            }
-
-            imm.updateCursorAnchorInfo(mEditText, builder.build());
-
-            // (EW) logic pulled from InputMethodManager#updateCursorAnchorInfo because we couldn't
-            // call InputMethodManager#setUpdateCursorAnchorInfoMode in EditableInputConnection due
-            // to it being hidden and restricted, so we have to manage the mode here instead.
-            mLastCursorAnchorInfo = cursorAnchorInfo;
-            inputConnection.clearCursorAnchorInfoModeImmediate();
+            immHelper.updateCursorAnchorInfo(mEditText, builder.build());
         }
     }
 

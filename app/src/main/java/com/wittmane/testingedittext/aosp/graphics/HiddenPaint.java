@@ -26,7 +26,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * (EW) content from Paint that is blocked from apps accessing
+ * (EW) content from {@link Paint} that is blocked from apps accessing
  */
 public class HiddenPaint {
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ import android.text.Spannable;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 
 /**
- * (EW) content from Selection that is blocked from apps accessing
+ * (EW) content from {@link Selection} that is blocked from apps accessing
  */
 public class HiddenSelection {
     // (EW) this was restricted with @hide

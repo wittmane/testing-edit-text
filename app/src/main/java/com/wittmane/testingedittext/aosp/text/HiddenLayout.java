@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
 
 /**
- * (EW) content from Layout that is blocked from apps accessing
+ * (EW) content from {@link Layout} that is blocked from apps accessing
  */
 public class HiddenLayout {
     private static final String TAG = HiddenLayout.class.getSimpleName();

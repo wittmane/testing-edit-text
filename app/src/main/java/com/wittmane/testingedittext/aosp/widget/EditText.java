@@ -35,12 +35,16 @@ import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 
+import com.wittmane.testingedittext.aosp.app.HiddenContextImpl;
 import com.wittmane.testingedittext.aosp.graphics.HiddenMatrix;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakStyle;
 import com.wittmane.testingedittext.aosp.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.text.method.LocaleDigitsKeyListener;
+import com.wittmane.testingedittext.aosp.view.HiddenView;
+import com.wittmane.testingedittext.aosp.view.HiddenViewTranslationRequest;
+import com.wittmane.testingedittext.aosp.view.textservice.HiddenSpellCheckerSubtype;
 import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
 import com.wittmane.testingedittext.settings.EditorSettings;
 import com.wittmane.testingedittext.util.IconUtils;
@@ -199,7 +203,7 @@ import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
 import static com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection.LOG_CALLS;
 import static com.wittmane.testingedittext.aosp.widget.Editor.logCursor;
 
-public class EditText extends View implements ViewTreeObserver.OnPreDrawListener {
+public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
 
     static final String LOG_TAG = "EditText";
@@ -516,18 +520,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
          */
         boolean onEditorAction(EditText v, int actionId, KeyEvent event);
     }
-
-    // (EW) from View
-    private static final int VIEW_STRUCTURE_FOR_ASSIST = 0;
-    private  static final int VIEW_STRUCTURE_FOR_AUTOFILL = 1;
-    private  static final int VIEW_STRUCTURE_FOR_CONTENT_CAPTURE = 2;
-    @IntDef(flag = true, value = {
-            VIEW_STRUCTURE_FOR_ASSIST,
-            VIEW_STRUCTURE_FOR_AUTOFILL,
-            VIEW_STRUCTURE_FOR_CONTENT_CAPTURE
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    private @interface ViewStructureType {}
 
     @NonNull
     private EditorSettings mSettings = new DefaultEditTextSettings(this);
@@ -2304,7 +2296,8 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             } else if (index == R.styleable.TextAppearance_android_fontFamily) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     // (EW) prior to Oreo nothing was done here for the typeface
-                    if (!context.isRestricted() && canLoadUnsafeResources(context)) {
+                    if (!context.isRestricted()
+                            && HiddenContextImpl.canLoadUnsafeResources(context)) {
                         try {
                             attributes.mFontTypeface = appearance.getFont(attr);
                         } catch (UnsupportedOperationException | Resources.NotFoundException e) {
@@ -2475,39 +2468,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             nullLayouts();
             requestLayout();
             invalidate();
-        }
-    }
-
-    // (EW) from ContextImpl. Context#canLoadUnsafeResources is an abstract method and hidden, but I
-    // only found ContextImpl that really implements it.
-    // documentation says it "returns true if the context can load unsafe resources, e.g. fonts."
-    private boolean canLoadUnsafeResources(Context context) {
-        if (context.getPackageName().equals(getOpPackageName(context))) {
-            return true;
-        }
-        // (EW) the AOSP version also checked if the Context.CONTEXT_IGNORE_SECURITY flag was set,
-        // but we don't have access to that flag, so there isn't a good way to recreate this logic.
-        // returning false to be extra restrictive to be safe. the alternative would be just
-        // returning true, at which point this method would only return true, so it should be
-        // removed. realistically I'm not certain if this method is even necessary for non-framework
-        // views, so removing this is probably fine if this does turn out to cause issues.
-        return false;
-    }
-
-    // (EW) Context#getOpPackageName existed since at least Kitkat, but it was hidden until Q, so it
-    // should be able to be called normally, but adding a try/catch to be safe. the documentation
-    // prior to making it visible stated that it is normally the same as getBasePackageName (also
-    // hidden, but ContextImpl just returns getPackageName if the base package name was null), so
-    // we'll use getPackageName as a fallback (getOpPackageName has been the same as getPackageName
-    // in my testing for a regular app), but theoretically that shouldn't ever be used.
-    @SuppressLint("NewApi")
-    private String getOpPackageName(Context context) {
-        try {
-            return context.getOpPackageName();
-        } catch (Exception e) {
-            Log.w(TAG, "Context#getOpPackageName couldn't be called: "
-                    + e.getClass().getSimpleName() + ": " + e.getMessage());
-            return context.getPackageName();
         }
     }
 
@@ -4664,17 +4624,6 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         mEditor.mInputType = type;
     }
 
-    // (EW) from View
-    /**
-     * A hint indicating that this view can be autofilled with a password.
-     *
-     * This is a heuristic-based hint that is meant to be used by UI Toolkit developers when a
-     * view is a password field but doesn't specify a
-     * <code>{@value View#AUTOFILL_HINT_PASSWORD}</code>.
-     */
-    // TODO(229765029): unhide this for UI toolkit
-    public static final String AUTOFILL_HINT_PASSWORD_AUTO = "passwordAuto";
-
     @Override
     public String[] getAutofillHints() {
         String[] hints = super.getAutofillHints();
@@ -5768,7 +5717,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             voffset = getVerticalOffset(true);
         }
 
-        if (isLayoutModeOptical(getParent())) {
+        if (HiddenView.isLayoutModeOptical(getParent())) {
             voffset -= getOpticalInsets().top;
         }
 
@@ -8862,7 +8811,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellCheckerSubtype(Z)Landroid/view/textservice/SpellCheckerSubtype; (light greylist, reflection)
             // on Q and R:
             // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellCheckerSubtype(Z)Landroid/view/textservice/SpellCheckerSubtype; (greylist, reflection, allowed)
-            // on S (last version checked):
+            // on S through Tiramisu (last version checked):
             // Accessing hidden method Landroid/view/textservice/TextServicesManager;->getCurrentSpellCheckerSubtype(Z)Landroid/view/textservice/SpellCheckerSubtype; (unsupported, reflection, allowed)
             Method getCurrentSpellCheckerSubtypeMethod = TextServicesManager.class.getMethod(
                     "getCurrentSpellCheckerSubtype", boolean.class);
@@ -8871,20 +8820,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
                     (SpellCheckerSubtype) getCurrentSpellCheckerSubtypeMethod.invoke(
                             textServicesManager, true);
             if (subtype != null) {
-                String localeStr = subtype.getLocale();
-                // (EW) from SpellCheckerSubtype#constructLocaleFromString since that's hidden
-                if (!TextUtils.isEmpty(localeStr)) {
-                    String[] localeParams = localeStr.split("_", 3);
-                    // The length of localeStr is guaranteed to always return a 1 <= value <= 3
-                    // because localeStr is not empty.
-                    if (localeParams.length == 1) {
-                        locale = new Locale(localeParams[0]);
-                    } else if (localeParams.length == 2) {
-                        locale = new Locale(localeParams[0], localeParams[1]);
-                    } else if (localeParams.length == 3) {
-                        locale = new Locale(localeParams[0], localeParams[1], localeParams[2]);
-                    }
-                }
+                locale = HiddenSpellCheckerSubtype.getLocaleObject(subtype);
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             Log.e(TAG, "updateTextServicesLocaleLocked: Reflection failed on getCurrentSpellCheckerSubtype"
@@ -10413,194 +10349,16 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
             requestBuilder.setValue(ViewTranslationRequest.ID_TEXT,
                     TranslationRequestValue.forText(mText));
             if (!TextUtils.isEmpty(getContentDescription())) {
-                requestBuilder.setValue(ID_CONTENT_DESCRIPTION,
+                requestBuilder.setValue(HiddenViewTranslationRequest.ID_CONTENT_DESCRIPTION,
                         TranslationRequestValue.forText(getContentDescription()));
             }
         }
         requestsCollector.accept(requestBuilder.build());
     }
 
-    // (EW) from ViewTranslationRequest
-    /**
-     * Constant id for the default view content description to be translated. This is used by
-     * {@link ViewTranslationRequest.Builder#setValue(String, TranslationRequestValue)}.
-     */
-    public static final String ID_CONTENT_DESCRIPTION = "android:content_description";
-
     // (EW) wrapper to get a drawable on any version
     private Drawable getDrawable(int res) {
         return IconUtils.getDrawable(getContext(), res);
-    }
-
-    // (EW) from View
-    void transformFromViewToWindowSpace(@Size(2) int[] inOutLocation) {
-        if (inOutLocation == null || inOutLocation.length < 2) {
-            throw new IllegalArgumentException("inOutLocation must be an array of two integers");
-        }
-
-        if (!isAttachedToWindow()) {
-            // When the view is not attached to a window, this method does not make sense
-            inOutLocation[0] = inOutLocation[1] = 0;
-            return;
-        }
-
-        float[] position = new float[2];
-        position[0] = inOutLocation[0];
-        position[1] = inOutLocation[1];
-
-        if (!hasIdentityMatrix(this)) {
-            getMatrix().mapPoints(position);
-        }
-
-        position[0] += getLeft();
-        position[1] += getTop();
-
-        ViewParent viewParent = getParent();
-        while (viewParent instanceof View) {
-            final View view = (View) viewParent;
-
-            position[0] -= view.getScrollX();
-            position[1] -= view.getScrollY();
-
-            if (!hasIdentityMatrix(view)) {
-                view.getMatrix().mapPoints(position);
-            }
-
-            position[0] += view.getLeft();
-            position[1] += view.getTop();
-
-            viewParent = view.getParent();
-        }
-
-        // (EW) the AOSP version would subtract ViewRootImpl#mCurScrollY from position[1] if
-        // viewParent was a ViewRootImpl, but ViewRootImpl is hidden and starting in Pie,
-        // ViewRootImpl#mCurScrollY is a restricted API (warning logged specifies "dark greylist").
-        // I'm not sure when this is actually necessary, but it seems that there isn't anything we
-        // can do. until there is a known issue skipping this causes, there probably isn't a chance
-        // of finding some alternative.
-
-        inOutLocation[0] = Math.round(position[0]);
-        inOutLocation[1] = Math.round(position[1]);
-    }
-
-    // (EW) from View
-    /**
-     * Returns true if the transform matrix is the identity matrix.
-     * Recomputes the matrix if necessary.
-     *
-     * @return True if the transform matrix is the identity matrix, false otherwise.
-     */
-    private static boolean hasIdentityMatrix(View view) {
-        // (EW) the AOSP version called RenderNode#hasIdentityMatrix, and documentation for that
-        // states that it's just a faster way to do the otherwise equivalent
-        // RenderNode#getMatrix(Matrix) Matrix#isIdentity(). View#getMatrix calls
-        // RenderNode#getMatrix(Matrix), so we can just use that for an equivalent (but slower)
-        // check.
-        return view.getMatrix().isIdentity();
-    }
-
-    // (EW) from View
-    /**
-     * Transforms a motion event from on-screen coordinates to view-local
-     * coordinates.
-     *
-     * @param ev the on-screen motion event
-     * @return false if the transformation could not be applied
-     */
-    boolean toLocalMotionEvent(MotionEvent ev) {
-        // (EW) the AOSP version checked if View#mAttachInfo was null directly, but that's hidden,
-        // so we need to call the equivalent API
-        if (!isAttachedToWindow()) {
-            return false;
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            final Matrix m = new Matrix();
-            m.set(IDENTITY_MATRIX);
-            // (EW) transformMatrixToLocal should be available prior to Q, but in case it isn't,
-            // fallback to pre-Lollipop logic
-            if (tryTransformMatrixToLocal(m)) {
-                ev.transform(m);
-                return true;
-            }
-        }
-        // (EW) this is the logic from Kitkat
-        // (EW) the AOSP version used the negative values of View#mAttachInfo.mWindowLeft and
-        // View#mAttachInfo.mWindowTop directly to call MotionEvent#offsetLocation, but since
-        // View#mAttachInfo is hidden, we would need to call View#getLocationOnScreen instead. I'm
-        // not sure why it did that. At least in my testing, transformMotionEventToLocal does that
-        // same offsetting of the location, so with both, it just doubles the shift, which is
-        // incorrect. #transformMotionEventToLocal is more analogous to View#transformMatrixToLocal,
-        // which replaced it, so I'm keeping that and skipping the offset from
-        // View#getLocationOnScreen.
-        transformMotionEventToLocal(this, ev);
-        return true;
-    }
-
-    // (EW) View#transformMatrixToLocal was made available in Q, but it was actually added in
-    // Lollipop, so it should be safe to call on these older versions, but to be extra safe we'll
-    // wrap it in a try/catch
-    @SuppressLint("NewApi")
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private boolean tryTransformMatrixToLocal(@NonNull Matrix matrix) {
-        try {
-            transformMatrixToLocal(matrix);
-        } catch (Exception e) {
-            Log.w(TAG, "View#transformMatrixToLocal couldn't be called: "
-                    + e.getClass().getSimpleName() + ": " + e.getMessage());
-            return false;
-        }
-        return true;
-    }
-
-    // (EW) from View (Kitkat)
-    /**
-     * Recursive helper method that applies transformations in post-order.
-     *
-     * @param ev the on-screen motion event
-     */
-    private static void transformMotionEventToLocal(View view, MotionEvent ev) {
-        final ViewParent parent = view.getParent();
-        if (parent instanceof View) {
-            final View vp = (View) parent;
-            transformMotionEventToLocal(vp, ev);
-            ev.offsetLocation(vp.getScrollX(), vp.getScrollY());
-        }
-        // (EW) the AOSP version also used ViewRootImpl#mCurScrollY to call
-        // MotionEvent#offsetLocation, but we can't get that scroll. see comment in
-        // #transformFromViewToWindowSpace.
-
-        ev.offsetLocation(-view.getLeft(), -view.getTop());
-
-        if (!hasIdentityMatrix(view)) {
-            ev.transform(getInverseMatrix(view));
-        }
-    }
-
-    // (EW) from View based on Kitkat code (changed in Lollipop) since this should only be getting
-    // called prior to Lollipop
-    /**
-     * Utility method to retrieve the inverse of the current mMatrix property.
-     * We cache the matrix to avoid recalculating it when transform properties
-     * have not changed.
-     *
-     * @return The inverse of the current matrix of this view.
-     */
-    private static Matrix getInverseMatrix(View view) {
-        // (EW) the AOSP version used mTransformationInfo, which we don't have access to, and
-        // verified that it wasn't null. View#getMatrix calls View#updateMatrix, which was done next
-        // here in the AOSP version, and it gets the gets the matrix we need to work with. it also
-        // verifies mTransformationInfo isn't null and returns the identity matrix otherwise, and
-        // since the inverse of the identity matrix is itself, no work would need to be done.
-        Matrix matrix = view.getMatrix();
-        if (!matrix.isIdentity()) {
-            // (EW) the AOSP version used mTransformationInfo.mInverseMatrix as a cached version as
-            // long as it wasn't marked dirty, but we don't have access to that, so we'll just
-            // always calculate the inverse
-            Matrix inverseMatrix = new Matrix();
-            matrix.invert(inverseMatrix);
-        }
-        return IDENTITY_MATRIX;
     }
 
     // (EW) since View's version of this is hidden, we need a replacement. View called
@@ -10675,116 +10433,7 @@ public class EditText extends View implements ViewTreeObserver.OnPreDrawListener
         return getActivity() != null;
     }
 
-    // (EW) from View
-    /**
-     * Map a rectangle from view-relative coordinates to screen-relative coordinates
-     *
-     * @param rect The rectangle to be mapped
-     * @param clipToParent Whether to clip child bounds to the parent ones.
-     */
-    private void mapRectFromViewToScreenCoords(RectF rect, boolean clipToParent) {
-        if (!hasIdentityMatrix(this)) {
-            getMatrix().mapRect(rect);
-        }
-
-        rect.offset(getLeft(), getTop());
-
-        ViewParent parent = getParent();
-        while (parent instanceof View) {
-            View parentView = (View) parent;
-
-            rect.offset(-parentView.getScrollX(), -parentView.getScrollY());
-
-            if (clipToParent) {
-                rect.left = Math.max(rect.left, 0);
-                rect.top = Math.max(rect.top, 0);
-                rect.right = Math.min(rect.right, parentView.getWidth());
-                rect.bottom = Math.min(rect.bottom, parentView.getHeight());
-            }
-
-            if (!hasIdentityMatrix(parentView)) {
-                parentView.getMatrix().mapRect(rect);
-            }
-
-            rect.offset(parentView.getLeft(), parentView.getTop());
-
-            parent = parentView.getParent();
-        }
-
-        // (EW) the AOSP version used ViewRootImpl#mCurScrollY to update rect's offset, but we can't
-        // get that scroll. see comment in #transformFromViewToWindowSpace.
-
-        // (EW) the AOSP version used View#mAttachInfo.mWindowLeft and View#mAttachInfo.mWindowTop
-        // directly, but those are hidden. those values are returned in View#getLocationOnScreen, so
-        // we can use that instead.
-        int[] windowLocation = getLocationOnScreen();
-        rect.offset(windowLocation[0], windowLocation[1]);
-    }
-
-    // (EW) from View
-    /**
-     * Indicates whether or not this view's layout is right-to-left. This is resolved from
-     * layout attribute and/or the inherited value from the parent
-     *
-     * @return true if the layout is right-to-left.
-     */
-    private boolean isLayoutRtl() {
-        return (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
-    }
-
-    // (EW) from View
-    int[] getLocationOnScreen() {
-        int[] location = new int[2];
-        getLocationOnScreen(location);
-        return location;
-    }
-
-    // (EW) from View
-    private Insets getOpticalInsets() {
-        // (EW) the AOSP version first checks for the value that was manually set from
-        // View#setOpticalInsets, but there isn't a way to get that other than reflection, and I
-        // only found one case where it was called, so it's probably unlikely that it would cause a
-        // problem here.
-        return computeOpticalInsets();
-    }
-
-    // (EW) from View
-    private Insets computeOpticalInsets() {
-        Drawable background = getBackground();
-        if (background == null) {
-            return Insets.NONE;
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // (EW) despite not actually getting called, on Pie, simply having this code here causes
-            // this warning to be logged:
-            // Accessing hidden method Landroid/graphics/drawable/Drawable;->getOpticalInsets()Landroid/graphics/Insets; (light greylist, linking)
-            return new Insets(background.getOpticalInsets());
-        }
-
-        try {
-            Method getOpticalInsetsMethod = Drawable.class.getMethod("getOpticalInsets");
-            Object opticalInsets = getOpticalInsetsMethod.invoke(background);
-            return new Insets(opticalInsets);
-        } catch (NoSuchMethodException | IllegalAccessException
-                | InvocationTargetException e) {
-            Log.e(TAG, "computeOpticalInsets: Reflection failed on Drawable#getOpticalInsets: "
-                    + e.getMessage());
-            return Insets.NONE;
-        }
-    }
-
-    // (EW) from View
-    private static boolean isLayoutModeOptical(Object o) {
-        return o instanceof ViewGroup && isLayoutModeOptical((ViewGroup) o);
-    }
-
-    // (EW) from ViewGroup
-    /** Return true if this ViewGroup is laying out using optical bounds. */
-    private static boolean isLayoutModeOptical(ViewGroup viewGroup) {
-        return viewGroup.getLayoutMode() == ViewGroup.LAYOUT_MODE_OPTICAL_BOUNDS;
-    }
-
-    // (EW) from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
+    // (EW) copied from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
     // DragAndDropPermissions isn't accessible for apps, so we need to find the activity to get it.
     @Nullable Activity getActivity() {
         // Gross way of unwrapping the Activity so we can get the FragmentManager

@@ -22,7 +22,7 @@ import android.graphics.RectF;
 import androidx.annotation.NonNull;
 
 /**
- * (EW) content from Matrix that is blocked from apps accessing
+ * (EW) content from {@link Matrix} that is blocked from apps accessing
  */
 public class HiddenMatrix {
     /**

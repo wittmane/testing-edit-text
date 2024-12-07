@@ -32,7 +32,7 @@ import com.wittmane.testingedittext.aosp.internal.util.Preconditions;
 import java.lang.reflect.Array;
 
 /**
- * (EW) content from TextUtils that is blocked from apps accessing
+ * (EW) content from {@link TextUtils} that is blocked from apps accessing
  */
 public class HiddenTextUtils {
 
