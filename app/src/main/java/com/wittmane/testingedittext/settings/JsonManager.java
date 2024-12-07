@@ -32,7 +32,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.datatype.IntRange;
 import com.wittmane.testingedittext.datatype.TextList;
 import com.wittmane.testingedittext.datatype.TranslateText;

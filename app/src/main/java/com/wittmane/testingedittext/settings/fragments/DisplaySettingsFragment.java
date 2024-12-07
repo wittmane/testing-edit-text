@@ -24,7 +24,7 @@ import android.preference.PreferenceFragment;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.ThemedActivity;
-import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.preferences.EnhancedListPreference;
 

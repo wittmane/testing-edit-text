@@ -18,7 +18,7 @@ package com.wittmane.testingedittext.settings;
 
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
-import com.wittmane.testingedittext.aosp.widget.EditText;
+import com.wittmane.testingedittext.aosp.android.widget.EditText;
 import com.wittmane.testingedittext.settings.Settings.TestFieldCustomEditorSettings;
 
 /**

@@ -80,7 +80,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:id="@+id/customEditTextDebug1"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -119,7 +119,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="text"
@@ -146,7 +146,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
@@ -171,7 +171,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
@@ -197,7 +197,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
@@ -225,7 +225,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layoutDirection="rtl"
@@ -254,7 +254,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layoutDirection="rtl"
@@ -283,7 +283,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layoutDirection="rtl"
@@ -310,7 +310,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
@@ -336,7 +336,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:gravity="end"
@@ -371,7 +371,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingLeft="4dp"
@@ -406,7 +406,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontVariationSettings="'ital' 1, 'wght' 700"
@@ -437,7 +437,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="100dp"
                         android:shadowColor="@color/teal_700"
@@ -469,7 +469,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="text"
@@ -497,7 +497,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textCapWords"
@@ -531,7 +531,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -566,7 +566,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:digits="123z\n"
@@ -594,7 +594,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textCapCharacters"
@@ -619,7 +619,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="phone"
@@ -648,7 +648,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="100dp"
                         android:autoLink="all"
@@ -680,7 +680,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
@@ -711,7 +711,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
@@ -742,7 +742,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
@@ -771,7 +771,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
@@ -805,7 +805,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
@@ -842,7 +842,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:paddingLeft="4dp"
@@ -873,7 +873,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
@@ -910,7 +910,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingLeft="0dp"
@@ -945,7 +945,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="number"
@@ -970,7 +970,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="none"
@@ -994,7 +994,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
-                    <com.wittmane.testingedittext.aosp.widget.EditText
+                    <com.wittmane.testingedittext.aosp.android.widget.EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:hint="default"/>

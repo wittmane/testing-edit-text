@@ -24,7 +24,7 @@ import android.preference.PreferenceCategory;
 import android.preference.SwitchPreference;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.aosp.internal.inputmethod.EditableInputConnection;
+import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 
 public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment {
     private static final String TAG = TargetVersionSettingsFragment.class.getSimpleName();
