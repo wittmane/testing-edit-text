@@ -30,9 +30,9 @@ import android.graphics.text.PositionedGlyphs;
 import android.graphics.text.TextRunShaper;
 import android.os.Build;
 
-import com.wittmane.testingedittext.aosp.android.graphics.HiddenPaint;
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout.Directions;
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout.TabStops;
+import com.wittmane.testingedittext.aosp.android.graphics.PaintExtension;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension.Directions;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension.TabStops;
 
 import android.text.Layout;
 import android.text.PrecomputedText;
@@ -508,13 +508,13 @@ public class TextLine {
             for (runIndex = 0; runIndex < runs.length; runIndex += 2) {
                 runStart = lineStart + runs[runIndex];
                 if (cursor >= runStart) {
-                    runLimit = runStart + (runs[runIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
+                    runLimit = runStart + (runs[runIndex+1] & LayoutExtension.RUN_LENGTH_MASK);
                     if (runLimit > lineEnd) {
                         runLimit = lineEnd;
                     }
                     if (cursor < runLimit) {
-                        runLevel = (runs[runIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT) &
-                                HiddenLayout.RUN_LEVEL_MASK;
+                        runLevel = (runs[runIndex+1] >>> LayoutExtension.RUN_LEVEL_SHIFT) &
+                                LayoutExtension.RUN_LEVEL_MASK;
                         if (cursor == runStart) {
                             // The caret is on a run boundary, see if we should
                             // use the position on the trailing edge of the previous
@@ -525,13 +525,13 @@ public class TextLine {
                                 prevRunStart = lineStart + runs[prevRunIndex];
                                 if (pos >= prevRunStart) {
                                     prevRunLimit = prevRunStart +
-                                            (runs[prevRunIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
+                                            (runs[prevRunIndex+1] & LayoutExtension.RUN_LENGTH_MASK);
                                     if (prevRunLimit > lineEnd) {
                                         prevRunLimit = lineEnd;
                                     }
                                     if (pos < prevRunLimit) {
-                                        prevRunLevel = (runs[prevRunIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT)
-                                                & HiddenLayout.RUN_LEVEL_MASK;
+                                        prevRunLevel = (runs[prevRunIndex+1] >>> LayoutExtension.RUN_LEVEL_SHIFT)
+                                                & LayoutExtension.RUN_LEVEL_MASK;
                                         if (prevRunLevel < runLevel) {
                                             // Start from logically previous character.
                                             runIndex = prevRunIndex;
@@ -582,12 +582,12 @@ public class TextLine {
             if (otherRunIndex >= 0 && otherRunIndex < runs.length) {
                 int otherRunStart = lineStart + runs[otherRunIndex];
                 int otherRunLimit = otherRunStart +
-                        (runs[otherRunIndex+1] & HiddenLayout.RUN_LENGTH_MASK);
+                        (runs[otherRunIndex+1] & LayoutExtension.RUN_LENGTH_MASK);
                 if (otherRunLimit > lineEnd) {
                     otherRunLimit = lineEnd;
                 }
-                int otherRunLevel = (runs[otherRunIndex+1] >>> HiddenLayout.RUN_LEVEL_SHIFT) &
-                        HiddenLayout.RUN_LEVEL_MASK;
+                int otherRunLevel = (runs[otherRunIndex+1] >>> LayoutExtension.RUN_LEVEL_SHIFT) &
+                        LayoutExtension.RUN_LEVEL_MASK;
                 boolean otherRunIsRtl = (otherRunLevel & 1) != 0;
 
                 advance = toLeft == otherRunIsRtl;
@@ -700,7 +700,7 @@ public class TextLine {
 
             MetricAffectingSpan[] spans = mSpanned.getSpans(mStart + spanStart,
                     mStart + spanLimit, MetricAffectingSpan.class);
-            spans = HiddenTextUtils.removeEmptySpans(spans, mSpanned, MetricAffectingSpan.class);
+            spans = TextUtilsExtension.removeEmptySpans(spans, mSpanned, MetricAffectingSpan.class);
 
             if (spans.length > 0) {
                 ReplacementSpan replacement = null;
@@ -736,8 +736,8 @@ public class TextLine {
             // available for apps to call in Q (some changed parameters). this isn't great, but this
             // use of reflection is at least relatively safe since it's only done on old versions so
             // it shouldn't just stop working at some point in the future.
-            int dir = runIsRtl ? HiddenPaint.DIRECTION_RTL : HiddenPaint.DIRECTION_LTR;
-            int cursorOpt = after ? HiddenPaint.CURSOR_AFTER : HiddenPaint.CURSOR_BEFORE;
+            int dir = runIsRtl ? PaintExtension.DIRECTION_RTL : PaintExtension.DIRECTION_LTR;
+            int cursorOpt = after ? PaintExtension.CURSOR_AFTER : PaintExtension.CURSOR_BEFORE;
             try {
                 if (mCharsValid) {
                     Method getTextRunCursorMethod = TextPaint.class.getMethod("getTextRunCursor",
@@ -855,7 +855,7 @@ public class TextLine {
                                 contextStart, contextLen, runIsRtl, null, 0);
                     } else {
                         int flags = runIsRtl
-                                ? HiddenPaint.DIRECTION_RTL : HiddenPaint.DIRECTION_LTR;
+                                ? PaintExtension.DIRECTION_RTL : PaintExtension.DIRECTION_LTR;
                         Method getTextRunAdvancesMethod = TextPaint.class.getMethod(
                                 "getTextRunAdvances", char[].class, int.class, int.class,
                                 int.class, int.class, int.class, float[].class, int.class);
@@ -891,7 +891,7 @@ public class TextLine {
                                     runIsRtl, null, 0);
                         } else {
                             int flags = runIsRtl
-                                    ? HiddenPaint.DIRECTION_RTL : HiddenPaint.DIRECTION_LTR;
+                                    ? PaintExtension.DIRECTION_RTL : PaintExtension.DIRECTION_LTR;
                             Method getTextRunAdvancesMethod = TextPaint.class.getMethod(
                                     "getTextRunAdvances", CharSequence.class, int.class, int.class,
                                     int.class, int.class, int.class, float[].class, int.class);
@@ -1010,13 +1010,14 @@ public class TextLine {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    private int adjustStartHyphenEdit(int start, @HiddenPaint.StartHyphenEdit int startHyphenEdit) {
+    private int adjustStartHyphenEdit(int start,
+                                      @PaintExtension.StartHyphenEdit int startHyphenEdit) {
         // Only draw hyphens on first in line. Disable them otherwise.
         return start > 0 ? Paint.START_HYPHEN_EDIT_NO_EDIT : startHyphenEdit;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    private int adjustEndHyphenEdit(int limit, @HiddenPaint.EndHyphenEdit int endHyphenEdit) {
+    private int adjustEndHyphenEdit(int limit, @PaintExtension.EndHyphenEdit int endHyphenEdit) {
         // Only draw hyphens on last run in line. Disable them otherwise.
         return limit < mLen ? Paint.END_HYPHEN_EDIT_NO_EDIT : endHyphenEdit;
     }
@@ -1026,10 +1027,10 @@ public class TextLine {
         int result = hyphenEdit;
         // Only draw hyphens on first or last run in line. Disable them otherwise.
         if (start > 0) { // not the first run
-            result &= ~HiddenPaint.HYPHENEDIT_MASK_START_OF_LINE;
+            result &= ~PaintExtension.HYPHENEDIT_MASK_START_OF_LINE;
         }
         if (limit < mLen) { // not the last run
-            result &= ~HiddenPaint.HYPHENEDIT_MASK_END_OF_LINE;
+            result &= ~PaintExtension.HYPHENEDIT_MASK_END_OF_LINE;
         }
         return result;
     }

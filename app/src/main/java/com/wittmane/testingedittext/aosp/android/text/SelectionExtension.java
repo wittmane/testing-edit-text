@@ -25,7 +25,7 @@ import com.wittmane.testingedittext.wrapper.BreakIterator;
 /**
  * (EW) content from {@link Selection} that is blocked from apps accessing
  */
-public class HiddenSelection {
+public class SelectionExtension {
     // (EW) this was restricted with @hide
     public interface PositionIterator {
         int DONE = BreakIterator.DONE;

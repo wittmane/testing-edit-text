@@ -41,8 +41,8 @@ import java.util.Arrays;
 /**
  * (EW) content from {@link Layout} that is blocked from apps accessing
  */
-public class HiddenLayout {
-    private static final String TAG = HiddenLayout.class.getSimpleName();
+public class LayoutExtension {
+    private static final String TAG = LayoutExtension.class.getSimpleName();
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @IntDef(value = {
@@ -171,7 +171,7 @@ public class HiddenLayout {
         int line = layout.getLineForOffset(offset);
         Directions dirs = getLineDirections(layout, textDir, line);
         if (dirs == DIRS_ALL_LEFT_TO_RIGHT || dirs == DIRS_ALL_RIGHT_TO_LEFT) {
-            return HiddenTextUtils.packRangeInLong(0, layout.getLineEnd(line));
+            return TextUtilsExtension.packRangeInLong(0, layout.getLineEnd(line));
         }
         int[] runs = dirs.mDirections;
         int lineStart = layout.getLineStart(line);
@@ -179,11 +179,11 @@ public class HiddenLayout {
             int start = lineStart + runs[i];
             int limit = start + (runs[i+1] & RUN_LENGTH_MASK);
             if (offset >= start && offset < limit) {
-                return HiddenTextUtils.packRangeInLong(start, limit);
+                return TextUtilsExtension.packRangeInLong(start, limit);
             }
         }
         // Should happen only if the offset is "out of bounds"
-        return HiddenTextUtils.packRangeInLong(0, layout.getLineEnd(line));
+        return TextUtilsExtension.packRangeInLong(0, layout.getLineEnd(line));
     }
 
     /**
@@ -419,7 +419,7 @@ public class HiddenLayout {
     public static boolean shouldClampCursor(Layout layout, int line) {
         // Only clamp cursor position in left-aligned displays.
         Layout.Alignment paragraphAlignment = layout.getParagraphAlignment(line);
-        if (HiddenLayout.Alignment.isAlignLeft(paragraphAlignment)) {
+        if (LayoutExtension.Alignment.isAlignLeft(paragraphAlignment)) {
             return true;
         }
         if (paragraphAlignment == Layout.Alignment.ALIGN_NORMAL) {

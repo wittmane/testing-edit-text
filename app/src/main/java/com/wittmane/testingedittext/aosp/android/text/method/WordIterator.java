@@ -26,7 +26,7 @@ import androidx.annotation.NonNull;
 
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 import com.wittmane.testingedittext.aosp.android.text.CharSequenceCharacterIterator;
-import com.wittmane.testingedittext.aosp.android.text.HiddenSelection;
+import com.wittmane.testingedittext.aosp.android.text.SelectionExtension;
 
 import java.util.Locale;
 
@@ -38,7 +38,7 @@ import java.util.Locale;
  *
  * Also provides methods to determine word boundaries.
  */
-public class WordIterator implements HiddenSelection.PositionIterator {
+public class WordIterator implements SelectionExtension.PositionIterator {
     // Size of the window for the word iterator, should be greater than the longest word's length
     private static final int WINDOW_WIDTH = 50;
 

@@ -22,7 +22,7 @@ import android.view.translation.ViewTranslationRequest;
 /**
  * (EW) content from {@link ViewTranslationRequest} that is blocked from apps accessing
  */
-public class HiddenViewTranslationRequest {
+public class ViewTranslationRequestExtension {
     /**
      * Constant id for the default view content description to be translated. This is used by
      * {@link ViewTranslationRequest.Builder#setValue(String, TranslationRequestValue)}.

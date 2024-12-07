@@ -35,16 +35,16 @@ import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 
-import com.wittmane.testingedittext.aosp.android.app.HiddenContextImpl;
-import com.wittmane.testingedittext.aosp.android.graphics.HiddenMatrix;
-import com.wittmane.testingedittext.aosp.android.graphics.text.HiddenLineBreakConfig;
-import com.wittmane.testingedittext.aosp.android.graphics.text.HiddenLineBreakConfig.LineBreakStyle;
-import com.wittmane.testingedittext.aosp.android.graphics.text.HiddenLineBreakConfig.LineBreakWordStyle;
+import com.wittmane.testingedittext.aosp.android.app.ContextImplExtension;
+import com.wittmane.testingedittext.aosp.android.graphics.MatrixExtension;
+import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension;
+import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakStyle;
+import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.android.text.method.LocaleDigitsKeyListener;
-import com.wittmane.testingedittext.aosp.android.view.HiddenView;
-import com.wittmane.testingedittext.aosp.android.view.translation.HiddenViewTranslationRequest;
-import com.wittmane.testingedittext.aosp.android.view.textservice.HiddenSpellCheckerSubtype;
+import com.wittmane.testingedittext.aosp.android.view.ViewExtension;
+import com.wittmane.testingedittext.aosp.android.view.translation.ViewTranslationRequestExtension;
+import com.wittmane.testingedittext.aosp.android.view.textservice.SpellCheckerSubtypeExtension;
 import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
 import com.wittmane.testingedittext.settings.EditorSettings;
 import com.wittmane.testingedittext.util.IconUtils;
@@ -173,8 +173,8 @@ import androidx.core.view.ViewCompat.FocusRealDirection;
 import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.com.android.internal.util.Preconditions;
 import com.wittmane.testingedittext.aosp.android.os.ParcelableParcel;
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout;
-import com.wittmane.testingedittext.aosp.android.text.HiddenTextUtils;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension;
+import com.wittmane.testingedittext.aosp.android.text.TextUtilsExtension;
 import com.wittmane.testingedittext.aosp.android.text.method.ArrowKeyMovementMethod;
 import com.wittmane.testingedittext.aosp.android.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.android.text.method.WordIterator;
@@ -202,7 +202,7 @@ import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
 import static com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection.LOG_CALLS;
 import static com.wittmane.testingedittext.aosp.android.widget.Editor.logCursor;
 
-public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawListener {
+public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
 
     static final String LOG_TAG = "EditText";
@@ -495,7 +495,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
             Log.w(TAG, "Matrix.IDENTITY_MATRIX couldn't be called: "
                     + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
-        return HiddenMatrix.IDENTITY_MATRIX;
+        return MatrixExtension.IDENTITY_MATRIX;
     }
 
     private EditableInputConnection mInputConnection;
@@ -2296,7 +2296,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     // (EW) prior to Oreo nothing was done here for the typeface
                     if (!context.isRestricted()
-                            && HiddenContextImpl.canLoadUnsafeResources(context)) {
+                            && ContextImplExtension.canLoadUnsafeResources(context)) {
                         try {
                             attributes.mFontTypeface = appearance.getFont(attr);
                         } catch (UnsupportedOperationException | Resources.NotFoundException e) {
@@ -2965,7 +2965,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
      * @see #setHyphenationFrequency(int)
      */
     @RequiresApi(api = Build.VERSION_CODES.M)
-    public void setBreakStrategy(@HiddenLayout.BreakStrategy int breakStrategy) {
+    public void setBreakStrategy(@LayoutExtension.BreakStrategy int breakStrategy) {
         mBreakStrategy = breakStrategy;
         if (mLayout != null) {
             nullLayouts();
@@ -3015,7 +3015,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
      * @see #getBreakStrategy()
      */
     public void setHyphenationFrequency(
-            @HiddenLayout.HyphenationFrequency int hyphenationFrequency) {
+            @LayoutExtension.HyphenationFrequency int hyphenationFrequency) {
         mHyphenationFrequency = hyphenationFrequency;
         if (mLayout != null) {
             nullLayouts();
@@ -5716,7 +5716,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
             voffset = getVerticalOffset(true);
         }
 
-        if (HiddenView.isLayoutModeOptical(getParent())) {
+        if (ViewExtension.isLayoutModeOptical(getParent())) {
             voffset -= getOpticalInsets().top;
         }
 
@@ -6617,11 +6617,11 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                         // this case in a normal acceptable way. realistically, Gravity.LEFT just
                         // shouldn't be used for this view (that seems to be what Android is pushing
                         // for).
-                        alignment = HiddenLayout.Alignment.ALIGN_LEFT;
+                        alignment = LayoutExtension.Alignment.ALIGN_LEFT;
                         break;
                     case Gravity.RIGHT:
                         //TODO: (EW) see Gravity.LEFT case comment
-                        alignment = HiddenLayout.Alignment.ALIGN_RIGHT;
+                        alignment = LayoutExtension.Alignment.ALIGN_RIGHT;
                         break;
                     case Gravity.CENTER_HORIZONTAL:
                         alignment = Layout.Alignment.ALIGN_CENTER;
@@ -6643,12 +6643,14 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
             case TEXT_ALIGNMENT_VIEW_START:
                 //TODO: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
-                        ? HiddenLayout.Alignment.ALIGN_RIGHT : HiddenLayout.Alignment.ALIGN_LEFT;
+                        ? LayoutExtension.Alignment.ALIGN_RIGHT
+                        : LayoutExtension.Alignment.ALIGN_LEFT;
                 break;
             case TEXT_ALIGNMENT_VIEW_END:
                 //TODO: (EW) see Gravity.LEFT case comment
                 alignment = (getLayoutDirection() == LAYOUT_DIRECTION_RTL)
-                        ? HiddenLayout.Alignment.ALIGN_LEFT : HiddenLayout.Alignment.ALIGN_RIGHT;
+                        ? LayoutExtension.Alignment.ALIGN_LEFT
+                        : LayoutExtension.Alignment.ALIGN_RIGHT;
                 break;
             case TEXT_ALIGNMENT_INHERIT:
                 // This should never happen as we have already resolved the text alignment
@@ -6757,7 +6759,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                                 isFallbackLineSpacingForStaticLayout());
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        builder.setLineBreakConfig(HiddenLineBreakConfig.getLineBreakConfig(
+                        builder.setLineBreakConfig(LineBreakConfigExtension.getLineBreakConfig(
                                 mLineBreakStyle, mLineBreakWordStyle));
                     }
                     if (shouldEllipsize) {
@@ -6945,7 +6947,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                 // (EW) Layout.getDesiredWidthWithLimit started getting called in Pie (instead
                 // of Layout.getDesiredWidth). Layout.getDesiredWidthWithLimit was also created
                 // in Pie.
-                des = (int) Math.ceil(HiddenLayout.getDesiredWidthWithLimit(mTransformed, 0,
+                des = (int) Math.ceil(LayoutExtension.getDesiredWidthWithLimit(mTransformed, 0,
                         mTransformed.length(), mTextPaint, mTextDir, widthLimit));
             }
             width = des;
@@ -6972,7 +6974,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
 
                 if (hintBoring == null || hintBoring == UNKNOWN_BORING) {
                     if (hintDes < 0) {
-                        hintDes = (int) Math.ceil(HiddenLayout.getDesiredWidthWithLimit(mHint, 0,
+                        hintDes = (int) Math.ceil(LayoutExtension.getDesiredWidthWithLimit(mHint, 0,
                                 mHint.length(), mTextPaint, mTextDir, widthLimit));
                     }
                     hintWidth = hintDes;
@@ -7273,10 +7275,10 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
         // Convert to left, center, or right alignment.
         if (alignment == Layout.Alignment.ALIGN_NORMAL) {
             alignment = direction == Layout.DIR_LEFT_TO_RIGHT
-                    ? HiddenLayout.Alignment.ALIGN_LEFT : HiddenLayout.Alignment.ALIGN_RIGHT;
+                    ? LayoutExtension.Alignment.ALIGN_LEFT : LayoutExtension.Alignment.ALIGN_RIGHT;
         } else if (alignment == Layout.Alignment.ALIGN_OPPOSITE) {
             alignment = direction == Layout.DIR_LEFT_TO_RIGHT
-                    ? HiddenLayout.Alignment.ALIGN_RIGHT : HiddenLayout.Alignment.ALIGN_LEFT;
+                    ? LayoutExtension.Alignment.ALIGN_RIGHT : LayoutExtension.Alignment.ALIGN_LEFT;
         }
 
         if (alignment == Layout.Alignment.ALIGN_CENTER) {
@@ -7297,7 +7299,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                     scrollX = left;
                 }
             }
-        } else if (HiddenLayout.Alignment.isAlignRight(alignment)) {
+        } else if (LayoutExtension.Alignment.isAlignRight(alignment)) {
             int right = (int) Math.ceil(layout.getLineRight(line));
             scrollX = right - hSpace;
         } else { // alignment == HiddenLayout.ALIGNMENT_ALIGN_LEFT (will also be the default)
@@ -7342,9 +7344,9 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
         int grav;
 
         Layout.Alignment alignment = layout.getParagraphAlignment(line);
-        if (HiddenLayout.Alignment.isAlignLeft(alignment)) {
+        if (LayoutExtension.Alignment.isAlignLeft(alignment)) {
             grav = 1;
-        } else if (HiddenLayout.Alignment.isAlignRight(alignment)) {
+        } else if (LayoutExtension.Alignment.isAlignRight(alignment)) {
             grav = -1;
         } else if (alignment == Layout.Alignment.ALIGN_NORMAL) {
             grav = layout.getParagraphDirection(line);
@@ -7366,7 +7368,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
         // right where it is most likely to be annoying.
         final boolean clamped = grav > 0;
         // FIXME: Is it okay to truncate this, or should we round?
-        final int x = (int) HiddenLayout.getPrimaryHorizontal(layout, mTextDir, offset, clamped);
+        final int x = (int) LayoutExtension.getPrimaryHorizontal(layout, mTextDir, offset, clamped);
         final int top = layout.getLineTop(line);
         final int bottom = layout.getLineTop(line + 1);
 
@@ -8819,7 +8821,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                     (SpellCheckerSubtype) getCurrentSpellCheckerSubtypeMethod.invoke(
                             textServicesManager, true);
             if (subtype != null) {
-                locale = HiddenSpellCheckerSubtype.getLocaleObject(subtype);
+                locale = SpellCheckerSubtypeExtension.getLocaleObject(subtype);
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             Log.e(TAG, "updateTextServicesLocaleLocked: Reflection failed on getCurrentSpellCheckerSubtype"
@@ -9163,7 +9165,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
     @Nullable
     public AutofillValue getAutofillValue() {
         if (isTextEditable()) {
-            final CharSequence text = HiddenTextUtils.trimToParcelableSize(getText());
+            final CharSequence text = TextUtilsExtension.trimToParcelableSize(getText());
             return AutofillValue.forText(text);
         }
         return null;
@@ -9760,7 +9762,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
                 final CharSequence text = clipData.getItemAt(0).getText();
                 if (text instanceof Spanned) {
                     Spanned spanned = (Spanned) text;
-                    if (HiddenTextUtils.hasStyleSpan(spanned)) {
+                    if (TextUtilsExtension.hasStyleSpan(spanned)) {
                         return true;
                     }
                 }
@@ -9845,7 +9847,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
             Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
             sharingIntent.setType("text/plain");
             sharingIntent.removeExtra(android.content.Intent.EXTRA_TEXT);
-            selectedText = HiddenTextUtils.trimToParcelableSize(selectedText);
+            selectedText = TextUtilsExtension.trimToParcelableSize(selectedText);
             sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, selectedText);
             getContext().startActivity(Intent.createChooser(sharingIntent, null));
             Selection.setSelection(mText, getSelectionEnd());
@@ -10348,7 +10350,7 @@ public class EditText extends HiddenView implements ViewTreeObserver.OnPreDrawLi
             requestBuilder.setValue(ViewTranslationRequest.ID_TEXT,
                     TranslationRequestValue.forText(mText));
             if (!TextUtils.isEmpty(getContentDescription())) {
-                requestBuilder.setValue(HiddenViewTranslationRequest.ID_CONTENT_DESCRIPTION,
+                requestBuilder.setValue(ViewTranslationRequestExtension.ID_CONTENT_DESCRIPTION,
                         TranslationRequestValue.forText(getContentDescription()));
             }
         }

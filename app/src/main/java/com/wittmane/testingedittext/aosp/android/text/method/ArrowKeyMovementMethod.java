@@ -26,7 +26,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.wittmane.testingedittext.aosp.android.text.HiddenSelection;
+import com.wittmane.testingedittext.aosp.android.text.SelectionExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 
 // (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
@@ -226,7 +226,7 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
         final int selectionEnd = widget.getSelectionEnd();
         final WordIterator wordIterator = widget.getWordIterator();
         wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
-        return HiddenSelection.moveToPreceding(buffer, wordIterator, isSelecting(buffer));
+        return SelectionExtension.moveToPreceding(buffer, wordIterator, isSelecting(buffer));
     }
 
     @Override
@@ -234,7 +234,7 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
         final int selectionEnd = widget.getSelectionEnd();
         final WordIterator wordIterator = widget.getWordIterator();
         wordIterator.setCharSequence(buffer, selectionEnd, selectionEnd);
-        return HiddenSelection.moveToFollowing(buffer, wordIterator, isSelecting(buffer));
+        return SelectionExtension.moveToFollowing(buffer, wordIterator, isSelecting(buffer));
     }
 
     @Override
@@ -320,7 +320,7 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
                 }
 
                 MetaKeyKeyListener.adjustMetaAfterKeypress(buffer);
-                HiddenMetaKeyKeyListener.resetLockedMeta(buffer);
+                MetaKeyKeyListenerExtension.resetLockedMeta(buffer);
 
                 return true;
             }

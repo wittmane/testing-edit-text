@@ -34,7 +34,7 @@ import java.lang.reflect.Array;
 /**
  * (EW) content from {@link TextUtils} that is blocked from apps accessing
  */
-public class HiddenTextUtils {
+public class TextUtilsExtension {
 
     // Returns true if the character's presence could affect RTL layout.
     //

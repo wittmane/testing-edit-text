@@ -36,8 +36,8 @@ import java.util.Objects;
 /**
  * (EW) content from {@link InputMethodManager} that is blocked from apps accessing
  */
-public class HiddenInputMethodManager {
-    private static final String TAG = HiddenInputMethodManager.class.getSimpleName();
+public class InputMethodManagerExtension {
+    private static final String TAG = InputMethodManagerExtension.class.getSimpleName();
     static final boolean DEBUG = false;
 
     private static final int REQUEST_UPDATE_CURSOR_ANCHOR_INFO_NONE = 0x0;
@@ -71,20 +71,20 @@ public class HiddenInputMethodManager {
     private CursorAnchorInfo mCursorAnchorInfo = null;
 
     // (EW) map to track the appropriate helper instance for each InputMethodManager
-    private static final Map<InputMethodManager, HiddenInputMethodManager> mHelperMap =
+    private static final Map<InputMethodManager, InputMethodManagerExtension> mHelperMap =
             new HashMap<>();
 
     // (EW) get the supplemental object. this class needs to manage things related to the
     // InputMethodManager, potentially across separate places that access it, so we'll track a
     // single instance of this class per instance of the InputMethodManager to get the appropriate
     // helper anywhere.
-    public static HiddenInputMethodManager getSupplementalObject(InputMethodManager imm,
-                                                                 InputConnection ic) {
+    public static InputMethodManagerExtension getSupplementalObject(InputMethodManager imm,
+                                                                    InputConnection ic) {
         synchronized (mHelperMap) {
             if (!mHelperMap.containsKey(imm)) {
-                mHelperMap.put(imm, new HiddenInputMethodManager(imm));
+                mHelperMap.put(imm, new InputMethodManagerExtension(imm));
             }
-            HiddenInputMethodManager helper = mHelperMap.get(imm);
+            InputMethodManagerExtension helper = mHelperMap.get(imm);
 
             // (EW) InputMethodManager.Handler#handleMessage (I think ultimately triggered from
             // IInputMethodClient.Stub#onBindMethod) resets this in the AOSP version, but I think
@@ -102,7 +102,7 @@ public class HiddenInputMethodManager {
     }
 
     // (EW) force instances of this to only get created tied to an instance of InputMethodManager
-    private HiddenInputMethodManager(InputMethodManager imm) {
+    private InputMethodManagerExtension(InputMethodManager imm) {
         mIMM = imm;
     }
 

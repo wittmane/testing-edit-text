@@ -20,7 +20,7 @@ package com.wittmane.testingedittext.aosp.android.view.inputmethod;
 /**
  * (EW) content from {@link android.view.inputmethod.EditorInfo} that is blocked from apps accessing
  */
-public class HiddenEditorInfo {
+public class EditorInfoExtension {
     // (EW) made public because our version of EditableInputConnection (originally accessed in
     // BaseInputConnection but we merged these classes), isn't in the same package
     /**

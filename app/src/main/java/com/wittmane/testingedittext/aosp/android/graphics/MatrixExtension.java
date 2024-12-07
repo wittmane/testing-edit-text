@@ -24,7 +24,7 @@ import androidx.annotation.NonNull;
 /**
  * (EW) content from {@link Matrix} that is blocked from apps accessing
  */
-public class HiddenMatrix {
+public class MatrixExtension {
     /**
      * The identity matrix. Multiplying by another matrix {@code M} returns {@code M}. This matrix
      * is immutable, and attempting to modify it will throw an {@link IllegalStateException}.

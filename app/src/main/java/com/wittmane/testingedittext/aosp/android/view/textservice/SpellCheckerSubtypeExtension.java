@@ -30,7 +30,7 @@ import java.util.Locale;
 /**
  * (EW) content from {@link SpellCheckerSubtype} that is blocked from apps accessing
  */
-public class HiddenSpellCheckerSubtype {
+public class SpellCheckerSubtypeExtension {
     // (EW) added in Nougat. in prior versions, there was a constructLocaleFromString method that
     // got used instead, and the logic was here, rather than in
     // SubtypeLocaleUtils#constructLocaleFromString

@@ -36,7 +36,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 
-import com.wittmane.testingedittext.aosp.android.graphics.HiddenMatrix;
+import com.wittmane.testingedittext.aosp.android.graphics.MatrixExtension;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import java.lang.annotation.Retention;
@@ -47,8 +47,8 @@ import java.lang.reflect.Method;
 /**
  * (EW) content from {@link View} that is blocked from apps accessing
  */
-public class HiddenView extends View {
-    private static final String TAG = HiddenView.class.getSimpleName();
+public class ViewExtension extends View {
+    private static final String TAG = ViewExtension.class.getSimpleName();
 
     /**
      * A hint indicating that this view can be autofilled with a password.
@@ -71,20 +71,20 @@ public class HiddenView extends View {
     @Retention(RetentionPolicy.SOURCE)
     public @interface ViewStructureType {}
 
-    public HiddenView(Context context) {
+    public ViewExtension(Context context) {
         super(context);
     }
 
-    public HiddenView(Context context, @Nullable AttributeSet attrs) {
+    public ViewExtension(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public HiddenView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public ViewExtension(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
 
-    public HiddenView(Context context, @Nullable AttributeSet attrs, int defStyleAttr,
-                      int defStyleRes) {
+    public ViewExtension(Context context, @Nullable AttributeSet attrs, int defStyleAttr,
+                         int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
     }
 
@@ -182,14 +182,14 @@ public class HiddenView extends View {
             Matrix inverseMatrix = new Matrix();
             matrix.invert(inverseMatrix);
         }
-        return HiddenMatrix.IDENTITY_MATRIX;
+        return MatrixExtension.IDENTITY_MATRIX;
     }
 
     /**
      * Return true if o is a ViewGroup that is laying out using optical bounds.
      */
     public static boolean isLayoutModeOptical(Object o) {
-        return o instanceof ViewGroup && HiddenViewGroup.isLayoutModeOptical((ViewGroup) o);
+        return o instanceof ViewGroup && ViewGroupExtension.isLayoutModeOptical((ViewGroup) o);
     }
 
     Insets computeOpticalInsets() {
@@ -240,7 +240,7 @@ public class HiddenView extends View {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             final Matrix m = new Matrix();
-            m.set(HiddenMatrix.IDENTITY_MATRIX);
+            m.set(MatrixExtension.IDENTITY_MATRIX);
             // (EW) transformMatrixToLocal should be available prior to Q, but in case it isn't,
             // fallback to pre-Lollipop logic
             if (tryTransformMatrixToLocal(m)) {

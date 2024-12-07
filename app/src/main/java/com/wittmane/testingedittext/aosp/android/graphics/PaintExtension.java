@@ -28,7 +28,7 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * (EW) content from {@link Paint} that is blocked from apps accessing
  */
-public class HiddenPaint {
+public class PaintExtension {
     /**
      * Flag for getTextRunAdvances indicating left-to-right run direction.
      */

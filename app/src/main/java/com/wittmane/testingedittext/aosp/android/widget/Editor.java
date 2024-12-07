@@ -118,11 +118,11 @@ import com.wittmane.testingedittext.aosp.android.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.android.content.UndoOwner;
 import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.android.os.ParcelableParcel;
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension;
 import com.wittmane.testingedittext.aosp.android.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.android.text.method.WordIterator;
-import com.wittmane.testingedittext.aosp.android.text.HiddenTextUtils;
-import com.wittmane.testingedittext.aosp.android.view.inputmethod.HiddenInputMethodManager;
+import com.wittmane.testingedittext.aosp.android.text.TextUtilsExtension;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText.OnEditorActionListener;
 import com.wittmane.testingedittext.util.SpanUtils;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
@@ -843,8 +843,8 @@ class Editor {
         }
 
         long lastTouchOffsets = getLastTouchOffsets();
-        final int minOffset = HiddenTextUtils.unpackRangeStartFromLong(lastTouchOffsets);
-        final int maxOffset = HiddenTextUtils.unpackRangeEndFromLong(lastTouchOffsets);
+        final int minOffset = TextUtilsExtension.unpackRangeStartFromLong(lastTouchOffsets);
+        final int maxOffset = TextUtilsExtension.unpackRangeEndFromLong(lastTouchOffsets);
 
         // Safety check in case standard touch event handling has been bypassed
         if (minOffset < 0 || minOffset > mEditText.getText().length()) return false;
@@ -871,8 +871,8 @@ class Editor {
                     || selectionStart == selectionEnd) {
                 // Possible when the word iterator does not properly handle the text's language
                 long range = getCharClusterRange(minOffset);
-                selectionStart = HiddenTextUtils.unpackRangeStartFromLong(range);
-                selectionEnd = HiddenTextUtils.unpackRangeEndFromLong(range);
+                selectionStart = TextUtilsExtension.unpackRangeStartFromLong(range);
+                selectionEnd = TextUtilsExtension.unpackRangeEndFromLong(range);
             }
         }
 
@@ -894,12 +894,13 @@ class Editor {
         }
 
         long lastTouchOffsets = getLastTouchOffsets();
-        final int minLastTouchOffset = HiddenTextUtils.unpackRangeStartFromLong(lastTouchOffsets);
-        final int maxLastTouchOffset = HiddenTextUtils.unpackRangeEndFromLong(lastTouchOffsets);
+        final int minLastTouchOffset =
+                TextUtilsExtension.unpackRangeStartFromLong(lastTouchOffsets);
+        final int maxLastTouchOffset = TextUtilsExtension.unpackRangeEndFromLong(lastTouchOffsets);
 
         final long paragraphsRange = getParagraphsRange(minLastTouchOffset, maxLastTouchOffset);
-        final int start = HiddenTextUtils.unpackRangeStartFromLong(paragraphsRange);
-        final int end = HiddenTextUtils.unpackRangeEndFromLong(paragraphsRange);
+        final int start = TextUtilsExtension.unpackRangeStartFromLong(paragraphsRange);
+        final int end = TextUtilsExtension.unpackRangeEndFromLong(paragraphsRange);
         if (start < end) {
             Selection.setSelection(mEditText.getText(), start, end);
             return true;
@@ -913,7 +914,7 @@ class Editor {
     private long getParagraphsRange(int startOffset, int endOffset) {
         final Layout layout = mEditText.getLayout();
         if (layout == null) {
-            return HiddenTextUtils.packRangeInLong(-1, -1);
+            return TextUtilsExtension.packRangeInLong(-1, -1);
         }
         final CharSequence text = mEditText.getText();
         int minLine = layout.getLineForOffset(startOffset);
@@ -934,7 +935,8 @@ class Editor {
             }
             maxLine++;
         }
-        return HiddenTextUtils.packRangeInLong(layout.getLineStart(minLine), layout.getLineEnd(maxLine));
+        return TextUtilsExtension.packRangeInLong(layout.getLineStart(minLine),
+                layout.getLineEnd(maxLine));
     }
 
     void onLocaleChanged() {
@@ -979,15 +981,15 @@ class Editor {
         final int textLength = mEditText.getText().length();
         if (offset < textLength) {
             final int clusterEndOffset = getNextCursorOffset(offset, true);
-            return HiddenTextUtils.packRangeInLong(
+            return TextUtilsExtension.packRangeInLong(
                     getNextCursorOffset(clusterEndOffset, false), clusterEndOffset);
         }
         if (offset - 1 >= 0) {
             final int clusterStartOffset = getNextCursorOffset(offset, false);
-            return HiddenTextUtils.packRangeInLong(clusterStartOffset,
+            return TextUtilsExtension.packRangeInLong(clusterStartOffset,
                     getNextCursorOffset(clusterStartOffset, true));
         }
-        return HiddenTextUtils.packRangeInLong(offset, offset);
+        return TextUtilsExtension.packRangeInLong(offset, offset);
     }
 
     private boolean touchPositionIsInSelection() {
@@ -1126,7 +1128,7 @@ class Editor {
         SelectionModifierCursorController selectionController = getSelectionController();
         final int minOffset = selectionController.getMinTouchOffset();
         final int maxOffset = selectionController.getMaxTouchOffset();
-        return HiddenTextUtils.packRangeInLong(minOffset, maxOffset);
+        return TextUtilsExtension.packRangeInLong(minOffset, maxOffset);
     }
 
     void onFocusChanged(boolean focused, int direction) {
@@ -2011,11 +2013,12 @@ class Editor {
         final int offset = mEditText.getSelectionStart();
         final int line = layout.getLineForOffset(offset);
         final int top = layout.getLineTop(line);
-        final int bottom = HiddenLayout.getLineBottomWithoutSpacing(layout, line);
+        final int bottom = LayoutExtension.getLineBottomWithoutSpacing(layout, line);
 
-        final boolean clamped = HiddenLayout.shouldClampCursor(layout, line);
+        final boolean clamped = LayoutExtension.shouldClampCursor(layout, line);
         updateCursorPosition(top, bottom,
-                HiddenLayout.getPrimaryHorizontal(layout, mEditText.getTextDir(), offset, clamped));
+                LayoutExtension.getPrimaryHorizontal(layout, mEditText.getTextDir(), offset,
+                        clamped));
     }
 
     void refreshTextActionMode() {
@@ -2570,7 +2573,7 @@ class Editor {
 
         if (end - start > DRAG_SHADOW_MAX_TEXT_LENGTH) {
             final long range = getCharClusterRange(start + DRAG_SHADOW_MAX_TEXT_LENGTH);
-            end = HiddenTextUtils.unpackRangeEndFromLong(range);
+            end = TextUtilsExtension.unpackRangeEndFromLong(range);
         }
         final CharSequence text = mEditText.getTransformedText(start, end);
         shadowView.setText(text);
@@ -3157,7 +3160,7 @@ class Editor {
         @Override
         protected int getVerticalLocalPosition(int line) {
             final Layout layout = mEditText.getLayout();
-            return HiddenLayout.getLineBottomWithoutSpacing(layout, line);
+            return LayoutExtension.getLineBottomWithoutSpacing(layout, line);
         }
 
         @Override
@@ -3908,7 +3911,7 @@ class Editor {
         @Override
         protected int getVerticalLocalPosition(int line) {
             final Layout layout = mEditText.getLayout();
-            return HiddenLayout.getLineBottomWithoutSpacing(layout, line) - mContainerMarginTop;
+            return LayoutExtension.getLineBottomWithoutSpacing(layout, line) - mContainerMarginTop;
         }
 
         @Override
@@ -4321,8 +4324,9 @@ class Editor {
             if (!imm.isActive(mEditText)) {
                 return;
             }
-            HiddenInputMethodManager immHelper = HiddenInputMethodManager.getSupplementalObject(imm,
-                    mEditText.getInputConnection());
+            InputMethodManagerExtension immHelper =
+                    InputMethodManagerExtension.getSupplementalObject(imm,
+                            mEditText.getInputConnection());
             if (!immHelper.isCursorAnchorInfoEnabled()) {
                 return;
             }
@@ -4417,7 +4421,7 @@ class Editor {
                         final float insertionMarkerBaseline = layout.getLineBaseline(line)
                                 + viewportToContentVerticalOffset;
                         final float insertionMarkerBottom =
-                                HiddenLayout.getLineBottomWithoutSpacing(layout, line)
+                                LayoutExtension.getLineBottomWithoutSpacing(layout, line)
                                         + viewportToContentVerticalOffset;
                         final boolean isTopVisible = mEditText
                                 .isPositionVisible(insertionMarkerX, insertionMarkerTop);
@@ -5065,7 +5069,7 @@ class Editor {
 
                 mPositionX = getCursorHorizontalPosition(layout, offset) - mHotspotX
                         - getHorizontalOffset() + getCursorOffset();
-                mPositionY = HiddenLayout.getLineBottomWithoutSpacing(layout, line);
+                mPositionY = LayoutExtension.getLineBottomWithoutSpacing(layout, line);
 
                 // Take EditText's padding and scroll into account.
                 mPositionX += mEditText.viewportToContentHorizontalOffset();
@@ -5500,7 +5504,7 @@ class Editor {
         private MotionEvent transformEventForTouchThrough(MotionEvent ev) {
             final Layout layout = mEditText.getLayout();
             final int line = layout.getLineForOffset(getCurrentCursorOffset());
-            final int textHeight = HiddenLayout.getLineBottomWithoutSpacing(layout, line)
+            final int textHeight = LayoutExtension.getLineBottomWithoutSpacing(layout, line)
                     - layout.getLineTop(line);
             // Transforms the touch events to screen coordinates.
             // And also shift up to make the hit point is on the text.
@@ -5717,7 +5721,7 @@ class Editor {
             final int currentOffset = getCurrentCursorOffset();
             final boolean rtlAtCurrentOffset = isAtRtlRun(layout, currentOffset);
             final boolean atRtl = isAtRtlRun(layout, offset);
-            final boolean isLvlBoundary = HiddenLayout.isLevelBoundary(layout,
+            final boolean isLvlBoundary = LayoutExtension.isLevelBoundary(layout,
                     mEditText.getTextDir(), offset);
 
             // We can't determine if the user is expanding or shrinking the selection if they're
@@ -5896,12 +5900,13 @@ class Editor {
                         final int currentOffset = getCurrentCursorOffset();
                         final int offsetToGetRunRange = isStartHandle()
                                 ? currentOffset : Math.max(currentOffset - 1, 0);
-                        final long range = HiddenLayout.getRunRange(layout, mEditText.getTextDir(),
+                        final long range = LayoutExtension.getRunRange(layout,
+                                mEditText.getTextDir(),
                                 offsetToGetRunRange);
                         if (isStartHandle()) {
-                            offset = HiddenTextUtils.unpackRangeStartFromLong(range);
+                            offset = TextUtilsExtension.unpackRangeStartFromLong(range);
                         } else {
-                            offset = HiddenTextUtils.unpackRangeEndFromLong(range);
+                            offset = TextUtilsExtension.unpackRangeEndFromLong(range);
                         }
                         positionAtCursorOffset(offset, false, fromTouchScreen);
                         return;
@@ -6622,8 +6627,8 @@ class Editor {
             final int start = Math.min(offset, mStartOffset);
             final int end = Math.max(offset, mStartOffset);
             final long paragraphsRange = getParagraphsRange(start, end);
-            final int selectionStart = HiddenTextUtils.unpackRangeStartFromLong(paragraphsRange);
-            final int selectionEnd = HiddenTextUtils.unpackRangeEndFromLong(paragraphsRange);
+            final int selectionStart = TextUtilsExtension.unpackRangeStartFromLong(paragraphsRange);
+            final int selectionEnd = TextUtilsExtension.unpackRangeEndFromLong(paragraphsRange);
             updateSelectionInternal(selectionStart, selectionEnd,
                     event.isFromSource(InputDevice.SOURCE_TOUCHSCREEN));
         }
@@ -7464,7 +7469,7 @@ class Editor {
         private boolean fireIntent(Intent intent) {
             if (intent != null && Intent.ACTION_PROCESS_TEXT.equals(intent.getAction())) {
                 String selectedText = mEditTet.getSelectedText();
-                selectedText = HiddenTextUtils.trimToParcelableSize(selectedText);
+                selectedText = TextUtilsExtension.trimToParcelableSize(selectedText);
                 intent.putExtra(Intent.EXTRA_PROCESS_TEXT, selectedText);
                 mEditor.mPreserveSelection = true;
                 mEditTet.startActivityForResult(intent, EditText.PROCESS_TEXT_REQUEST_CODE);

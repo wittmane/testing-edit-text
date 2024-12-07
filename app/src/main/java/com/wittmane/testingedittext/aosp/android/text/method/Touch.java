@@ -26,7 +26,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 
 // (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
@@ -73,7 +73,7 @@ public class Touch {
                 x = left - ((availableWidth - actualWidth) / 2);
             } else if ((ltr && (a == Alignment.ALIGN_OPPOSITE)) ||
                     (!ltr && (a == Alignment.ALIGN_NORMAL)) ||
-                    (HiddenLayout.Alignment.isAlignRight(a))) {
+                    (LayoutExtension.Alignment.isAlignRight(a))) {
                 // align_opposite does NOT mean align_right, we need the paragraph
                 // direction to resolve it to left or right
                 x = left - (availableWidth - actualWidth);

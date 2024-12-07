@@ -30,7 +30,7 @@ import java.lang.annotation.RetentionPolicy;
  * (EW) content from {@link LineBreakConfig} that is blocked from apps
  * accessing
  */
-public class HiddenLineBreakConfig {
+public class LineBreakConfigExtension {
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @IntDef(value = {

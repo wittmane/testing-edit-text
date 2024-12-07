@@ -58,8 +58,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.com.android.internal.util.Preconditions;
-import com.wittmane.testingedittext.aosp.android.view.inputmethod.HiddenInputMethodManager;
-import com.wittmane.testingedittext.aosp.android.view.inputmethod.HiddenEditorInfo;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.EditorInfoExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.settings.EditorSettings;
@@ -1586,7 +1586,7 @@ public class EditableInputConnection implements InputConnection {
             // CursorAnchorInfo is temporarily unavailable.
             return false;
         }
-        HiddenInputMethodManager.getSupplementalObject(mIMM, this)
+        InputMethodManagerExtension.getSupplementalObject(mIMM, this)
                 .setUpdateCursorAnchorInfoMode(cursorUpdateMode);
         if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0) {
             if (mEditText.isInLayout()) {
@@ -2312,8 +2312,8 @@ public class EditableInputConnection implements InputConnection {
         }
 
         final SurroundingText surroundingText = getSurroundingTextInternal(
-                HiddenEditorInfo.MEMORY_EFFICIENT_TEXT_LENGTH / 2,
-                HiddenEditorInfo.MEMORY_EFFICIENT_TEXT_LENGTH / 2, GET_TEXT_WITH_STYLES);
+                EditorInfoExtension.MEMORY_EFFICIENT_TEXT_LENGTH / 2,
+                EditorInfoExtension.MEMORY_EFFICIENT_TEXT_LENGTH / 2, GET_TEXT_WITH_STYLES);
         if (surroundingText == null) {
             return null;
         }

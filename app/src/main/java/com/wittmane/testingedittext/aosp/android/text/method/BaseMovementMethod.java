@@ -48,7 +48,7 @@ public class BaseMovementMethod implements MovementMethod {
         boolean handled = handleMovementKey(widget, text, keyCode, movementMetaState, event);
         if (handled) {
             MetaKeyKeyListener.adjustMetaAfterKeypress(text);
-            HiddenMetaKeyKeyListener.resetLockedMeta(text);
+            MetaKeyKeyListenerExtension.resetLockedMeta(text);
         }
         return handled;
     }
@@ -69,7 +69,7 @@ public class BaseMovementMethod implements MovementMethod {
             }
             if (handled) {
                 MetaKeyKeyListener.adjustMetaAfterKeypress(text);
-                HiddenMetaKeyKeyListener.resetLockedMeta(text);
+                MetaKeyKeyListenerExtension.resetLockedMeta(text);
             }
             return handled;
         }

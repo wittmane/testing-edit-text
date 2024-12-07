@@ -25,7 +25,7 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout.Directions;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension.Directions;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -58,16 +58,16 @@ public class AndroidBidi {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             final byte paraLevel;
             switch (dir) {
-                case HiddenLayout.DIR_REQUEST_LTR:
+                case LayoutExtension.DIR_REQUEST_LTR:
                     paraLevel = Bidi.LTR;
                     break;
-                case HiddenLayout.DIR_REQUEST_RTL:
+                case LayoutExtension.DIR_REQUEST_RTL:
                     paraLevel = Bidi.RTL;
                     break;
-                case HiddenLayout.DIR_REQUEST_DEFAULT_LTR:
+                case LayoutExtension.DIR_REQUEST_DEFAULT_LTR:
                     paraLevel = Bidi.LEVEL_DEFAULT_LTR;
                     break;
-                case HiddenLayout.DIR_REQUEST_DEFAULT_RTL:
+                case LayoutExtension.DIR_REQUEST_DEFAULT_RTL:
                     paraLevel = Bidi.LEVEL_DEFAULT_RTL;
                     break;
                 default:
@@ -115,10 +115,10 @@ public class AndroidBidi {
         }
 
         switch(dir) {
-            case HiddenLayout.DIR_REQUEST_LTR: dir = 0; break;
-            case HiddenLayout.DIR_REQUEST_RTL: dir = 1; break;
-            case HiddenLayout.DIR_REQUEST_DEFAULT_LTR: dir = -2; break;
-            case HiddenLayout.DIR_REQUEST_DEFAULT_RTL: dir = -1; break;
+            case LayoutExtension.DIR_REQUEST_LTR: dir = 0; break;
+            case LayoutExtension.DIR_REQUEST_RTL: dir = 1; break;
+            case LayoutExtension.DIR_REQUEST_DEFAULT_LTR: dir = -2; break;
+            case LayoutExtension.DIR_REQUEST_DEFAULT_RTL: dir = -1; break;
             default: dir = 0; break;
         }
 
@@ -142,7 +142,7 @@ public class AndroidBidi {
     public static Directions directions(int dir, byte[] levels, int lstart,
                                         char[] chars, int cstart, int len) {
         if (len == 0) {
-            return HiddenLayout.DIRS_ALL_LEFT_TO_RIGHT;
+            return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
         }
 
         int baseLevel = dir == Layout.DIR_LEFT_TO_RIGHT ? 0 : 1;
@@ -182,14 +182,14 @@ public class AndroidBidi {
         if (runCount == 1 && minLevel == baseLevel) {
             // we're done, only one run on this line
             if ((minLevel & 1) != 0) {
-                return HiddenLayout.DIRS_ALL_RIGHT_TO_LEFT;
+                return LayoutExtension.DIRS_ALL_RIGHT_TO_LEFT;
             }
-            return HiddenLayout.DIRS_ALL_LEFT_TO_RIGHT;
+            return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
         }
 
         int[] ld = new int[runCount * 2];
         int maxLevel = minLevel;
-        int levelBits = minLevel << HiddenLayout.RUN_LEVEL_SHIFT;
+        int levelBits = minLevel << LayoutExtension.RUN_LEVEL_SHIFT;
         {
             // Start of first pair is always 0, we write
             // length then start at each new run, and the
@@ -209,14 +209,14 @@ public class AndroidBidi {
                     // XXX ignore run length limit of 2^RUN_LEVEL_SHIFT
                     ld[n++] = (i - prev) | levelBits;
                     ld[n++] = i - lstart;
-                    levelBits = curLevel << HiddenLayout.RUN_LEVEL_SHIFT;
+                    levelBits = curLevel << LayoutExtension.RUN_LEVEL_SHIFT;
                     prev = i;
                 }
             }
             ld[n] = (lstart + visLen - prev) | levelBits;
             if (visLen < len) {
                 ld[++n] = visLen;
-                ld[++n] = (len - visLen) | (baseLevel << HiddenLayout.RUN_LEVEL_SHIFT);
+                ld[++n] = (len - visLen) | (baseLevel << LayoutExtension.RUN_LEVEL_SHIFT);
             }
         }
 

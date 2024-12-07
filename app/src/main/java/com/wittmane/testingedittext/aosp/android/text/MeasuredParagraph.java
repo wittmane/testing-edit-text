@@ -25,7 +25,7 @@ import androidx.annotation.Nullable;
 import com.wittmane.testingedittext.aosp.android.text.AutoGrowArray.ByteArray;
 import com.wittmane.testingedittext.aosp.android.text.AutoGrowArray.FloatArray;
 import com.wittmane.testingedittext.aosp.android.text.AutoGrowArray.IntArray;
-import com.wittmane.testingedittext.aosp.android.text.HiddenLayout.Directions;
+import com.wittmane.testingedittext.aosp.android.text.LayoutExtension.Directions;
 
 import android.os.Build;
 import android.text.Layout;
@@ -99,7 +99,7 @@ public class MeasuredParagraph {
     private @Nullable char[] mCopiedBuffer;
 
     // The whole paragraph direction.
-    private @HiddenLayout.Direction int mParaDir;
+    private @LayoutExtension.Direction int mParaDir;
 
     // True if the text is LTR direction and doesn't contain any bidi characters.
     private boolean mLtrWithoutBidi;
@@ -172,7 +172,7 @@ public class MeasuredParagraph {
      *
      * This is always available.
      */
-    public @HiddenLayout.Direction int getParagraphDir() {
+    public @LayoutExtension.Direction int getParagraphDir() {
         return mParaDir;
     }
 
@@ -184,7 +184,7 @@ public class MeasuredParagraph {
     public Directions getDirections(@IntRange(from = 0) int start,  // inclusive
                                     @IntRange(from = 0) int end) {  // exclusive
         if (mLtrWithoutBidi) {
-            return HiddenLayout.DIRS_ALL_LEFT_TO_RIGHT;
+            return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
         }
 
         final int length = end - start;
@@ -303,23 +303,25 @@ public class MeasuredParagraph {
         if ((textDir == TextDirectionHeuristics.LTR
                 || textDir == TextDirectionHeuristics.FIRSTSTRONG_LTR
                 || textDir == TextDirectionHeuristics.ANYRTL_LTR)
-                && HiddenTextUtils.doesNotNeedBidi(mCopiedBuffer, 0, mTextLength)) {
+                && TextUtilsExtension.doesNotNeedBidi(mCopiedBuffer, 0, mTextLength)) {
             mLevels.clear();
             mParaDir = Layout.DIR_LEFT_TO_RIGHT;
             mLtrWithoutBidi = true;
         } else {
             final int bidiRequest;
             if (textDir == TextDirectionHeuristics.LTR) {
-                bidiRequest = HiddenLayout.DIR_REQUEST_LTR;
+                bidiRequest = LayoutExtension.DIR_REQUEST_LTR;
             } else if (textDir == TextDirectionHeuristics.RTL) {
-                bidiRequest = HiddenLayout.DIR_REQUEST_RTL;
+                bidiRequest = LayoutExtension.DIR_REQUEST_RTL;
             } else if (textDir == TextDirectionHeuristics.FIRSTSTRONG_LTR) {
-                bidiRequest = HiddenLayout.DIR_REQUEST_DEFAULT_LTR;
+                bidiRequest = LayoutExtension.DIR_REQUEST_DEFAULT_LTR;
             } else if (textDir == TextDirectionHeuristics.FIRSTSTRONG_RTL) {
-                bidiRequest = HiddenLayout.DIR_REQUEST_DEFAULT_RTL;
+                bidiRequest = LayoutExtension.DIR_REQUEST_DEFAULT_RTL;
             } else {
                 final boolean isRtl = textDir.isRtl(mCopiedBuffer, 0, mTextLength);
-                bidiRequest = isRtl ? HiddenLayout.DIR_REQUEST_RTL : HiddenLayout.DIR_REQUEST_LTR;
+                bidiRequest = isRtl
+                        ? LayoutExtension.DIR_REQUEST_RTL
+                        : LayoutExtension.DIR_REQUEST_LTR;
             }
             mLevels.resize(mTextLength);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

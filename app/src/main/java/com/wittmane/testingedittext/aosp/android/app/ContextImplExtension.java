@@ -25,8 +25,8 @@ import android.util.Log;
  * (EW) content from android.app.ContextImpl (ReceiverRestrictedContext) and defined in
  * {@link android.view.View} that is blocked from apps accessing
  */
-public class HiddenContextImpl {
-    private static final String TAG = HiddenContextImpl.class.getSimpleName();
+public class ContextImplExtension {
+    private static final String TAG = ContextImplExtension.class.getSimpleName();
 
     // (EW) Context#canLoadUnsafeResources is an abstract method and hidden, but I only found
     // ContextImpl that really implements it. documentation says it "returns true if the context can

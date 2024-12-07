@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +15,16 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.aosp.android.text.method;
+package com.wittmane.testingedittext.aosp.android.view;
 
-import android.text.Spannable;
-import android.text.method.MetaKeyKeyListener;
+import android.view.ViewGroup;
 
 /**
- * (EW) content from {@link MetaKeyKeyListener} that is blocked from apps accessing or has protected
- * access
+ * (EW) content from {@link ViewGroup} that is blocked from apps accessing
  */
-public class HiddenMetaKeyKeyListener extends MetaKeyKeyListener {
-
-    protected static void resetLockedMeta(Spannable content) {
-        MetaKeyKeyListener.resetLockedMeta(content);
+public class ViewGroupExtension {
+    /** Return true if this ViewGroup is laying out using optical bounds. */
+    public static boolean isLayoutModeOptical(ViewGroup viewGroup) {
+        return viewGroup.getLayoutMode() == ViewGroup.LAYOUT_MODE_OPTICAL_BOUNDS;
     }
 }
