@@ -131,8 +131,8 @@ public class MainActivity extends ThemedActivity
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
             textFieldWrapperLayout.addView(customEditTextWrapper);
 
-            com.wittmane.testingedittext.aosp.widget.EditText customEditText =
-                    new com.wittmane.testingedittext.aosp.widget.EditText(context);
+            com.wittmane.testingedittext.aosp.android.widget.EditText customEditText =
+                    new com.wittmane.testingedittext.aosp.android.widget.EditText(context);
             customEditText.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             mCustomEditText = new EditTextProxy(customEditText);
@@ -233,7 +233,7 @@ public class MainActivity extends ThemedActivity
             android.widget.EditText frameworkEditText1 =
                     view.findViewById(R.id.frameworkEditTextDebug1);
             frameworkEditText1.setFilters(new InputFilter[]{filter});
-            com.wittmane.testingedittext.aosp.widget.EditText customEditText1 =
+            com.wittmane.testingedittext.aosp.android.widget.EditText customEditText1 =
                     view.findViewById(R.id.customEditTextDebug1);
             customEditText1.setFilters(new InputFilter[]{filter});
 
@@ -241,7 +241,7 @@ public class MainActivity extends ThemedActivity
             android.widget.EditText doNotScrollFrameworkEditText =
                     view.findViewById(R.id.ellipsizeFrameworkEditText);
             doNotScrollFrameworkEditText.setKeyListener(null);
-            com.wittmane.testingedittext.aosp.widget.EditText doNotScrollEditText =
+            com.wittmane.testingedittext.aosp.android.widget.EditText doNotScrollEditText =
                     view.findViewById(R.id.ellipsizeCustomEditText);
             //TODO: (EW) it seems that the key listener shouldn't matter if the field is already
             // disabled (I can't focus or scroll the field). figure out why this is actually
@@ -658,7 +658,7 @@ public class MainActivity extends ThemedActivity
 
     private static class EditTextProxy {
         private final android.widget.EditText mFrameworkEditText;
-        private final com.wittmane.testingedittext.aosp.widget.EditText mCustomEditText;
+        private final com.wittmane.testingedittext.aosp.android.widget.EditText mCustomEditText;
 
         private int mRequestedInputType;
         private boolean mSelectAllOnFocus;
@@ -674,7 +674,8 @@ public class MainActivity extends ThemedActivity
             mDefaultTextLocales = getTextLocales();
         }
 
-        public EditTextProxy(@NonNull com.wittmane.testingedittext.aosp.widget.EditText editText) {
+        public EditTextProxy(
+                @NonNull com.wittmane.testingedittext.aosp.android.widget.EditText editText) {
             mCustomEditText = editText;
             mFrameworkEditText = null;
             mRequestedInputType = editText.getInputType();

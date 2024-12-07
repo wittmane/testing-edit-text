@@ -23,7 +23,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.function.BiFunction;
 
 import java.util.Objects;

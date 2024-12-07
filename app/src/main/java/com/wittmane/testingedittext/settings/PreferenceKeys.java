@@ -16,7 +16,7 @@
 
 package com.wittmane.testingedittext.settings;
 
-import com.wittmane.testingedittext.aosp.internal.util.ArrayUtils;
+import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 
 import java.util.HashMap;
 import java.util.Map;
