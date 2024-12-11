@@ -21,8 +21,10 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.RectF;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.NoCopySpan;
@@ -40,14 +42,26 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
+import android.view.inputmethod.DeleteGesture;
+import android.view.inputmethod.DeleteRangeGesture;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
+import android.view.inputmethod.HandwritingGesture;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputContentInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.view.inputmethod.InsertGesture;
+import android.view.inputmethod.InsertModeGesture;
+import android.view.inputmethod.JoinOrSplitGesture;
+import android.view.inputmethod.PreviewableHandwritingGesture;
+import android.view.inputmethod.RemoveSpaceGesture;
+import android.view.inputmethod.SelectGesture;
+import android.view.inputmethod.SelectRangeGesture;
 import android.view.inputmethod.SurroundingText;
 import android.view.inputmethod.TextAttribute;
+import android.view.inputmethod.TextBoundsInfo;
+import android.view.inputmethod.TextBoundsInfoResult;
 import android.view.inputmethod.TextSnapshot;
 
 import androidx.annotation.CallSuper;
@@ -67,6 +81,9 @@ import com.wittmane.testingedittext.util.CodePointUtils;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
@@ -86,16 +103,27 @@ public class EditableInputConnection implements InputConnection {
     public static final boolean LOG_CALLS = true;
     private static final boolean LOG_TEXT_MODIFICATION = false;
     private static final String TAG = EditableInputConnection.class.getSimpleName();
+
+    // (EW) from BaseInputConnection
     private static final Object COMPOSING = new ComposingText();
+
+    // (EW) from BaseInputConnection
     private static final int INVALID_INDEX = -1;
 
+    // (EW) custom
     private static boolean sHasCheckedCanLieAboutMissingMethods = false;
     private static boolean sCanLieAboutMissingMethods = false;
 
+    // (EW) from BaseInputConnection
     private static class ComposingText implements NoCopySpan {
     }
 
+    // (EW) from BaseInputConnection
     protected final InputMethodManager mIMM;
+
+    // (EW) BaseInputConnection had this as a generic View (probably could have at least been
+    // TextView), and it could be null for a fallback input connection. this version is only for a
+    // custom EditText, so we can be more specific on the type.
     protected final @NonNull EditText mEditText;
 
     // (EW) the AOSP version had a dummy mode flag (set to true when the full editor flag in the
@@ -158,15 +186,17 @@ public class EditableInputConnection implements InputConnection {
     // composition just gets placed wherever the selection moves to. neither dropping the
     // composition nor moving it invisibly seems perfect. we could add a setting for it, but at
     // least for now, we'll just match AOSP functionality and move it invisibly.
-    private final Editable mInvisibleComposition;
+    private final @NonNull Editable mInvisibleComposition;
 
     // Keeps track of nested begin/end batch edit to ensure this connection always has a
     // balanced impact on its associated EditText.
     // A negative value means that this connection has been finished by the InputMethodManager.
     private int mBatchEditNesting;
 
+    // (EW) from BaseInputConnection
     private Object[] mDefaultComposingSpans;
 
+    // (EW) custom
     private final MinimalInputConnectionProxy mProxyForDefaultMethods =
             new MinimalInputConnectionProxy();
 
@@ -183,7 +213,13 @@ public class EditableInputConnection implements InputConnection {
         return mEditText.getSettings();
     }
 
-    public static void removeComposingSpans(Spannable text) {
+    // (EW) from BaseInputConnection
+    /**
+     * Removes the composing spans from the given text if any.
+     *
+     * @param text the spannable text to remove composing spans
+     */
+    public static void removeComposingSpans(@NonNull Spannable text) {
         text.removeSpan(COMPOSING);
         Object[] sps = text.getSpans(0, text.length(), Object.class);
         if (sps != null) {
@@ -196,7 +232,13 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
-    public void setComposingSpans(Spannable text) {
+    // (EW) from BaseInputConnection
+    /**
+     * Removes the composing spans from the given text if any.
+     *
+     * @param text the spannable text to remove composing spans
+     */
+    public void setComposingSpans(@NonNull Spannable text) {
         int start = 0;
         int end = text.length();
         final Object[] spans = text.getSpans(start, end, Object.class);
@@ -223,6 +265,7 @@ public class EditableInputConnection implements InputConnection {
                 getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
     }
 
+    // (EW) custom
     private int getCompositionSpanInclusivity() {
         // (EW) the span won't be kept on a zero width range if it's marked as
         // SPAN_EXCLUSIVE_EXCLUSIVE, so when keeping the empty composing region, we'll use
@@ -239,14 +282,19 @@ public class EditableInputConnection implements InputConnection {
         return Spanned.SPAN_EXCLUSIVE_EXCLUSIVE;
     }
 
-    public static int getComposingSpanStart(Spannable text) {
+    // (EW) from BaseInputConnection
+    /** Return the beginning of the range of composing text, or -1 if there's no composing text. */
+    public static int getComposingSpanStart(@NonNull Spannable text) {
         return text.getSpanStart(COMPOSING);
     }
 
-    public static int getComposingSpanEnd(Spannable text) {
+    // (EW) from BaseInputConnection
+    /** Return the end of the range of composing text, or -1 if there's no composing text. */
+    public static int getComposingSpanEnd(@NonNull Spannable text) {
         return text.getSpanEnd(COMPOSING);
     }
 
+    // (EW) custom
     private static CharSequence getComposition(Spannable text) {
         int start = getComposingSpanStart(text);
         int end = getComposingSpanEnd(text);
@@ -263,8 +311,6 @@ public class EditableInputConnection implements InputConnection {
         return mEditText.getEditableText();
     }
 
-    //TODO: (EW) make private version that we call internally to avoid logging calls. same with any
-    // other public method we call internally
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
     public boolean beginBatchEdit() {
@@ -274,6 +320,7 @@ public class EditableInputConnection implements InputConnection {
         return beginBatchEditInternal();
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls
     private boolean beginBatchEditInternal() {
         synchronized(this) {
             if (mBatchEditNesting >= 0) {
@@ -294,6 +341,7 @@ public class EditableInputConnection implements InputConnection {
         return endBatchEditInternal();
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls
     private boolean endBatchEditInternal() {
         synchronized(this) {
             if (mBatchEditNesting > 0) {
@@ -309,11 +357,12 @@ public class EditableInputConnection implements InputConnection {
         return false;
     }
 
+    // (EW) defined in BaseInputConnection but that had a blank implementation. it probably should
+    // have been protected rather than public since it only seems to be called from
+    // BaseInputConnection and is properly implemented in EditableInputConnection.
     /**
      * Called after only the composing region is modified (so it isn't called if the text also
      * changes).
-     * <p>
-     * Default implementation does nothing.
      */
     private void endComposingRegionEditInternal() {
         // The ContentCapture service is interested in Composing-state changes.
@@ -450,6 +499,7 @@ public class EditableInputConnection implements InputConnection {
         return commitTextInternal(text, newCursorPosition);
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls
     private boolean commitTextInternal(CharSequence text, int newCursorPosition) {
         if (getSettings().shouldModifyCommittedText()) {
             text = modifyText(text, getSettings());
@@ -466,6 +516,8 @@ public class EditableInputConnection implements InputConnection {
     // InputConnection, such as this. based on my testing, even when an app targets an older
     // version, the default implementation from the interface still gets used, so there is no need
     // to have settings to simulate not implementing those methods.
+    // (EW) log the call for the default implementation (not overridden in BaseInputConnection or
+    // EditableInputConnection)
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public boolean commitText(@NonNull CharSequence text, int newCursorPosition,
@@ -653,23 +705,21 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
-
+    // (EW) from BaseInputConnection
     /**
      * The default implementation performs the deletion around the current selection position of the
      * editable text.
      *
      * @param beforeLength The number of characters before the cursor to be deleted, in code unit.
-     *        If this is greater than the number of existing characters between the beginning of the
-     *        text and the cursor, then this method does not fail but deletes all the characters in
-     *        that range.
-     * @param afterLength The number of characters after the cursor to be deleted, in code unit.
-     *        If this is greater than the number of existing characters between the cursor and
-     *        the end of the text, then this method does not fail but deletes all the characters in
-     *        that range.
-     *
-     * @return {@code true} when selected text is deleted, {@code false} when either the
-     *         selection is invalid or not yet attached (i.e. selection start or end is -1),
-     *         or the editable text is {@code null}.
+     *     If this is greater than the number of existing characters between the beginning of the
+     *     text and the cursor, then this method does not fail but deletes all the characters in
+     *     that range.
+     * @param afterLength The number of characters after the cursor to be deleted, in code unit. If
+     *     this is greater than the number of existing characters between the cursor and the end of
+     *     the text, then this method does not fail but deletes all the characters in that range.
+     * @return {@code true} when selected text is deleted, {@code false} when either the selection
+     *     is invalid or not yet attached (i.e. selection start or end is -1), or the editable text
+     *     is {@code null}.
      */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
@@ -756,6 +806,7 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) from BaseInputConnection
     private static int findIndexBackward(final CharSequence charSequence, final int from,
                                          final int numCodePoints) {
         int currentIndex = from;
@@ -800,6 +851,7 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
+    // (EW) from BaseInputConnection
     private static int findIndexForward(final CharSequence charSequence, final int from,
                                         final int numCodePoints) {
         int currentIndex = from;
@@ -840,24 +892,25 @@ public class EditableInputConnection implements InputConnection {
                 continue;
             }
             if (Character.isLowSurrogate(c)) {
-                return INVALID_INDEX;  // A invalid surrogate pair is found.
+                return INVALID_INDEX; // A invalid surrogate pair is found.
             }
             waitingLowSurrogate = true;
             ++currentIndex;
         }
     }
 
+    // (EW) from BaseInputConnection
     /**
      * The default implementation performs the deletion around the current selection position of the
      * editable text.
+     *
      * @param beforeLength The number of characters before the cursor to be deleted, in code points.
-     *        If this is greater than the number of existing characters between the beginning of the
-     *        text and the cursor, then this method does not fail but deletes all the characters in
-     *        that range.
+     *     If this is greater than the number of existing characters between the beginning of the
+     *     text and the cursor, then this method does not fail but deletes all the characters in
+     *     that range.
      * @param afterLength The number of characters after the cursor to be deleted, in code points.
-     *        If this is greater than the number of existing characters between the cursor and
-     *        the end of the text, then this method does not fail but deletes all the characters in
-     *        that range.
+     *     If this is greater than the number of existing characters between the cursor and the end
+     *     of the text, then this method does not fail but deletes all the characters in that range.
      */
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
@@ -960,10 +1013,11 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) from BaseInputConnection (logic from there is actually in finishComposingTextInternal)
     /**
-     * The default implementation removes the composing state from the
-     * current editable text.  In addition, only if fallback mode, a key event is
-     * sent for the new text and the current editable buffer cleared.
+     * The default implementation removes the composing state from the current editable text. In
+     * addition, only if fallback mode, a key event is sent for the new text and the current
+     * editable buffer cleared.
      */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
@@ -976,6 +1030,8 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     private void finishComposingTextInternal() {
         final Editable content = getEditable();
         beginBatchEditInternal();
@@ -1003,10 +1059,11 @@ public class EditableInputConnection implements InputConnection {
         endComposingRegionEditInternal();
     }
 
+    // (EW) from BaseInputConnection (logic from there is actually in getCursorCapsModeInternal)
     /**
-     * The default implementation uses TextUtils.getCapsMode to get the
-     * cursor caps mode for the current selection position in the editable
-     * text, unless in fallback mode in which case 0 is always returned.
+     * The default implementation uses TextUtils.getCapsMode to get the cursor caps mode for the
+     * current selection position in the editable text, unless in fallback mode in which case 0 is
+     * always returned.
      */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
@@ -1024,6 +1081,8 @@ public class EditableInputConnection implements InputConnection {
         return cursorCapsMode;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     public int getCursorCapsModeInternal(int reqModes) {
         final Editable content = getEditable();
 
@@ -1057,6 +1116,8 @@ public class EditableInputConnection implements InputConnection {
         return extractedText;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     private ExtractedText getExtractedTextInternal(ExtractedTextRequest extractedTextRequest,
                                                    int flags) {
         ExtractedText extractedText = new ExtractedText();
@@ -1088,6 +1149,7 @@ public class EditableInputConnection implements InputConnection {
         return null;
     }
 
+    // (EW) custom
     private static String getDebugExtractedTextRequestInfo(final ExtractedTextRequest request) {
         if (request == null) {
             return "null";
@@ -1098,6 +1160,7 @@ public class EditableInputConnection implements InputConnection {
                 ", hintMaxLines=" + request.hintMaxLines + " }";
     }
 
+    // (EW) custom
     public static String getDebugExtractedTextInfo(final ExtractedText extractedText) {
         if (extractedText == null) {
             return "null";
@@ -1111,6 +1174,7 @@ public class EditableInputConnection implements InputConnection {
                 ", startOffset=" + extractedText.startOffset + " }";
     }
 
+    // (EW) from BaseInputConnection (logic from there is actually in getTextBeforeCursorInternal)
     /**
      * The default implementation returns the given amount of text from the
      * current cursor position in the buffer.
@@ -1167,6 +1231,8 @@ public class EditableInputConnection implements InputConnection {
         return textBeforeCursor;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     @Nullable
     private static CharSequence getTextBeforeCursorInternal(@IntRange(from = 0) int length,
                                                             int flags,
@@ -1194,9 +1260,9 @@ public class EditableInputConnection implements InputConnection {
         return TextUtils.substring(content, selectionStart - length, selectionStart);
     }
 
+    // (EW) from BaseInputConnection (logic from there is actually in getSelectedTextInternal)
     /**
-     * The default implementation returns the text currently selected, or null if none is
-     * selected.
+     * The default implementation returns the text currently selected, or null if none is selected.
      */
     @RequiresApi(api = Build.VERSION_CODES.GINGERBREAD)
     @Override
@@ -1247,6 +1313,8 @@ public class EditableInputConnection implements InputConnection {
         return selectedText;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     private static CharSequence getSelectedTextInternal(int flags, final Editable content) {
         int selectionStart = Selection.getSelectionStart(content);
         int selectionEnd = Selection.getSelectionEnd(content);
@@ -1267,9 +1335,10 @@ public class EditableInputConnection implements InputConnection {
         return TextUtils.substring(content, selectionStart, selectionEnd);
     }
 
+    // (EW) from BaseInputConnection (logic from there is actually in getTextAfterCursorInternal)
     /**
-     * The default implementation returns the given amount of text from the
-     * current cursor position in the buffer.
+     * The default implementation returns the given amount of text from the current cursor position
+     * in the buffer.
      */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Nullable
@@ -1321,6 +1390,8 @@ public class EditableInputConnection implements InputConnection {
         return textAfterCursor;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     @Nullable
     private static CharSequence getTextAfterCursorInternal(@IntRange(from = 0) int length,
                                                            int flags,
@@ -1338,17 +1409,14 @@ public class EditableInputConnection implements InputConnection {
         if (selectionEnd < 0) {
             selectionEnd = 0;
         }
-
-        if (selectionEnd + length > content.length()) {
-            length = content.length() - selectionEnd;
-        }
-
+        int end = (int) Math.min((long) selectionEnd + length, content.length());
         if ((flags & GET_TEXT_WITH_STYLES) != 0) {
-            return content.subSequence(selectionEnd, selectionEnd + length);
+            return content.subSequence(selectionEnd, end);
         }
-        return TextUtils.substring(content, selectionEnd, selectionEnd + length);
+        return TextUtils.substring(content, selectionEnd, end);
     }
 
+    // (EW) from BaseInputConnection (logic from there is actually in getSurroundingTextInternal)
     /**
      * The default implementation returns the given amount of text around the current cursor
      * position in the buffer.
@@ -1357,7 +1425,7 @@ public class EditableInputConnection implements InputConnection {
     @Nullable
     @Override
     public SurroundingText getSurroundingText(
-            @IntRange(from = 0) int beforeLength, @IntRange(from = 0)  int afterLength, int flags) {
+            @IntRange(from = 0) int beforeLength, @IntRange(from = 0) int afterLength, int flags) {
         if (LOG_CALLS) {
             Log.d(TAG, "getSurroundingText: beforeLength=" + beforeLength
                     + ", afterLength=" + afterLength + ", flags=" + flags);
@@ -1396,6 +1464,8 @@ public class EditableInputConnection implements InputConnection {
         return surroundingText;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls or adding
+    // delays
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Nullable
     private SurroundingText getSurroundingTextInternal(
@@ -1416,13 +1486,9 @@ public class EditableInputConnection implements InputConnection {
             selEnd = tmp;
         }
 
-        int contentLength = content.length();
-        int startPos = selStart - beforeLength;
-        int endPos = selEnd + afterLength;
-
         // Guards the start and end pos within range [0, contentLength].
-        startPos = Math.max(0, startPos);
-        endPos = Math.min(contentLength, endPos);
+        int startPos = Math.max(0, selStart - beforeLength);
+        int endPos = (int) Math.min((long) selEnd + afterLength, content.length());
 
         CharSequence surroundingText;
         if ((flags & GET_TEXT_WITH_STYLES) != 0) {
@@ -1454,6 +1520,7 @@ public class EditableInputConnection implements InputConnection {
         return result;
     }
 
+    // (EW) custom
     @RequiresApi(api = Build.VERSION_CODES.S)
     private static String getDebugSurroundingTextInfo(final SurroundingText surroundingText) {
         if (surroundingText == null) {
@@ -1536,6 +1603,7 @@ public class EditableInputConnection implements InputConnection {
         return result;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls
     private boolean requestCursorUpdatesInternal(int cursorUpdateMode) {
         // (EW) check the setting to skip implementing this method to simulate an app targeting an
         // older version. prior to Nougat the app would crash, so we'll mimic that (other than the
@@ -1557,19 +1625,26 @@ public class EditableInputConnection implements InputConnection {
             return false;
         }
 
-        // It is possible that any other bit is used as a valid flag in a future release.
-        // We should reject the entire request in such a case.
-        final int knownFlagMask;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            knownFlagMask = InputConnection.CURSOR_UPDATE_IMMEDIATE
-                    | InputConnection.CURSOR_UPDATE_MONITOR
-                    | InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS
+        final int knownModeFlags = InputConnection.CURSOR_UPDATE_IMMEDIATE
+                | InputConnection.CURSOR_UPDATE_MONITOR;
+        final int knownFilterFlags;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            knownFilterFlags = InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS
+                    | InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER
+                    | InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS
+                    | InputConnection.CURSOR_UPDATE_FILTER_VISIBLE_LINE_BOUNDS
+                    | InputConnection.CURSOR_UPDATE_FILTER_TEXT_APPEARANCE;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            knownFilterFlags = InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS
                     | InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER
                     | InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS;
         } else {
-            knownFlagMask = InputConnection.CURSOR_UPDATE_IMMEDIATE
-                    | InputConnection.CURSOR_UPDATE_MONITOR;
+            knownFilterFlags = 0;
         }
+
+        // It is possible that any other bit is used as a valid flag in a future release.
+        // We should reject the entire request in such a case.
+        final int knownFlagMask = knownModeFlags | knownFilterFlags;
         final int unknownFlags = cursorUpdateMode & ~knownFlagMask;
         if (unknownFlags != 0) {
             //TODO: (EW) failing because of an unknown flag seems weird, but the documentation does
@@ -1588,20 +1663,35 @@ public class EditableInputConnection implements InputConnection {
         }
         InputMethodManagerExtension.getSupplementalObject(mIMM, this)
                 .setUpdateCursorAnchorInfoMode(cursorUpdateMode);
-        if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) != 0) {
-            if (mEditText.isInLayout()) {
-                // In this case, the view hierarchy is currently undergoing a layout pass.
-                // IMM#updateCursorAnchorInfo is supposed to be called soon after the layout
-                // pass is finished.
-            } else {
-                // This will schedule a layout pass of the view tree, and the layout event
-                // eventually triggers IMM#updateCursorAnchorInfo.
-                mEditText.requestLayout();
-            }
-        }
+        mEditText.onRequestCursorUpdatesInternal(cursorUpdateMode & knownModeFlags,
+                cursorUpdateMode & knownFilterFlags);
         return true;
     }
 
+    //TODO: (EW) add target version simulation setting for this new method
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Override
+    public void requestTextBoundsInfo(
+            @NonNull RectF bounds, @Nullable Executor executor,
+            @NonNull Consumer<TextBoundsInfoResult> consumer) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "requestTextBoundsInfo: bounds=" + bounds
+                    + ", executor=" + executor + ", consumer=" + consumer);
+        }
+        final TextBoundsInfo textBoundsInfo = mEditText.getTextBoundsInfo(bounds);
+        final int resultCode;
+        if (textBoundsInfo != null) {
+            resultCode = TextBoundsInfoResult.CODE_SUCCESS;
+        } else {
+            resultCode = TextBoundsInfoResult.CODE_FAILED;
+        }
+        final TextBoundsInfoResult textBoundsInfoResult =
+                new TextBoundsInfoResult(resultCode, textBoundsInfo);
+
+        executor.execute(() -> consumer.accept(textBoundsInfoResult));
+    }
+
+    // (EW) from BaseInputConnection
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Nullable
     @Override
@@ -1612,10 +1702,10 @@ public class EditableInputConnection implements InputConnection {
         return null;
     }
 
+    // (EW) from BaseInputConnection
     /**
-     * The default implementation places the given text into the editable,
-     * replacing any existing composing text.  The new text is marked as
-     * in a composing state with the composing style.
+     * The default implementation places the given text into the editable, replacing any existing
+     * composing text. The new text is marked as in a composing state with the composing style.
      */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
@@ -1671,6 +1761,8 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) log the call for the default implementation (not overridden in BaseInputConnection or
+    // EditableInputConnection)
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public boolean setComposingText(@NonNull CharSequence text, int newCursorPosition,
@@ -1820,6 +1912,7 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
+    // (EW) from BaseInputConnection
     @RequiresApi(api = Build.VERSION_CODES.GINGERBREAD)
     @Override
     public boolean setComposingRegion(int start, int end) {
@@ -1905,7 +1998,10 @@ public class EditableInputConnection implements InputConnection {
         ensureDefaultComposingSpans();
         if (mDefaultComposingSpans != null) {
             for (int i = 0; i < mDefaultComposingSpans.length; ++i) {
-                content.setSpan(mDefaultComposingSpans[i], composingStart, composingEnd,
+                content.setSpan(
+                        mDefaultComposingSpans[i],
+                        composingStart,
+                        composingEnd,
                         getCompositionSpanInclusivity() | Spanned.SPAN_COMPOSING);
             }
         }
@@ -1918,6 +2014,8 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) log the call for the default implementation (not overridden in BaseInputConnection or
+    // EditableInputConnection)
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public boolean setComposingRegion(int start, int end, @Nullable TextAttribute textAttribute) {
@@ -1928,10 +2026,8 @@ public class EditableInputConnection implements InputConnection {
         return mProxyForDefaultMethods.setComposingRegion(start, end, textAttribute);
     }
 
-    /**
-     * The default implementation changes the selection position in the
-     * current editable text.
-     */
+    // (EW) from BaseInputConnection
+    /** The default implementation changes the selection position in the current editable text. */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
     public boolean setSelection(int start, int end) {
@@ -1970,9 +2066,10 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) from BaseInputConnection
     /**
-     * Provides standard implementation for sending a key event to the window
-     * attached to the input connection's view.
+     * Provides standard implementation for sending a key event to the window attached to the input
+     * connection's view.
      */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
@@ -1994,9 +2091,8 @@ public class EditableInputConnection implements InputConnection {
         return false;
     }
 
-    /**
-     * Updates InputMethodManager with the current fullscreen mode.
-     */
+    // (EW) from BaseInputConnection
+    /** Updates InputMethodManager with the current fullscreen mode. */
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
     public boolean reportFullscreenMode(boolean enabled) {
@@ -2006,6 +2102,7 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) from BaseInputConnection
     private void ensureDefaultComposingSpans() {
         if (mDefaultComposingSpans == null) {
             Context context;
@@ -2025,12 +2122,55 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
+    // (EW) from BaseInputConnection
+    //TODO: (EW) add target version simulation setting for this new method
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Override
+    public boolean replaceText(
+            @IntRange(from = 0) int start,
+            @IntRange(from = 0) int end,
+            @NonNull CharSequence text,
+            int newCursorPosition,
+            @Nullable TextAttribute textAttribute) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "replaceText: start=" + start
+                    + ", end=" + end + ", text=" + (text == null ? "null" : "\"" + text + "\"")
+                    + ", newCursorPosition=" + newCursorPosition);
+        }
+        Preconditions.checkArgumentNonnegative(start);
+        Preconditions.checkArgumentNonnegative(end);
+
+        if (DEBUG) {
+            Log.v(
+                    TAG,
+                    "replaceText " + start + ", " + end + ", " + text + ", " + newCursorPosition);
+        }
+
+        final Editable content = getEditable();
+        beginBatchEdit();
+        removeComposingSpans(content);
+
+        int len = content.length();
+        start = Math.min(start, len);
+        end = Math.min(end, len);
+        if (end < start) {
+            int tmp = start;
+            start = end;
+            end = tmp;
+        }
+        replaceTextInternal(start, end, text, newCursorPosition, /*composing=*/ false, content);
+        endBatchEdit();
+        return true;
+    }
+
+    // (EW) from BaseInputConnection
     private void replaceText(CharSequence text, int newCursorPosition, boolean composing) {
         replaceText(text, newCursorPosition, composing, getEditable());
     }
 
+    // (EW) split out for additional use for not using the main Editable
     private void replaceText(CharSequence text, int newCursorPosition, boolean composing,
-                             Editable content) {
+                             @NonNull Editable content) {
         beginBatchEditInternal();
 
         // delete composing text set previously.
@@ -2064,7 +2204,16 @@ public class EditableInputConnection implements InputConnection {
                 composingSpanEnd = temp;
             }
         }
+        replaceTextInternal(composingSpanStart, composingSpanEnd, text, newCursorPosition,
+                composing, content);
+        endBatchEditInternal();
+    }
 
+    // (EW) from BaseInputConnection
+    // (EW) added parameter to not always use the main Editable
+    private void replaceTextInternal(int composingSpanStart, int composingSpanEnd,
+                                     CharSequence text, int newCursorPosition, boolean composing,
+                                     @NonNull Editable content) {
         if (composing) {
             Spannable spannable;
             //TODO: (EW) this is weird. the default spans aren't added if the input is already a
@@ -2094,9 +2243,19 @@ public class EditableInputConnection implements InputConnection {
         }
 
         if (DEBUG) {
-            Log.v(TAG, "Replacing from " + composingSpanStart + " to " + composingSpanEnd
-                    + " with \"" + text + "\", composing=" + composing
-                    + ", type=" + text.getClass().getCanonicalName());
+            Log.v(TAG,
+                    "Replacing from "
+                            + composingSpanStart
+                            + " to "
+                            + composingSpanEnd
+                            + " with \""
+                            + text
+                            + "\", composing="
+                            + composing
+                            + ", newCursorPosition="
+                            + newCursorPosition
+                            + ", type="
+                            + text.getClass().getCanonicalName());
 
             LogPrinter logPrinter = new LogPrinter(Log.VERBOSE, TAG);
             logPrinter.println("Current text:");
@@ -2105,36 +2264,30 @@ public class EditableInputConnection implements InputConnection {
             TextUtils.dumpSpans(text, logPrinter, "  ");
         }
 
-        // Position the cursor appropriately, so that after replacing the
-        // desired range of text it will be located in the correct spot.
-        // This allows us to deal with filters performing edits on the text
-        // we are providing here.
-        int absoluteNewCursorPosition;
+        // Position the cursor appropriately, so that after replacing the desired range of text it
+        // will be located in the correct spot.
+        // This allows us to deal with filters performing edits on the text we are providing here.
+        int requestedNewCursorPosition = newCursorPosition;
         if (newCursorPosition > 0) {
-            absoluteNewCursorPosition = newCursorPosition + composingSpanEnd - 1;
+            newCursorPosition += composingSpanEnd - 1;
         } else {
-            absoluteNewCursorPosition = newCursorPosition + composingSpanStart;
+            newCursorPosition += composingSpanStart;
         }
-        if (absoluteNewCursorPosition < 0) {
-            absoluteNewCursorPosition = 0;
+        if (newCursorPosition < 0) newCursorPosition = 0;
+        if (newCursorPosition > content.length()) {
+            newCursorPosition = content.length();
         }
-        if (absoluteNewCursorPosition > content.length()) {
-            absoluteNewCursorPosition = content.length();
-        }
-        Selection.setSelection(content, absoluteNewCursorPosition);
-
+        Selection.setSelection(content, newCursorPosition);
         content.replace(composingSpanStart, composingSpanEnd, text);
 
-        // (EW) Editable#replace shifts the cursor forward with the new text if text is inserted at
-        // the cursor's position (no text is being replaced), so we need to set the selection again
-        // if we're trying to have the cursor at the beginning of the text. the AOSP version doesn't
-        // handle this issue, basically meaning that IMEs can't set newCursorPosition=0 when
-        // composing or committing text unless there is an existing composition or some text is
-        // selected.
-        //TODO: (EW) is there any value in having a setting for this (maybe just for the sake of
-        // adding visibility for this bug)?
-        if (newCursorPosition == 0 && composingSpanStart == composingSpanEnd) {
-            Selection.setSelection(content, absoluteNewCursorPosition);
+        // Replace (or insert) to the cursor
+        // (composingSpanStart==composingSpanEnd==newCursorPosition) will position the cursor to the
+        // end of the new replaced/inserted text, we need to re-position the cursor to the start
+        // according the API definition: "if <= 0, this is relative to the start of the text".
+        //TODO: (EW) this fix was added in Android 14. is there any value in having a setting for
+        // this (maybe just for the sake of adding visibility for this bug in previous versions)?
+        if (requestedNewCursorPosition == 0 && composingSpanStart == composingSpanEnd) {
+            Selection.setSelection(content, newCursorPosition);
         }
 
         if (DEBUG) {
@@ -2142,14 +2295,13 @@ public class EditableInputConnection implements InputConnection {
             lp.println("Final text:");
             TextUtils.dumpSpans(content, lp, "  ");
         }
-
-        endBatchEditInternal();
     }
 
+    // (EW) from BaseInputConnection
     /**
-     * Default implementation which invokes {@link View#performReceiveContent} on the target
-     * view if the view {@link View#getReceiveContentMimeTypes allows} content insertion;
-     * otherwise returns false without any side effects.
+     * Default implementation which invokes {@link View#performReceiveContent} on the target view if
+     * the view {@link View#getReceiveContentMimeTypes allows} content insertion; otherwise returns
+     * false without any side effects.
      */
     @RequiresApi(api = Build.VERSION_CODES.N_MR1)
     @Override
@@ -2263,10 +2415,60 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls
     private void setImeConsumesInputInternal(boolean imeConsumesInput) {
         mEditText.setImeConsumesInput(imeConsumesInput);
     }
 
+    //TODO: (EW) add target version simulation setting for this new method
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Override
+    public void performHandwritingGesture(
+            @NonNull HandwritingGesture gesture, @Nullable Executor executor,
+            @Nullable IntConsumer consumer) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "performHandwritingGesture: gesture=" + gesture
+                    + ", executor=" + executor + ", consumer=" + consumer);
+        }
+        int result;
+        if (gesture instanceof SelectGesture) {
+            result = mEditText.performHandwritingSelectGesture((SelectGesture) gesture);
+        } else if (gesture instanceof SelectRangeGesture) {
+            result = mEditText.performHandwritingSelectRangeGesture((SelectRangeGesture) gesture);
+        } else if (gesture instanceof DeleteGesture) {
+            result = mEditText.performHandwritingDeleteGesture((DeleteGesture) gesture);
+        } else if (gesture instanceof DeleteRangeGesture) {
+            result = mEditText.performHandwritingDeleteRangeGesture((DeleteRangeGesture) gesture);
+        } else if (gesture instanceof InsertGesture) {
+            result = mEditText.performHandwritingInsertGesture((InsertGesture) gesture);
+        } else if (gesture instanceof RemoveSpaceGesture) {
+            result = mEditText.performHandwritingRemoveSpaceGesture((RemoveSpaceGesture) gesture);
+        } else if (gesture instanceof JoinOrSplitGesture) {
+            result = mEditText.performHandwritingJoinOrSplitGesture((JoinOrSplitGesture) gesture);
+        } else if (gesture instanceof InsertModeGesture) {
+            result = mEditText.performHandwritingInsertModeGesture((InsertModeGesture) gesture);
+        } else {
+            result = HANDWRITING_GESTURE_RESULT_UNSUPPORTED;
+        }
+        if (executor != null && consumer != null) {
+            executor.execute(() -> consumer.accept(result));
+        }
+    }
+
+    //TODO: (EW) add target version simulation setting for this new method
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Override
+    public boolean previewHandwritingGesture(
+            @NonNull PreviewableHandwritingGesture gesture,
+            @Nullable CancellationSignal cancellationSignal) {
+        if (LOG_CALLS) {
+            Log.d(TAG, "previewHandwritingGesture: gesture=" + gesture
+                    + ", cancellationSignal=" + cancellationSignal);
+        }
+        return mEditText.previewHandwritingGesture(gesture, cancellationSignal);
+    }
+
+    // (EW) from BaseInputConnection (logic from there is actually in takeSnapshotInternal)
     /**
      * Default implementation that constructs {@link TextSnapshot} with information extracted from
      * {@link EditableInputConnection}.
@@ -2298,9 +2500,10 @@ public class EditableInputConnection implements InputConnection {
         return snapshot;
     }
 
+    // (EW) split out for additional use without inappropriately logging external calls
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Nullable
-    public TextSnapshot takeSnapshotInternal() {
+    private TextSnapshot takeSnapshotInternal() {
 
         final Editable content = getEditable();
         int composingStart = getComposingSpanStart(content);
@@ -2324,6 +2527,7 @@ public class EditableInputConnection implements InputConnection {
         return new TextSnapshot(surroundingText, composingStart, composingEnd, cursorCapsMode);
     }
 
+    // (EW) custom
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private static String getDebugTextSnapshotInfo(final TextSnapshot snapshot) {
         if (snapshot == null) {
@@ -2344,6 +2548,8 @@ public class EditableInputConnection implements InputConnection {
     // solution because if a default method calls another method that has a default implementation,
     // it will just call that default method, rather than going to our standard method to determine
     // if the default method should actually be called. find something better.
+    //TODO: (EW) figure out a way to prevent logging calls that are triggered from the default
+    // method, rather than externally from the IME or system
     private class MinimalInputConnectionProxy implements InputConnection {
         // default methods not overriding:
         //   SurroundingText getSurroundingText(int beforeLength, int afterLength, int flags)
@@ -2354,6 +2560,10 @@ public class EditableInputConnection implements InputConnection {
         //   boolean requestCursorUpdates(int cursorUpdateMode, int cursorUpdateFilter)
         //   boolean setImeConsumesInput(boolean imeConsumesInput)
         //   TextSnapshot takeSnapshot()
+        //   void performHandwritingGesture(HandwritingGesture gesture, Executor executor, IntConsumer consumer)
+        //   boolean previewHandwritingGesture(PreviewableHandwritingGesture gesture, CancellationSignal cancellationSignal)
+        //   void requestTextBoundsInfo(RectF bounds, Executor executor, Consumer<TextBoundsInfoResult> consumer)
+        //   boolean replaceText(int start, int end, CharSequence text, int newCursorPosition, TextAttribute textAttribute)
 
         @Nullable
         @Override
@@ -2496,6 +2706,7 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
+    // (EW) custom
     public InputConnection createWrapperIfNecessary() {
         if (shouldSkipMethodsForOldVersionTest()
                 && canWrapperLieAboutMissingMethods(mEditText.getContext())) {
@@ -2657,7 +2868,10 @@ public class EditableInputConnection implements InputConnection {
             // comments (with some id 199934664) for trying to provide a default implementation to
             // avoid handling missing methods, so at some point in the future, there may be nothing
             // to simulate other that just falling back to the default implementation, but I'm not
-            // sure if that will be valuable for a setting.
+            // sure if that will be valuable for a setting. for now, we can still throw
+            // AbstractMethodErrors for cases that didn't originally have a default implementation
+            // (which is handled with a try/catch rather than tracking what methods are implemented)
+            // to mimic not implementing the method or just proxy to the default implementation.
             return true;
         }
         return canWrapperLieAboutMissingMethods(context);

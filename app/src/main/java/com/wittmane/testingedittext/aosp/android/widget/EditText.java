@@ -43,6 +43,7 @@ import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigEx
 import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.android.text.method.LocaleDigitsKeyListener;
 import com.wittmane.testingedittext.aosp.android.view.ViewExtension;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputConnectionExtension;
 import com.wittmane.testingedittext.aosp.android.view.translation.ViewTranslationRequestExtension;
 import com.wittmane.testingedittext.aosp.android.view.textservice.SpellCheckerSubtypeExtension;
 import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
@@ -52,6 +53,7 @@ import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Matrix;
 import android.graphics.Paint.FontMetricsInt;
+import android.graphics.PointF;
 import android.graphics.fonts.FontStyle;
 import android.graphics.fonts.FontVariationAxis;
 import android.graphics.Paint;
@@ -65,6 +67,7 @@ import android.icu.text.DecimalFormatSymbols;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -74,10 +77,13 @@ import android.text.BoringLayout;
 import android.text.BoringLayout.Metrics;
 import android.text.DynamicLayout;
 import android.text.Editable;
+import android.text.GraphemeClusterSegmentFinder;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.Layout;
+import android.text.NoCopySpan;
 import android.text.ParcelableSpan;
+import android.text.SegmentFinder;
 import android.text.Selection;
 import android.text.SpanWatcher;
 import android.text.Spannable;
@@ -91,6 +97,7 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextUtils.TruncateAt;
 import android.text.TextWatcher;
+import android.text.WordSegmentFinder;
 import android.text.method.DateKeyListener;
 import android.text.method.DateTimeKeyListener;
 import android.text.method.DialerKeyListener;
@@ -121,6 +128,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.PointerIcon;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewDebug;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewParent;
@@ -138,11 +146,22 @@ import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.CursorAnchorInfo;
+import android.view.inputmethod.DeleteGesture;
+import android.view.inputmethod.DeleteRangeGesture;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
+import android.view.inputmethod.HandwritingGesture;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.view.inputmethod.InsertGesture;
+import android.view.inputmethod.InsertModeGesture;
+import android.view.inputmethod.JoinOrSplitGesture;
+import android.view.inputmethod.PreviewableHandwritingGesture;
+import android.view.inputmethod.RemoveSpaceGesture;
+import android.view.inputmethod.SelectGesture;
+import android.view.inputmethod.SelectRangeGesture;
+import android.view.inputmethod.TextBoundsInfo;
 import android.view.textservice.SpellCheckerSubtype;
 import android.view.textservice.TextServicesManager;
 import android.view.translation.TranslationRequestValue;
@@ -190,6 +209,8 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static android.view.ContentInfo.FLAG_CONVERT_TO_PLAIN_TEXT;
 import static android.view.ContentInfo.SOURCE_AUTOFILL;
@@ -6379,6 +6400,35 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
+     * Called back by the system to handle {@link InputConnection#requestCursorUpdates(int, int)}.
+     *
+     * @param cursorUpdateMode modes defined in {@link InputConnectionExtension.CursorUpdateMode}.
+     * @param cursorUpdateFilter modes defined in
+     *                           {@link InputConnectionExtension.CursorUpdateFilter}.
+     *
+     * @hide
+     */
+    public void onRequestCursorUpdatesInternal(
+            @InputConnectionExtension.CursorUpdateMode int cursorUpdateMode,
+            @InputConnectionExtension.CursorUpdateFilter int cursorUpdateFilter) {
+        //TODO: (EW) uncomment once these variables have been pulled in
+//        mEditor.mInputMethodState.mUpdateCursorAnchorInfoMode = cursorUpdateMode;
+//        mEditor.mInputMethodState.mUpdateCursorAnchorInfoFilter = cursorUpdateFilter;
+        if ((cursorUpdateMode & InputConnection.CURSOR_UPDATE_IMMEDIATE) == 0) {
+            return;
+        }
+        if (isInLayout()) {
+            // In this case, the view hierarchy is currently undergoing a layout pass.
+            // IMM#updateCursorAnchorInfo is supposed to be called soon after the layout
+            // pass is finished.
+        } else {
+            // This will schedule a layout pass of the view tree, and the layout event
+            // eventually triggers IMM#updateCursorAnchorInfo.
+            requestLayout();
+        }
+    }
+
+    /**
      * Extract a portion of this EditText's editable content based on the information in
      * <var>request</var> in to <var>outText</var>.
      * @return Returns true if the text was successfully extracted, else false.
@@ -6560,6 +6610,481 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     public boolean onPrivateIMECommand(String action, Bundle data) {
         return false;
     }
+
+//    /**
+//     * Return whether the text is transformed and has {@link OffsetMapping}.
+//     * @hide
+//     */
+//    public boolean isOffsetMappingAvailable() {
+//        return mTransformation != null && mTransformed instanceof OffsetMapping;
+//    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public boolean previewHandwritingGesture(
+            @NonNull PreviewableHandwritingGesture gesture,
+            @Nullable CancellationSignal cancellationSignal) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return false;
+//        if (gesture instanceof SelectGesture) {
+//            performHandwritingSelectGesture((SelectGesture) gesture, /* isPreview= */ true);
+//        } else if (gesture instanceof SelectRangeGesture) {
+//            performHandwritingSelectRangeGesture(
+//                    (SelectRangeGesture) gesture, /* isPreview= */ true);
+//        } else if (gesture instanceof DeleteGesture) {
+//            performHandwritingDeleteGesture((DeleteGesture) gesture, /* isPreview= */ true);
+//        } else if (gesture instanceof DeleteRangeGesture) {
+//            performHandwritingDeleteRangeGesture(
+//                    (DeleteRangeGesture) gesture, /* isPreview= */ true);
+//        } else {
+//            return false;
+//        }
+//        if (cancellationSignal != null) {
+//            cancellationSignal.setOnCancelListener(this::clearGesturePreviewHighlight);
+//        }
+//        return true;
+    }
+
+    /** @hide */
+    public int performHandwritingSelectGesture(@NonNull SelectGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        return performHandwritingSelectGesture(gesture, /* isPreview= */ false);
+    }
+
+//    private int performHandwritingSelectGesture(@NonNull SelectGesture gesture, boolean isPreview) {
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        int[] range = getRangeForRect(
+//                convertFromScreenToContentCoordinates(gesture.getSelectionArea()),
+//                gesture.getGranularity());
+//        if (range == null) {
+//            return handleGestureFailure(gesture, isPreview);
+//        }
+//        return performHandwritingSelectGesture(range, isPreview);
+//    }
+//
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int performHandwritingSelectGesture(int[] range, boolean isPreview) {
+//        if (isPreview) {
+//            setSelectGesturePreviewHighlight(range[0], range[1]);
+//        } else {
+//            Selection.setSelection(getEditableText(), range[0], range[1]);
+//            mEditor.startSelectionActionModeAsync(/* adjustSelection= */ false);
+//        }
+//        return InputConnection.HANDWRITING_GESTURE_RESULT_SUCCESS;
+//    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingSelectRangeGesture(@NonNull SelectRangeGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        return performHandwritingSelectRangeGesture(gesture, /* isPreview= */ false);
+    }
+
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int performHandwritingSelectRangeGesture(
+//            @NonNull SelectRangeGesture gesture, boolean isPreview) {
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        int[] startRange = getRangeForRect(
+//                convertFromScreenToContentCoordinates(gesture.getSelectionStartArea()),
+//                gesture.getGranularity());
+//        if (startRange == null) {
+//            return handleGestureFailure(gesture, isPreview);
+//        }
+//        int[] endRange = getRangeForRect(
+//                convertFromScreenToContentCoordinates(gesture.getSelectionEndArea()),
+//                gesture.getGranularity());
+//        if (endRange == null) {
+//            return handleGestureFailure(gesture, isPreview);
+//        }
+//        int[] range = new int[] {
+//                Math.min(startRange[0], endRange[0]), Math.max(startRange[1], endRange[1])
+//        };
+//        return performHandwritingSelectGesture(range, isPreview);
+//    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingDeleteGesture(@NonNull DeleteGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        return performHandwritingDeleteGesture(gesture, /* isPreview= */ false);
+    }
+
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int performHandwritingDeleteGesture(@NonNull DeleteGesture gesture, boolean isPreview) {
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        int[] range = getRangeForRect(
+//                convertFromScreenToContentCoordinates(gesture.getDeletionArea()),
+//                gesture.getGranularity());
+//        if (range == null) {
+//            return handleGestureFailure(gesture, isPreview);
+//        }
+//        return performHandwritingDeleteGesture(range, gesture.getGranularity(), isPreview);
+//    }
+//
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int performHandwritingDeleteGesture(int[] range, int granularity, boolean isPreview) {
+//        if (isPreview) {
+//            setDeleteGesturePreviewHighlight(range[0], range[1]);
+//        } else {
+//            if (granularity == HandwritingGesture.GRANULARITY_WORD) {
+//                range = adjustHandwritingDeleteGestureRange(range);
+//            }
+//
+//            Selection.setSelection(getEditableText(), range[0]);
+//            getEditableText().delete(range[0], range[1]);
+//        }
+//        return InputConnection.HANDWRITING_GESTURE_RESULT_SUCCESS;
+//    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingDeleteRangeGesture(@NonNull DeleteRangeGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        return performHandwritingDeleteRangeGesture(gesture, /* isPreview= */ false);
+    }
+
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int performHandwritingDeleteRangeGesture(
+//            @NonNull DeleteRangeGesture gesture, boolean isPreview) {
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        int[] startRange = getRangeForRect(
+//                convertFromScreenToContentCoordinates(gesture.getDeletionStartArea()),
+//                gesture.getGranularity());
+//        if (startRange == null) {
+//            return handleGestureFailure(gesture, isPreview);
+//        }
+//        int[] endRange = getRangeForRect(
+//                convertFromScreenToContentCoordinates(gesture.getDeletionEndArea()),
+//                gesture.getGranularity());
+//        if (endRange == null) {
+//            return handleGestureFailure(gesture, isPreview);
+//        }
+//        int[] range = new int[] {
+//                Math.min(startRange[0], endRange[0]), Math.max(startRange[1], endRange[1])
+//        };
+//        return performHandwritingDeleteGesture(range, gesture.getGranularity(), isPreview);
+//    }
+//
+//    private int[] adjustHandwritingDeleteGestureRange(int[] range) {
+//        // For handwriting delete gestures with word granularity, adjust the start and end offsets
+//        // to remove extra whitespace around the deleted text.
+//
+//        int start = range[0];
+//        int end = range[1];
+//
+//        // If the deleted text is at the start of the text, the behavior is the same as the case
+//        // where the deleted text follows a new line character.
+//        int codePointBeforeStart = start > 0
+//                ? Character.codePointBefore(mText, start) : TextUtils.LINE_FEED_CODE_POINT;
+//        // If the deleted text is at the end of the text, the behavior is the same as the case where
+//        // the deleted text precedes a new line character.
+//        int codePointAtEnd = end < mText.length()
+//                ? Character.codePointAt(mText, end) : TextUtils.LINE_FEED_CODE_POINT;
+//
+//        if (TextUtils.isWhitespaceExceptNewline(codePointBeforeStart)
+//                && (TextUtils.isWhitespace(codePointAtEnd)
+//                || TextUtils.isPunctuation(codePointAtEnd))) {
+//            // Remove whitespace (except new lines) before the deleted text, in these cases:
+//            // - There is whitespace following the deleted text
+//            //     e.g. "one [deleted] three" -> "one | three" -> "one| three"
+//            // - There is punctuation following the deleted text
+//            //     e.g. "one [deleted]!" -> "one |!" -> "one|!"
+//            // - There is a new line following the deleted text
+//            //     e.g. "one [deleted]\n" -> "one |\n" -> "one|\n"
+//            // - The deleted text is at the end of the text
+//            //     e.g. "one [deleted]" -> "one |" -> "one|"
+//            // (The pipe | indicates the cursor position.)
+//            do {
+//                start -= Character.charCount(codePointBeforeStart);
+//                if (start == 0) break;
+//                codePointBeforeStart = Character.codePointBefore(mText, start);
+//            } while (TextUtils.isWhitespaceExceptNewline(codePointBeforeStart));
+//            return new int[] {start, end};
+//        }
+//
+//        if (TextUtils.isWhitespaceExceptNewline(codePointAtEnd)
+//                && (TextUtils.isWhitespace(codePointBeforeStart)
+//                || TextUtils.isPunctuation(codePointBeforeStart))) {
+//            // Remove whitespace (except new lines) after the deleted text, in these cases:
+//            // - There is punctuation preceding the deleted text
+//            //     e.g. "([deleted] two)" -> "(| two)" -> "(|two)"
+//            // - There is a new line preceding the deleted text
+//            //     e.g. "\n[deleted] two" -> "\n| two" -> "\n|two"
+//            // - The deleted text is at the start of the text
+//            //     e.g. "[deleted] two" -> "| two" -> "|two"
+//            // (The pipe | indicates the cursor position.)
+//            do {
+//                end += Character.charCount(codePointAtEnd);
+//                if (end == mText.length()) break;
+//                codePointAtEnd = Character.codePointAt(mText, end);
+//            } while (TextUtils.isWhitespaceExceptNewline(codePointAtEnd));
+//            return new int[] {start, end};
+//        }
+//
+//        // Return the original range.
+//        return range;
+//    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingInsertGesture(@NonNull InsertGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        PointF point = convertFromScreenToContentCoordinates(gesture.getInsertionPoint());
+//        int line = getLineForHandwritingGesture(point);
+//        if (line == -1) {
+//            return handleGestureFailure(gesture);
+//        }
+//        int offset = mLayout.getOffsetForHorizontal(line, point.x);
+//        String textToInsert = gesture.getTextToInsert();
+//        return tryInsertTextForHandwritingGesture(offset, textToInsert, gesture);
+//        // TODO(b/243980426): Insert extra spaces if necessary.
+    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingRemoveSpaceGesture(@NonNull RemoveSpaceGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        PointF startPoint = convertFromScreenToContentCoordinates(gesture.getStartPoint());
+//        PointF endPoint = convertFromScreenToContentCoordinates(gesture.getEndPoint());
+//
+//        // The operation should be applied to the first line of text containing one of the points.
+//        int startPointLine = getLineForHandwritingGesture(startPoint);
+//        int endPointLine = getLineForHandwritingGesture(endPoint);
+//        int line;
+//        if (startPointLine == -1) {
+//            if (endPointLine == -1) {
+//                return handleGestureFailure(gesture);
+//            }
+//            line = endPointLine;
+//        } else {
+//            line = (endPointLine == -1) ? startPointLine : Math.min(startPointLine, endPointLine);
+//        }
+//
+//        // The operation should be applied to all characters touched by the line joining the points.
+//        float lineVerticalCenter = (mLayout.getLineTop(line)
+//                + mLayout.getLineBottom(line, /* includeLineSpacing= */ false)) / 2f;
+//        // Create a rectangle which is +/-0.1f around the line's vertical center, so that the
+//        // rectangle doesn't touch the line above or below. (The line height is at least 1f.)
+//        RectF area = new RectF(
+//                Math.min(startPoint.x, endPoint.x),
+//                lineVerticalCenter + 0.1f,
+//                Math.max(startPoint.x, endPoint.x),
+//                lineVerticalCenter - 0.1f);
+//        int[] range = mLayout.getRangeForRect(
+//                area, new GraphemeClusterSegmentFinder(mText, mTextPaint),
+//                Layout.INCLUSION_STRATEGY_ANY_OVERLAP);
+//        if (range == null) {
+//            return handleGestureFailure(gesture);
+//        }
+//        int startOffset = range[0];
+//        int endOffset = range[1];
+//        // TODO(b/247557062): This doesn't handle bidirectional text correctly.
+//
+//        Pattern whitespacePattern = getWhitespacePattern();
+//        Matcher matcher = whitespacePattern.matcher(mText.subSequence(startOffset, endOffset));
+//        int lastRemoveOffset = -1;
+//        while (matcher.find()) {
+//            lastRemoveOffset = startOffset + matcher.start();
+//            getEditableText().delete(lastRemoveOffset, startOffset + matcher.end());
+//            startOffset = lastRemoveOffset;
+//            endOffset -= matcher.end() - matcher.start();
+//            if (startOffset == endOffset) {
+//                break;
+//            }
+//            matcher = whitespacePattern.matcher(mText.subSequence(startOffset, endOffset));
+//        }
+//        if (lastRemoveOffset == -1) {
+//            return handleGestureFailure(gesture);
+//        }
+//        Selection.setSelection(getEditableText(), lastRemoveOffset);
+//        return InputConnection.HANDWRITING_GESTURE_RESULT_SUCCESS;
+    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingJoinOrSplitGesture(@NonNull JoinOrSplitGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        if (isOffsetMappingAvailable()) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        PointF point = convertFromScreenToContentCoordinates(gesture.getJoinOrSplitPoint());
+//
+//        int line = getLineForHandwritingGesture(point);
+//        if (line == -1) {
+//            return handleGestureFailure(gesture);
+//        }
+//
+//        int startOffset = mLayout.getOffsetForHorizontal(line, point.x);
+//        if (mLayout.isLevelBoundary(startOffset)) {
+//            // TODO(b/247551937): Support gesture at level boundaries.
+//            return handleGestureFailure(gesture);
+//        }
+//
+//        int endOffset = startOffset;
+//        while (startOffset > 0) {
+//            int codePointBeforeStart = Character.codePointBefore(mText, startOffset);
+//            if (!TextUtils.isWhitespace(codePointBeforeStart)) {
+//                break;
+//            }
+//            startOffset -= Character.charCount(codePointBeforeStart);
+//        }
+//        while (endOffset < mText.length()) {
+//            int codePointAtEnd = Character.codePointAt(mText, endOffset);
+//            if (!TextUtils.isWhitespace(codePointAtEnd)) {
+//                break;
+//            }
+//            endOffset += Character.charCount(codePointAtEnd);
+//        }
+//        if (startOffset < endOffset) {
+//            Selection.setSelection(getEditableText(), startOffset);
+//            getEditableText().delete(startOffset, endOffset);
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_SUCCESS;
+//        } else {
+//            // No whitespace found, so insert a space.
+//            return tryInsertTextForHandwritingGesture(startOffset, " ", gesture);
+//        }
+    }
+
+    /** @hide */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public int performHandwritingInsertModeGesture(@NonNull InsertModeGesture gesture) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        final PointF insertPoint =
+//                convertFromScreenToContentCoordinates(gesture.getInsertionPoint());
+//        final int line = getLineForHandwritingGesture(insertPoint);
+//        final CancellationSignal cancellationSignal = gesture.getCancellationSignal();
+//
+//        // If no cancellationSignal is provided, don't enter the insert mode.
+//        if (line == -1 || cancellationSignal == null) {
+//            return handleGestureFailure(gesture);
+//        }
+//
+//        final int offset = mLayout.getOffsetForHorizontal(line, insertPoint.x);
+//
+//        if (!mEditor.enterInsertMode(offset)) {
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//        }
+//        cancellationSignal.setOnCancelListener(() -> mEditor.exitInsertMode());
+//        return InputConnection.HANDWRITING_GESTURE_RESULT_SUCCESS;
+    }
+
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int handleGestureFailure(HandwritingGesture gesture) {
+//        return handleGestureFailure(gesture, /* isPreview= */ false);
+//    }
+//
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int handleGestureFailure(HandwritingGesture gesture, boolean isPreview) {
+//        clearGesturePreviewHighlight();
+//        if (!isPreview && !TextUtils.isEmpty(gesture.getFallbackText())) {
+//            getEditableText()
+//                    .replace(getSelectionStart(), getSelectionEnd(), gesture.getFallbackText());
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_FALLBACK;
+//        }
+//        return InputConnection.HANDWRITING_GESTURE_RESULT_FAILED;
+//    }
+//
+//    /**
+//     * Returns the closest line such that the point is either inside the line bounds or within
+//     * {@link ViewConfiguration#getScaledHandwritingGestureLineMargin} of the line bounds. Returns
+//     * -1 if the point is not within the margin of any line bounds.
+//     */
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int getLineForHandwritingGesture(PointF point) {
+//        int line = mLayout.getLineForVertical((int) point.y);
+//        int lineMargin = ViewConfiguration.get(mContext).getScaledHandwritingGestureLineMargin();
+//        if (line < mLayout.getLineCount() - 1
+//                && point.y > mLayout.getLineBottom(line) - lineMargin
+//                && point.y
+//                > (mLayout.getLineBottom(line, false) + mLayout.getLineBottom(line)) / 2f) {
+//            // If a point is in the space between line i and line (i + 1), Layout#getLineForVertical
+//            // returns i. If the point is within lineMargin of line (i + 1), and closer to line
+//            // (i + 1) than line i, then the gesture operation should be applied to line (i + 1).
+//            line++;
+//        } else if (point.y < mLayout.getLineTop(line) - lineMargin
+//                || point.y
+//                > mLayout.getLineBottom(line, /* includeLineSpacing= */ false)
+//                + lineMargin) {
+//            // The point is not within lineMargin of a line.
+//            return -1;
+//        }
+//        if (point.x < -lineMargin || point.x > mLayout.getWidth() + lineMargin) {
+//            // The point is not within lineMargin of a line.
+//            return -1;
+//        }
+//        return line;
+//    }
+//
+//    @Nullable
+//    private int[] getRangeForRect(@NonNull RectF area, int granularity) {
+//        SegmentFinder segmentFinder;
+//        if (granularity == HandwritingGesture.GRANULARITY_WORD) {
+//            WordIterator wordIterator = getWordIterator();
+//            wordIterator.setCharSequence(mText, 0, mText.length());
+//            segmentFinder = new WordSegmentFinder(mText, wordIterator);
+//        } else {
+//            segmentFinder = new GraphemeClusterSegmentFinder(mText, mTextPaint);
+//        }
+//
+//        return mLayout.getRangeForRect(
+//                area, segmentFinder, Layout.INCLUSION_STRATEGY_CONTAINS_CENTER);
+//    }
+//
+//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+//    private int tryInsertTextForHandwritingGesture(
+//            int offset, String textToInsert, HandwritingGesture gesture) {
+//        // A temporary cursor span is placed at the insertion offset. The span will be pushed
+//        // forward when text is inserted, then the real cursor can be placed after the inserted
+//        // text. A temporary cursor span is used in order to avoid modifying the real selection span
+//        // in the case that the text is filtered out.
+//        Editable editableText = getEditableText();
+//        if (mTempCursor == null) {
+//            mTempCursor = new NoCopySpan.Concrete();
+//        }
+//        editableText.setSpan(mTempCursor, offset, offset, Spanned.SPAN_POINT_POINT);
+//
+//        editableText.insert(offset, textToInsert);
+//
+//        int newOffset = editableText.getSpanStart(mTempCursor);
+//        editableText.removeSpan(mTempCursor);
+//        if (newOffset == offset) {
+//            // The inserted text was filtered out.
+//            return handleGestureFailure(gesture);
+//        } else {
+//            // Place the cursor after the inserted text.
+//            Selection.setSelection(editableText, newOffset);
+//            return InputConnection.HANDWRITING_GESTURE_RESULT_SUCCESS;
+//        }
+//    }
+//
+//    private Pattern getWhitespacePattern() {
+//        if (mWhitespacePattern == null) {
+//            mWhitespacePattern = Pattern.compile("\\s+");
+//        }
+//        return mWhitespacePattern;
+//    }
 
     private void nullLayouts() {
         if (mHintLayout instanceof BoringLayout && mSavedHintLayout == null) {
@@ -9290,6 +9815,130 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                         localBottom, characterBoundsFlags);
             }
         }
+    }
+
+    /**
+     * Creates the {@link TextBoundsInfo} for the text lines that intersects with the {@code rectF}.
+     * @hide
+     */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public TextBoundsInfo getTextBoundsInfo(@NonNull RectF bounds) {
+        //TODO: (EW) finish copying over changes and use the real AOSP implementation
+        return null;
+//        final Layout layout = getLayout();
+//        if (layout == null) {
+//            // No valid text layout, return null.
+//            return null;
+//        }
+//        final CharSequence text = layout.getText();
+//        if (text == null || isOffsetMappingAvailable()) {
+//            // The text is Null or the text has been transformed. Can't provide TextBoundsInfo.
+//            return null;
+//        }
+//
+//        final Matrix localToGlobalMatrix = new Matrix();
+//        transformMatrixToGlobal(localToGlobalMatrix);
+//        final Matrix globalToLocalMatrix = new Matrix();
+//        if (!localToGlobalMatrix.invert(globalToLocalMatrix)) {
+//            // Can't map global rectF to local coordinates, this is almost impossible in practice.
+//            return null;
+//        }
+//
+//        final float layoutLeft = viewportToContentHorizontalOffset();
+//        final float layoutTop = viewportToContentVerticalOffset();
+//
+//        final RectF localBounds = new RectF(bounds);
+//        globalToLocalMatrix.mapRect(localBounds);
+//        localBounds.offset(-layoutLeft, -layoutTop);
+//
+//        // Text length is 0. There is no character bounds, return empty TextBoundsInfo.
+//        // rectF doesn't intersect with the layout, return empty TextBoundsInfo.
+//        if (!localBounds.intersects(0f, 0f, layout.getWidth(), layout.getHeight())
+//                || text.length() == 0) {
+//            final TextBoundsInfo.Builder builder = new TextBoundsInfo.Builder(0, 0);
+//            final SegmentFinder emptySegmentFinder =
+//                    new SegmentFinder.PrescribedSegmentFinder(new int[0]);
+//            builder.setMatrix(localToGlobalMatrix)
+//                    .setCharacterBounds(new float[0])
+//                    .setCharacterBidiLevel(new int[0])
+//                    .setCharacterFlags(new int[0])
+//                    .setGraphemeSegmentFinder(emptySegmentFinder)
+//                    .setLineSegmentFinder(emptySegmentFinder)
+//                    .setWordSegmentFinder(emptySegmentFinder);
+//            return  builder.build();
+//        }
+//
+//        final int startLine = layout.getLineForVertical((int) Math.floor(localBounds.top));
+//        final int endLine = layout.getLineForVertical((int) Math.floor(localBounds.bottom));
+//        final int start = layout.getLineStart(startLine);
+//        final int end = layout.getLineEnd(endLine);
+//
+//        // Compute character bounds.
+//        final float[] characterBounds = getCharacterBounds(start, end, layoutLeft, layoutTop);
+//
+//        // Compute character flags and BiDi levels.
+//        final int[] characterFlags = new int[end - start];
+//        final int[] characterBidiLevels = new int[end - start];
+//        for (int line = startLine; line <= endLine; ++line) {
+//            final int lineStart = layout.getLineStart(line);
+//            final int lineEnd = layout.getLineEnd(line);
+//            final Layout.Directions directions = layout.getLineDirections(line);
+//            for (int i = 0; i < directions.getRunCount(); ++i) {
+//                final int runStart = directions.getRunStart(i) + lineStart;
+//                final int runEnd = Math.min(runStart + directions.getRunLength(i), lineEnd);
+//                final int runLevel = directions.getRunLevel(i);
+//                Arrays.fill(characterBidiLevels, runStart - start, runEnd - start, runLevel);
+//            }
+//
+//            final boolean lineIsRtl =
+//                    layout.getParagraphDirection(line) == Layout.DIR_RIGHT_TO_LEFT;
+//            for (int index = lineStart; index < lineEnd; ++index) {
+//                int flags = 0;
+//                if (TextUtils.isWhitespace(text.charAt(index))) {
+//                    flags |= TextBoundsInfo.FLAG_CHARACTER_WHITESPACE;
+//                }
+//                if (TextUtils.isPunctuation(Character.codePointAt(text, index))) {
+//                    flags |= TextBoundsInfo.FLAG_CHARACTER_PUNCTUATION;
+//                }
+//                if (TextUtils.isNewline(Character.codePointAt(text, index))) {
+//                    flags |= TextBoundsInfo.FLAG_CHARACTER_LINEFEED;
+//                }
+//                if (lineIsRtl) {
+//                    flags |= TextBoundsInfo.FLAG_LINE_IS_RTL;
+//                }
+//                characterFlags[index - start] = flags;
+//            }
+//        }
+//
+//        // Create grapheme SegmentFinder.
+//        final SegmentFinder graphemeSegmentFinder =
+//                new GraphemeClusterSegmentFinder(text, layout.getPaint());
+//
+//        // Create word SegmentFinder.
+//        final WordIterator wordIterator = getWordIterator();
+//        wordIterator.setCharSequence(text, 0, text.length());
+//        final SegmentFinder wordSegmentFinder = new WordSegmentFinder(text, wordIterator);
+//
+//        // Create line SegmentFinder.
+//        final int lineCount = endLine - startLine + 1;
+//        final int[] lineRanges = new int[2 * lineCount];
+//        for (int line = startLine; line <= endLine; ++line) {
+//            final int offset = line - startLine;
+//            lineRanges[2 * offset] = layout.getLineStart(line);
+//            lineRanges[2 * offset + 1] = layout.getLineEnd(line);
+//        }
+//        final SegmentFinder lineSegmentFinder =
+//                new SegmentFinder.PrescribedSegmentFinder(lineRanges);
+//
+//        return new TextBoundsInfo.Builder(start, end)
+//                .setMatrix(localToGlobalMatrix)
+//                .setCharacterBounds(characterBounds)
+//                .setCharacterBidiLevel(characterBidiLevels)
+//                .setCharacterFlags(characterFlags)
+//                .setGraphemeSegmentFinder(graphemeSegmentFinder)
+//                .setLineSegmentFinder(lineSegmentFinder)
+//                .setWordSegmentFinder(wordSegmentFinder)
+//                .build();
     }
 
     public boolean isPositionVisible(final float positionX, final float positionY) {
