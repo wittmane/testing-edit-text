@@ -1668,7 +1668,6 @@ public class EditableInputConnection implements InputConnection {
         return true;
     }
 
-    //TODO: (EW) add target version simulation setting for this new method
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Override
     public void requestTextBoundsInfo(
@@ -1678,6 +1677,17 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "requestTextBoundsInfo: bounds=" + bounds
                     + ", executor=" + executor + ", consumer=" + consumer);
         }
+
+        delay(getSettings().getRequestTextBoundsInfoDelay());
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. we'll just call the default implementation to replicate behavior of an app
+        // that doesn't explicitly implement this method.
+        if (getSettings().shouldSkipRequestTextBoundsInfo()) {
+            mProxyForDefaultMethods.requestTextBoundsInfo(bounds, executor, consumer);
+            return;
+        }
+
         final TextBoundsInfo textBoundsInfo = mEditText.getTextBoundsInfo(bounds);
         final int resultCode;
         if (textBoundsInfo != null) {
@@ -2123,7 +2133,6 @@ public class EditableInputConnection implements InputConnection {
     }
 
     // (EW) from BaseInputConnection
-    //TODO: (EW) add target version simulation setting for this new method
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Override
     public boolean replaceText(
@@ -2137,6 +2146,15 @@ public class EditableInputConnection implements InputConnection {
                     + ", end=" + end + ", text=" + (text == null ? "null" : "\"" + text + "\"")
                     + ", newCursorPosition=" + newCursorPosition);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. we'll just call the default implementation to replicate behavior of an app
+        // that doesn't explicitly implement this method.
+        if (getSettings().shouldSkipReplaceText()) {
+            return mProxyForDefaultMethods.replaceText(start, end, text, newCursorPosition,
+                    textAttribute);
+        }
+
         Preconditions.checkArgumentNonnegative(start);
         Preconditions.checkArgumentNonnegative(end);
 
@@ -2147,7 +2165,7 @@ public class EditableInputConnection implements InputConnection {
         }
 
         final Editable content = getEditable();
-        beginBatchEdit();
+        beginBatchEditInternal();
         removeComposingSpans(content);
 
         int len = content.length();
@@ -2159,7 +2177,7 @@ public class EditableInputConnection implements InputConnection {
             end = tmp;
         }
         replaceTextInternal(start, end, text, newCursorPosition, /*composing=*/ false, content);
-        endBatchEdit();
+        endBatchEditInternal();
         return true;
     }
 
@@ -2420,7 +2438,6 @@ public class EditableInputConnection implements InputConnection {
         mEditText.setImeConsumesInput(imeConsumesInput);
     }
 
-    //TODO: (EW) add target version simulation setting for this new method
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Override
     public void performHandwritingGesture(
@@ -2430,6 +2447,15 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "performHandwritingGesture: gesture=" + gesture
                     + ", executor=" + executor + ", consumer=" + consumer);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. we'll just call the default implementation to replicate behavior of an app
+        // that doesn't explicitly implement this method.
+        if (getSettings().shouldSkipPerformHandwritingGesture()) {
+            mProxyForDefaultMethods.performHandwritingGesture(gesture, executor, consumer);
+            return;
+        }
+
         int result;
         if (gesture instanceof SelectGesture) {
             result = mEditText.performHandwritingSelectGesture((SelectGesture) gesture);
@@ -2455,7 +2481,6 @@ public class EditableInputConnection implements InputConnection {
         }
     }
 
-    //TODO: (EW) add target version simulation setting for this new method
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Override
     public boolean previewHandwritingGesture(
@@ -2465,6 +2490,14 @@ public class EditableInputConnection implements InputConnection {
             Log.d(TAG, "previewHandwritingGesture: gesture=" + gesture
                     + ", cancellationSignal=" + cancellationSignal);
         }
+
+        // (EW) check the setting to skip implementing this method to simulate an app targeting an
+        // older version. we'll just call the default implementation to replicate behavior of an app
+        // that doesn't explicitly implement this method.
+        if (getSettings().shouldSkipPreviewHandwritingGesture()) {
+            return mProxyForDefaultMethods.previewHandwritingGesture(gesture, cancellationSignal);
+        }
+
         return mEditText.previewHandwritingGesture(gesture, cancellationSignal);
     }
 

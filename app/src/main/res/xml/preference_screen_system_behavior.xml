@@ -108,4 +108,15 @@
         app:valueText="@string/abbreviation_unit_milliseconds"
         app:defaultValueText="@string/no_delay" />
 
+    <com.wittmane.testingedittext.settings.preferences.SeekBarDialogPreference
+        android:key="pref_key_requesttextboundsinfo_delay"
+        android:title="@string/requesttextboundsinfo_delay_title"
+        android:summary="@string/requesttextboundsinfo_delay_summary"
+        app:minValue="@integer/config_inputconnection_method_delay_min"
+        app:maxValue="@integer/config_inputconnection_method_delay_max"
+        app:stepValue="@integer/config_inputconnection_method_delay_step"
+        app:defaultValue="@integer/config_inputconnection_method_delay_default"
+        app:valueText="@string/abbreviation_unit_milliseconds"
+        app:defaultValueText="@string/no_delay" />
+
 </PreferenceScreen>

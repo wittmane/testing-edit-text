@@ -55,6 +55,11 @@ public class TargetVersionSettingsFragment extends PerTestFieldSettingsFragment 
             skipSetComposingRegionPref.setChecked(false);
         }
 
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            PreferenceCategory addedInApiLevel34Category =
+                    (PreferenceCategory)findPreference("pref_key_added_in_api_level_34");
+            getPreferenceScreen().removePreference(addedInApiLevel34Category);
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             PreferenceCategory addedInApiLevel33Category =
                     (PreferenceCategory)findPreference("pref_key_added_in_api_level_33");

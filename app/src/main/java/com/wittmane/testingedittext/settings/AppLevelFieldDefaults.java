@@ -39,6 +39,10 @@ import com.wittmane.testingedittext.datatype.TranslateText;
     public int mReturnedTextLimit;
     public boolean mDeleteThroughComposingText;
     public boolean mKeepEmptyComposingPosition;
+    public boolean mSkipPerformHandwritingGesture;
+    public boolean mSkipPreviewHandwritingGesture;
+    public boolean mSkipReplaceText;
+    public boolean mSkipRequestTextBoundsInfo;
     public boolean mSkipTakeSnapshot;
     public boolean mSkipGetSurroundingText;
     public boolean mSkipPerformSpellCheck;
@@ -58,4 +62,5 @@ import com.wittmane.testingedittext.datatype.TranslateText;
     public int mGetTextAfterCursorDelay;
     public int mGetCursorCapsModeDelay;
     public int mGetExtractedTextDelay;
+    public int mRequestTextBoundsInfoDelay;
 }

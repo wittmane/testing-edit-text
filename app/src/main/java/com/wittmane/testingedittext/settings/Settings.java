@@ -901,6 +901,26 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
 
         @Override
+        public boolean shouldSkipPerformHandwritingGesture() {
+            return getTestFieldOrBaseForTargetVersion().mSkipPerformHandwritingGesture;
+        }
+
+        @Override
+        public boolean shouldSkipPreviewHandwritingGesture() {
+            return getTestFieldOrBaseForTargetVersion().mSkipPreviewHandwritingGesture;
+        }
+
+        @Override
+        public boolean shouldSkipReplaceText() {
+            return getTestFieldOrBaseForTargetVersion().mSkipReplaceText;
+        }
+
+        @Override
+        public boolean shouldSkipRequestTextBoundsInfo() {
+            return getTestFieldOrBaseForTargetVersion().mSkipRequestTextBoundsInfo;
+        }
+
+        @Override
         public boolean shouldSkipTakeSnapshot() {
             return getTestFieldOrBaseForTargetVersion().mSkipTakeSnapshot;
         }
@@ -993,6 +1013,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         @Override
         public int getGetExtractedTextDelay() {
             return getTestFieldOrBaseForSystemBehavior().mGetExtractedTextDelay;
+        }
+
+        @Override
+        public int getRequestTextBoundsInfoDelay() {
+            return getTestFieldOrBaseForSystemBehavior().mRequestTextBoundsInfoDelay;
         }
     }
 

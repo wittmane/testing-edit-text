@@ -89,6 +89,14 @@ public class PreferenceKeys {
     //#region target version simulation
     public static final String PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX =
             "pref_key_override_target_version_simulation";
+    public static final String PREF_SKIP_PERFORMHANDWRITINGGESTURE_PREFIX =
+            "pref_key_skip_performhandwritinggesture";
+    public static final String PREF_SKIP_PREVIEWHANDWRITINGGESTURE_PREFIX =
+            "pref_key_skip_previewhandwritinggesture";
+    public static final String PREF_SKIP_REPLACETEXT_PREFIX =
+            "pref_key_skip_replacetext";
+    public static final String PREF_SKIP_REQUESTTEXTBOUNDSINFO_PREFIX =
+            "pref_key_skip_requesttextboundsinfo";
     public static final String PREF_SKIP_TAKESNAPSHOT_PREFIX =
             "pref_key_skip_takesnapshot";
     public static final String PREF_SKIP_GETSURROUNDINGTEXT_PREFIX =
@@ -132,6 +140,8 @@ public class PreferenceKeys {
             "pref_key_getcursorcapsmode_delay";
     public static final String PREF_GETEXTRACTEDTEXT_DELAY_PREFIX =
             "pref_key_getextractedtext_delay";
+    public static final String PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX =
+            "pref_key_requesttextboundsinfo_delay";
     //#endregion
 
     public static final String PREF_TEST_GROUP_IDS =
@@ -261,6 +271,10 @@ public class PreferenceKeys {
     };
 
     public static final String[] TARGET_VERSION_SIMULATION_PREF_KEY_PREFIXES = new String[] {
+            PREF_SKIP_PERFORMHANDWRITINGGESTURE_PREFIX,
+            PREF_SKIP_PREVIEWHANDWRITINGGESTURE_PREFIX,
+            PREF_SKIP_REPLACETEXT_PREFIX,
+            PREF_SKIP_REQUESTTEXTBOUNDSINFO_PREFIX,
             PREF_SKIP_TAKESNAPSHOT_PREFIX,
             PREF_SKIP_GETSURROUNDINGTEXT_PREFIX,
             PREF_SKIP_PERFORMSPELLCHECK_PREFIX,
@@ -282,7 +296,8 @@ public class PreferenceKeys {
             PREF_GETSELECTEDTEXT_DELAY_PREFIX,
             PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX,
             PREF_GETCURSORCAPSMODE_DELAY_PREFIX,
-            PREF_GETEXTRACTEDTEXT_DELAY_PREFIX
+            PREF_GETEXTRACTEDTEXT_DELAY_PREFIX,
+            PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX
     };
 
     public static final String[] DEFAULTABLE_TEST_FIELD_PREF_KEY_PREFIXES = ArrayUtils.join(
