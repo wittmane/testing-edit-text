@@ -82,8 +82,6 @@ import com.wittmane.testingedittext.util.CodePointUtils;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 import static com.wittmane.testingedittext.settings.EditorSettings.COMPOSING_TEXT_BEHAVIOR_COMMIT;
@@ -1672,7 +1670,7 @@ public class EditableInputConnection implements InputConnection {
     @Override
     public void requestTextBoundsInfo(
             @NonNull RectF bounds, @Nullable Executor executor,
-            @NonNull Consumer<TextBoundsInfoResult> consumer) {
+            @NonNull java.util.function.Consumer<TextBoundsInfoResult> consumer) {
         if (LOG_CALLS) {
             Log.d(TAG, "requestTextBoundsInfo: bounds=" + bounds
                     + ", executor=" + executor + ", consumer=" + consumer);
@@ -2442,7 +2440,7 @@ public class EditableInputConnection implements InputConnection {
     @Override
     public void performHandwritingGesture(
             @NonNull HandwritingGesture gesture, @Nullable Executor executor,
-            @Nullable IntConsumer consumer) {
+            @Nullable java.util.function.IntConsumer consumer) {
         if (LOG_CALLS) {
             Log.d(TAG, "performHandwritingGesture: gesture=" + gesture
                     + ", executor=" + executor + ", consumer=" + consumer);

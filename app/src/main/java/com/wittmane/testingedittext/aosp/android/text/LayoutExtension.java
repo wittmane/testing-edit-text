@@ -105,6 +105,8 @@ public class LayoutExtension {
         return need;
     }
 
+    // (EW) made static and added TextDirectionHeuristic parameter and custom logic to get a
+    // Directions object that we can actually do something with
     /**
      * Returns the directional run information for the specified line.
      * The array alternates counts of characters in left-to-right
@@ -114,7 +116,6 @@ public class LayoutExtension {
      */
     public static Directions getLineDirections(Layout layout, TextDirectionHeuristic textDir,
                                                int line) {
-        // (EW) custom logic to get a Directions object that we can actually do something with
         int lineStart = layout.getLineStart(line);
         int lineEnd = layout.getLineEnd(line);
 
@@ -130,6 +131,7 @@ public class LayoutExtension {
         }
     }
 
+    // (EW) made static and added TextDirectionHeuristic parameter
     /**
      * Returns true if the character at offset and the preceding character
      * are at different run levels (and thus there's a split caret).
@@ -630,6 +632,17 @@ public class LayoutExtension {
          */
         public @IntRange(from = 0) int getRunLength(@IntRange(from = 0) int runIndex) {
             return mDirections[runIndex * 2 + 1] & RUN_LENGTH_MASK;
+        }
+
+        /**
+         * Returns the BiDi level of this run.
+         *
+         * @param runIndex the index of the BiDi run
+         * @return the BiDi level of this run.
+         */
+        @IntRange(from = 0)
+        public int getRunLevel(int runIndex) {
+            return (mDirections[runIndex * 2 + 1] >>> RUN_LEVEL_SHIFT) & RUN_LEVEL_MASK;
         }
 
         /**

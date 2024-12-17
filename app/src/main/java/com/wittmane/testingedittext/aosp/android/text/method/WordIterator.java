@@ -23,8 +23,10 @@ import android.icu.lang.UProperty;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.wrapper.BreakIterator;
+import android.icu.util.ULocale;
 import com.wittmane.testingedittext.aosp.android.text.CharSequenceCharacterIterator;
 import com.wittmane.testingedittext.aosp.android.text.SelectionExtension;
 
@@ -51,6 +53,15 @@ public class WordIterator implements SelectionExtension.PositionIterator {
      */
     public WordIterator() {
         this(Locale.getDefault());
+    }
+
+    /**
+     * Constructs a new WordIterator for the specified locale.
+     * @param locale The locale to be used for analyzing the text.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public WordIterator(ULocale locale) {
+        mIterator = BreakIterator.getWordInstance(locale);
     }
 
     /**

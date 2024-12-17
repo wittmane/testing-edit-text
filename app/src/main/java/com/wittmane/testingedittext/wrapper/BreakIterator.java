@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Eli Wittman
+ * Copyright (C) 2022-2024 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 package com.wittmane.testingedittext.wrapper;
 
+import android.icu.util.ULocale;
+import android.os.Build;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
+
+import androidx.annotation.RequiresApi;
 
 import java.text.CharacterIterator;
 import java.util.Locale;
@@ -45,6 +49,11 @@ public class BreakIterator {
         } else {
             return new BreakIterator(java.text.BreakIterator.getWordInstance(locale));
         }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public static BreakIterator getWordInstance(ULocale locale) {
+        return new BreakIterator(android.icu.text.BreakIterator.getWordInstance(locale));
     }
 
     public void setText(CharacterIterator newText) {

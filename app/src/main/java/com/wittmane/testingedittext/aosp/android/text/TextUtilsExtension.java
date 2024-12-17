@@ -36,6 +36,10 @@ import java.lang.reflect.Array;
  */
 public class TextUtilsExtension {
 
+    public static final int LINE_FEED_CODE_POINT = 10;
+
+    private static final int NBSP_CODE_POINT = 160;
+
     // Returns true if the character's presence could affect RTL layout.
     //
     // In order to be fast, the code is intentionally rough and quite conservative in its
@@ -192,5 +196,34 @@ public class TextUtilsExtension {
             size = size - 1;
         }
         return (T) text.subSequence(0, size);
+    }
+
+    /** @hide */
+    public static boolean isNewline(int codePoint) {
+        int type = Character.getType(codePoint);
+        return type == Character.PARAGRAPH_SEPARATOR || type == Character.LINE_SEPARATOR
+                || codePoint == LINE_FEED_CODE_POINT;
+    }
+
+    /** @hide */
+    public static boolean isWhitespace(int codePoint) {
+        return Character.isWhitespace(codePoint) || codePoint == NBSP_CODE_POINT;
+    }
+
+    /** @hide */
+    public static boolean isWhitespaceExceptNewline(int codePoint) {
+        return isWhitespace(codePoint) && !isNewline(codePoint);
+    }
+
+    /** @hide */
+    public static boolean isPunctuation(int codePoint) {
+        int type = Character.getType(codePoint);
+        return type == Character.CONNECTOR_PUNCTUATION
+                || type == Character.DASH_PUNCTUATION
+                || type == Character.END_PUNCTUATION
+                || type == Character.FINAL_QUOTE_PUNCTUATION
+                || type == Character.INITIAL_QUOTE_PUNCTUATION
+                || type == Character.OTHER_PUNCTUATION
+                || type == Character.START_PUNCTUATION;
     }
 }
