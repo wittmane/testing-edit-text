@@ -1929,7 +1929,11 @@ class Editor {
         }
     }
 
-    void onDraw(Canvas canvas, Layout layout, Path highlight, Paint highlightPaint,
+    //TODO: (EW) pull in handling for the new parameters
+    void onDraw(Canvas canvas, Layout layout,
+                List<Path> highlightPaths,
+                List<Paint> highlightPaints,
+                Path highlight, Paint highlightPaint,
                 int cursorOffsetVertical) {
         final int selectionStart = mEditText.getSelectionStart();
         final int selectionEnd = mEditText.getSelectionEnd();

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2023 Eli Wittman
+<!-- Copyright (C) 2022-2024 Eli Wittman
      Copyright 2015, The Android Open Source Project
      Copyright (C) 2006 The Android Open Source Project
 
@@ -187,6 +187,14 @@
         <attr name="android:textLocale" />
         <!-- Color of the text selection highlight. -->
         <attr name="android:textColorHighlight" />
+        <!-- Color of search results highlight.
+             This color is typically used when TextView/EditText shows search result in-app text
+             search invoked with Ctrl+F. -->
+        <attr name="android:searchResultHighlightColor" />
+        <!-- Color of focused search result highlight.
+             This color is typically used when TextView/EditText shows search result in-app text
+             search invoked with Ctrl+F. -->
+        <attr name="android:focusedSearchResultHighlightColor" />
         <!-- Color of the hint text. -->
         <attr name="android:textColorHint" />
         <!-- Color of the links. -->
@@ -231,6 +239,14 @@
         <attr name="android:textColor" />
         <!-- Color of the text selection highlight. -->
         <attr name="android:textColorHighlight" />
+        <!-- Color of search results highlight.
+             This color is typically used when TextView/EditText shows search result in-app text
+             search invoked with Ctrl+F. -->
+        <attr name="android:searchResultHighlightColor" />
+        <!-- Color of focused search result highlight.
+             This color is typically used when TextView/EditText shows search result in-app text
+             search invoked with Ctrl+F. -->
+        <attr name="android:focusedSearchResultHighlightColor" />
         <!-- Color of the hint text. -->
         <attr name="android:textColorHint" />
         <!-- Base text color, typeface, size, and style. -->
@@ -485,6 +501,9 @@
         <attr name="android:lineBreakStyle" />
         <!-- Specify the phrase-based line break can be used when calculating the text wrapping.-->
         <attr name="android:lineBreakWordStyle" />
+
+        <!-- Enables styling shortcuts, e.g. Ctrl+B for bold. This is off by default.  -->
+        <attr name="android:enableTextStylingShortcuts" />
     </declare-styleable>
     <declare-styleable name="TextViewAppearance">
         <!-- Base text color, typeface, size, and style. -->

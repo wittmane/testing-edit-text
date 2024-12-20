@@ -42,6 +42,10 @@ import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigEx
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakWordStyle;
 import com.wittmane.testingedittext.aosp.android.text.WordSegmentFinder;
 import com.wittmane.testingedittext.aosp.android.text.method.OffsetMapping;
+import com.wittmane.testingedittext.aosp.android.text.style.SpanUtils;
+import com.wittmane.testingedittext.aosp.android.util.FeatureFlagUtils;
+import com.wittmane.testingedittext.aosp.android.util.TypedValueExtension;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.TextAppearanceInfoExtension;
 import com.wittmane.testingedittext.aosp.com.android.internal.graphics.ColorUtils;
 import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.android.text.method.LocaleDigitsKeyListener;
@@ -117,7 +121,9 @@ import android.text.style.CharacterStyle;
 import android.text.style.ParagraphStyle;
 import android.text.style.SuggestionSpan;
 import android.text.style.UpdateAppearance;
+import android.util.ArraySet;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseIntArray;
 import android.util.TypedValue;
@@ -178,6 +184,7 @@ import android.widget.Toast;
 import androidx.annotation.CallSuper;
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
+import androidx.annotation.FloatRange;
 import androidx.annotation.InspectableProperty;
 import androidx.annotation.InspectableProperty.EnumEntry;
 import androidx.annotation.InspectableProperty.FlagEntry;
@@ -215,6 +222,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -229,8 +237,19 @@ import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
 import static com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection.LOG_CALLS;
 import static com.wittmane.testingedittext.aosp.android.widget.Editor.logCursor;
 
+// (EW) copy of AOSP's EditText to allow complete customization. note that EditText is just a very
+// thin extension of TextView, so 99% of this code is actually from TextView
 public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
+
+    // (EW) from EditText
+    // True if the style shortcut is enabled.
+    private boolean mStyleShortcutsEnabled = false;
+
+    // (EW) from EditText
+    private static final int ID_BOLD = android.R.id.bold;
+    private static final int ID_ITALIC = android.R.id.italic;
+    private static final int ID_UNDERLINE = android.R.id.underline;
 
     static final String LOG_TAG = "EditText";
     static final boolean DEBUG_EXTRACT = false;
@@ -274,7 +293,16 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     private static final int CHANGE_WATCHER_PRIORITY = 100;
 
-    static final int PROCESS_TEXT_REQUEST_CODE = 100;
+    /**
+     * The span priority of the {@link OffsetMapping} that is set on the text. It must be
+     * higher than the {@link DynamicLayout}'s {@link TextWatcher}, so that the transformed text is
+     * updated before {@link DynamicLayout#reflow(CharSequence, int, int, int)} being triggered
+     * by {@link TextWatcher#onTextChanged(CharSequence, int, int, int)}.
+     */
+    private static final int OFFSET_MAPPING_SPAN_PRIORITY = 200;
+
+    // (EW) AOSP version was public but hidden and marked with @TestApi
+    /* package */ static final int PROCESS_TEXT_REQUEST_CODE = 100;
 
     /**
      *  Return code of {@link #doKeyDown}.
@@ -352,6 +380,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     private CharSequence mHint;
     private Layout mHintLayout;
+    private boolean mHideHint;
 
     private MovementMethod mMovement;
 
@@ -372,6 +401,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     private int mLineBreakStyle = DEFAULT_LINE_BREAK_STYLE;
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private int mLineBreakWordStyle = DEFAULT_LINE_BREAK_WORD_STYLE;
+
+    // The auto option for LINE_BREAK_WORD_STYLE_PHRASE may not be applied in recycled view due to
+    // one-way flag flipping. This is a tentative limitation during experiment and will not have the
+    // issue once this is finalized to LINE_BREAK_WORD_STYLE_PHRASE_AUTO option.
+    private boolean mUserSpeficiedLineBreakwordStyle = false;
 
     // This is used to reflect the current user preference for changing font weight and making text
     // more bold.
@@ -396,6 +430,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     private float mSpacingMultiplier = 1.0f;
     private float mSpacingAdd = 0.0f;
+
+    /**
+     * Remembers what line height was set to originally, before we broke it down into raw pixels.
+     *
+     * <p>This is stored as a complex dimension with both value and unit packed into one field!
+     * {@see TypedValue}
+     */
+    private int mLineHeightComplexDimen;
 
     private int mBreakStrategy;
     private int mHyphenationFrequency;
@@ -508,6 +550,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      */
     private int mDeviceProvisionedState = DEVICE_PROVISIONED_UNKNOWN;
 
+    /**
+     * The last input source on this TextView.
+     *
+     * Use the SOURCE_TOUCHSCREEN as the default value for backward compatibility. There could be a
+     * non UI event originated ActionMode initiation, e.g. API call, a11y events, etc.
+     */
+    private int mLastInputSource = InputDevice.SOURCE_TOUCHSCREEN;
+
     private static final int RESOURCES_ID_NULL =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
 
@@ -529,6 +579,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             ? FontStyle.FONT_WEIGHT_MIN : 1;
     private static final int FONT_WEIGHT_MAX = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
             ? FontStyle.FONT_WEIGHT_MAX : 1000;
+    private static final int FONT_WEIGHT_UNSPECIFIED = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            ? FontStyle.FONT_WEIGHT_UNSPECIFIED : -1;
 
     private static final Matrix IDENTITY_MATRIX = getIdentityMatrix();
     // (EW) Matrix#IDENTITY_MATRIX was made available in S, but it was actually added at least by
@@ -552,6 +604,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * performed on the editor.
      */
     public interface OnEditorActionListener {
+        //TODO: (EW) will we actually have varying behavior in Android 14, or will this be pulled
+        // into previous versions too?
         /**
          * Called when an action is being performed.
          *
@@ -559,7 +613,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
          * @param actionId Identifier of the action.  This will be either the
          * identifier you supplied, or {@link EditorInfo#IME_NULL
          * EditorInfo.IME_NULL} if being called due to the enter key
-         * being pressed.
+         * being pressed. Starting from Android 14, the action identifier will
+         * also be included when triggered by an enter key if the input is
+         * constrained to a single line.
          * @param event If triggered by an enter key, this is the event;
          * otherwise, this is null.
          * @return Return true if you have consumed the action, else false.
@@ -708,7 +764,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
         int firstBaselineToTopHeight = -1;
         int lastBaselineToBottomHeight = -1;
-        int lineHeight = -1;
+        float lineHeight = -1f;
+        int lineHeightUnit = -1;
 
         // (EW) flags for whether the android attributes were specified in order to determine if a
         // custom copy of the attribute should be ignored
@@ -936,6 +993,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             } else if (attr == R.styleable.EditText_android_lineBreakWordStyle) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     // (EW) the layout only started supporting line break config in Tiramisu
+                    if (typedArray.hasValue(attr)) {
+                        mUserSpeficiedLineBreakwordStyle = true;
+                    }
                     mLineBreakWordStyle = typedArray.getInt(attr,
                             LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE);
                 }
@@ -979,9 +1039,18 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 // can do to support these versions, but I'm not certain. I'll just hide it behind a
                 // version check to avoid unexpected behavior changing between versions.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    lineHeight = typedArray.getDimensionPixelSize(attr, -1);
+                    TypedValue peekValue = typedArray.peekValue(attr);
+                    if (peekValue != null && peekValue.type == TypedValue.TYPE_DIMENSION) {
+                        lineHeightUnit = peekValue.getComplexUnit();
+                        lineHeight = TypedValue.complexToFloat(peekValue.data);
+                    } else {
+                        lineHeight = typedArray.getDimensionPixelSize(attr, -1);
+                    }
                 }
 
+            } else if (attr == R.styleable.EditText_android_enableTextStylingShortcuts) {
+                //TODO: (EW) test if this can apply prior to Android 14
+                mStyleShortcutsEnabled = typedArray.getBoolean(attr, false);
             }
         }
 
@@ -1178,7 +1247,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             setLastBaselineToBottomHeight(lastBaselineToBottomHeight);
         }
         if (lineHeight >= 0) {
-            setLineHeight(lineHeight);
+            if (lineHeightUnit == -1) {
+                setLineHeightPx(lineHeight);
+            } else {
+                setLineHeight(lineHeightUnit, lineHeight);
+            }
         }
     }
 
@@ -1239,12 +1312,13 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @param familyName family name string, e.g. "serif"
      * @param typefaceIndex an index of the typeface enum, e.g. SANS, SERIF.
      * @param style a typeface style
-     * @param weight a weight value for the Typeface or -1 if not specified.
+     * @param weight a weight value for the Typeface or {@code FontStyle.FONT_WEIGHT_UNSPECIFIED}
+     *               if not specified.
      */
     @RequiresApi(api = Build.VERSION_CODES.P)
     private void setTypefaceFromAttrs(@Nullable Typeface typeface, @Nullable String familyName,
-                                      @XMLTypefaceAttr int typefaceIndex, int style,
-                                      @IntRange(from = -1, to = FontStyle.FONT_WEIGHT_MAX) int weight) {
+            @XMLTypefaceAttr int typefaceIndex, int style,
+            @IntRange(from = FontStyle.FONT_WEIGHT_UNSPECIFIED, to = FontStyle.FONT_WEIGHT_MAX) int weight) {
         if (typeface == null && familyName != null) {
             // Lookup normal Typeface from system font map.
             final Typeface normalTypeface = Typeface.create(familyName, Typeface.NORMAL);
@@ -1298,7 +1372,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     @RequiresApi(api = Build.VERSION_CODES.P)
     private void resolveStyleAndSetTypeface(@Nullable Typeface typeface, int style,
-                                            @IntRange(from = -1, to = FontStyle.FONT_WEIGHT_MAX) int weight) {
+            @IntRange(from = FontStyle.FONT_WEIGHT_UNSPECIFIED, to = FontStyle.FONT_WEIGHT_MAX) int weight) {
         if (weight >= 0) {
             final int limitedWeight = Math.min(FONT_WEIGHT_MAX, Math.max(1, weight));
             final boolean italic = (style & Typeface.ITALIC) != 0;
@@ -1383,6 +1457,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // #onCreateViewTranslationRequest doesn't support selectable and editable text yet, we
         // shouldn't need to do anything (also most of the AOSP handling for this is calling hidden
         // things that probably would be difficult or impossible to exactly replicate).
+        //TODO: (EW) based on briefly looking at some comments in #onCreateViewTranslationRequest,
+        // this doesn't seem true in Tiramisu, so we might need to do something here now. AOSP's
+        // #setTransformationMethod would only set mAllowTransformationLengthChange if not editable
+        // and not selectable, so I'm not sure if this is actually a concern. verify and at least
+        // clean up comments explaining this.
         return mText;
     }
 
@@ -2169,6 +2248,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      */
     private static class TextAppearanceAttributes {
         int mTextColorHighlight = 0;
+        int mSearchResultHighlightColor = 0;
+        int mFocusedSearchResultHighlightColor = 0;
         ColorStateList mTextColor = null;
         ColorStateList mTextColorHint = null;
         int mTextSize = -1;
@@ -2179,7 +2260,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         boolean mFontFamilyExplicit = false;
         @XMLTypefaceAttr int mTypefaceIndex = DEFAULT_TYPEFACE;
         int mTextStyle = 0;
-        int mFontWeight = -1;
+        int mFontWeight = FONT_WEIGHT_UNSPECIFIED;
         int mShadowColor = 0;
         float mShadowDx = 0, mShadowDy = 0, mShadowRadius = 0;
         boolean mHasElegant = false;
@@ -2201,6 +2282,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         public String toString() {
             return "TextAppearanceAttributes {\n"
                     + "    mTextColorHighlight:" + mTextColorHighlight + "\n"
+                    + "    mSearchResultHighlightColor: " + mSearchResultHighlightColor + "\n"
+                    + "    mFocusedSearchResultHighlightColor: "
+                    + mFocusedSearchResultHighlightColor + "\n"
                     + "    mTextColor:" + mTextColor + "\n"
                     + "    mTextColorHint:" + mTextColorHint + "\n"
                     + "    mTextSize:" + mTextSize + "\n"
@@ -2238,6 +2322,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     static {
         sAppearanceValues.put(R.styleable.EditText_android_textColorHighlight,
                 R.styleable.TextAppearance_android_textColorHighlight);
+        sAppearanceValues.put(R.styleable.EditText_android_searchResultHighlightColor,
+                R.styleable.TextAppearance_android_searchResultHighlightColor);
+        sAppearanceValues.put(
+                R.styleable.EditText_android_focusedSearchResultHighlightColor,
+                R.styleable.TextAppearance_android_focusedSearchResultHighlightColor);
         sAppearanceValues.put(R.styleable.EditText_android_textColor,
                 R.styleable.TextAppearance_android_textColor);
         sAppearanceValues.put(R.styleable.EditText_android_textColorHint,
@@ -2316,9 +2405,20 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             //               typing anything into the field.
             //               https://androidacademic.blogspot.com/2018/05/android-edittext-Index-Out-Of-Bounds-exception.html
             //               points this out and states that this property isn't for EditText.
+            //TODO: (EW) why did I make this an if-else, rather than switch-case? if there isn't a
+            // good reason, maybe switch back to make diffing easier
             if (index == R.styleable.TextAppearance_android_textColorHighlight) {
                 attributes.mTextColorHighlight =
                         appearance.getColor(attr, attributes.mTextColorHighlight);
+
+            } else if (index == R.styleable.TextAppearance_android_searchResultHighlightColor) {
+                    attributes.mSearchResultHighlightColor =
+                            appearance.getColor(attr, attributes.mSearchResultHighlightColor);
+
+            } else if (index == R.styleable.TextAppearance_android_focusedSearchResultHighlightColor) {
+                    attributes.mFocusedSearchResultHighlightColor =
+                            appearance.getColor(attr,
+                                    attributes.mFocusedSearchResultHighlightColor);
 
             } else if (index == R.styleable.TextAppearance_android_textColor) {
                 attributes.mTextColor = appearance.getColorStateList(attr);
@@ -2425,6 +2525,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             } else if (index == R.styleable.TextAppearance_android_lineBreakWordStyle
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 attributes.mHasLineBreakWordStyle = true;
+                mUserSpeficiedLineBreakwordStyle = true;
                 attributes.mLineBreakWordStyle =
                         appearance.getInt(attr, attributes.mLineBreakWordStyle);
             }
@@ -2442,6 +2543,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         if (attributes.mTextColorHighlight != 0) {
             setHighlightColor(attributes.mTextColorHighlight);
+        }
+
+        if (attributes.mSearchResultHighlightColor != 0) {
+            setSearchResultHighlightColor(attributes.mSearchResultHighlightColor);
+        }
+
+        if (attributes.mFocusedSearchResultHighlightColor != 0) {
+            setFocusedSearchResultHighlightColor(attributes.mFocusedSearchResultHighlightColor);
         }
 
         if (attributes.mTextSize != -1) {
@@ -2707,10 +2816,13 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @attr ref android.R.styleable#TextView_textSize
      */
     public void setTextSize(int unit, float size) {
+        //TODO: (EW) the AOSP version first checked that auto-sizing isn't enabled, but EditText
+        // never supports auto-sizing, so that was skipped.
         setTextSizeInternal(unit, size, true /* shouldRequestLayout */);
     }
 
-    private void setTextSizeInternal(int unit, float size, boolean shouldRequestLayout) {
+    @NonNull
+    private DisplayMetrics getDisplayMetricsOrSystem() {
         Context c = getContext();
         Resources r;
 
@@ -2720,8 +2832,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             r = c.getResources();
         }
 
+        return r.getDisplayMetrics();
+    }
+
+    private void setTextSizeInternal(int unit, float size, boolean shouldRequestLayout) {
         mTextSizeUnit = unit;
-        setRawTextSize(TypedValue.applyDimension(unit, size, r.getDisplayMetrics()),
+        setRawTextSize(TypedValue.applyDimension(unit, size, getDisplayMetricsOrSystem()),
                 shouldRequestLayout);
     }
 
@@ -2729,7 +2845,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (size != mTextPaint.getTextSize()) {
             mTextPaint.setTextSize(size);
 
+            maybeRecalculateLineHeight();
             if (shouldRequestLayout && mLayout != null) {
+                //TODO: (EW) the AOSP version had some handling for auto-sizing, but EditText
+                // never supports auto-sizing, so that was skipped.
                 nullLayouts();
                 requestLayout();
                 invalidate();
@@ -3104,23 +3223,31 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
-     * Set the line break style for text wrapping.
+     * Sets the line-break style for text wrapping.
      *
-     * The line break style to indicates the line break strategies can be used when
-     * calculating the text wrapping. The line break style affects rule-based breaking. It
-     * specifies the strictness of line-breaking rules.
-     * There are several types for the line break style:
-     * {@link LineBreakConfig#LINE_BREAK_STYLE_LOOSE},
-     * {@link LineBreakConfig#LINE_BREAK_STYLE_NORMAL} and
-     * {@link LineBreakConfig#LINE_BREAK_STYLE_STRICT}. The default values of the line break style
-     * is {@link LineBreakConfig#LINE_BREAK_STYLE_NONE}, indicating no breaking rule is specified.
-     * See <a href="https://www.w3.org/TR/css-text-3/#line-break-property">
-     *         the line-break property</a>
+     * <p>Line-break style specifies the line-break strategies that can be used
+     * for text wrapping. The line-break style affects rule-based line breaking
+     * by specifying the strictness of line-breaking rules.
      *
-     * @param lineBreakStyle the line break style for the text.
+     * <p>The following are types of line-break styles:
+     * <ul>
+     *   <li>{@link LineBreakConfig#LINE_BREAK_STYLE_LOOSE}
+     *   <li>{@link LineBreakConfig#LINE_BREAK_STYLE_NORMAL}
+     *   <li>{@link LineBreakConfig#LINE_BREAK_STYLE_STRICT}
+     * </ul>
+     *
+     * <p>The default line-break style is
+     * {@link LineBreakConfig#LINE_BREAK_STYLE_NONE}, which specifies that no
+     * line-breaking rules are used.
+     *
+     * <p>See the
+     * <a href="https://www.w3.org/TR/css-text-3/#line-break-property" class="external">
+     * line-break property</a> for more information.
+     *
+     * @param lineBreakStyle The line-break style for the text.
      */
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public void setLineBreakStyle(@LineBreakStyle int lineBreakStyle) {
+    public void setLineBreakStyle(@LineBreakConfigExtension.LineBreakStyle int lineBreakStyle) {
         if (mLineBreakStyle != lineBreakStyle) {
             mLineBreakStyle = lineBreakStyle;
             if (mLayout != null) {
@@ -3132,20 +3259,27 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
-     * Set the line break word style for text wrapping.
+     * Sets the line-break word style for text wrapping.
      *
-     * The line break word style affects dictionary-based breaking and provide phrase-based
-     * breaking opportunities. The type for the line break word style is
-     * {@link LineBreakConfig#LINE_BREAK_WORD_STYLE_PHRASE}. The default values of the line break
-     * word style is {@link LineBreakConfig#LINE_BREAK_WORD_STYLE_NONE}, indicating no breaking rule
-     * is specified.
-     * See <a href="https://www.w3.org/TR/css-text-3/#word-break-property">
-     *         the word-break property</a>
+     * <p>The line-break word style affects dictionary-based line breaking by
+     * providing phrase-based line-breaking opportunities. Use
+     * {@link LineBreakConfig#LINE_BREAK_WORD_STYLE_PHRASE} to specify
+     * phrase-based line breaking.
      *
-     * @param lineBreakWordStyle the line break word style for the tet
+     * <p>The default line-break word style is
+     * {@link LineBreakConfig#LINE_BREAK_WORD_STYLE_NONE}, which specifies that
+     * no line-breaking word style is used.
+     *
+     * <p>See the
+     * <a href="https://www.w3.org/TR/css-text-3/#word-break-property" class="external">
+     * word-break property</a> for more information.
+     *
+     * @param lineBreakWordStyle The line-break word style for the text.
      */
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public void setLineBreakWordStyle(@LineBreakWordStyle int lineBreakWordStyle) {
+    public void setLineBreakWordStyle(
+            @LineBreakConfigExtension.LineBreakWordStyle int lineBreakWordStyle) {
+        mUserSpeficiedLineBreakwordStyle = true;
         if (mLineBreakWordStyle != lineBreakWordStyle) {
             mLineBreakWordStyle = lineBreakWordStyle;
             if (mLayout != null) {
@@ -3157,22 +3291,22 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
-     * Get the current line break style for text wrapping.
+     * Gets the current line-break style for text wrapping.
      *
-     * @return the current line break style to be used for text wrapping.
+     * @return The line-break style to be used for text wrapping.
      */
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public @LineBreakStyle int getLineBreakStyle() {
+    public @LineBreakConfigExtension.LineBreakStyle int getLineBreakStyle() {
         return mLineBreakStyle;
     }
 
     /**
-     * Get the current line word break style for text wrapping.
+     * Gets the current line-break word style for text wrapping.
      *
-     * @return the current line break word style to be used for text wrapping.
+     * @return The line-break word style to be used for text wrapping.
      */
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public @LineBreakWordStyle int getLineBreakWordStyle() {
+    public @LineBreakConfigExtension.LineBreakWordStyle int getLineBreakWordStyle() {
         return mLineBreakWordStyle;
     }
 
@@ -4088,14 +4222,340 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @attr ref android.R.styleable#TextView_lineHeight
      */
     public void setLineHeight(@Px @IntRange(from = 0) int lineHeight) {
-        Preconditions.checkArgumentNonnegative(lineHeight);
+        setLineHeightPx(lineHeight);
+    }
+
+    private void setLineHeightPx(@Px @FloatRange(from = 0) float lineHeight) {
+        Preconditions.checkArgumentNonNegative(lineHeight,
+                "Expecting non-negative lineHeight while the input is " + lineHeight);
 
         final int fontHeight = getPaint().getFontMetricsInt(null);
         // Make sure we don't setLineSpacing if it's not needed to avoid unnecessary redraw.
         if (lineHeight != fontHeight) {
             // Set lineSpacingExtra by the difference of lineSpacing with lineHeight
             setLineSpacing(lineHeight - fontHeight, 1f);
+
+            mLineHeightComplexDimen =
+                        TypedValueExtension.createComplexDimension(lineHeight, TypedValue.COMPLEX_UNIT_PX);
         }
+    }
+
+    /**
+     * Sets an explicit line height to a given unit and value for this TextView. This is equivalent
+     * to the vertical distance between subsequent baselines in the TextView. See {@link
+     * TypedValue} for the possible dimension units.
+     *
+     * @param unit The desired dimension unit. SP units are strongly recommended so that line height
+     *             stays proportional to the text size when fonts are scaled up for accessibility.
+     * @param lineHeight The desired line height in the given units.
+     *
+     * @see #setLineSpacing(float, float)
+     * @see #getLineSpacingExtra()
+     *
+     * @attr ref android.R.styleable#TextView_lineHeight
+     */
+    public void setLineHeight(
+            @TypedValueExtension.ComplexDimensionUnit int unit,
+            @FloatRange(from = 0) float lineHeight
+    ) {
+        DisplayMetrics metrics = getDisplayMetricsOrSystem();
+        // (EW) the AOSP version checked FontScaleConverterFactory#isNonLinearFontScalingActive to
+        // avoid recalculation as an optimization for the majority case, but that's hidden. we'll
+        // just take the performance hit for the sake of simplicity. if this becomes an issue, we
+        // can try to pull in that code.
+
+        // Recalculate a proportional line height when non-linear font scaling is in effect.
+        // Otherwise, a desired 2x line height at font scale 1.0 will not be 2x at font scale 2.0,
+        // due to non-linear font scaling compressing higher SP sizes. See b/273326061 for details.
+        // We know they are using SP units for both the text size and the line height
+        // at this point, so determine the ratio between them. This is the *intended* line spacing
+        // multiplier if font scale == 1.0. We can then determine what the pixel value for the line
+        // height would be if we preserved proportions.
+        float textSizePx = getTextSize();
+        float textSizeSp = TypedValue.convertPixelsToDimension(
+                TypedValue.COMPLEX_UNIT_SP,
+                textSizePx,
+                metrics
+        );
+        float ratio = lineHeight / textSizeSp;
+        setLineHeightPx(textSizePx * ratio);
+
+        // Do this last so it overwrites what setLineHeightPx() sets it to.
+        mLineHeightComplexDimen = TypedValueExtension.createComplexDimension(lineHeight, unit);
+    }
+
+    private void maybeRecalculateLineHeight() {
+        if (mLineHeightComplexDimen == 0) {
+            return;
+        }
+        int unit = TypedValueExtension.getUnitFromComplexDimension(mLineHeightComplexDimen);
+        if (unit != TypedValue.COMPLEX_UNIT_SP) {
+            // The lineHeight was never supplied in SP, so we didn't do any fancy recalculations
+            // in setLineHeight(). We don't need to recalculate.
+            return;
+        }
+
+        setLineHeight(unit, TypedValue.complexToFloat(mLineHeightComplexDimen));
+    }
+
+    /**
+     * Set Highlights
+     *
+     * @param highlights A highlight object. Call with null for reset.
+     *
+     * @see #getHighlights()
+     * @see Highlights
+     */
+    public void setHighlights(@Nullable Highlights highlights) {
+        mHighlights = highlights;
+        mHighlightPathsBogus = true;
+        invalidate();
+    }
+
+    /**
+     * Returns highlights
+     *
+     * @return a highlight to be drawn. null if no highlight was set.
+     *
+     * @see #setHighlights(Highlights)
+     * @see Highlights
+     *
+     */
+    @Nullable
+    public Highlights getHighlights() {
+        return mHighlights;
+    }
+
+    /**
+     * Sets the search result ranges with flatten range representation.
+     *
+     * Ranges are represented of flattened inclusive start and exclusive end integers array. The
+     * inclusive start offset of the {@code i}-th range is stored in {@code 2 * i}-th of the array.
+     * The exclusive end offset of the {@code i}-th range is stored in {@code 2* i + 1}-th of the
+     * array. For example, the two ranges: (1, 2) and (3, 4) are flattened into single int array
+     * [1, 2, 3, 4].
+     *
+     * TextView will render the search result with the highlights with specified color in the theme.
+     * If there is a focused search result, it is rendered with focused color. By calling this
+     * method, the focused search index will be cleared.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+     *
+     * @param ranges the flatten ranges of the search result. null for clear.
+     */
+    public void setSearchResultHighlights(@Nullable int... ranges) {
+        if (ranges == null) {
+            mSearchResultHighlights = null;
+            mHighlightPathsBogus = true;
+            return;
+        }
+        if (ranges.length % 2 == 1) {
+            throw new IllegalArgumentException(
+                    "Flatten ranges must have even numbered elements");
+        }
+        for (int j = 0; j < ranges.length / 2; ++j) {
+            int start = ranges[j * 2];
+            int end = ranges[j * 2 + 1];
+            if (start > end) {
+                throw new IllegalArgumentException(
+                        "Reverse range found in the flatten range: " + start + ", " + end + ""
+                                + " at " + j + "-th range");
+            }
+        }
+        mHighlightPathsBogus = true;
+        mSearchResultHighlights = ranges;
+        mFocusedSearchResultIndex = FOCUSED_SEARCH_RESULT_INDEX_NONE;
+        invalidate();
+    }
+
+    /**
+     * Gets the current search result ranges.
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+     *
+     * @return a flatten search result ranges. null if not available.
+     */
+    @Nullable
+    public int[] getSearchResultHighlights() {
+        return mSearchResultHighlights;
+    }
+
+    /**
+     * A special index used for {@link #setFocusedSearchResultIndex(int)} and
+     * {@link #getFocusedSearchResultIndex()} inidicating there is no focused search result.
+     */
+    public static final int FOCUSED_SEARCH_RESULT_INDEX_NONE = -1;
+
+    /**
+     * Sets the focused search result index.
+     *
+     * The focused search result is drawn in a focused color.
+     * Calling {@link #FOCUSED_SEARCH_RESULT_INDEX_NONE} for clearing focused search result.
+     *
+     * This method must be called after setting search result ranges by
+     * {@link #setSearchResultHighlights(int[])}.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+     *
+     * @param index a focused search index or {@link #FOCUSED_SEARCH_RESULT_INDEX_NONE}
+     */
+    public void setFocusedSearchResultIndex(int index) {
+        if (mSearchResultHighlights == null) {
+            throw new IllegalArgumentException("Search result range must be set beforehand.");
+        }
+        if (index < -1 || index >= mSearchResultHighlights.length / 2) {
+            throw new IllegalArgumentException("Focused index(" + index + ") must be larger than "
+                    + "-1 and less than range count(" + (mSearchResultHighlights.length / 2) + ")");
+        }
+        mFocusedSearchResultIndex = index;
+        mHighlightPathsBogus = true;
+        invalidate();
+    }
+
+    /**
+     * Gets the focused search result index.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+
+     * @return a focused search index or {@link #FOCUSED_SEARCH_RESULT_INDEX_NONE}
+     */
+    public int getFocusedSearchResultIndex() {
+        return mFocusedSearchResultIndex;
+    }
+
+    /**
+     * Sets the search result highlight color.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+
+     * @param color a search result highlight color.
+     */
+    public void setSearchResultHighlightColor(@ColorInt int color) {
+        mSearchResultHighlightColor = color;
+    }
+
+    /**
+     * Gets the search result highlight color.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+
+     * @return a search result highlight color.
+     */
+    @ColorInt
+    public int getSearchResultHighlightColor() {
+        return mSearchResultHighlightColor;
+    }
+
+    /**
+     * Sets focused search result highlight color.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+
+     * @param color a focused search result highlight color.
+     */
+    public void setFocusedSearchResultHighlightColor(@ColorInt int color) {
+        mFocusedSearchResultHighlightColor = color;
+    }
+
+    /**
+     * Gets focused search result highlight color.
+     *
+     * @attr ref android.R.styleable#TextView_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_searchResultHighlightColor
+     * @attr ref android.R.styleable#TextView_focusedSearchResultHighlightColor
+     * @attr ref android.R.styleable#TextAppearance_focusedSearchResultHighlightColor
+     *
+     * @see #setSearchResultHighlights(int[])
+     * @see #getSearchResultHighlights()
+     * @see #setFocusedSearchResultIndex(int)
+     * @see #getFocusedSearchResultIndex()
+     * @see #setSearchResultHighlightColor(int)
+     * @see #getSearchResultHighlightColor()
+     * @see #setFocusedSearchResultHighlightColor(int)
+     * @see #getFocusedSearchResultHighlightColor()
+
+     * @return a focused search result highlight color.
+     */
+    @ColorInt
+    public int getFocusedSearchResultHighlightColor() {
+        return mFocusedSearchResultHighlightColor;
     }
 
     /**
@@ -4321,9 +4781,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     public void setText(CharSequence text) {
         setText(text, true, 0);
 
-        if (mCharWrapper != null) {
-            mCharWrapper.mChars = null;
-        }
+        // drop any potential mCharWrapper leaks
+        mCharWrapper = null;
     }
 
     private void setText(CharSequence text, boolean notifyBefore, int oldLength) {
@@ -4358,6 +4817,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             needEditableForNotification = true;
         }
 
+        // (EW) the AOSP version had a check around this block and some alternate handling, but
+        // since this is always editable, we only need this block
         mEditor.forgetUndoRedo();
         mEditor.scheduleRestartInputForSetText();
         Editable t = createEditable(text);
@@ -4378,7 +4839,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         final int textLength = text.length();
+        final boolean isOffsetMapping = mTransformed instanceof OffsetMapping;
 
+        // (EW) the AOSP version had a check around this block, but since the text is always an
+        // editable the transformation length would never be allowed to change (see the AOSP version
+        // of #setTransformationMethod)
         Spannable sp = (Spannable) text;
 
         // Remove any ChangeWatchers that might have come from other EditTexts.
@@ -4396,7 +4861,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         mEditor.addSpanWatchers(sp);
 
         if (mTransformation != null) {
-            sp.setSpan(mTransformation, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                final int priority = isOffsetMapping ? OFFSET_MAPPING_SPAN_PRIORITY : 0;
+            sp.setSpan(mTransformation, 0, textLength, Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                        | (priority << Spanned.SPAN_PRIORITY_SHIFT));
         }
 
         if (mMovement != null) {
@@ -4417,6 +4884,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         sendOnTextChanged(text, 0, oldLength, textLength);
         onTextChanged(text, 0, oldLength, textLength);
 
+        mHideHint = false;
+
         if (needEditableForNotification) {
             sendAfterTextChanged((Editable) text);
         } else {
@@ -4435,6 +4904,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * of the array except for right before another call to setText(),
      * since the EditText has no way to know that the text
      * has changed and that it needs to invalidate and re-layout.
+     *
+     * @throws NullPointerException if text is null
+     * @throws IndexOutOfBoundsException if start or start+len are not in 0 to text.length
      *
      * @param text char array to be displayed
      * @param start start index in the char array
@@ -4521,6 +4993,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private void setHintInternal(CharSequence hint) {
+        mHideHint = false;
         mHint = TextUtils.stringOrSpannedString(hint);
 
         if (mLayout != null) {
@@ -4553,6 +5026,21 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @ViewDebug.CapturedViewProperty
     public CharSequence getHint() {
         return mHint;
+    }
+
+    //TODO: (EW) I assume this is going to be called in Editor, which I didn't pull in yet, but we
+    // probably can change this to be package private (or just delete if not needed)
+    /**
+     * Temporarily hides the hint text until the text is modified, or the hint text is modified, or
+     * the view gains or loses focus.
+     *
+     * @hide
+     */
+    public void hideHint() {
+        if (isShowingHint()) {
+            mHideHint = true;
+            invalidate();
+        }
     }
 
     /**
@@ -4619,7 +5107,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      *
      * @see #getInputType()
      * @see #setRawInputType(int)
-     * @see InputType
+     * @see android.text.InputType
      * @attr ref android.R.styleable#TextView_inputType
      */
     public void setInputType(int type) {
@@ -4633,7 +5121,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             setTransformationMethod(PasswordTransformationMethod.getInstance());
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE,
-                        Typeface.NORMAL, -1 /* weight, not specifeid */);
+                        Typeface.NORMAL, FONT_WEIGHT_UNSPECIFIED);
             } else {
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE, 0);
             }
@@ -4643,7 +5131,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE,
-                        Typeface.NORMAL, -1 /* weight, not specified */);
+                        Typeface.NORMAL, FONT_WEIGHT_UNSPECIFIED);
             } else {
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, MONOSPACE, 0);
             }
@@ -4652,7 +5140,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */,
                         DEFAULT_TYPEFACE /* typeface index */, Typeface.NORMAL,
-                        -1 /* weight, not specified */);
+                        FONT_WEIGHT_UNSPECIFIED);
             } else {
                 setTypefaceFromAttrs(null/* fontTypeface */, null /* fontFamily */, -1, -1);
             }
@@ -5421,6 +5909,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (mLayout == null) {
             invalidate();
         } else {
+            start = originalToTransformed(start, OffsetMapping.MAP_STRATEGY_CURSOR);
+            end = originalToTransformed(end, OffsetMapping.MAP_STRATEGY_CURSOR);
             int lineStart = mLayout.getLineForOffset(start);
             int top = mLayout.getLineTop(lineStart);
 
@@ -5603,12 +6093,141 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return true;
     }
 
+    private void maybeUpdateHighlightPaths() {
+        if (!mHighlightPathsBogus) {
+            return;
+        }
+
+        if (mHighlightPaths != null) {
+            mPathRecyclePool.addAll(mHighlightPaths);
+            mHighlightPaths.clear();
+            mHighlightPaints.clear();
+        } else {
+            mHighlightPaths = new ArrayList<>();
+            mHighlightPaints = new ArrayList<>();
+        }
+
+        if (mHighlights != null) {
+            for (int i = 0; i < mHighlights.getSize(); ++i) {
+                final int[] ranges = mHighlights.getRanges(i);
+                final Paint paint = mHighlights.getPaint(i);
+                final Path path;
+                if (mPathRecyclePool.isEmpty()) {
+                    path = new Path();
+                } else {
+                    path = mPathRecyclePool.get(mPathRecyclePool.size() - 1);
+                    mPathRecyclePool.remove(mPathRecyclePool.size() - 1);
+                    path.reset();
+                }
+
+                boolean atLeastOnePathAdded = false;
+                for (int j = 0; j < ranges.length / 2; ++j) {
+                    final int start = ranges[2 * j];
+                    final int end = ranges[2 * j + 1];
+                    if (start < end) {
+                        LayoutExtension.getSelection(mLayout, getTextDir(), start, end,
+                                (left, top, right, bottom, layout) ->
+                                        path.addRect(left, top, right, bottom, Path.Direction.CW)
+                        );
+                        atLeastOnePathAdded = true;
+                    }
+                }
+                if (atLeastOnePathAdded) {
+                    mHighlightPaths.add(path);
+                    mHighlightPaints.add(paint);
+                }
+            }
+        }
+
+        addSearchHighlightPaths();
+
+        if (hasGesturePreviewHighlight()) {
+            final Path path;
+            if (mPathRecyclePool.isEmpty()) {
+                path = new Path();
+            } else {
+                path = mPathRecyclePool.get(mPathRecyclePool.size() - 1);
+                mPathRecyclePool.remove(mPathRecyclePool.size() - 1);
+                path.reset();
+            }
+            mLayout.getSelectionPath(
+                    mGesturePreviewHighlightStart, mGesturePreviewHighlightEnd, path);
+            mHighlightPaths.add(path);
+            mHighlightPaints.add(mGesturePreviewHighlightPaint);
+        }
+
+        mHighlightPathsBogus = false;
+    }
+
+    private void addSearchHighlightPaths() {
+        if (mSearchResultHighlights != null) {
+            final Path searchResultPath;
+            if (mPathRecyclePool.isEmpty()) {
+                searchResultPath = new Path();
+            } else {
+                searchResultPath = mPathRecyclePool.get(mPathRecyclePool.size() - 1);
+                mPathRecyclePool.remove(mPathRecyclePool.size() - 1);
+                searchResultPath.reset();
+            }
+            final Path focusedSearchResultPath;
+            if (mFocusedSearchResultIndex == FOCUSED_SEARCH_RESULT_INDEX_NONE) {
+                focusedSearchResultPath = null;
+            } else if (mPathRecyclePool.isEmpty()) {
+                focusedSearchResultPath = new Path();
+            } else {
+                focusedSearchResultPath = mPathRecyclePool.get(mPathRecyclePool.size() - 1);
+                mPathRecyclePool.remove(mPathRecyclePool.size() - 1);
+                focusedSearchResultPath.reset();
+            }
+
+            boolean atLeastOnePathAdded = false;
+            for (int j = 0; j < mSearchResultHighlights.length / 2; ++j) {
+                final int start = mSearchResultHighlights[2 * j];
+                final int end = mSearchResultHighlights[2 * j + 1];
+                if (start < end) {
+                    if (j == mFocusedSearchResultIndex) {
+                        LayoutExtension.getSelection(mLayout, getTextDir(), start, end,
+                                (left, top, right, bottom, layout) ->
+                                        focusedSearchResultPath.addRect(left, top, right, bottom,
+                                                Path.Direction.CW)
+                        );
+                    } else {
+                        LayoutExtension.getSelection(mLayout, getTextDir(), start, end,
+                                (left, top, right, bottom, layout) ->
+                                        searchResultPath.addRect(left, top, right, bottom,
+                                                Path.Direction.CW)
+                        );
+                        atLeastOnePathAdded = true;
+                    }
+                }
+            }
+            if (atLeastOnePathAdded) {
+                if (mSearchResultHighlightPaint == null) {
+                    mSearchResultHighlightPaint = new Paint();
+                }
+                mSearchResultHighlightPaint.setColor(mSearchResultHighlightColor);
+                mSearchResultHighlightPaint.setStyle(Paint.Style.FILL);
+                mHighlightPaths.add(searchResultPath);
+                mHighlightPaints.add(mSearchResultHighlightPaint);
+            }
+            if (focusedSearchResultPath != null) {
+                if (mFocusedSearchResultHighlightPaint == null) {
+                    mFocusedSearchResultHighlightPaint = new Paint();
+                }
+                mFocusedSearchResultHighlightPaint.setColor(mFocusedSearchResultHighlightColor);
+                mFocusedSearchResultHighlightPaint.setStyle(Paint.Style.FILL);
+                mHighlightPaths.add(focusedSearchResultPath);
+                mHighlightPaints.add(mFocusedSearchResultHighlightPaint);
+            }
+        }
+    }
+
     private Path getUpdatedHighlightPath() {
         Path highlight = null;
         Paint highlightPaint = mHighlightPaint;
 
-        final int selStart = getSelectionStart();
-        final int selEnd = getSelectionEnd();
+        final int selStart = getSelectionStartTransformed();
+        final int selEnd = getSelectionEndTransformed();
         if (mMovement != null && (isFocused() || isPressed()) && selStart >= 0) {
             if (selStart == selEnd) {
                 if (mEditor.shouldRenderCursor()) {
@@ -5666,7 +6285,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         Layout layout = mLayout;
 
-        if (mHint != null && mText.length() == 0) {
+        if (mHint != null && !mHideHint && mText.length() == 0) {
             if (mHintTextColor != null) {
                 color = mCurHintTextColor;
             }
@@ -5714,10 +6333,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
         canvas.translate(compoundPaddingLeft, extendedPaddingTop + vOffsetText);
 
+        // (EW) the AOSP version had some handling for marquee, which isn't supported for edit text
+
         final int cursorOffsetVertical = vOffsetCursor - vOffsetText;
 
-        Path highlight = getUpdatedHighlightPath();
-        mEditor.onDraw(canvas, layout, highlight, mHighlightPaint, cursorOffsetVertical);
+        maybeUpdateHighlightPaths();
+        // If there is a gesture preview highlight, then the selection or cursor is not drawn.
+        Path highlight = hasGesturePreviewHighlight() ? null : getUpdatedHighlightPath();
+        mEditor.onDraw(canvas, layout, mHighlightPaths, mHighlightPaints, highlight,
+                mHighlightPaint, cursorOffsetVertical);
 
         canvas.restore();
     }
@@ -5729,13 +6353,13 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             return;
         }
 
-        int selEnd = getSelectionEnd();
+        int selEnd = getSelectionEndTransformed();
         if (selEnd < 0) {
             super.getFocusedRect(r);
             return;
         }
 
-        int selStart = getSelectionStart();
+        int selStart = getSelectionStartTransformed();
         if (selStart < 0 || selStart >= selEnd) {
             int line = mLayout.getLineForOffset(selEnd);
             r.top = mLayout.getLineTop(line);
@@ -6012,7 +6636,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                         // chance to consume the event.
                         if (mEditor.mInputContentType.onEditorActionListener != null
                                 && mEditor.mInputContentType.onEditorActionListener.onEditorAction(
-                                        this, EditorInfo.IME_NULL, event)) {
+                                        this,
+                                        getActionIdForEnterEvent(),
+                                        event)) {
                             mEditor.mInputContentType.enterDown = true;
                             // We are consuming the enter key for them.
                             return KEY_EVENT_HANDLED;
@@ -6261,7 +6887,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                             && mEditor.mInputContentType.enterDown) {
                         mEditor.mInputContentType.enterDown = false;
                         if (mEditor.mInputContentType.onEditorActionListener.onEditorAction(
-                                this, EditorInfo.IME_NULL, event)) {
+                                this, getActionIdForEnterEvent(), event)) {
                             return true;
                         }
                     }
@@ -6325,6 +6951,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return super.onKeyUp(keyCode, event);
     }
 
+    private int getActionIdForEnterEvent() {
+        // If it's not single line, no action
+        if (!isSingleLine()) {
+            return EditorInfo.IME_NULL;
+        }
+        // Return the action that was specified for Enter
+        return getImeOptions() & EditorInfo.IME_MASK_ACTION;
+    }
+
     @Override
     public boolean onCheckIsTextEditor() {
         // (EW) the AOSP version checked if there was an Editor object (which we always have) and if
@@ -6382,6 +7017,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // reason, we'll still set them as long as the field is enabled.
         if (isEnabled()) {
             mEditor.createInputMethodStateIfNeeded();
+            mEditor.mInputMethodState.mUpdateCursorAnchorInfoMode = 0;
+            mEditor.mInputMethodState.mUpdateCursorAnchorInfoFilter = 0;
             // (EW) the AOSP version doesn't do this, but if the input method state already existed,
             // any extracted text request from a time the field had focus from the current IME or
             // from a previous IME would persist and cause extracted text updates to get sent even
@@ -6478,6 +7115,27 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
+
+                //TODO: (EW) possibly could add settings for which gestures to support/report is
+                // supported
+                ArrayList<Class<? extends HandwritingGesture>> gestures = new ArrayList<>();
+                gestures.add(SelectGesture.class);
+                gestures.add(SelectRangeGesture.class);
+                gestures.add(DeleteGesture.class);
+                gestures.add(DeleteRangeGesture.class);
+                gestures.add(InsertGesture.class);
+                gestures.add(RemoveSpaceGesture.class);
+                gestures.add(JoinOrSplitGesture.class);
+                gestures.add(InsertModeGesture.class);
+                outAttrs.setSupportedHandwritingGestures(gestures);
+
+                Set<Class<? extends PreviewableHandwritingGesture>> previews = new ArraySet<>();
+                previews.add(SelectGesture.class);
+                previews.add(SelectRangeGesture.class);
+                previews.add(DeleteGesture.class);
+                previews.add(DeleteRangeGesture.class);
+                outAttrs.setSupportedHandwritingGesturePreviews(previews);
+
             if (mSettings.shouldCreateInputConnection()) {
                 mInputConnection = ic;
                 return ic.createWrapperIfNecessary();
@@ -6879,7 +7537,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         if (TextUtilsExtension.isWhitespaceExceptNewline(codePointBeforeStart)
                 && (TextUtilsExtension.isWhitespace(codePointAtEnd)
-                || TextUtilsExtension.isPunctuation(codePointAtEnd))) {
+                        || TextUtilsExtension.isPunctuation(codePointAtEnd))) {
             // Remove whitespace (except new lines) before the deleted text, in these cases:
             // - There is whitespace following the deleted text
             //     e.g. "one [deleted] three" -> "one | three" -> "one| three"
@@ -6900,7 +7558,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         if (TextUtilsExtension.isWhitespaceExceptNewline(codePointAtEnd)
                 && (TextUtilsExtension.isWhitespace(codePointBeforeStart)
-                || TextUtilsExtension.isPunctuation(codePointBeforeStart))) {
+                        || TextUtilsExtension.isPunctuation(codePointBeforeStart))) {
             // Remove whitespace (except new lines) after the deleted text, in these cases:
             // - There is punctuation preceding the deleted text
             //     e.g. "([deleted] two)" -> "(| two)" -> "(|two)"
@@ -7102,8 +7760,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             line++;
         } else if (point.y < mLayout.getLineTop(line) - lineMargin
                 || point.y
-                > mLayout.getLineBottom(line, /* includeLineSpacing= */ false)
-                + lineMargin) {
+                        > mLayout.getLineBottom(line, /* includeLineSpacing= */ false)
+                                + lineMargin) {
             // The point is not within lineMargin of a line.
             return -1;
         }
@@ -7277,6 +7935,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         mOldMaxMode = mMaxMode;
 
         mHighlightPathBogus = true;
+        mHighlightPathsBogus = true;
 
         if (wantWidth < 0) {
             wantWidth = 0;
@@ -7347,6 +8006,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 }
             }
             if (mHintLayout == null) {
+                final boolean autoPhraseBreaking = !mUserSpeficiedLineBreakwordStyle
+                        && FeatureFlagUtils.isEnabled(getContext(),
+                                FeatureFlagUtils.SETTINGS_AUTO_TEXT_WRAPPING);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     StaticLayout.Builder builder = StaticLayout.Builder.obtain(mHint, 0,
                             mHint.length(), mTextPaint, hintWidth)
@@ -7363,7 +8025,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         builder.setLineBreakConfig(LineBreakConfigExtension.getLineBreakConfig(
-                                mLineBreakStyle, mLineBreakWordStyle));
+                                mLineBreakStyle, mLineBreakWordStyle, autoPhraseBreaking));
                     }
                     if (shouldEllipsize) {
                         builder.setEllipsize(mEllipsize)
@@ -7854,7 +8516,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private boolean isShowingHint() {
-        return TextUtils.isEmpty(mText) && !TextUtils.isEmpty(mHint);
+        return TextUtils.isEmpty(mText) && !TextUtils.isEmpty(mHint) && !mHideHint;
     }
 
     /**
@@ -7932,17 +8594,39 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * This has to be called after layout. Returns true if anything changed.
      */
     public boolean bringPointIntoView(int offset) {
+        return bringPointIntoView(offset, false);
+    }
+
+    /**
+     * Move the insertion position of the given offset into visible area of the View.
+     *
+     * If the View is focused or {@code requestRectWithoutFocus} is set to true, this API may call
+     * {@link View#requestRectangleOnScreen(Rect)} to bring the point to the visible area if
+     * necessary.
+     *
+     * @param offset an offset of the character.
+     * @param requestRectWithoutFocus True for calling {@link View#requestRectangleOnScreen(Rect)}
+     *                                in the unfocused state. False for calling it only the View has
+     *                                the focus.
+     * @return true if anything changed, otherwise false.
+     *
+     * @see #bringPointIntoView(int)
+     */
+    public boolean bringPointIntoView(@IntRange(from = 0) int offset,
+            boolean requestRectWithoutFocus) {
         if (isLayoutRequested()) {
             mDeferScroll = offset;
             return false;
         }
+        final int offsetTransformed =
+                originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
         boolean changed = false;
 
         Layout layout = isShowingHint() ? mHintLayout : mLayout;
 
         if (layout == null) return changed;
 
-        int line = layout.getLineForOffset(offset);
+        int line = layout.getLineForOffset(offsetTransformed);
 
         int grav;
 
@@ -7971,7 +8655,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // right where it is most likely to be annoying.
         final boolean clamped = grav > 0;
         // FIXME: Is it okay to truncate this, or should we round?
-        final int x = (int) LayoutExtension.getPrimaryHorizontal(layout, mTextDir, offset, clamped);
+        final int x = (int) LayoutExtension.getPrimaryHorizontal(layout, mTextDir,
+                offsetTransformed, clamped);
         final int top = layout.getLineTop(line);
         final int bottom = layout.getLineTop(line + 1);
 
@@ -8102,7 +8787,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             changed = true;
         }
 
-        if (isFocused()) {
+        if (requestRectWithoutFocus || isFocused()) {
             // This offsets because getInterestingRect() is in terms of viewport coordinates, but
             // requestRectangleOnScreen() is in terms of content coordinates.
 
@@ -8131,8 +8816,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @return True if the cursor was actually moved, false otherwise.
      */
     public boolean moveCursorToVisibleOffset() {
-        int start = getSelectionStart();
-        int end = getSelectionEnd();
+        int start = getSelectionStartTransformed();
+        int end = getSelectionEndTransformed();
         if (start != end) {
             return false;
         }
@@ -8175,7 +8860,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         if (newStart != start) {
-            Selection.setSelection(mText, newStart);
+            Selection.setSelection(mText,
+                    transformedToOriginal(newStart, OffsetMapping.MAP_STRATEGY_CURSOR));
             return true;
         }
 
@@ -8266,13 +8952,53 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
+     * Calculates the rectangles which should be highlighted to indicate a selection between start
+     * and end and feeds them into the given {@link LayoutExtension.SelectionRectangleConsumer}.
+     *
+     * @param start    the starting index of the selection
+     * @param end      the ending index of the selection
+     * @param consumer the {@link LayoutExtension.SelectionRectangleConsumer} which will receive the
+     *                 generated rectangles. It will be called every time a rectangle is generated.
+     * @hide
+     */
+    public void getSelection(int start, int end,
+                             final LayoutExtension.SelectionRectangleConsumer consumer) {
+        final int transformedStart =
+                originalToTransformed(start, OffsetMapping.MAP_STRATEGY_CURSOR);
+        final int transformedEnd = originalToTransformed(end, OffsetMapping.MAP_STRATEGY_CURSOR);
+        LayoutExtension.getSelection(mLayout, getTextDir(), transformedStart, transformedEnd,
+                consumer);
+    }
+
+    int getSelectionStartTransformed() {
+        final int start = getSelectionStart();
+        if (start < 0) return start;
+        return originalToTransformed(start, OffsetMapping.MAP_STRATEGY_CURSOR);
+    }
+
+    int getSelectionEndTransformed() {
+        final int end = getSelectionEnd();
+        if (end < 0) return end;
+        return originalToTransformed(end, OffsetMapping.MAP_STRATEGY_CURSOR);
+    }
+
+    /**
      * Return true iff there is a selection of nonzero length inside this text view.
      */
     public boolean hasSelection() {
         final int selectionStart = getSelectionStart();
         final int selectionEnd = getSelectionEnd();
+        final int selectionMin;
+        final int selectionMax;
+        if (selectionStart < selectionEnd) {
+            selectionMin = selectionStart;
+            selectionMax = selectionEnd;
+        } else {
+            selectionMin = selectionEnd;
+            selectionMax = selectionStart;
+        }
 
-        return selectionStart >= 0 && selectionEnd > 0 && selectionStart != selectionEnd;
+        return selectionMin >= 0 && selectionMax > 0 && selectionMin != selectionMax;
     }
 
     String getSelectedText() {
@@ -8395,10 +9121,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @see android.widget.TextView#setEllipsize(TextUtils.TruncateAt)
      */
     public void setEllipsize(TextUtils.TruncateAt ellipsis) {
+        // (EW) this block is from EditText
         if (ellipsis == TextUtils.TruncateAt.MARQUEE) {
             throw new IllegalArgumentException("EditText cannot use the ellipsize mode "
                     + "TextUtils.TruncateAt.MARQUEE");
         }
+
         // TruncateAt is an enum. != comparison is ok between these singleton objects.
         if (mEllipsize != ellipsis) {
             mEllipsize = ellipsis;
@@ -8749,6 +9477,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
         sendOnTextChanged(buffer, start, before, after);
         onTextChanged(buffer, start, before, after);
+
+        mHideHint = false;
+        clearGesturePreviewHighlight();
     }
 
     /**
@@ -8787,6 +9518,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         if (selChanged) {
+            clearGesturePreviewHighlight();
             mHighlightPathBogus = true;
             if (!isFocused()) mEditor.mSelectionMoved = true;
 
@@ -8930,6 +9662,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             return;
         }
 
+        mHideHint = false;
+
         mEditor.onFocusChanged(focused, direction);
 
         if (focused) {
@@ -9006,6 +9740,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     MotionEvent.actionToString(event.getActionMasked()),
                     event.getX(), event.getY());
         }
+        mLastInputSource = event.getSource();
         final int action = event.getActionMasked();
         if (!isFromPrimePointer(event, false)) {
             return true;
@@ -9076,6 +9811,17 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         return superResult;
+    }
+
+    /**
+     * Returns true when need to show UIs, e.g. floating toolbar, etc, for finger based interaction.
+     *
+     * @return true if UIs need to show for finger interaciton. false if UIs are not necessary.
+     * @hide
+     */
+    public final boolean showUIForTouchScreen() {
+        return (mLastInputSource & InputDevice.SOURCE_TOUCHSCREEN)
+                == InputDevice.SOURCE_TOUCHSCREEN;
     }
 
     /**
@@ -9210,6 +9956,28 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     @Override
     public boolean onKeyShortcut(int keyCode, KeyEvent event) {
+        // (EW) this block is from EditText
+        if (event.hasModifiers(KeyEvent.META_CTRL_ON)) {
+            // Handle Ctrl-only shortcuts.
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_B:
+                    if (mStyleShortcutsEnabled && hasSelection()) {
+                        return onTextContextMenuItem(ID_BOLD);
+                    }
+                    break;
+                case KeyEvent.KEYCODE_I:
+                    if (mStyleShortcutsEnabled && hasSelection()) {
+                        return onTextContextMenuItem(ID_ITALIC);
+                    }
+                    break;
+                case KeyEvent.KEYCODE_U:
+                    if (mStyleShortcutsEnabled && hasSelection()) {
+                        return onTextContextMenuItem(ID_UNDERLINE);
+                    }
+                    break;
+            }
+        }
+
         if (event.hasModifiers(KeyEvent.META_CTRL_ON)) {
             // Handle Ctrl-only shortcuts.
             switch (keyCode) {
@@ -9236,6 +10004,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 case KeyEvent.KEYCODE_V:
                     if (canPaste()) {
                         return onTextContextMenuItem(ID_PASTE);
+                    }
+                    break;
+                case KeyEvent.KEYCODE_Y:
+                    if (canRedo()) {
+                        return onTextContextMenuItem(ID_REDO);
                     }
                     break;
             }
@@ -9287,6 +10060,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // locale.
         return (mCurrentSpellCheckerLocaleCache == null && !allowNullLocale) ? Locale.getDefault()
                 : mCurrentSpellCheckerLocaleCache;
+    }
+
+    @Override
+    public boolean isAutoHandwritingEnabled() {
+        return super.isAutoHandwritingEnabled() && !isAnyPasswordInputType();
     }
 
     @Nullable
@@ -9810,7 +10588,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             RectF[] boundingRects = new RectF[positionInfoLength];
             final CursorAnchorInfo.Builder builder = new CursorAnchorInfo.Builder();
             populateCharacterBounds(builder, positionInfoStartIndex,
-                    positionInfoStartIndex + positionInfoLength,
+                    Math.min(positionInfoStartIndex + positionInfoLength, length()),
                     viewportToContentHorizontalOffset(), viewportToContentVerticalOffset());
             CursorAnchorInfo cursorAnchorInfo = builder.setMatrix(null).build();
             for (int i = 0; i < positionInfoLength; i++) {
@@ -9857,6 +10635,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 getWidth() - getCompoundPaddingRight(), getHeight() - getCompoundPaddingBottom());
     }
 
+    // (EW) marking as package private scope since the AOSP version was marked as hidden and we only
+    // need to access it from Editor
     /**
      * Populate requested character bounds in a {@link CursorAnchorInfo.Builder}
      *
@@ -9868,7 +10648,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @param viewportToContentVerticalOffset The vertical offset from the viewport to the content
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    void populateCharacterBounds(CursorAnchorInfo.Builder builder,
+    /* package */ void populateCharacterBounds(CursorAnchorInfo.Builder builder,
             int startIndex, int endIndex, float viewportToContentHorizontalOffset,
             float viewportToContentVerticalOffset) {
         if (isOffsetMappingAvailable()) {
@@ -9928,299 +10708,177 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return characterBounds;
     }
 
-//    /**
-//     * Compute {@link CursorAnchorInfo} from this {@link EditText}.
-//     *
-//     * @param filter the {@link CursorAnchorInfo} update filter which specified the needed
-//     *               information from IME.
-//     * @param cursorAnchorInfoBuilder a cached {@link CursorAnchorInfo.Builder} object used to build
-//     *                                the result {@link CursorAnchorInfo}.
-//     * @param viewToScreenMatrix a cached {@link Matrix} object used to compute the view to screen
-//     *                           matrix.
-//     * @return the result {@link CursorAnchorInfo} to be passed to IME.
-//     * @hide
-//     */
-//    //TODO: (EW) this was marked as @VisibleForTesting, so this probably can be private
-//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-//    @Nullable
-//    public CursorAnchorInfo getCursorAnchorInfo(@InputConnectionExtension.CursorUpdateFilter int filter,
-//                                                @NonNull CursorAnchorInfo.Builder cursorAnchorInfoBuilder,
-//                                                @NonNull Matrix viewToScreenMatrix) {
-//        Layout layout = getLayout();
-//        if (layout == null) {
-//            return null;
-//        }
-//        boolean includeEditorBounds =
-//                (filter & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
-//        boolean includeCharacterBounds =
-//                (filter & InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS) != 0;
-//        boolean includeInsertionMarker =
-//                (filter & InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER) != 0;
-//        boolean includeVisibleLineBounds =
-//                (filter & InputConnection.CURSOR_UPDATE_FILTER_VISIBLE_LINE_BOUNDS) != 0;
-//        boolean includeTextAppearance =
-//                (filter & InputConnection.CURSOR_UPDATE_FILTER_TEXT_APPEARANCE) != 0;
-//        boolean includeAll =
-//                (!includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker
-//                        && !includeVisibleLineBounds && !includeTextAppearance);
-//
-//        includeEditorBounds |= includeAll;
-//        includeCharacterBounds |= includeAll;
-//        includeInsertionMarker |= includeAll;
-//        includeVisibleLineBounds |= includeAll;
-//        includeTextAppearance |= includeAll;
-//
-//        final CursorAnchorInfo.Builder builder = cursorAnchorInfoBuilder;
-//        builder.reset();
-//
-//        final int selectionStart = getSelectionStart();
-//        builder.setSelectionRange(selectionStart, getSelectionEnd());
-//
-//        // Construct transformation matrix from view local coordinates to screen coordinates.
-//        viewToScreenMatrix.reset();
-//        transformMatrixToGlobal(viewToScreenMatrix);
-//        builder.setMatrix(viewToScreenMatrix);
-//
-//        if (includeEditorBounds) {
-//            final RectF editorBounds = new RectF();
-//            editorBounds.set(0 /* left */, 0 /* top */,
-//                    getWidth(), getHeight());
-//            final RectF handwritingBounds = new RectF(
-//                    -getHandwritingBoundsOffsetLeft(),
-//                    -getHandwritingBoundsOffsetTop(),
-//                    getWidth() + getHandwritingBoundsOffsetRight(),
-//                    getHeight() + getHandwritingBoundsOffsetBottom());
-//            EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
-//            EditorBoundsInfo editorBoundsInfo = boundsBuilder.setEditorBounds(editorBounds)
-//                    .setHandwritingBounds(handwritingBounds).build();
-//            builder.setEditorBoundsInfo(editorBoundsInfo);
-//        }
-//
-//        if (includeCharacterBounds || includeInsertionMarker || includeVisibleLineBounds) {
-//            final float viewportToContentHorizontalOffset =
-//                    viewportToContentHorizontalOffset();
-//            final float viewportToContentVerticalOffset =
-//                    viewportToContentVerticalOffset();
-//            final boolean isTextTransformed = (getTransformationMethod() != null
-//                    && getTransformed() instanceof OffsetMapping);
-//            if (includeCharacterBounds && !isTextTransformed) {
-//                final CharSequence text = getText();
-//                if (text instanceof Spannable) {
-//                    final Spannable sp = (Spannable) text;
-//                    int composingTextStart = EditableInputConnection.getComposingSpanStart(sp);
-//                    int composingTextEnd = EditableInputConnection.getComposingSpanEnd(sp);
-//                    if (composingTextEnd < composingTextStart) {
-//                        final int temp = composingTextEnd;
-//                        composingTextEnd = composingTextStart;
-//                        composingTextStart = temp;
-//                    }
-//                    final boolean hasComposingText =
-//                            (0 <= composingTextStart) && (composingTextStart
-//                                    < composingTextEnd);
-//                    if (hasComposingText) {
-//                        final CharSequence composingText = text.subSequence(composingTextStart,
-//                                composingTextEnd);
-//                        builder.setComposingText(composingTextStart, composingText);
-//                        populateCharacterBounds(builder, composingTextStart,
-//                                composingTextEnd, viewportToContentHorizontalOffset,
-//                                viewportToContentVerticalOffset);
-//                    }
-//                }
-//            }
-//
-//            if (includeInsertionMarker) {
-//                // Treat selectionStart as the insertion point.
-//                if (0 <= selectionStart) {
-//                    final int offsetTransformed = originalToTransformed(
-//                            selectionStart, OffsetMapping.MAP_STRATEGY_CURSOR);
-//                    final int line = layout.getLineForOffset(offsetTransformed);
-//                    final float insertionMarkerX =
-//                            layout.getPrimaryHorizontal(offsetTransformed)
-//                                    + viewportToContentHorizontalOffset;
-//                    final float insertionMarkerTop = layout.getLineTop(line)
-//                            + viewportToContentVerticalOffset;
-//                    final float insertionMarkerBaseline = layout.getLineBaseline(line)
-//                            + viewportToContentVerticalOffset;
-//                    final float insertionMarkerBottom =
-//                            layout.getLineBottom(line, /* includeLineSpacing= */ false)
-//                                    + viewportToContentVerticalOffset;
-//                    final boolean isTopVisible =
-//                            isPositionVisible(insertionMarkerX, insertionMarkerTop);
-//                    final boolean isBottomVisible =
-//                            isPositionVisible(insertionMarkerX, insertionMarkerBottom);
-//                    int insertionMarkerFlags = 0;
-//                    if (isTopVisible || isBottomVisible) {
-//                        insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
-//                    }
-//                    if (!isTopVisible || !isBottomVisible) {
-//                        insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
-//                    }
-//                    if (layout.isRtlCharAt(offsetTransformed)) {
-//                        insertionMarkerFlags |= CursorAnchorInfo.FLAG_IS_RTL;
-//                    }
-//                    builder.setInsertionMarkerLocation(insertionMarkerX, insertionMarkerTop,
-//                            insertionMarkerBaseline, insertionMarkerBottom,
-//                            insertionMarkerFlags);
-//                }
-//            }
-//
-//            if (includeVisibleLineBounds) {
-//                final Rect visibleRect = new Rect();
-//                if (getContentVisibleRect(visibleRect)) {
-//                    // Subtract the viewportToContentVerticalOffset to convert the view
-//                    // coordinates to layout coordinates.
-//                    final float visibleTop =
-//                            visibleRect.top - viewportToContentVerticalOffset;
-//                    final float visibleBottom =
-//                            visibleRect.bottom - viewportToContentVerticalOffset;
-//                    final int firstLine =
-//                            layout.getLineForVertical((int) Math.floor(visibleTop));
-//                    final int lastLine =
-//                            layout.getLineForVertical((int) Math.ceil(visibleBottom));
-//
-//                    for (int line = firstLine; line <= lastLine; ++line) {
-//                        final float left = layout.getLineLeft(line)
-//                                + viewportToContentHorizontalOffset;
-//                        final float top = layout.getLineTop(line)
-//                                + viewportToContentVerticalOffset;
-//                        final float right = layout.getLineRight(line)
-//                                + viewportToContentHorizontalOffset;
-//                        final float bottom = layout.getLineBottom(line, false)
-//                                + viewportToContentVerticalOffset;
-//                        builder.addVisibleLineBounds(left, top, right, bottom);
-//                    }
-//                }
-//            }
-//        }
-//
-//        if (includeTextAppearance) {
-//            builder.setTextAppearanceInfo(TextAppearanceInfo.createFromTextView(this));
-//        }
-//        return builder.build();
-//    }
+    /**
+     * Compute {@link CursorAnchorInfo} from this {@link EditText}.
+     *
+     * @param filter the {@link CursorAnchorInfo} update filter which specified the needed
+     *               information from IME.
+     * @param cursorAnchorInfoBuilder a cached {@link CursorAnchorInfo.Builder} object used to build
+     *                                the result {@link CursorAnchorInfo}.
+     * @param viewToScreenMatrix a cached {@link Matrix} object used to compute the view to screen
+     *                           matrix.
+     * @return the result {@link CursorAnchorInfo} to be passed to IME.
+     * @hide
+     */
+    //TODO: (EW) this was marked as @VisibleForTesting, so this probably can be private
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Nullable
+    public CursorAnchorInfo getCursorAnchorInfo(
+            @InputConnectionExtension.CursorUpdateFilter int filter,
+            @NonNull CursorAnchorInfo.Builder cursorAnchorInfoBuilder,
+            @NonNull Matrix viewToScreenMatrix) {
+        Layout layout = getLayout();
+        if (layout == null) {
+            return null;
+        }
+        boolean includeEditorBounds =
+                (filter & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
+        boolean includeCharacterBounds =
+                (filter & InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS) != 0;
+        boolean includeInsertionMarker =
+                (filter & InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER) != 0;
+        boolean includeVisibleLineBounds =
+                (filter & InputConnection.CURSOR_UPDATE_FILTER_VISIBLE_LINE_BOUNDS) != 0;
+        boolean includeTextAppearance =
+                (filter & InputConnection.CURSOR_UPDATE_FILTER_TEXT_APPEARANCE) != 0;
+        boolean includeAll =
+                (!includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker
+                        && !includeVisibleLineBounds && !includeTextAppearance);
 
-//    /**
-//     * Creates the {@link TextBoundsInfo} for the text lines that intersects with the {@code rectF}.
-//     * @hide
-//     */
-//    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-//    public TextBoundsInfo getTextBoundsInfo(@NonNull RectF bounds) {
-//        final Layout layout = getLayout();
-//        if (layout == null) {
-//            // No valid text layout, return null.
-//            return null;
-//        }
-//        final CharSequence text = layout.getText();
-//        if (text == null || isOffsetMappingAvailable()) {
-//            // The text is Null or the text has been transformed. Can't provide TextBoundsInfo.
-//            return null;
-//        }
-//
-//        final Matrix localToGlobalMatrix = new Matrix();
-//        transformMatrixToGlobal(localToGlobalMatrix);
-//        final Matrix globalToLocalMatrix = new Matrix();
-//        if (!localToGlobalMatrix.invert(globalToLocalMatrix)) {
-//            // Can't map global rectF to local coordinates, this is almost impossible in practice.
-//            return null;
-//        }
-//
-//        final float layoutLeft = viewportToContentHorizontalOffset();
-//        final float layoutTop = viewportToContentVerticalOffset();
-//
-//        final RectF localBounds = new RectF(bounds);
-//        globalToLocalMatrix.mapRect(localBounds);
-//        localBounds.offset(-layoutLeft, -layoutTop);
-//
-//        // Text length is 0. There is no character bounds, return empty TextBoundsInfo.
-//        // rectF doesn't intersect with the layout, return empty TextBoundsInfo.
-//        if (!localBounds.intersects(0f, 0f, layout.getWidth(), layout.getHeight())
-//                || text.length() == 0) {
-//            final TextBoundsInfo.Builder builder = new TextBoundsInfo.Builder(0, 0);
-//            final SegmentFinder emptySegmentFinder =
-//                    new SegmentFinder.PrescribedSegmentFinder(new int[0]);
-//            builder.setMatrix(localToGlobalMatrix)
-//                    .setCharacterBounds(new float[0])
-//                    .setCharacterBidiLevel(new int[0])
-//                    .setCharacterFlags(new int[0])
-//                    .setGraphemeSegmentFinder(emptySegmentFinder)
-//                    .setLineSegmentFinder(emptySegmentFinder)
-//                    .setWordSegmentFinder(emptySegmentFinder);
-//            return  builder.build();
-//        }
-//
-//        final int startLine = layout.getLineForVertical((int) Math.floor(localBounds.top));
-//        final int endLine = layout.getLineForVertical((int) Math.floor(localBounds.bottom));
-//        final int start = layout.getLineStart(startLine);
-//        final int end = layout.getLineEnd(endLine);
-//
-//        // Compute character bounds.
-//        final float[] characterBounds = getCharacterBounds(start, end, layoutLeft, layoutTop);
-//
-//        // Compute character flags and BiDi levels.
-//        final int[] characterFlags = new int[end - start];
-//        final int[] characterBidiLevels = new int[end - start];
-//        for (int line = startLine; line <= endLine; ++line) {
-//            final int lineStart = layout.getLineStart(line);
-//            final int lineEnd = layout.getLineEnd(line);
-////            final Layout.Directions directions = layout.getLineDirections(line);
-//            final LayoutExtension.Directions directions = LayoutExtension.getLineDirections(layout, getTextDir(), line);
-//            for (int i = 0; i < directions.getRunCount(); ++i) {
-//                final int runStart = directions.getRunStart(i) + lineStart;
-//                final int runEnd = Math.min(runStart + directions.getRunLength(i), lineEnd);
-//                final int runLevel = directions.getRunLevel(i);
-//                Arrays.fill(characterBidiLevels, runStart - start, runEnd - start, runLevel);
-//            }
-//
-//            final boolean lineIsRtl =
-//                    layout.getParagraphDirection(line) == Layout.DIR_RIGHT_TO_LEFT;
-//            for (int index = lineStart; index < lineEnd; ++index) {
-//                int flags = 0;
-//                if (TextUtilsExtension.isWhitespace(text.charAt(index))) {
-//                    flags |= TextBoundsInfo.FLAG_CHARACTER_WHITESPACE;
-//                }
-//                if (TextUtilsExtension.isPunctuation(Character.codePointAt(text, index))) {
-//                    flags |= TextBoundsInfo.FLAG_CHARACTER_PUNCTUATION;
-//                }
-//                if (TextUtilsExtension.isNewline(Character.codePointAt(text, index))) {
-//                    flags |= TextBoundsInfo.FLAG_CHARACTER_LINEFEED;
-//                }
-//                if (lineIsRtl) {
-//                    flags |= TextBoundsInfo.FLAG_LINE_IS_RTL;
-//                }
-//                characterFlags[index - start] = flags;
-//            }
-//        }
-//
-//        // Create grapheme SegmentFinder.
-//        final SegmentFinder graphemeSegmentFinder =
-//                new GraphemeClusterSegmentFinder(text, layout.getPaint());
-//
-//        // Create word SegmentFinder.
-//        final WordIterator wordIterator = getWordIterator();
-//        wordIterator.setCharSequence(text, 0, text.length());
-//        final SegmentFinder wordSegmentFinder = new WordSegmentFinder(text, wordIterator);
-//
-//        // Create line SegmentFinder.
-//        final int lineCount = endLine - startLine + 1;
-//        final int[] lineRanges = new int[2 * lineCount];
-//        for (int line = startLine; line <= endLine; ++line) {
-//            final int offset = line - startLine;
-//            lineRanges[2 * offset] = layout.getLineStart(line);
-//            lineRanges[2 * offset + 1] = layout.getLineEnd(line);
-//        }
-//        final SegmentFinder lineSegmentFinder =
-//                new SegmentFinder.PrescribedSegmentFinder(lineRanges);
-//
-//        return new TextBoundsInfo.Builder(start, end)
-//                .setMatrix(localToGlobalMatrix)
-//                .setCharacterBounds(characterBounds)
-//                .setCharacterBidiLevel(characterBidiLevels)
-//                .setCharacterFlags(characterFlags)
-//                .setGraphemeSegmentFinder(graphemeSegmentFinder)
-//                .setLineSegmentFinder(lineSegmentFinder)
-//                .setWordSegmentFinder(wordSegmentFinder)
-//                .build();
-//    }
+        includeEditorBounds |= includeAll;
+        includeCharacterBounds |= includeAll;
+        includeInsertionMarker |= includeAll;
+        includeVisibleLineBounds |= includeAll;
+        includeTextAppearance |= includeAll;
+
+        final CursorAnchorInfo.Builder builder = cursorAnchorInfoBuilder;
+        builder.reset();
+
+        final int selectionStart = getSelectionStart();
+        builder.setSelectionRange(selectionStart, getSelectionEnd());
+
+        // Construct transformation matrix from view local coordinates to screen coordinates.
+        viewToScreenMatrix.reset();
+        transformMatrixToGlobal(viewToScreenMatrix);
+        builder.setMatrix(viewToScreenMatrix);
+
+        if (includeEditorBounds) {
+            final RectF editorBounds = new RectF();
+            editorBounds.set(0 /* left */, 0 /* top */,
+                    getWidth(), getHeight());
+            final RectF handwritingBounds = new RectF(
+                    -getHandwritingBoundsOffsetLeft(),
+                    -getHandwritingBoundsOffsetTop(),
+                    getWidth() + getHandwritingBoundsOffsetRight(),
+                    getHeight() + getHandwritingBoundsOffsetBottom());
+            EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
+            EditorBoundsInfo editorBoundsInfo = boundsBuilder.setEditorBounds(editorBounds)
+                    .setHandwritingBounds(handwritingBounds).build();
+            builder.setEditorBoundsInfo(editorBoundsInfo);
+        }
+
+        if (includeCharacterBounds || includeInsertionMarker || includeVisibleLineBounds) {
+            final float viewportToContentHorizontalOffset =
+                    viewportToContentHorizontalOffset();
+            final float viewportToContentVerticalOffset =
+                    viewportToContentVerticalOffset();
+            final boolean isTextTransformed = (getTransformationMethod() != null
+                    && getTransformed() instanceof OffsetMapping);
+            if (includeCharacterBounds && !isTextTransformed) {
+                final CharSequence text = getText();
+                if (text instanceof Spannable) {
+                    final Spannable sp = (Spannable) text;
+                    int composingTextStart = EditableInputConnection.getComposingSpanStart(sp);
+                    int composingTextEnd = EditableInputConnection.getComposingSpanEnd(sp);
+                    if (composingTextEnd < composingTextStart) {
+                        final int temp = composingTextEnd;
+                        composingTextEnd = composingTextStart;
+                        composingTextStart = temp;
+                    }
+                    final boolean hasComposingText =
+                            (0 <= composingTextStart) && (composingTextStart
+                                    < composingTextEnd);
+                    if (hasComposingText) {
+                        final CharSequence composingText = text.subSequence(composingTextStart,
+                                composingTextEnd);
+                        builder.setComposingText(composingTextStart, composingText);
+                        populateCharacterBounds(builder, composingTextStart,
+                                composingTextEnd, viewportToContentHorizontalOffset,
+                                viewportToContentVerticalOffset);
+                    }
+                }
+            }
+
+            if (includeInsertionMarker) {
+                // Treat selectionStart as the insertion point.
+                if (0 <= selectionStart) {
+                    final int offsetTransformed = originalToTransformed(
+                            selectionStart, OffsetMapping.MAP_STRATEGY_CURSOR);
+                    final int line = layout.getLineForOffset(offsetTransformed);
+                    final float insertionMarkerX =
+                            layout.getPrimaryHorizontal(offsetTransformed)
+                                    + viewportToContentHorizontalOffset;
+                    final float insertionMarkerTop = layout.getLineTop(line)
+                            + viewportToContentVerticalOffset;
+                    final float insertionMarkerBaseline = layout.getLineBaseline(line)
+                            + viewportToContentVerticalOffset;
+                    final float insertionMarkerBottom =
+                            layout.getLineBottom(line, /* includeLineSpacing= */ false)
+                                    + viewportToContentVerticalOffset;
+                    final boolean isTopVisible =
+                            isPositionVisible(insertionMarkerX, insertionMarkerTop);
+                    final boolean isBottomVisible =
+                            isPositionVisible(insertionMarkerX, insertionMarkerBottom);
+                    int insertionMarkerFlags = 0;
+                    if (isTopVisible || isBottomVisible) {
+                        insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
+                    }
+                    if (!isTopVisible || !isBottomVisible) {
+                        insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
+                    }
+                    if (layout.isRtlCharAt(offsetTransformed)) {
+                        insertionMarkerFlags |= CursorAnchorInfo.FLAG_IS_RTL;
+                    }
+                    builder.setInsertionMarkerLocation(insertionMarkerX, insertionMarkerTop,
+                            insertionMarkerBaseline, insertionMarkerBottom,
+                            insertionMarkerFlags);
+                }
+            }
+
+            if (includeVisibleLineBounds) {
+                final Rect visibleRect = new Rect();
+                if (getContentVisibleRect(visibleRect)) {
+                    // Subtract the viewportToContentVerticalOffset to convert the view
+                    // coordinates to layout coordinates.
+                    final float visibleTop =
+                            visibleRect.top - viewportToContentVerticalOffset;
+                    final float visibleBottom =
+                            visibleRect.bottom - viewportToContentVerticalOffset;
+                    final int firstLine =
+                            layout.getLineForVertical((int) Math.floor(visibleTop));
+                    final int lastLine =
+                            layout.getLineForVertical((int) Math.ceil(visibleBottom));
+
+                    for (int line = firstLine; line <= lastLine; ++line) {
+                        final float left = layout.getLineLeft(line)
+                                + viewportToContentHorizontalOffset;
+                        final float top = layout.getLineTop(line)
+                                + viewportToContentVerticalOffset;
+                        final float right = layout.getLineRight(line)
+                                + viewportToContentHorizontalOffset;
+                        final float bottom = layout.getLineBottom(line, false)
+                                + viewportToContentVerticalOffset;
+                        builder.addVisibleLineBounds(left, top, right, bottom);
+                    }
+                }
+            }
+        }
+
+        if (includeTextAppearance) {
+            builder.setTextAppearanceInfo(TextAppearanceInfoExtension.createFromTextView(this));
+        }
+        return builder.build();
+    }
 
     /**
      * Creates the {@link TextBoundsInfo} for the text lines that intersects with the {@code rectF}.
@@ -10345,7 +11003,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 .build();
     }
 
-    public boolean isPositionVisible(final float positionX, final float positionY) {
+    // (EW) marking as package private scope since the AOSP version was marked as hidden and we only
+    // need to access it from Editor
+    /* package */ boolean isPositionVisible(final float positionX, final float positionY) {
         synchronized (TEMP_POSITION) {
             final float[] position = TEMP_POSITION;
             position[0] = positionX;
@@ -10481,6 +11141,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @return true if the context menu item action was performed.
      */
     public boolean onTextContextMenuItem(int id) {
+        // (EW) this block is from EditText
+        // TODO: Move to switch-case once the resource ID is finalized.
+        if (id == ID_BOLD || id == ID_ITALIC || id == ID_UNDERLINE) {
+            return performStylingAction(id);
+        }
+
         int min = 0;
         int max = mText.length();
 
@@ -10564,6 +11230,29 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             stopTextActionMode();
             return true;
         }
+        return false;
+    }
+
+    // (EW) from EditText
+    private boolean performStylingAction(int actionId) {
+        final int selectionStart = getSelectionStart();
+        final int selectionEnd = getSelectionEnd();
+        if (selectionStart < 0 || selectionEnd < 0) {
+            return false;  // There is no selection.
+        }
+        int min = Math.min(selectionStart, selectionEnd);
+        int max = Math.max(selectionStart, selectionEnd);
+
+
+        Spannable spannable = getText();
+        if (actionId == ID_BOLD) {
+            return SpanUtils.toggleBold(spannable, min, max);
+        } else if (actionId == ID_ITALIC) {
+            return SpanUtils.toggleItalic(spannable, min, max);
+        } else if (actionId == ID_UNDERLINE) {
+            return SpanUtils.toggleUnderline(spannable, min, max);
+        }
+
         return false;
     }
 
@@ -10960,7 +11649,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     int getOffsetAtCoordinate(int line, float x) {
         x = convertToLocalHorizontalCoordinate(x);
-        return getLayout().getOffsetForHorizontal(line, x);
+        final int offset = getLayout().getOffsetForHorizontal(line, x);
+        return transformedToOriginal(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
     }
 
     /**
@@ -11246,16 +11936,17 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private static class CharWrapper implements CharSequence {
+        @NonNull
         private char[] mChars;
         private int mStart, mLength;
 
-        public CharWrapper(char[] chars, int start, int len) {
+        CharWrapper(@NonNull char[] chars, int start, int len) {
             mChars = chars;
             mStart = start;
             mLength = len;
         }
 
-        /* package */ void set(char[] chars, int start, int len) {
+        /* package */ void set(@NonNull char[] chars, int start, int len) {
             mChars = chars;
             mStart = start;
             mLength = len;
@@ -11439,6 +12130,57 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             }
         }
         requestsCollector.accept(requestBuilder.build());
+    }
+
+    // (EW) from EditText
+    /**
+     * Convenience for {@link Selection#setSelection(Spannable, int, int)}.
+     */
+    public void setSelection(int start, int stop) {
+        Selection.setSelection(getText(), start, stop);
+    }
+
+    // (EW) from EditText
+    /**
+     * Convenience for {@link Selection#setSelection(Spannable, int)}.
+     */
+    public void setSelection(int index) {
+        Selection.setSelection(getText(), index);
+    }
+
+    // (EW) from EditText
+    /**
+     * Convenience for {@link Selection#selectAll}.
+     */
+    public void selectAll() {
+        Selection.selectAll(getText());
+    }
+
+    // (EW) from EditText
+    /**
+     * Convenience for {@link Selection#extendSelection}.
+     */
+    public void extendSelection(int index) {
+        Selection.extendSelection(getText(), index);
+    }
+
+    // (EW) from EditText
+    /**
+     * Enables styles shortcuts, e.g. Ctrl+B for making text bold.
+     *
+     * @param enabled true for enabled, false for disabled.
+     */
+    public void setStyleShortcutsEnabled(boolean enabled) {
+        mStyleShortcutsEnabled = enabled;
+    }
+
+    // (EW) from EditText
+    /**
+     * Return true if style shortcut is enabled, otherwise returns false.
+     * @return true if style shortcut is enabled, otherwise returns false.
+     */
+    public boolean isStyleShortcutEnabled() {
+        return mStyleShortcutsEnabled;
     }
 
     // (EW) wrapper to get a drawable on any version
