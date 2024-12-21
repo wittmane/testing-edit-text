@@ -242,14 +242,24 @@ import static com.wittmane.testingedittext.aosp.android.widget.Editor.logCursor;
 public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
 
+    private static final int RESOURCES_ID_NULL =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
+
     // (EW) from EditText
     // True if the style shortcut is enabled.
     private boolean mStyleShortcutsEnabled = false;
 
     // (EW) from EditText
-    private static final int ID_BOLD = android.R.id.bold;
-    private static final int ID_ITALIC = android.R.id.italic;
-    private static final int ID_UNDERLINE = android.R.id.underline;
+    //TODO: (EW) should I just make my own ids, rather than block the use in prior versions?
+    private static final int ID_BOLD =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    ? android.R.id.bold : RESOURCES_ID_NULL;
+    private static final int ID_ITALIC =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    ? android.R.id.italic : RESOURCES_ID_NULL;
+    private static final int ID_UNDERLINE =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    ? android.R.id.underline : RESOURCES_ID_NULL;
 
     static final String LOG_TAG = "EditText";
     static final boolean DEBUG_EXTRACT = false;
@@ -557,9 +567,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * non UI event originated ActionMode initiation, e.g. API call, a11y events, etc.
      */
     private int mLastInputSource = InputDevice.SOURCE_TOUCHSCREEN;
-
-    private static final int RESOURCES_ID_NULL =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
 
     // Autofill-related attributes
     //
@@ -1038,7 +1045,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 // effect. I didn't bother checking other versions. maybe there is something more we
                 // can do to support these versions, but I'm not certain. I'll just hide it behind a
                 // version check to avoid unexpected behavior changing between versions.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     TypedValue peekValue = typedArray.peekValue(attr);
                     if (peekValue != null && peekValue.type == TypedValue.TYPE_DIMENSION) {
                         lineHeightUnit = peekValue.getComplexUnit();
@@ -1046,6 +1053,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     } else {
                         lineHeight = typedArray.getDimensionPixelSize(attr, -1);
                     }
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    lineHeight = typedArray.getDimensionPixelSize(attr, -1);
                 }
 
             } else if (attr == R.styleable.EditText_android_enableTextStylingShortcuts) {
@@ -1247,10 +1256,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             setLastBaselineToBottomHeight(lastBaselineToBottomHeight);
         }
         if (lineHeight >= 0) {
-            if (lineHeightUnit == -1) {
-                setLineHeightPx(lineHeight);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                if (lineHeightUnit == -1) {
+                    setLineHeightPx(lineHeight);
+                } else {
+                    setLineHeight(lineHeightUnit, lineHeight);
+                }
             } else {
-                setLineHeight(lineHeightUnit, lineHeight);
+                setLineHeight((int) lineHeight);
             }
         }
     }
@@ -4254,6 +4267,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      *
      * @attr ref android.R.styleable#TextView_lineHeight
      */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void setLineHeight(
             @TypedValueExtension.ComplexDimensionUnit int unit,
             @FloatRange(from = 0) float lineHeight
@@ -4285,7 +4299,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private void maybeRecalculateLineHeight() {
-        if (mLineHeightComplexDimen == 0) {
+        if (mLineHeightComplexDimen == 0
+                || Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return;
         }
         int unit = TypedValueExtension.getUnitFromComplexDimension(mLineHeightComplexDimen);
@@ -4306,6 +4321,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @see #getHighlights()
      * @see Highlights
      */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void setHighlights(@Nullable Highlights highlights) {
         mHighlights = highlights;
         mHighlightPathsBogus = true;
@@ -6107,7 +6123,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             mHighlightPaints = new ArrayList<>();
         }
 
-        if (mHighlights != null) {
+        if (mHighlights != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             for (int i = 0; i < mHighlights.getSize(); ++i) {
                 final int[] ranges = mHighlights.getRanges(i);
                 final Paint paint = mHighlights.getPaint(i);
@@ -7116,6 +7132,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 //TODO: (EW) possibly could add settings for which gestures to support/report is
                 // supported
                 ArrayList<Class<? extends HandwritingGesture>> gestures = new ArrayList<>();
@@ -7135,6 +7152,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 previews.add(DeleteGesture.class);
                 previews.add(DeleteRangeGesture.class);
                 outAttrs.setSupportedHandwritingGesturePreviews(previews);
+            }
 
             if (mSettings.shouldCreateInputConnection()) {
                 mInputConnection = ic;
@@ -9961,17 +9979,20 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             // Handle Ctrl-only shortcuts.
             switch (keyCode) {
                 case KeyEvent.KEYCODE_B:
-                    if (mStyleShortcutsEnabled && hasSelection()) {
+                    if (mStyleShortcutsEnabled && hasSelection()
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         return onTextContextMenuItem(ID_BOLD);
                     }
                     break;
                 case KeyEvent.KEYCODE_I:
-                    if (mStyleShortcutsEnabled && hasSelection()) {
+                    if (mStyleShortcutsEnabled && hasSelection()
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         return onTextContextMenuItem(ID_ITALIC);
                     }
                     break;
                 case KeyEvent.KEYCODE_U:
-                    if (mStyleShortcutsEnabled && hasSelection()) {
+                    if (mStyleShortcutsEnabled && hasSelection()
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         return onTextContextMenuItem(ID_UNDERLINE);
                     }
                     break;
@@ -10651,39 +10672,105 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     /* package */ void populateCharacterBounds(CursorAnchorInfo.Builder builder,
             int startIndex, int endIndex, float viewportToContentHorizontalOffset,
             float viewportToContentVerticalOffset) {
-        if (isOffsetMappingAvailable()) {
-            // The text is transformed, and has different length, we don't support
-            // character bounds in this case yet.
-            return;
-        }
-        final Rect rect = new Rect();
-        getContentVisibleRect(rect);
-        final RectF visibleRect = new RectF(rect);
-
-        final float[] characterBounds = getCharacterBounds(startIndex, endIndex,
-                viewportToContentHorizontalOffset, viewportToContentVerticalOffset);
-        final int limit = endIndex - startIndex;
-        for (int offset = 0; offset < limit; ++offset) {
-            final float left = characterBounds[offset * 4];
-            final float top = characterBounds[offset * 4 + 1];
-            final float right = characterBounds[offset * 4 + 2];
-            final float bottom = characterBounds[offset * 4 + 3];
-
-            final boolean hasVisibleRegion = visibleRect.intersects(left, top, right, bottom);
-            final boolean hasInVisibleRegion = !visibleRect.contains(left, top, right, bottom);
-            int characterBoundsFlags = 0;
-            if (hasVisibleRegion) {
-                characterBoundsFlags |= FLAG_HAS_VISIBLE_REGION;
+        //TODO: (EW) try to share more code between the versions
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (isOffsetMappingAvailable()) {
+                // The text is transformed, and has different length, we don't support
+                // character bounds in this case yet.
+                return;
             }
-            if (hasInVisibleRegion) {
-                characterBoundsFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
-            }
+            final Rect rect = new Rect();
+            getContentVisibleRect(rect);
+            final RectF visibleRect = new RectF(rect);
 
-            if (mLayout.isRtlCharAt(offset)) {
-                characterBoundsFlags |= CursorAnchorInfo.FLAG_IS_RTL;
+            final float[] characterBounds = getCharacterBounds(startIndex, endIndex,
+                    viewportToContentHorizontalOffset, viewportToContentVerticalOffset);
+            final int limit = endIndex - startIndex;
+            for (int offset = 0; offset < limit; ++offset) {
+                final float left = characterBounds[offset * 4];
+                final float top = characterBounds[offset * 4 + 1];
+                final float right = characterBounds[offset * 4 + 2];
+                final float bottom = characterBounds[offset * 4 + 3];
+
+                final boolean hasVisibleRegion = visibleRect.intersects(left, top, right, bottom);
+                final boolean hasInVisibleRegion = !visibleRect.contains(left, top, right, bottom);
+                int characterBoundsFlags = 0;
+                if (hasVisibleRegion) {
+                    characterBoundsFlags |= FLAG_HAS_VISIBLE_REGION;
+                }
+                if (hasInVisibleRegion) {
+                    characterBoundsFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
+                }
+
+                if (mLayout.isRtlCharAt(offset)) {
+                    characterBoundsFlags |= CursorAnchorInfo.FLAG_IS_RTL;
+                }
+                builder.addCharacterBounds(offset + startIndex, left, top, right, bottom,
+                        characterBoundsFlags);
             }
-            builder.addCharacterBounds(offset + startIndex, left, top, right, bottom,
-                    characterBoundsFlags);
+        } else {
+            final int minLine = mLayout.getLineForOffset(startIndex);
+            final int maxLine = mLayout.getLineForOffset(endIndex - 1);
+            for (int line = minLine; line <= maxLine; ++line) {
+                final int lineStart = mLayout.getLineStart(line);
+                final int lineEnd = mLayout.getLineEnd(line);
+                final int offsetStart = Math.max(lineStart, startIndex);
+                final int offsetEnd = Math.min(lineEnd, endIndex);
+                final boolean ltrLine =
+                        mLayout.getParagraphDirection(line) == Layout.DIR_LEFT_TO_RIGHT;
+                final float[] widths = new float[offsetEnd - offsetStart];
+                mLayout.getPaint().getTextWidths(mTransformed, offsetStart, offsetEnd, widths);
+                final float top = mLayout.getLineTop(line);
+                final float bottom = mLayout.getLineBottom(line);
+                for (int offset = offsetStart; offset < offsetEnd; ++offset) {
+                    final float charWidth = widths[offset - offsetStart];
+                    final boolean isRtl = mLayout.isRtlCharAt(offset);
+                    final float primary = mLayout.getPrimaryHorizontal(offset);
+                    final float secondary = mLayout.getSecondaryHorizontal(offset);
+                    // TODO: This doesn't work perfectly for text with custom styles and
+                    // TAB chars.
+                    final float left;
+                    final float right;
+                    if (ltrLine) {
+                        if (isRtl) {
+                            left = secondary - charWidth;
+                            right = secondary;
+                        } else {
+                            left = primary;
+                            right = primary + charWidth;
+                        }
+                    } else {
+                        if (!isRtl) {
+                            left = secondary;
+                            right = secondary + charWidth;
+                        } else {
+                            left = primary - charWidth;
+                            right = primary;
+                        }
+                    }
+                    // TODO: Check top-right and bottom-left as well.
+                    final float localLeft = left + viewportToContentHorizontalOffset;
+                    final float localRight = right + viewportToContentHorizontalOffset;
+                    final float localTop = top + viewportToContentVerticalOffset;
+                    final float localBottom = bottom + viewportToContentVerticalOffset;
+                    final boolean isTopLeftVisible = isPositionVisible(localLeft, localTop);
+                    final boolean isBottomRightVisible =
+                            isPositionVisible(localRight, localBottom);
+                    int characterBoundsFlags = 0;
+                    if (isTopLeftVisible || isBottomRightVisible) {
+                        characterBoundsFlags |= FLAG_HAS_VISIBLE_REGION;
+                    }
+                    if (!isTopLeftVisible || !isBottomRightVisible) {
+                        characterBoundsFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
+                    }
+                    if (isRtl) {
+                        characterBoundsFlags |= CursorAnchorInfo.FLAG_IS_RTL;
+                    }
+                    // Here offset is the index in Java chars.
+                    builder.addCharacterBounds(offset, localLeft, localTop, localRight,
+                            localBottom, characterBoundsFlags);
+                }
+            }
         }
     }
 
@@ -10696,6 +10783,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @param layoutTop  the top of the given {@code layout} in the editor view's coordinates.
      * @return the character bounds stored in a flattened array, in the editor view's coordinates.
      */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private float[] getCharacterBounds(int start, int end, float layoutLeft, float layoutTop) {
         final float[] characterBounds = new float[4 * (end - start)];
         mLayout.fillCharacterBounds(start, end, characterBounds, 0);
@@ -10708,6 +10796,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return characterBounds;
     }
 
+    // (EW) note that most of this code used to be in Editor.CursorAnchorInfoNotifier#updatePosition
     /**
      * Compute {@link CursorAnchorInfo} from this {@link EditText}.
      *
@@ -10721,7 +10810,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @hide
      */
     //TODO: (EW) this was marked as @VisibleForTesting, so this probably can be private
-    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Nullable
     public CursorAnchorInfo getCursorAnchorInfo(
             @InputConnectionExtension.CursorUpdateFilter int filter,
@@ -10731,25 +10820,56 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (layout == null) {
             return null;
         }
-        boolean includeEditorBounds =
-                (filter & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
-        boolean includeCharacterBounds =
-                (filter & InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS) != 0;
-        boolean includeInsertionMarker =
-                (filter & InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER) != 0;
-        boolean includeVisibleLineBounds =
-                (filter & InputConnection.CURSOR_UPDATE_FILTER_VISIBLE_LINE_BOUNDS) != 0;
-        boolean includeTextAppearance =
-                (filter & InputConnection.CURSOR_UPDATE_FILTER_TEXT_APPEARANCE) != 0;
-        boolean includeAll =
-                (!includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker
-                        && !includeVisibleLineBounds && !includeTextAppearance);
+        boolean includeEditorBounds;
+        boolean includeCharacterBounds;
+        boolean includeInsertionMarker;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            includeEditorBounds =
+                    (filter & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
+            includeCharacterBounds =
+                    (filter & InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS) != 0;
+            includeInsertionMarker =
+                    (filter & InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER) != 0;
+        } else {
+            // (EW) prior to Tiramisu includeCharacterBounds and includeInsertionMarker were not
+            // checked (those flags also didn't exist yet), and the code always just ran, so
+            // setting those to true to match previous functionality. nothing was previously
+            // done for the includeEditorBounds, and it currently needs methods from Tiramisu to
+            // work, so leaving that false.
+            includeEditorBounds = false;
+            includeCharacterBounds = true;
+            includeInsertionMarker = true;
+        }
+        boolean includeVisibleLineBounds;
+        boolean includeTextAppearance;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            includeVisibleLineBounds =
+                    (filter & InputConnection.CURSOR_UPDATE_FILTER_VISIBLE_LINE_BOUNDS) != 0;
+            includeTextAppearance =
+                    (filter & InputConnection.CURSOR_UPDATE_FILTER_TEXT_APPEARANCE) != 0;
+        } else {
+            // (EW) prior to Android 14 (Upside Down Cake) nothing was done related to these and the
+            // APIs are only available starting in Android 14
+            includeVisibleLineBounds = false;
+            includeTextAppearance = false;
+        }
 
-        includeEditorBounds |= includeAll;
-        includeCharacterBounds |= includeAll;
-        includeInsertionMarker |= includeAll;
-        includeVisibleLineBounds |= includeAll;
-        includeTextAppearance |= includeAll;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            boolean includeAll =
+                    (!includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker
+                            && !includeVisibleLineBounds && !includeTextAppearance);
+            includeEditorBounds |= includeAll;
+            includeCharacterBounds |= includeAll;
+            includeInsertionMarker |= includeAll;
+            includeVisibleLineBounds |= includeAll;
+            includeTextAppearance |= includeAll;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            boolean includeAll =
+                    !includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker;
+            includeEditorBounds |= includeAll;
+            includeCharacterBounds |= includeAll;
+            includeInsertionMarker |= includeAll;
+        }
 
         final CursorAnchorInfo.Builder builder = cursorAnchorInfoBuilder;
         builder.reset();
@@ -10758,23 +10878,34 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         builder.setSelectionRange(selectionStart, getSelectionEnd());
 
         // Construct transformation matrix from view local coordinates to screen coordinates.
-        viewToScreenMatrix.reset();
-        transformMatrixToGlobal(viewToScreenMatrix);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // (EW) this new handling was started in Android 14 (Upside Down Cake), but since it's
+            // available earlier, we'll call it when we can
+            viewToScreenMatrix.reset();
+            transformMatrixToGlobal(viewToScreenMatrix);
+        } else {
+            final int[] tmpIntOffset = new int[2];
+            viewToScreenMatrix.set(getMatrix());
+            getLocationOnScreen(tmpIntOffset);
+            viewToScreenMatrix.postTranslate(tmpIntOffset[0], tmpIntOffset[1]);
+        }
         builder.setMatrix(viewToScreenMatrix);
 
-        if (includeEditorBounds) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && includeEditorBounds) {
             final RectF editorBounds = new RectF();
             editorBounds.set(0 /* left */, 0 /* top */,
                     getWidth(), getHeight());
-            final RectF handwritingBounds = new RectF(
-                    -getHandwritingBoundsOffsetLeft(),
-                    -getHandwritingBoundsOffsetTop(),
-                    getWidth() + getHandwritingBoundsOffsetRight(),
-                    getHeight() + getHandwritingBoundsOffsetBottom());
             EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
-            EditorBoundsInfo editorBoundsInfo = boundsBuilder.setEditorBounds(editorBounds)
-                    .setHandwritingBounds(handwritingBounds).build();
-            builder.setEditorBoundsInfo(editorBoundsInfo);
+            boundsBuilder.setEditorBounds(editorBounds);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                final RectF handwritingBounds = new RectF(
+                        -getHandwritingBoundsOffsetLeft(),
+                        -getHandwritingBoundsOffsetTop(),
+                        getWidth() + getHandwritingBoundsOffsetRight(),
+                        getHeight() + getHandwritingBoundsOffsetBottom());
+                boundsBuilder.setHandwritingBounds(handwritingBounds).build();
+            }
+            builder.setEditorBoundsInfo(boundsBuilder.build());
         }
 
         if (includeCharacterBounds || includeInsertionMarker || includeVisibleLineBounds) {
@@ -10785,27 +10916,23 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             final boolean isTextTransformed = (getTransformationMethod() != null
                     && getTransformed() instanceof OffsetMapping);
             if (includeCharacterBounds && !isTextTransformed) {
-                final CharSequence text = getText();
-                if (text instanceof Spannable) {
-                    final Spannable sp = (Spannable) text;
-                    int composingTextStart = EditableInputConnection.getComposingSpanStart(sp);
-                    int composingTextEnd = EditableInputConnection.getComposingSpanEnd(sp);
-                    if (composingTextEnd < composingTextStart) {
-                        final int temp = composingTextEnd;
-                        composingTextEnd = composingTextStart;
-                        composingTextStart = temp;
-                    }
-                    final boolean hasComposingText =
-                            (0 <= composingTextStart) && (composingTextStart
-                                    < composingTextEnd);
-                    if (hasComposingText) {
-                        final CharSequence composingText = text.subSequence(composingTextStart,
-                                composingTextEnd);
-                        builder.setComposingText(composingTextStart, composingText);
-                        populateCharacterBounds(builder, composingTextStart,
-                                composingTextEnd, viewportToContentHorizontalOffset,
-                                viewportToContentVerticalOffset);
-                    }
+                final Spannable text = getText();
+                int composingTextStart = EditableInputConnection.getComposingSpanStart(text);
+                int composingTextEnd = EditableInputConnection.getComposingSpanEnd(text);
+                if (composingTextEnd < composingTextStart) {
+                    final int temp = composingTextEnd;
+                    composingTextEnd = composingTextStart;
+                    composingTextStart = temp;
+                }
+                final boolean hasComposingText =
+                        (0 <= composingTextStart) && (composingTextStart < composingTextEnd);
+                if (hasComposingText) {
+                    final CharSequence composingText = text.subSequence(composingTextStart,
+                            composingTextEnd);
+                    builder.setComposingText(composingTextStart, composingText);
+                    populateCharacterBounds(builder, composingTextStart,
+                            composingTextEnd, viewportToContentHorizontalOffset,
+                            viewportToContentVerticalOffset);
                 }
             }
 
@@ -10823,7 +10950,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     final float insertionMarkerBaseline = layout.getLineBaseline(line)
                             + viewportToContentVerticalOffset;
                     final float insertionMarkerBottom =
-                            layout.getLineBottom(line, /* includeLineSpacing= */ false)
+                            LayoutExtension.getLineBottom(layout, line,
+                                    /* includeLineSpacing= */ false)
                                     + viewportToContentVerticalOffset;
                     final boolean isTopVisible =
                             isPositionVisible(insertionMarkerX, insertionMarkerTop);
@@ -10845,7 +10973,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 }
             }
 
-            if (includeVisibleLineBounds) {
+            if (includeVisibleLineBounds
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 final Rect visibleRect = new Rect();
                 if (getContentVisibleRect(visibleRect)) {
                     // Subtract the viewportToContentVerticalOffset to convert the view
@@ -10866,7 +10995,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                                 + viewportToContentVerticalOffset;
                         final float right = layout.getLineRight(line)
                                 + viewportToContentHorizontalOffset;
-                        final float bottom = layout.getLineBottom(line, false)
+                        final float bottom = LayoutExtension.getLineBottom(layout, line, false)
                                 + viewportToContentVerticalOffset;
                         builder.addVisibleLineBounds(left, top, right, bottom);
                     }
@@ -10874,7 +11003,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             }
         }
 
-        if (includeTextAppearance) {
+        if (includeTextAppearance
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             builder.setTextAppearanceInfo(TextAppearanceInfoExtension.createFromTextView(this));
         }
         return builder.build();
@@ -11143,7 +11273,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     public boolean onTextContextMenuItem(int id) {
         // (EW) this block is from EditText
         // TODO: Move to switch-case once the resource ID is finalized.
-        if (id == ID_BOLD || id == ID_ITALIC || id == ID_UNDERLINE) {
+        if ((id == ID_BOLD || id == ID_ITALIC || id == ID_UNDERLINE)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return performStylingAction(id);
         }
 
@@ -11245,11 +11376,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
 
         Spannable spannable = getText();
-        if (actionId == ID_BOLD) {
+        if (actionId == ID_BOLD
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return SpanUtils.toggleBold(spannable, min, max);
-        } else if (actionId == ID_ITALIC) {
+        } else if (actionId == ID_ITALIC
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return SpanUtils.toggleItalic(spannable, min, max);
-        } else if (actionId == ID_UNDERLINE) {
+        } else if (actionId == ID_UNDERLINE
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return SpanUtils.toggleUnderline(spannable, min, max);
         }
 

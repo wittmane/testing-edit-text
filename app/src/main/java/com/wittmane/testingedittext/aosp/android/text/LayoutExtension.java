@@ -390,17 +390,18 @@ public class LayoutExtension {
         return basePrimaryHorizontal - baseWid + wid;
     }
 
-    /**
-     * Return the vertical position of the bottom of the specified line without the line spacing
-     * added.
-     */
-    public static int getLineBottomWithoutSpacing(Layout layout, int line) {
-        //TODO: (EW) getLineBottomWithoutSpacing wasn't added until Pie. comparing where Pie used
-        // this in Editor to the alternative in Oreo MR1, 4/5 called Layout#getLineBottom(line). the
-        // other called Layout#getLineTop(line + 1), but used the result slightly different, so it
-        // may not have meant to be equivalent. simply using Layout#getLineTop for older versions
-        // seems appropriate. we can't even use reflection to access
-        // Layout#getLineBottomWithoutSpacing because it is a restricted API (warning logged
+    // (EW) wrapper for Layout#getLineBottom(int, boolean) since that wasn't available in older
+    // versions
+    public static int getLineBottom(Layout layout, int line, boolean includeLineSpacing) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return layout.getLineBottom(line, includeLineSpacing);
+        }
+        //TODO: (EW) this method replaced getLineBottomWithoutSpacing, which wasn't added until Pie.
+        // comparing where Pie used this in Editor to the alternative in Oreo MR1, 4/5 called
+        // Layout#getLineBottom(line). the other called Layout#getLineTop(line + 1), but used the
+        // result slightly different, so it may not have meant to be equivalent. simply using
+        // Layout#getLineTop for older versions seems appropriate. we can't even use reflection to
+        // access Layout#getLineBottomWithoutSpacing because it is a restricted API (warning logged
         // specifies "dark greylist"). at least as of S Layout#getLineBottomWithoutSpacing simply
         // returned getLineTop(line + 1) - getLineExtra(line), but Layout#getLineExtra is also a
         // restricted API (warning logged specifies "dark greylist"), just replicating that logic

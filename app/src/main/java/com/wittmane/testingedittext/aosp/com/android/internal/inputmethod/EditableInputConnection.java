@@ -72,7 +72,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.com.android.internal.util.Preconditions;
-import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.EditorInfoExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 import com.wittmane.testingedittext.datatype.TranslateText;
@@ -1659,8 +1658,13 @@ public class EditableInputConnection implements InputConnection {
             // CursorAnchorInfo is temporarily unavailable.
             return false;
         }
-        InputMethodManagerExtension.getSupplementalObject(mIMM, this)
-                .setUpdateCursorAnchorInfoMode(cursorUpdateMode);
+        // (EW) the AOSP version called InputMethodManager#setUpdateCursorAnchorInfoMode, but
+        // starting in Android 14, it tracks this info in Editor.InputMethodState and doesn't check
+        // InputMethodManager#isCursorAnchorInfoEnabled anymore.
+        // InputMethodManager#mRequestUpdateCursorAnchorInfoMonitorMode was deprecated, rather than
+        // deleted, with a comment saying it is kept for UnsupportedAppUsage but must not be used,
+        // and the call here also is kept with a comment saying "for UnsupportedAppUsage". we'll
+        // just skip it because it isn't useful.
         mEditText.onRequestCursorUpdatesInternal(cursorUpdateMode & knownModeFlags,
                 cursorUpdateMode & knownFilterFlags);
         return true;

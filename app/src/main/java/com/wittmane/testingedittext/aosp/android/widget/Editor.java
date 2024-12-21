@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -36,6 +37,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
@@ -74,6 +76,7 @@ import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -91,7 +94,6 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.CursorAnchorInfo;
-import android.view.inputmethod.EditorBoundsInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -127,7 +129,6 @@ import com.wittmane.testingedittext.aosp.android.text.LayoutExtension;
 import com.wittmane.testingedittext.aosp.android.text.method.MovementMethod;
 import com.wittmane.testingedittext.aosp.android.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.android.text.TextUtilsExtension;
-import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText.OnEditorActionListener;
 import com.wittmane.testingedittext.util.SpanUtils;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
@@ -170,17 +171,21 @@ class Editor {
     private static final String UNDO_OWNER_TAG = "Editor";
 
     // Ordering constants used to place the Action Mode or context menu items in their menu.
-    private static final int MENU_ITEM_ORDER_UNDO = 2;
-    private static final int MENU_ITEM_ORDER_REDO = 3;
-    private static final int MENU_ITEM_ORDER_CUT = 4;
-    private static final int MENU_ITEM_ORDER_COPY = 5;
-    private static final int MENU_ITEM_ORDER_PASTE = 6;
-    private static final int MENU_ITEM_ORDER_SHARE = 7;
-    private static final int MENU_ITEM_ORDER_SELECT_ALL = 8;
-    private static final int MENU_ITEM_ORDER_REPLACE = 9;
-    private static final int MENU_ITEM_ORDER_AUTOFILL = 10;
-    private static final int MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT = 11;
-    private static final int MENU_ITEM_ORDER_PROCESS_TEXT_INTENT_ACTIONS_START = 100;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_CUT = 4;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_COPY = 5;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_PASTE = 6;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_SHARE = 7;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_SELECT_ALL = 8;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_REPLACE = 9;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_AUTOFILL = 10;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT = 11;
+    private static final int ACTION_MODE_MENU_ITEM_ORDER_PROCESS_TEXT_INTENT_ACTIONS_START = 100;
+
+    private static final int CONTEXT_MENU_ITEM_ORDER_REPLACE = 11;
+
+    private static final int CONTEXT_MENU_GROUP_UNDO_REDO = Menu.FIRST;
+    private static final int CONTEXT_MENU_GROUP_CLIPBOARD = Menu.FIRST + 1;
+    private static final int CONTEXT_MENU_GROUP_MISC = Menu.FIRST + 2;
 
     private static final int FLAG_MISSPELLED_OR_GRAMMAR_ERROR =
             SuggestionSpan.FLAG_MISSPELLED | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -406,6 +411,10 @@ class Editor {
         // 0.5f was returned (not actually coming from the default value). this replaced
         // LINE_SLOP_MULTIPLIER_FOR_HANDLEVIEWS from older versions, which was also 0.5f.
         mLineSlopRatio = 0.5f;
+        // (EW) the AOSP version checks AppGlobals.getIntCoreSetting (added in Android 14) with a
+        // default value of TextFlags.ENABLE_NEW_CONTEXT_MENU_DEFAULT (false). reflection is
+        // blocked, so we'll just stick with the default for now.
+        mUseNewContextMenu = false;
         if (EditText.DEBUG_CURSOR) {
             logCursor("Editor", "Cursor drag from anywhere is %s.",
                     mFlagCursorDragFromAnywhereEnabled ? "enabled" : "disabled");
@@ -529,6 +538,9 @@ class Editor {
             // in previous versions, which has different handling.
             getPositionListener().addSubscriber(mCursorAnchorInfoNotifier, true);
         }
+        // Call resumeBlink here instead of makeBlink to ensure that if mBlink is not null the
+        // Blink object is uncancelled.  This ensures when a view is removed and added back the
+        // cursor will resume blinking.
         resumeBlink();
     }
 
@@ -754,8 +766,10 @@ class Editor {
     private void resumeBlink() {
         if (mBlink != null) {
             mBlink.uncancel();
-            makeBlink();
         }
+        // Moving makeBlink outside of the null check block ensures that mBlink object gets
+        // instantiated when the view is added to the window if mBlink is still null.
+        makeBlink();
     }
 
     void adjustInputType(boolean passwordInputType,
@@ -920,12 +934,16 @@ class Editor {
      * Get the minimum range of paragraphs that contains startOffset and endOffset.
      */
     private long getParagraphsRange(int startOffset, int endOffset) {
+        final int startOffsetTransformed = mEditText.originalToTransformed(startOffset,
+                OffsetMapping.MAP_STRATEGY_CURSOR);
+        final int endOffsetTransformed = mEditText.originalToTransformed(endOffset,
+                OffsetMapping.MAP_STRATEGY_CURSOR);
         final Layout layout = mEditText.getLayout();
         if (layout == null) {
             return TextUtilsExtension.packRangeInLong(-1, -1);
         }
-        final CharSequence text = mEditText.getText();
-        int minLine = layout.getLineForOffset(startOffset);
+        final CharSequence text = layout.getText();
+        int minLine = layout.getLineForOffset(startOffsetTransformed);
         // Search paragraph start.
         while (minLine > 0) {
             final int prevLineEndOffset = layout.getLineEnd(minLine - 1);
@@ -934,7 +952,7 @@ class Editor {
             }
             minLine--;
         }
-        int maxLine = layout.getLineForOffset(endOffset);
+        int maxLine = layout.getLineForOffset(endOffsetTransformed);
         // Search paragraph end.
         while (maxLine < layout.getLineCount() - 1) {
             final int lineEndOffset = layout.getLineEnd(maxLine);
@@ -943,8 +961,11 @@ class Editor {
             }
             maxLine++;
         }
-        return TextUtilsExtension.packRangeInLong(layout.getLineStart(minLine),
-                layout.getLineEnd(maxLine));
+        final int paragraphStart = mEditText.transformedToOriginal(layout.getLineStart(minLine),
+                OffsetMapping.MAP_STRATEGY_CURSOR);
+        final int paragraphEnd = mEditText.transformedToOriginal(layout.getLineEnd(maxLine),
+                OffsetMapping.MAP_STRATEGY_CURSOR);
+        return TextUtilsExtension.packRangeInLong(paragraphStart, paragraphEnd);
     }
 
     void onLocaleChanged() {
@@ -981,8 +1002,16 @@ class Editor {
     private int getNextCursorOffset(int offset, boolean findAfterGivenOffset) {
         final Layout layout = mEditText.getLayout();
         if (layout == null) return offset;
-        return findAfterGivenOffset == layout.isRtlCharAt(offset)
-                ? layout.getOffsetToLeftOf(offset) : layout.getOffsetToRightOf(offset);
+        final int offsetTransformed =
+                mEditText.originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
+        final int nextCursor;
+        if (findAfterGivenOffset == layout.isRtlCharAt(offsetTransformed)) {
+            nextCursor = layout.getOffsetToLeftOf(offsetTransformed);
+        } else {
+            nextCursor = layout.getOffsetToRightOf(offsetTransformed);
+        }
+
+        return mEditText.transformedToOriginal(nextCursor, OffsetMapping.MAP_STRATEGY_CURSOR);
     }
 
     private long getCharClusterRange(int offset) {
@@ -1038,9 +1067,11 @@ class Editor {
         Layout layout = mEditText.getLayout();
         if (layout == null) return false;
 
-        final int line = layout.getLineForOffset(offset);
+        final int offsetTransformed =
+                mEditText.originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
+        final int line = layout.getLineForOffset(offsetTransformed);
         final int lineBottom = layout.getLineBottom(line);
-        final int primaryHorizontal = (int) layout.getPrimaryHorizontal(offset);
+        final int primaryHorizontal = (int) layout.getPrimaryHorizontal(offsetTransformed);
         return mEditText.isPositionVisible(
                 primaryHorizontal + mEditText.viewportToContentHorizontalOffset(),
                 lineBottom + mEditText.viewportToContentVerticalOffset());
@@ -1236,6 +1267,10 @@ class Editor {
                 mSelectionModifierCursorController.resetTouchOffsets();
             }
 
+            if (mInsertModeController != null) {
+                mInsertModeController.exitInsertMode();
+            }
+
             ensureNoSelectionIfNonSelectable();
         }
     }
@@ -1301,17 +1336,12 @@ class Editor {
 
     void onWindowFocusChanged(boolean hasWindowFocus) {
         if (hasWindowFocus) {
-            if (mBlink != null) {
-                mBlink.uncancel();
-                makeBlink();
-            }
+            resumeBlink();
             if (mEditText.hasSelection() && !extractedTextModeWillBeStarted()) {
                 refreshTextActionMode();
             }
         } else {
-            if (mBlink != null) {
-                mBlink.cancel();
-            }
+            suspendBlink();
             if (mInputContentType != null) {
                 mInputContentType.enterDown = false;
             }
@@ -1364,6 +1394,7 @@ class Editor {
      */
     void onTouchEvent(MotionEvent event) {
         final boolean filterOutEvent = shouldFilterOutTouchEvent(event);
+
         mLastButtonState = event.getButtonState();
         if (filterOutEvent) {
             if (event.getActionMasked() == MotionEvent.ACTION_UP) {
@@ -1423,7 +1454,7 @@ class Editor {
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void showFloatingToolbar() {
-        if (mTextActionMode != null) {
+        if (mTextActionMode != null && mEditText.showUIForTouchScreen()) {
             // Delay "show" so it doesn't interfere with click confirmations
             // or double-clicks that could "dismiss" the floating toolbar.
             int delay = ViewConfiguration.getDoubleTapTimeout();
@@ -1512,7 +1543,8 @@ class Editor {
             final CursorController cursorController = mEditText.hasSelection()
                     ? getSelectionController() : getInsertionController();
             if (cursorController != null && !cursorController.isActive()
-                    && !cursorController.isCursorBeingModified()) {
+                    && !cursorController.isCursorBeingModified()
+                    && mEditText.showUIForTouchScreen()) {
                 cursorController.show();
             }
         }
@@ -1929,11 +1961,10 @@ class Editor {
         }
     }
 
-    //TODO: (EW) pull in handling for the new parameters
     void onDraw(Canvas canvas, Layout layout,
                 List<Path> highlightPaths,
                 List<Paint> highlightPaints,
-                Path highlight, Paint highlightPaint,
+                Path selectionHighlight, Paint selectionHighlightPaint,
                 int cursorOffsetVertical) {
         final int selectionStart = mEditText.getSelectionStart();
         final int selectionEnd = mEditText.getSelectionEnd();
@@ -1951,15 +1982,15 @@ class Editor {
                     }
                 }
 
-                // (EW) InputMethodState#updateCursor was only called prior to Lollipop and was
+                // (EW) InputMethodManager#updateCursor was only called prior to Lollipop and was
                 // replaced with InputMethodState#updateCursorAnchorInfo in later versions (handled
                 // elsewhere)
                 //TODO: (EW) rather than just comparing versions, this might be a decent thing as a
                 // config option for testing (call updateCursor instead of updateCursorAnchorInfo on
                 // more recent version or maybe both)
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
-                        && imm.isWatchingCursor(mEditText) && highlight != null) {
-                    highlight.computeBounds(ims.mTmpRectF, true);
+                        && imm.isWatchingCursor(mEditText) && selectionHighlight != null) {
+                    selectionHighlight.computeBounds(ims.mTmpRectF, true);
                     ims.mTmpOffset[0] = ims.mTmpOffset[1] = 0;
 
                     canvas.getMatrix().mapPoints(ims.mTmpOffset);
@@ -1983,15 +2014,36 @@ class Editor {
             mCorrectionHighlighter.draw(canvas, cursorOffsetVertical);
         }
 
-        if (highlight != null && selectionStart == selectionEnd && mDrawableForCursor != null) {
+        if (selectionHighlight != null && selectionStart == selectionEnd
+                && mDrawableForCursor != null
+                && !mEditText.hasGesturePreviewHighlight()) {
             drawCursor(canvas, cursorOffsetVertical);
             // Rely on the drawable entirely, do not draw the cursor line.
             // Has to be done after the IMM related code above which relies on the highlight.
-            highlight = null;
+            selectionHighlight = null;
         }
 
-        layout.draw(canvas, highlight, highlightPaint, cursorOffsetVertical);
+        // (EW) the AOSP version also called SelectionActionModeHelper#onDraw and
+        // SelectionActionModeHelper#isDrawingHighlight, which were skipped (see the comment in
+        // SelectionActionModeHelper), so nothing is necessary here
+
+        if (mInsertModeController != null) {
+            mInsertModeController.onDraw(canvas);
+        }
+
+        // (EW) the AOSP version had some handling for drawing using hardware acceleration, which we
+        // skipped for simplicity
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            layout.draw(canvas, highlightPaths, highlightPaints, selectionHighlight,
+                    selectionHighlightPaint, cursorOffsetVertical);
+        } else {
+            layout.draw(canvas, selectionHighlight, selectionHighlightPaint, cursorOffsetVertical);
+        }
     }
+
+    // (EW) #drawHardwareAccelerated, #drawHardwareAcceleratedInner, and
+    // #getAvailableDisplayListIndex skipped to not bother with hardware acceleration for
+    // simplicity, as those are probably just an unnecessary performance enhancement
 
     private void drawCursor(Canvas canvas, int cursorOffsetVertical) {
         final boolean translate = cursorOffsetVertical != 0;
@@ -2023,14 +2075,17 @@ class Editor {
 
         final Layout layout = mEditText.getLayout();
         final int offset = mEditText.getSelectionStart();
-        final int line = layout.getLineForOffset(offset);
+        final int transformedOffset = mEditText.originalToTransformed(offset,
+                OffsetMapping.MAP_STRATEGY_CURSOR);
+        final int line = layout.getLineForOffset(transformedOffset);
         final int top = layout.getLineTop(line);
-        final int bottom = LayoutExtension.getLineBottomWithoutSpacing(layout, line);
+        final int bottom = LayoutExtension.getLineBottom(layout, line,
+                /* includeLineSpacing= */ false);
 
         final boolean clamped = LayoutExtension.shouldClampCursor(layout, line);
         updateCursorPosition(top, bottom,
-                LayoutExtension.getPrimaryHorizontal(layout, mEditText.getTextDir(), offset,
-                        clamped));
+                LayoutExtension.getPrimaryHorizontal(layout, mEditText.getTextDir(),
+                        transformedOffset, clamped));
     }
 
     void refreshTextActionMode() {
@@ -2208,6 +2263,10 @@ class Editor {
             return false;
         }
 
+        if (!mEditText.showUIForTouchScreen()) {
+            return false;
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Callback actionModeCallback = new TextActionModeCallback(actionMode);
             mTextActionMode =
@@ -2342,6 +2401,8 @@ class Editor {
             // Move cursor
             final int offset = mEditText.getOffsetForPosition(event.getX(), event.getY());
 
+            // (EW) the AOSP version checked if it should insert the cursor based on not requesting
+            // link action mode, which we don't support, so checks with that were skipped throughout
             Selection.setSelection(text, offset);
             if (mSpellChecker != null) {
                 // When the cursor moves, the word that was typed may need spell check
@@ -2361,7 +2422,11 @@ class Editor {
                     mEditText.postDelayed(mShowSuggestionRunnable,
                             ViewConfiguration.getDoubleTapTimeout());
                 } else if (hasInsertionController()) {
-                    getInsertionController().show();
+                    if (mEditText.showUIForTouchScreen()) {
+                        getInsertionController().show();
+                    } else {
+                        getInsertionController().hide();
+                    }
                 }
             }
         }
@@ -2521,7 +2586,8 @@ class Editor {
      * @return True when the EditText isFocused and has a valid zero-length selection (cursor).
      */
     private boolean shouldBlink() {
-        if (!isCursorVisible() || !mEditText.isFocused()) return false;
+        if (!isCursorVisible() || !mEditText.isFocused()
+                || mEditText.getWindowVisibility() != View.VISIBLE) return false;
 
         final int start = mEditText.getSelectionStart();
         if (start < 0) return false;
@@ -2536,11 +2602,26 @@ class Editor {
         if (shouldBlink()) {
             mShowCursor = SystemClock.uptimeMillis();
             if (mBlink == null) mBlink = new Blink();
+            // Call uncancel as mBlink could have previously been cancelled and cursor will not
+            // resume blinking unless uncancelled.
+            mBlink.uncancel();
             mEditText.removeCallbacks(mBlink);
             mEditText.postDelayed(mBlink, BLINK);
         } else {
             if (mBlink != null) mEditText.removeCallbacks(mBlink);
         }
+    }
+
+    //TODO: (EW) probably can make private or at least package private. maybe just delete. it's not
+    // used in TextView or Editor in AOSP.
+    /**
+     *
+     * @return whether the Blink runnable is blinking or not, if null return false.
+     * @hide
+     */
+    public boolean isBlinking() {
+        if (mBlink == null) return false;
+        return !mBlink.mCancelled;
     }
 
     private class Blink implements Runnable {
@@ -2742,7 +2823,11 @@ class Editor {
         mContextMenuAnchorY = y;
     }
 
-    void onCreateContextMenu(ContextMenu menu) {
+    // (EW) changed to package private since it doesn't seem to need to be called elsewhere
+    /**
+     * Called when the context menu is created.
+     */
+    /* package */ void onCreateContextMenu(ContextMenu menu) {
         if (mIsBeingLongClicked || Float.isNaN(mContextMenuAnchorX)
                 || Float.isNaN(mContextMenuAnchorY)) {
             return;
@@ -2769,8 +2854,8 @@ class Editor {
             for (int i = 0; i < suggestionInfoArray.length; i++) {
                 suggestionInfoArray[i] = new SuggestionInfo();
             }
-            final SubMenu subMenu = menu.addSubMenu(Menu.NONE, Menu.NONE, MENU_ITEM_ORDER_REPLACE,
-                    R.string.replace);
+            final SubMenu subMenu = menu.addSubMenu(Menu.NONE, Menu.NONE,
+                    CONTEXT_MENU_ITEM_ORDER_REPLACE, R.string.replace);
             final int numItems = mSuggestionHelper.getSuggestionInfo(suggestionInfoArray, null);
             for (int i = 0; i < numItems; i++) {
                 final SuggestionInfo info = suggestionInfoArray[i];
@@ -2784,52 +2869,162 @@ class Editor {
                         });
             }
         }
-        menu.add(Menu.NONE, EditText.ID_UNDO, MENU_ITEM_ORDER_UNDO,
+
+        final int menuItemOrderUndo = 2;
+        final int menuItemOrderRedo = 3;
+        final int menuItemOrderCut = 4;
+        final int menuItemOrderCopy = 5;
+        final int menuItemOrderPaste = 6;
+        final int menuItemOrderPasteAsPlainText;
+        final int menuItemOrderSelectAll;
+        final int menuItemOrderShare;
+        final int menuItemOrderAutofill;
+        if (mUseNewContextMenu) {
+            menuItemOrderPasteAsPlainText = 7;
+            menuItemOrderSelectAll = 8;
+            menuItemOrderShare = 9;
+            menuItemOrderAutofill = 10;
+
+            // (EW) the AOSP version called Menu#setOptionalIconsVisible, which is hidden. I think
+            // this being missing is what's preventing the icons from showing, but since
+            // mUseNewContextMenu is currently always false, it doesn't seem worth trying to find
+            // some alternative now.
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                menu.setGroupDividerEnabled(true);
+            }
+
+            // (EW) the AOSP version called some helper method to do stuff with
+            // AssistantCallbackHelper, but it only worked if SelectionActionModeHelper had a
+            // TextClassification object, which we stripped out, so we'll skip this too.
+
+            final int keyboard = mEditText.getResources().getConfiguration().keyboard;
+            menu.setQwertyMode(keyboard == Configuration.KEYBOARD_QWERTY);
+        } else {
+            menuItemOrderShare = 7;
+            menuItemOrderSelectAll = 8;
+            menuItemOrderAutofill = 10;
+            menuItemOrderPasteAsPlainText = 11;
+        }
+
+        final TypedArray a = mEditText.getContext().obtainStyledAttributes(new int[] {
+                // TODO: Make Undo/Redo be public attribute.
+                R.attr.actionModeUndoDrawable,
+                R.attr.actionModeRedoDrawable,
+                android.R.attr.actionModeCutDrawable,
+                android.R.attr.actionModeCopyDrawable,
+                android.R.attr.actionModePasteDrawable,
+                android.R.attr.actionModeSelectAllDrawable,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? android.R.attr.actionModeShareDrawable : 0,
+        });
+
+        menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_UNDO, menuItemOrderUndo,
                 R.string.undo)
                 .setAlphabeticShortcut('z')
                 .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                .setIcon(a.getDrawable(0))
                 .setEnabled(mEditText.canUndo());
-        menu.add(Menu.NONE, EditText.ID_REDO, MENU_ITEM_ORDER_REDO,
-                R.string.redo)
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+        MenuItem redoMenuItem = menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_REDO,
+                menuItemOrderRedo, R.string.redo);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // (EW) this call was only added in Android 14, but the API was available earlier, so
+            // we'll just call it as long as we can
+            redoMenuItem.setAlphabeticShortcut('z',
+                    KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+        }
+        redoMenuItem.setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                .setIcon(a.getDrawable(1))
                 .setEnabled(mEditText.canRedo());
-        menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT,
+
+        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_CUT, menuItemOrderCut,
                 android.R.string.cut)
                 .setAlphabeticShortcut('x')
                 .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                .setIcon(a.getDrawable(2))
                 .setEnabled(mEditText.canCut());
-        menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY,
+        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_COPY, menuItemOrderCopy,
                 android.R.string.copy)
                 .setAlphabeticShortcut('c')
                 .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                .setIcon(a.getDrawable(3))
                 .setEnabled(mEditText.canCopy());
-        menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE,
+        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_PASTE, menuItemOrderPaste,
                 android.R.string.paste)
                 .setAlphabeticShortcut('v')
                 .setEnabled(mEditText.canPaste())
+                .setIcon(a.getDrawable(4))
                 .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        menu.add(Menu.NONE, EditText.ID_PASTE_AS_PLAIN_TEXT, MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
+        MenuItem pasteAsPlainTextMenuItem = menu.add(CONTEXT_MENU_GROUP_CLIPBOARD,
+                EditText.ID_PASTE_AS_PLAIN_TEXT, menuItemOrderPasteAsPlainText,
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? android.R.string.paste_as_plain_text
-                        : R.string.paste_as_plain_text)
-                .setEnabled(mEditText.canPasteAsPlainText())
+                        : R.string.paste_as_plain_text);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // (EW) this call was only added in Android 14, but the API was available earlier, so
+            // we'll just call it as long as we can
+            pasteAsPlainTextMenuItem.setAlphabeticShortcut('v',
+                    KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+        }
+        pasteAsPlainTextMenuItem.setEnabled(mEditText.canPasteAsPlainText())
+                .setIcon(a.getDrawable(4))
                 .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        menu.add(Menu.NONE, EditText.ID_SHARE, MENU_ITEM_ORDER_SHARE,
-                R.string.share)
-                .setEnabled(mEditText.canShare())
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
+        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_SELECT_ALL, menuItemOrderSelectAll,
                 android.R.string.selectAll)
                 .setAlphabeticShortcut('a')
                 .setEnabled(mEditText.canSelectAllText())
+                .setIcon(a.getDrawable(5))
+                .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+
+        menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_SHARE, menuItemOrderShare,
+                R.string.share)
+                .setEnabled(mEditText.canShare())
+                .setIcon(a.getDrawable(6))
                 .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            menu.add(Menu.NONE, EditText.ID_AUTOFILL, MENU_ITEM_ORDER_AUTOFILL,
+            menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_AUTOFILL, menuItemOrderAutofill,
                     R.string.autofill)
                     .setEnabled(mEditText.canRequestAutofill())
                     .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
         }
         mPreserveSelection = true;
+        a.recycle();
+
+        // No-op for the old context menu because it doesn't have icons.
+        adjustIconSpacing(menu);
+    }
+
+    /**
+     * Adjust icon spacing to align the texts.
+     * @hide
+     */
+    public void adjustIconSpacing(ContextMenu menu) {
+        int width = -1;
+        int height = -1;
+        for (int i = 0; i < menu.size(); ++i) {
+            final MenuItem item = menu.getItem(i);
+            final Drawable d = item.getIcon();
+            if (d == null) {
+                continue;
+            }
+
+            width = Math.max(width, d.getIntrinsicWidth());
+            height = Math.max(height, d.getIntrinsicHeight());
+        }
+
+        if (width < 0 || height < 0) {
+            return;  // No menu has icon drawable.
+        }
+
+        GradientDrawable paddingDrawable = new GradientDrawable();
+        paddingDrawable.setSize(width, height);
+
+        for (int i = 0; i < menu.size(); ++i) {
+            final MenuItem item = menu.getItem(i);
+            final Drawable d = item.getIcon();
+            if (d == null) {
+                item.setIcon(paddingDrawable);
+            }
+        }
     }
 
     @Nullable
@@ -3172,7 +3367,7 @@ class Editor {
         @Override
         protected int getVerticalLocalPosition(int line) {
             final Layout layout = mEditText.getLayout();
-            return LayoutExtension.getLineBottomWithoutSpacing(layout, line);
+            return LayoutExtension.getLineBottom(layout, line, /* includeLineSpacing= */ false);
         }
 
         @Override
@@ -3369,10 +3564,14 @@ class Editor {
             mPopupWindow.setWidth(width);
 
             final int offset = getTextOffset();
-            mPositionX = (int) (mEditText.getLayout().getPrimaryHorizontal(offset) - width / 2.0f);
+            final int transformedOffset = mEditText.originalToTransformed(offset,
+                    OffsetMapping.MAP_STRATEGY_CURSOR);
+            final Layout layout = mEditText.getLayout();
+            mPositionX = (int) (mEditText.getLayout().getPrimaryHorizontal(transformedOffset)
+                    - width / 2.0f);
             mPositionX += mEditText.viewportToContentHorizontalOffset();
 
-            final int line = mEditText.getLayout().getLineForOffset(offset);
+            final int line = layout.getLineForOffset(transformedOffset);
             mPositionY = getVerticalLocalPosition(line);
             mPositionY += mEditText.viewportToContentVerticalOffset();
         }
@@ -3923,7 +4122,8 @@ class Editor {
         @Override
         protected int getVerticalLocalPosition(int line) {
             final Layout layout = mEditText.getLayout();
-            return LayoutExtension.getLineBottomWithoutSpacing(layout, line) - mContainerMarginTop;
+            return LayoutExtension.getLineBottom(layout, line, /* includeLineSpacing= */ false)
+                    - mContainerMarginTop;
         }
 
         @Override
@@ -4150,6 +4350,9 @@ class Editor {
                     : mCustomInsertionActionModeCallback;
         }
 
+        // (EW) #populateMenuWithItems was moved out to a separate location to be shared with
+        // TextActionModeFixedCallback (versions prior to Marshmallow)
+
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             updateSelectAllItem(menu);
@@ -4161,6 +4364,9 @@ class Editor {
             }
             return true;
         }
+
+        // (EW) #updateSelectAllItem and #updateReplaceItem were moved out to a separate location to
+        // be shared with TextActionModeFixedCallback (versions prior to Marshmallow)
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
@@ -4206,19 +4412,20 @@ class Editor {
                 super.onGetContentRect(mode, view, outRect);
                 return;
             }
-            if (mEditText.getSelectionStart() != mEditText.getSelectionEnd()) {
+            final int selectionStart = mEditText.getSelectionStartTransformed();
+            final int selectionEnd = mEditText.getSelectionEndTransformed();
+            final Layout layout = mEditText.getLayout();
+            if (selectionStart != selectionEnd) {
                 // We have a selection.
                 mSelectionPath.reset();
-                mEditText.getLayout().getSelectionPath(
-                        mEditText.getSelectionStart(), mEditText.getSelectionEnd(), mSelectionPath);
+                layout.getSelectionPath(selectionStart, selectionEnd, mSelectionPath);
                 mSelectionPath.computeBounds(mSelectionBounds, true);
                 mSelectionBounds.bottom += mHandleHeight;
             } else {
                 // We have a cursor.
-                Layout layout = mEditText.getLayout();
-                int line = layout.getLineForOffset(mEditText.getSelectionStart());
-                float primaryHorizontal = clampHorizontalPosition(null,
-                        layout.getPrimaryHorizontal(mEditText.getSelectionStart()));
+                int line = layout.getLineForOffset(selectionStart);
+                float primaryHorizontal =
+                        clampHorizontalPosition(null, layout.getPrimaryHorizontal(selectionEnd));
                 mSelectionBounds.set(
                         primaryHorizontal,
                         layout.getLineTop(line),
@@ -4236,37 +4443,40 @@ class Editor {
         }
     }
 
+    // (EW) pulled out from TextActionModeCallback to be shared with TextActionModeFixedCallback
+    // (versions prior to Marshmallow)
     private void populateMenuWithItems(Menu menu) {
         if (mEditText.canCut()) {
-            menu.add(Menu.NONE, EditText.ID_CUT, MENU_ITEM_ORDER_CUT,
+            menu.add(Menu.NONE, EditText.ID_CUT, ACTION_MODE_MENU_ITEM_ORDER_CUT,
                     android.R.string.cut)
                     .setAlphabeticShortcut('x')
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
 
         if (mEditText.canCopy()) {
-            menu.add(Menu.NONE, EditText.ID_COPY, MENU_ITEM_ORDER_COPY,
+            menu.add(Menu.NONE, EditText.ID_COPY, ACTION_MODE_MENU_ITEM_ORDER_COPY,
                     android.R.string.copy)
                     .setAlphabeticShortcut('c')
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
 
         if (mEditText.canPaste()) {
-            menu.add(Menu.NONE, EditText.ID_PASTE, MENU_ITEM_ORDER_PASTE,
+            menu.add(Menu.NONE, EditText.ID_PASTE, ACTION_MODE_MENU_ITEM_ORDER_PASTE,
                     android.R.string.paste)
                     .setAlphabeticShortcut('v')
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
 
         if (mEditText.canShare()) {
-            menu.add(Menu.NONE, EditText.ID_SHARE, MENU_ITEM_ORDER_SHARE, R.string.share)
+            menu.add(Menu.NONE, EditText.ID_SHARE, ACTION_MODE_MENU_ITEM_ORDER_SHARE,
+                    R.string.share)
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mEditText.canRequestAutofill()) {
             final String selected = mEditText.getSelectedText();
             if (selected == null || selected.isEmpty()) {
-                menu.add(Menu.NONE, EditText.ID_AUTOFILL, MENU_ITEM_ORDER_AUTOFILL,
+                menu.add(Menu.NONE, EditText.ID_AUTOFILL, ACTION_MODE_MENU_ITEM_ORDER_AUTOFILL,
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
                                 ? android.R.string.autofill : R.string.autofill)
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
@@ -4277,7 +4487,7 @@ class Editor {
             menu.add(
                     Menu.NONE,
                     EditText.ID_PASTE_AS_PLAIN_TEXT,
-                    MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
+                            ACTION_MODE_MENU_ITEM_ORDER_PASTE_AS_PLAIN_TEXT,
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                             ? android.R.string.paste_as_plain_text
                             : R.string.paste_as_plain_text)
@@ -4288,11 +4498,13 @@ class Editor {
         updateReplaceItem(menu);
     }
 
+    // (EW) pulled out from TextActionModeCallback to be shared with TextActionModeFixedCallback
+    // (versions prior to Marshmallow)
     private void updateSelectAllItem(Menu menu) {
         boolean canSelectAll = mEditText.canSelectAllText();
         boolean selectAllItemExists = menu.findItem(EditText.ID_SELECT_ALL) != null;
         if (canSelectAll && !selectAllItemExists) {
-            menu.add(Menu.NONE, EditText.ID_SELECT_ALL, MENU_ITEM_ORDER_SELECT_ALL,
+            menu.add(Menu.NONE, EditText.ID_SELECT_ALL, ACTION_MODE_MENU_ITEM_ORDER_SELECT_ALL,
                     android.R.string.selectAll)
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         } else if (!canSelectAll && selectAllItemExists) {
@@ -4300,11 +4512,14 @@ class Editor {
         }
     }
 
+    // (EW) pulled out from TextActionModeCallback to be shared with TextActionModeFixedCallback
+    // (versions prior to Marshmallow)
     private void updateReplaceItem(Menu menu) {
         boolean canReplace = mEditText.isSuggestionsEnabled() && shouldOfferToShowSuggestions();
         boolean replaceItemExists = menu.findItem(EditText.ID_REPLACE) != null;
         if (canReplace && !replaceItemExists) {
-            menu.add(Menu.NONE, EditText.ID_REPLACE, MENU_ITEM_ORDER_REPLACE, R.string.replace)
+            menu.add(Menu.NONE, EditText.ID_REPLACE, ACTION_MODE_MENU_ITEM_ORDER_REPLACE,
+                            R.string.replace)
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         } else if (!canReplace && replaceItemExists) {
             menu.removeItem(EditText.ID_REPLACE);
@@ -4318,8 +4533,8 @@ class Editor {
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private final class CursorAnchorInfoNotifier implements EditTextPositionListener {
-        final CursorAnchorInfo.Builder mSelectionInfoBuilder = new CursorAnchorInfo.Builder();
-        final int[] mTmpIntOffset = new int[2];
+        // (EW) prior to Android 14, this was called mSelectionInfoBuilder
+        final CursorAnchorInfo.Builder mCursorAnchorInfoBuilder = new CursorAnchorInfo.Builder();
         final Matrix mViewToScreenMatrix = new Matrix();
 
         @Override
@@ -4336,128 +4551,24 @@ class Editor {
             if (!imm.isActive(mEditText)) {
                 return;
             }
-            InputMethodManagerExtension immHelper =
-                    InputMethodManagerExtension.getSupplementalObject(imm,
-                            mEditText.getInputConnection());
-            if (!immHelper.isCursorAnchorInfoEnabled()) {
+            // Skip if the IME has not requested the cursor/anchor position.
+            final int knownCursorAnchorInfoModes =
+                    InputConnection.CURSOR_UPDATE_IMMEDIATE | InputConnection.CURSOR_UPDATE_MONITOR;
+            if ((ims.mUpdateCursorAnchorInfoMode & knownCursorAnchorInfoModes) == 0) {
                 return;
             }
-            Layout layout = mEditText.getLayout();
-            if (layout == null) {
-                return;
-            }
-            boolean includeEditorBounds;
-            boolean includeCharacterBounds;
-            boolean includeInsertionMarker;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                int mode = immHelper.getUpdateCursorAnchorInfoMode();
-                includeEditorBounds =
-                        (mode & InputConnection.CURSOR_UPDATE_FILTER_EDITOR_BOUNDS) != 0;
-                includeCharacterBounds =
-                        (mode & InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS) != 0;
-                includeInsertionMarker =
-                        (mode & InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER) != 0;
-                boolean includeAll =
-                        !includeEditorBounds && !includeCharacterBounds && !includeInsertionMarker;
-                includeEditorBounds |= includeAll;
-                includeCharacterBounds |= includeAll;
-                includeInsertionMarker |= includeAll;
-            } else {
-                // (EW) prior to Tiramisu includeCharacterBounds and includeInsertionMarker were not
-                // checked (those flags also didn't exist yet), and the code always just ran, so
-                // setting those to true to match previous functionality. nothing was previously
-                // done for the includeEditorBounds, and it currently needs methods from Tiramisu to
-                // work, so leaving that false.
-                includeEditorBounds = false;
-                includeCharacterBounds = true;
-                includeInsertionMarker = true;
+            final CursorAnchorInfo cursorAnchorInfo =
+                    mEditText.getCursorAnchorInfo(ims.mUpdateCursorAnchorInfoFilter,
+                            mCursorAnchorInfoBuilder, mViewToScreenMatrix);
+
+            if (cursorAnchorInfo != null) {
+                imm.updateCursorAnchorInfo(mEditText, cursorAnchorInfo);
+
+                // Drop the immediate flag if any.
+                mInputMethodState.mUpdateCursorAnchorInfoMode &=
+                        ~InputConnection.CURSOR_UPDATE_IMMEDIATE;
             }
 
-            final CursorAnchorInfo.Builder builder = mSelectionInfoBuilder;
-            builder.reset();
-
-            final int selectionStart = mEditText.getSelectionStart();
-            builder.setSelectionRange(selectionStart, mEditText.getSelectionEnd());
-
-            // Construct transformation matrix from view local coordinates to screen coordinates.
-            mViewToScreenMatrix.set(mEditText.getMatrix());
-            mEditText.getLocationOnScreen(mTmpIntOffset);
-            mViewToScreenMatrix.postTranslate(mTmpIntOffset[0], mTmpIntOffset[1]);
-            builder.setMatrix(mViewToScreenMatrix);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && includeEditorBounds) {
-                final RectF bounds = new RectF();
-                bounds.set(0 /* left */, 0 /* top */, mEditText.getWidth(), mEditText.getHeight());
-                EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
-                //TODO(b/210039666): add Handwriting bounds once they're available.
-                builder.setEditorBoundsInfo(
-                        boundsBuilder.setEditorBounds(bounds).build());
-            }
-
-            if (includeCharacterBounds || includeInsertionMarker) {
-                final float viewportToContentHorizontalOffset =
-                        mEditText.viewportToContentHorizontalOffset();
-                final float viewportToContentVerticalOffset =
-                        mEditText.viewportToContentVerticalOffset();
-
-                if (includeCharacterBounds) {
-                    final Spannable text = mEditText.getText();
-                    int composingTextStart = EditableInputConnection.getComposingSpanStart(text);
-                    int composingTextEnd = EditableInputConnection.getComposingSpanEnd(text);
-                    if (composingTextEnd < composingTextStart) {
-                        final int temp = composingTextEnd;
-                        composingTextEnd = composingTextStart;
-                        composingTextStart = temp;
-                    }
-                    final boolean hasComposingText =
-                            (0 <= composingTextStart) && (composingTextStart < composingTextEnd);
-                    if (hasComposingText) {
-                        final CharSequence composingText = text.subSequence(composingTextStart,
-                                composingTextEnd);
-                        builder.setComposingText(composingTextStart, composingText);
-                        mEditText.populateCharacterBounds(builder, composingTextStart,
-                                composingTextEnd, viewportToContentHorizontalOffset,
-                                viewportToContentVerticalOffset);
-                    }
-                }
-
-                if (includeInsertionMarker) {
-                    // Treat selectionStart as the insertion point.
-                    if (0 <= selectionStart) {
-                        final int offset = selectionStart;
-                        final int line = layout.getLineForOffset(offset);
-                        final float insertionMarkerX = layout.getPrimaryHorizontal(offset)
-                                + viewportToContentHorizontalOffset;
-                        final float insertionMarkerTop = layout.getLineTop(line)
-                                + viewportToContentVerticalOffset;
-                        final float insertionMarkerBaseline = layout.getLineBaseline(line)
-                                + viewportToContentVerticalOffset;
-                        final float insertionMarkerBottom =
-                                LayoutExtension.getLineBottomWithoutSpacing(layout, line)
-                                        + viewportToContentVerticalOffset;
-                        final boolean isTopVisible = mEditText
-                                .isPositionVisible(insertionMarkerX, insertionMarkerTop);
-                        final boolean isBottomVisible = mEditText
-                                .isPositionVisible(insertionMarkerX, insertionMarkerBottom);
-                        int insertionMarkerFlags = 0;
-
-                        if (isTopVisible || isBottomVisible) {
-                            insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
-                        }
-                        if (!isTopVisible || !isBottomVisible) {
-                            insertionMarkerFlags |= CursorAnchorInfo.FLAG_HAS_INVISIBLE_REGION;
-                        }
-                        if (layout.isRtlCharAt(offset)) {
-                            insertionMarkerFlags |= CursorAnchorInfo.FLAG_IS_RTL;
-                        }
-                        builder.setInsertionMarkerLocation(insertionMarkerX, insertionMarkerTop,
-                                insertionMarkerBaseline, insertionMarkerBottom,
-                                insertionMarkerFlags);
-                    }
-                }
-            }
-
-            immHelper.updateCursorAnchorInfo(mEditText, builder.build());
         }
     }
 
@@ -4570,7 +4681,7 @@ class Editor {
 
     // (EW) only used prior to Marshmallow. this was essentially replaced by the
     // TextActionModeCallback menu
-    private class ActionPopupWindow extends PinnedPopupWindow implements OnClickListener {
+    /* package */ class ActionPopupWindow extends PinnedPopupWindow implements OnClickListener {
         private static final int POPUP_TEXT_LAYOUT = R.layout.text_edit_action_popup_text;
         private android.widget.TextView mPasteTextView;
         private android.widget.TextView mReplaceTextView;
@@ -4929,7 +5040,7 @@ class Editor {
             if (isShowing()) {
                 positionAtCursorOffset(getCurrentCursorOffset(), true, false);
             }
-        };
+        }
 
         protected final int getPreferredWidth() {
             return Math.max(mDrawable.getIntrinsicWidth(), mMinSize);
@@ -5034,11 +5145,27 @@ class Editor {
         protected abstract void updatePosition(float x, float y, boolean fromTouchScreen);
 
         protected boolean isAtRtlRun(@NonNull Layout layout, int offset) {
-            return layout.isRtlCharAt(offset);
+            final int transformedOffset =
+                    mEditText.originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
+            return layout.isRtlCharAt(transformedOffset);
         }
 
         public float getHorizontal(@NonNull Layout layout, int offset) {
-            return layout.getPrimaryHorizontal(offset);
+            final int transformedOffset =
+                    mEditText.originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
+            return layout.getPrimaryHorizontal(transformedOffset);
+        }
+
+        /**
+         * Return the line number for a given offset.
+         * @param layout the {@link Layout} to query.
+         * @param offset the index of the character to query.
+         * @return the index of the line the given offset belongs to.
+         */
+        public int getLineForOffset(@NonNull Layout layout, int offset) {
+            final int transformedOffset =
+                    mEditText.originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR);
+            return layout.getLineForOffset(transformedOffset);
         }
 
         protected int getOffsetAtCoordinate(@NonNull Layout layout, int line, float x) {
@@ -5055,13 +5182,12 @@ class Editor {
         protected void positionAtCursorOffset(int offset, boolean forceUpdatePosition,
                                               boolean fromTouchScreen) {
             // A HandleView relies on the layout, which may be nulled by external methods
-            Layout layout = mEditText.getLayout();
+            final Layout layout = mEditText.getLayout();
             if (layout == null) {
                 // Will update controllers' state, hiding them and stopping selection mode if needed
                 prepareCursorControllers();
                 return;
             }
-            layout = mEditText.getLayout();
 
             boolean offsetChanged = offset != mPreviousOffset;
             if (offsetChanged || forceUpdatePosition) {
@@ -5076,12 +5202,13 @@ class Editor {
                     }
                     addPositionToTouchUpFilter(offset);
                 }
-                final int line = layout.getLineForOffset(offset);
+                final int line = getLineForOffset(layout, offset);
                 mPrevLine = line;
 
                 mPositionX = getCursorHorizontalPosition(layout, offset) - mHotspotX
                         - getHorizontalOffset() + getCursorOffset();
-                mPositionY = LayoutExtension.getLineBottomWithoutSpacing(layout, line);
+                mPositionY = LayoutExtension.getLineBottom(layout, line,
+                        /* includeLineSpacing= */ false);
 
                 // Take EditText's padding and scroll into account.
                 mPositionX += mEditText.viewportToContentHorizontalOffset();
@@ -5253,6 +5380,9 @@ class Editor {
             }
         }
 
+        /**
+         * Called back when the handle view was detached.
+         */
         public void onDetached() {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
                 hideActionPopupWindow();
@@ -5515,9 +5645,10 @@ class Editor {
 
         private MotionEvent transformEventForTouchThrough(MotionEvent ev) {
             final Layout layout = mEditText.getLayout();
-            final int line = layout.getLineForOffset(getCurrentCursorOffset());
-            final int textHeight = LayoutExtension.getLineBottomWithoutSpacing(layout, line)
-                    - layout.getLineTop(line);
+            final int line = getLineForOffset(layout, getCurrentCursorOffset());
+            final int textHeight =
+                    LayoutExtension.getLineBottom(layout, line, /* includeLineSpacing= */ false)
+                            - layout.getLineTop(line);
             // Transforms the touch events to screen coordinates.
             // And also shift up to make the hit point is on the text.
             // Note:
@@ -5718,7 +5849,7 @@ class Editor {
                     || !isStartHandle() && initialOffset <= anotherHandleOffset) {
                 // Handles have crossed, bound it to the first selected line and
                 // adjust by word / char as normal.
-                currLine = layout.getLineForOffset(anotherHandleOffset);
+                currLine = getLineForOffset(layout, anotherHandleOffset);
                 initialOffset = getOffsetAtCoordinate(layout, currLine, x);
             }
 
@@ -5734,7 +5865,8 @@ class Editor {
             final boolean rtlAtCurrentOffset = isAtRtlRun(layout, currentOffset);
             final boolean atRtl = isAtRtlRun(layout, offset);
             final boolean isLvlBoundary = LayoutExtension.isLevelBoundary(layout,
-                    mEditText.getTextDir(), offset);
+                    mEditText.getTextDir(),
+                    mEditText.originalToTransformed(offset, OffsetMapping.MAP_STRATEGY_CURSOR));
 
             // We can't determine if the user is expanding or shrinking the selection if they're
             // on a bi-di boundary, so until they've moved past the boundary we'll just place
@@ -5746,7 +5878,9 @@ class Editor {
                 mTouchWordDelta = 0.0f;
                 positionAndAdjustForCrossingHandles(offset, fromTouchScreen);
                 return;
-            } else if (mLanguageDirectionChanged) {
+            }
+
+            if (mLanguageDirectionChanged) {
                 // We've just moved past the boundary so update the position. After this we can
                 // figure out if the user is expanding or shrinking to go by word or character.
                 positionAndAdjustForCrossingHandles(offset, fromTouchScreen);
@@ -5798,7 +5932,7 @@ class Editor {
                     // Sometimes words can be broken across lines (Chinese, hyphenation).
                     // We still snap to the word boundary but we only use the letters on the
                     // current line to determine if the user is far enough into the word to snap.
-                    if (layout.getLineForOffset(wordBoundary) != currLine) {
+                    if (getLineForOffset(layout, wordBoundary) != currLine) {
                         wordBoundary = isStartHandle()
                                 ? layout.getLineStart(currLine) : layout.getLineEnd(currLine);
                     }
@@ -5914,12 +6048,15 @@ class Editor {
                                 ? currentOffset : Math.max(currentOffset - 1, 0);
                         final long range = LayoutExtension.getRunRange(layout,
                                 mEditText.getTextDir(),
-                                offsetToGetRunRange);
+                                mEditText.originalToTransformed(
+                                        offsetToGetRunRange, OffsetMapping.MAP_STRATEGY_CURSOR));
                         if (isStartHandle()) {
                             offset = TextUtilsExtension.unpackRangeStartFromLong(range);
                         } else {
                             offset = TextUtilsExtension.unpackRangeEndFromLong(range);
                         }
+                        offset = mEditText.transformedToOriginal(offset,
+                                OffsetMapping.MAP_STRATEGY_CURSOR);
                         positionAtCursorOffset(offset, false, fromTouchScreen);
                         return;
                     }
@@ -5946,7 +6083,11 @@ class Editor {
 
         @Override
         protected boolean isAtRtlRun(@NonNull Layout layout, int offset) {
-            final int offsetToCheck = isStartHandle() ? offset : Math.max(offset - 1, 0);
+            final int transformedOffset =
+                    mEditText.transformedToOriginal(offset, OffsetMapping.MAP_STRATEGY_CHARACTER);
+            final int offsetToCheck = isStartHandle()
+                    ? transformedOffset
+                    : Math.max(transformedOffset - 1, 0);
             return layout.isRtlCharAt(offsetToCheck);
         }
 
@@ -5956,12 +6097,17 @@ class Editor {
         }
 
         private float getHorizontal(@NonNull Layout layout, int offset, boolean startHandle) {
-            final int line = layout.getLineForOffset(offset);
-            final int offsetToCheck = startHandle ? offset : Math.max(offset - 1, 0);
+            final int offsetTransformed = mEditText.originalToTransformed(offset,
+                    OffsetMapping.MAP_STRATEGY_CURSOR);
+            final int line = layout.getLineForOffset(offsetTransformed);
+            final int offsetToCheck =
+                    startHandle ? offsetTransformed : Math.max(offsetTransformed - 1, 0);
             final boolean isRtlChar = layout.isRtlCharAt(offsetToCheck);
             final boolean isRtlParagraph = layout.getParagraphDirection(line) == -1;
-            return (isRtlChar == isRtlParagraph)
-                    ? layout.getPrimaryHorizontal(offset) : layout.getSecondaryHorizontal(offset);
+            if (isRtlChar != isRtlParagraph) {
+                return layout.getSecondaryHorizontal(offsetTransformed);
+            }
+            return layout.getPrimaryHorizontal(offsetTransformed);
         }
 
         @Override
@@ -5988,14 +6134,15 @@ class Editor {
             // a specific bug that this causes, maybe there is something more that can be done then
             // to mitigate it.
             final int primaryOffset = layout.getOffsetForHorizontal(line, localX);
-            return primaryOffset;
+            return mEditText.transformedToOriginal(primaryOffset,
+                        OffsetMapping.MAP_STRATEGY_CURSOR);
         }
 
-        public ActionPopupWindow getActionPopupWindow() {
+        /* package */ ActionPopupWindow getActionPopupWindow() {
             return mActionPopupWindow;
         }
 
-        public void setActionPopupWindow(ActionPopupWindow actionPopupWindow) {
+        /* package */ void setActionPopupWindow(ActionPopupWindow actionPopupWindow) {
             mActionPopupWindow = actionPopupWindow;
         }
     }
@@ -6836,7 +6983,10 @@ class Editor {
             int end = Math.min(length, mEnd);
 
             mPath.reset();
-            layout.getSelectionPath(start, end, mPath);
+            layout.getSelectionPath(
+                    mEditText.originalToTransformed(start, OffsetMapping.MAP_STRATEGY_CHARACTER),
+                    mEditText.originalToTransformed(end, OffsetMapping.MAP_STRATEGY_CHARACTER),
+                    mPath);
             return true;
         }
 
@@ -7465,7 +7615,7 @@ class Editor {
             for (int i = 0; i < size; i++) {
                 final ResolveInfo resolveInfo = mSupportedActivities.get(i);
                 menu.add(Menu.NONE, Menu.NONE,
-                        MENU_ITEM_ORDER_PROCESS_TEXT_INTENT_ACTIONS_START + i,
+                        Editor.ACTION_MODE_MENU_ITEM_ORDER_PROCESS_TEXT_INTENT_ACTIONS_START + i,
                         getLabel(resolveInfo))
                         .setIntent(createProcessTextIntentForResolveInfo(resolveInfo))
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
@@ -7556,6 +7706,8 @@ class Editor {
             // directly access Material 3 theme. But because Material 3 sets the colorPrimary to
             // be primary40, here we hardcoded it to be 12% of colorPrimary.
             final TypedValue typedValue = new TypedValue();
+            //TODO: (EW) there is a warning that colorPrimary requires API level 21. is this
+            // actually causing issues, and if so, what should it be changed to
             mEditText.getContext().getTheme()
                     .resolveAttribute(android.R.attr.colorPrimary, typedValue, true);
             final int colorPrimary = typedValue.data;

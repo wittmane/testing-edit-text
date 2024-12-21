@@ -137,6 +137,10 @@ public class MainActivity extends ThemedActivity
                     LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             mCustomEditText = new EditTextProxy(customEditText);
             customEditTextWrapper.addView(customEditText);
+
+
+            frameworkEditText.setId(View.generateViewId());
+            customEditText.setId(View.generateViewId());
         }
     }
 
