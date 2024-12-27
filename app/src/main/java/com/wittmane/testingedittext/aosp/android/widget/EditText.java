@@ -2348,7 +2348,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 R.styleable.TextAppearance_android_textColorLink);
         sAppearanceValues.put(R.styleable.EditText_android_textSize,
                 R.styleable.TextAppearance_android_textSize);
-        sAppearanceValues.put(R.styleable.TextAppearance_android_textLocale,
+        sAppearanceValues.put(R.styleable.EditText_android_textLocale,
                 R.styleable.TextAppearance_android_textLocale);
         sAppearanceValues.put(R.styleable.EditText_android_typeface,
                 R.styleable.TextAppearance_android_typeface);
@@ -2376,7 +2376,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 R.styleable.TextAppearance_android_letterSpacing);
         sAppearanceValues.put(R.styleable.EditText_android_fontFeatureSettings,
                 R.styleable.TextAppearance_android_fontFeatureSettings);
-        sAppearanceValues.put(R.styleable.TextAppearance_android_fontVariationSettings,
+        sAppearanceValues.put(R.styleable.EditText_android_fontVariationSettings,
                 R.styleable.TextAppearance_android_fontVariationSettings);
         sAppearanceValues.put(R.styleable.EditText_android_lineBreakStyle,
                 R.styleable.TextAppearance_android_lineBreakStyle);

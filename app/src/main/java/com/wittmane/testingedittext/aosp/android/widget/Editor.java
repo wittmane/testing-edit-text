@@ -373,6 +373,11 @@ class Editor {
         } else {
             mProcessTextIntentActionsHandler = null;
         }
+        // (EW) the AOSP version checks com.android.internal.R.bool.config_enableHapticTextHandle,
+        // which apps can't access, even with reflection (and the value isn't stable to be able to
+        // hard-code the int value), so we have our own config to check, but it won't necessarily
+        // match with the framework EditText.
+        //TODO: (EW) consider adding a setting to enable haptic feedback instead
         mHapticTextHandleEnabled = mEditText.getContext().getResources().getBoolean(
                 R.bool.config_enableHapticTextHandle);
 
