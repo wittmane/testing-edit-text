@@ -40,7 +40,8 @@ import com.wittmane.testingedittext.aosp.com.android.internal.util.Preconditions
 
 import java.lang.reflect.Array;
 
-// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here. AOSP added this
+// in Android 14.
 /**
  * The transformation method used by handwriting insert mode.
  * This transformation will insert a placeholder string to the original text at the given

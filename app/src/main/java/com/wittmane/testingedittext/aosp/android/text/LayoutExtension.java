@@ -530,7 +530,7 @@ public class LayoutExtension {
         final int endline = layout.getLineForOffset(end);
 
         int top = layout.getLineTop(startline);
-        int bottom = layout.getLineBottom(endline, /* includeLineSpacing= */ false);
+        int bottom = getLineBottom(layout, endline, /* includeLineSpacing= */ false);
 
         if (startline == endline) {
             addSelection(layout, textDir, startline, start, end, top, bottom, consumer);
@@ -559,7 +559,7 @@ public class LayoutExtension {
             }
 
             top = layout.getLineTop(endline);
-            bottom = layout.getLineBottom(endline, /* includeLineSpacing= */ false);
+            bottom = getLineBottom(layout, endline, /* includeLineSpacing= */ false);
 
             addSelection(layout, textDir, endline, layout.getLineStart(endline), end, top, bottom,
                     consumer);

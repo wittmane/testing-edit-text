@@ -23,6 +23,7 @@ import android.view.ViewGroup;
  * (EW) content from {@link ViewGroup} that is blocked from apps accessing
  */
 public class ViewGroupExtension {
+    // (EW) made public and static to call on any ViewGroup
     /** Return true if this ViewGroup is laying out using optical bounds. */
     public static boolean isLayoutModeOptical(ViewGroup viewGroup) {
         return viewGroup.getLayoutMode() == ViewGroup.LAYOUT_MODE_OPTICAL_BOUNDS;

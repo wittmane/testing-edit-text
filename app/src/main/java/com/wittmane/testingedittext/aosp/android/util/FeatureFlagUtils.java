@@ -49,6 +49,12 @@ public class FeatureFlagUtils {
     public static final String SETTINGS_ENABLE_SECURITY_HUB = "settings_enable_security_hub";
     public static final String SETTINGS_SUPPORT_LARGE_SCREEN = "settings_support_large_screen";
 
+    // (EW) this was removed in Android 14
+    /**
+     * Support per app's language selection
+     */
+    public static final String SETTINGS_APP_LANGUAGE_SELECTION = "settings_app_language_selection";
+
     /**
      * Support locale opt-out and opt-in switch for per app's language.
      */
@@ -69,6 +75,13 @@ public class FeatureFlagUtils {
      */
     public static final String SETTINGS_APP_ALLOW_DARK_THEME_ACTIVATION_AT_BEDTIME =
             "settings_app_allow_dark_theme_activation_at_bedtime";
+
+    // (EW) this was removed in Android 14
+    /**
+     * Hide back key in the Settings two pane design.
+     */
+    public static final String SETTINGS_HIDE_SECOND_LAYER_PAGE_NAVIGATE_UP_BUTTON_IN_TWO_PANE =
+            "settings_hide_second_layer_page_navigate_up_button_in_two_pane";
 
     /**
      * Flag to decouple bluetooth LE Audio Broadcast from Unicast
@@ -199,10 +212,12 @@ public class FeatureFlagUtils {
         DEFAULT_FLAGS.put(SETTINGS_ENABLE_SECURITY_HUB, "true");
         DEFAULT_FLAGS.put(SETTINGS_SUPPORT_LARGE_SCREEN, "true");
         DEFAULT_FLAGS.put("settings_search_always_expand", "true");
+        DEFAULT_FLAGS.put(SETTINGS_APP_LANGUAGE_SELECTION, "true");
         DEFAULT_FLAGS.put(SETTINGS_APP_LOCALE_OPT_IN_ENABLED, "true");
         DEFAULT_FLAGS.put(SETTINGS_VOLUME_PANEL_IN_SYSTEMUI, "false");
         DEFAULT_FLAGS.put(SETTINGS_ENABLE_MONITOR_PHANTOM_PROCS, "true");
         DEFAULT_FLAGS.put(SETTINGS_APP_ALLOW_DARK_THEME_ACTIVATION_AT_BEDTIME, "true");
+        DEFAULT_FLAGS.put(SETTINGS_HIDE_SECOND_LAYER_PAGE_NAVIGATE_UP_BUTTON_IN_TWO_PANE, "true");
         DEFAULT_FLAGS.put(SETTINGS_NEED_CONNECTED_BLE_DEVICE_FOR_BROADCAST, "true");
         DEFAULT_FLAGS.put(SETTINGS_AUTO_TEXT_WRAPPING, "false");
         DEFAULT_FLAGS.put(SETTINGS_NEW_KEYBOARD_UI, "true");
@@ -228,10 +243,12 @@ public class FeatureFlagUtils {
 
     static {
         PERSISTENT_FLAGS = new HashSet<>();
+        PERSISTENT_FLAGS.add(SETTINGS_APP_LANGUAGE_SELECTION);
         PERSISTENT_FLAGS.add(SETTINGS_APP_LOCALE_OPT_IN_ENABLED);
         PERSISTENT_FLAGS.add(SETTINGS_SUPPORT_LARGE_SCREEN);
         PERSISTENT_FLAGS.add(SETTINGS_ENABLE_MONITOR_PHANTOM_PROCS);
         PERSISTENT_FLAGS.add(SETTINGS_APP_ALLOW_DARK_THEME_ACTIVATION_AT_BEDTIME);
+        PERSISTENT_FLAGS.add(SETTINGS_HIDE_SECOND_LAYER_PAGE_NAVIGATE_UP_BUTTON_IN_TWO_PANE);
         PERSISTENT_FLAGS.add(SETTINGS_AUTO_TEXT_WRAPPING);
         PERSISTENT_FLAGS.add(SETTINGS_NEW_KEYBOARD_UI);
         PERSISTENT_FLAGS.add(SETTINGS_NEW_KEYBOARD_MODIFIER_KEY);

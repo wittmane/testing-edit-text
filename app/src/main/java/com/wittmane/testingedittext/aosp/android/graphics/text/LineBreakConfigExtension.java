@@ -57,12 +57,10 @@ public class LineBreakConfigExtension {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @NonNull
     public static LineBreakConfig getLineBreakConfig(@LineBreakStyle int lineBreakStyle,
-            @LineBreakWordStyle int lineBreakWordStyle, boolean autoPhraseBreaking) {
+            @LineBreakWordStyle int lineBreakWordStyle) {
         LineBreakConfig.Builder builder = new LineBreakConfig.Builder();
         return builder.setLineBreakStyle(lineBreakStyle)
                 .setLineBreakWordStyle(lineBreakWordStyle)
-                //TODO: (EW) figure out how to handle this
-//                .setAutoPhraseBreaking(autoPhraseBreaking)
                 .build();
     }
 }

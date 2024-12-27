@@ -28,7 +28,8 @@ import android.text.SegmentFinder;
 import com.wittmane.testingedittext.aosp.android.text.method.WordIterator;
 
 // (EW) although the AOSP version isn't hidden, we need to use the constructor to pass a
-// WordIterator, which is hidden, so it had to be copied here
+// WordIterator, which is hidden, so it had to be copied here. AOSP added this in Android 14.
+// SegmentFinder is only available starting in Android 14.
 /**
  * Implementation of {@link SegmentFinder} using words as the text segment. Word boundaries are
  * found using {@link WordIterator}. Whitespace characters are excluded, so they are not included in
@@ -40,6 +41,7 @@ import com.wittmane.testingedittext.aosp.android.text.method.WordIterator;
  * @see <a href="https://unicode.org/reports/tr29/#Word_Boundaries">Unicode Text Segmentation - Word
  *     Boundaries</a>
  */
+@RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 public class WordSegmentFinder extends SegmentFinder {
     private final CharSequence mText;
     private final WordIterator mWordIterator;
@@ -51,7 +53,6 @@ public class WordSegmentFinder extends SegmentFinder {
      * @param text text to be segmented
      * @param locale locale used for analyzing the text
      */
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public WordSegmentFinder(
             @NonNull CharSequence text, @NonNull ULocale locale) {
         mText = text;

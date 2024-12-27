@@ -50,6 +50,7 @@ import java.lang.reflect.Method;
 public class ViewExtension extends View {
     private static final String TAG = ViewExtension.class.getSimpleName();
 
+    // (EW) the AOSP version is marked as hidden
     /**
      * A hint indicating that this view can be autofilled with a password.
      *
@@ -59,10 +60,12 @@ public class ViewExtension extends View {
      */
     public static final String AUTOFILL_HINT_PASSWORD_AUTO = "passwordAuto";
 
-    public static final int VIEW_STRUCTURE_FOR_ASSIST = 0;
-    public static final int VIEW_STRUCTURE_FOR_AUTOFILL = 1;
-    public static final int VIEW_STRUCTURE_FOR_CONTENT_CAPTURE = 2;
+    // (EW) the AOSP version is marked as hidden
+    protected static final int VIEW_STRUCTURE_FOR_ASSIST = 0;
+    protected static final int VIEW_STRUCTURE_FOR_AUTOFILL = 1;
+    protected static final int VIEW_STRUCTURE_FOR_CONTENT_CAPTURE = 2;
 
+    // (EW) the AOSP version is marked as hidden
     @IntDef(flag = true, value = {
             VIEW_STRUCTURE_FOR_ASSIST,
             VIEW_STRUCTURE_FOR_AUTOFILL,
@@ -83,11 +86,13 @@ public class ViewExtension extends View {
         super(context, attrs, defStyleAttr);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public ViewExtension(Context context, @Nullable AttributeSet attrs, int defStyleAttr,
                          int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
     }
 
+    // (EW) the AOSP version is marked as hidden
     /**
      * Map a rectangle from view-relative coordinates to screen-relative coordinates
      *
@@ -95,6 +100,22 @@ public class ViewExtension extends View {
      * @param clipToParent Whether to clip child bounds to the parent ones.
      */
     public void mapRectFromViewToScreenCoords(RectF rect, boolean clipToParent) {
+        mapRectFromViewToWindowCoords(rect, clipToParent);
+        // (EW) the AOSP version used View#mAttachInfo.mWindowLeft and View#mAttachInfo.mWindowTop
+        // directly, but those are hidden. those values are returned in View#getLocationOnScreen, so
+        // we can use that instead.
+        int[] windowLocation = getLocationOnScreen();
+        rect.offset(windowLocation[0], windowLocation[1]);
+    }
+
+    // (EW) the AOSP version is marked as hidden
+    /**
+     * Map a rectangle from view-relative coordinates to window-relative coordinates
+     *
+     * @param rect The rectangle to be mapped
+     * @param clipToParent Whether to clip child bounds to the parent ones.
+     */
+    public void mapRectFromViewToWindowCoords(RectF rect, boolean clipToParent) {
         if (!hasIdentityMatrix(this)) {
             getMatrix().mapRect(rect);
         }
@@ -125,14 +146,9 @@ public class ViewExtension extends View {
 
         // (EW) the AOSP version used ViewRootImpl#mCurScrollY to update rect's offset, but we can't
         // get that scroll. see comment in #transformFromViewToWindowSpace.
-
-        // (EW) the AOSP version used View#mAttachInfo.mWindowLeft and View#mAttachInfo.mWindowTop
-        // directly, but those are hidden. those values are returned in View#getLocationOnScreen, so
-        // we can use that instead.
-        int[] windowLocation = getLocationOnScreen();
-        rect.offset(windowLocation[0], windowLocation[1]);
     }
 
+    // (EW) the AOSP version is marked as hidden
     /**
      * Indicates whether or not this view's layout is right-to-left. This is resolved from
      * layout attribute and/or the inherited value from the parent
@@ -143,7 +159,8 @@ public class ViewExtension extends View {
         return (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
     }
 
-    // (EW) made static to allow calling on any view
+    // (EW) the AOSP version is marked as hidden and unsupported app usage. made static to allow
+    // calling on any view.
     /**
      * Returns true if the transform matrix is the identity matrix.
      * Recomputes the matrix if necessary.
@@ -216,6 +233,7 @@ public class ViewExtension extends View {
         }
     }
 
+    // (EW) the AOSP version is marked as hidden
     public Insets getOpticalInsets() {
         // (EW) the AOSP version first checks for the value that was manually set from
         // View#setOpticalInsets, but there isn't a way to get that other than reflection, and I
@@ -224,6 +242,7 @@ public class ViewExtension extends View {
         return computeOpticalInsets();
     }
 
+    // (EW) the AOSP version is marked as hidden and unsupported app usage
     /**
      * Transforms a motion event from on-screen coordinates to view-local
      * coordinates.
@@ -301,12 +320,14 @@ public class ViewExtension extends View {
         }
     }
 
+    // (EW) the AOSP version is marked as hidden and unsupported app usage
     public int[] getLocationOnScreen() {
         int[] location = new int[2];
         getLocationOnScreen(location);
         return location;
     }
 
+    // (EW) the AOSP version is marked as hidden
     public void transformFromViewToWindowSpace(@Size(2) int[] inOutLocation) {
         if (inOutLocation == null || inOutLocation.length < 2) {
             throw new IllegalArgumentException("inOutLocation must be an array of two integers");

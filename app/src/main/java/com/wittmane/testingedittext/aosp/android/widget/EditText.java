@@ -8042,8 +8042,13 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                                 isFallbackLineSpacingForStaticLayout());
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        // in Android 14 the AOSP version passed autoPhraseBreaking to the
+                        // LineBreakConfig to be set via a hidden method. this is removed in
+                        // LineBreakConfig in Android 15, and when it is used, it relies on the
+                        // feature flag (I'm not sure how that gets set), so it probably isn't
+                        // particularly important, so I'm just skipping it.
                         builder.setLineBreakConfig(LineBreakConfigExtension.getLineBreakConfig(
-                                mLineBreakStyle, mLineBreakWordStyle, autoPhraseBreaking));
+                                mLineBreakStyle, mLineBreakWordStyle));
                     }
                     if (shouldEllipsize) {
                         builder.setEllipsize(mEllipsize)

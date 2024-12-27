@@ -57,8 +57,6 @@ public class TypedValueExtension {
      * {@link #createComplexDimension} etc.
      *
      * @return The complex unit type.
-     *
-     * @hide
      */
     public static int getUnitFromComplexDimension(int complexDimension) {
         return COMPLEX_UNIT_MASK & (complexDimension >> TypedValue.COMPLEX_UNIT_SHIFT);
@@ -72,7 +70,6 @@ public class TypedValueExtension {
      * @param mantissa an integer representing the mantissa.
      * @param radix a radix option, e.g. {@link TypedValue#COMPLEX_RADIX_23p0}.
      * @return A complex data integer representing the value.
-     * @hide
      */
     private static int createComplex(@IntRange(from = -0x800000, to = 0x7FFFFF) int mantissa,
                                      int radix) {
@@ -95,7 +92,6 @@ public class TypedValueExtension {
      *
      * @param value A floating point value.
      * @return A complex data integer representing the value.
-     * @hide
      */
     public static int floatToComplex(@FloatRange(from = -0x800000, to = 0x7FFFFF) float value) {
         // validate that the magnitude fits in this representation
@@ -138,7 +134,6 @@ public class TypedValueExtension {
      * @param value the value of the dimension
      * @param units the units of the dimension, e.g. {@link TypedValue#COMPLEX_UNIT_DIP}
      * @return A complex data integer representing the value and units of the dimension.
-     * @hide
      */
     public static int createComplexDimension(
             @FloatRange(from = -0x800000, to = 0x7FFFFF) float value,

@@ -29,7 +29,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here. AOSP added this
+// in Android 14.
 public class SpanUtils {
     private SpanUtils() {}  // Do not instantiate
 
@@ -218,7 +219,8 @@ public class SpanUtils {
      * @return true if the selected region is toggled.
      */
     public static boolean toggleUnderline(@NonNull Spannable spannable,
-                                          @IntRange(from = 0) int min, @IntRange(from = 0) int max) {
+                                          @IntRange(from = 0) int min,
+                                          @IntRange(from = 0) int max) {
 
         if (min == max) {
             return false;

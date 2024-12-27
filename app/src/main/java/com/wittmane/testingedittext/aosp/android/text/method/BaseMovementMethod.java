@@ -24,6 +24,8 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import androidx.annotation.NonNull;
+
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 
 // (EW) this was copied from AOSP because we need to use our custom EditText instead of the AOSP
@@ -195,6 +197,9 @@ public class BaseMovementMethod implements MovementMethod {
                 } else if (KeyEvent.metaStateHasModifiers(movementMetaState,
                         KeyEvent.META_ALT_ON)) {
                     return top(widget, buffer);
+                } else if (KeyEvent.metaStateHasModifiers(movementMetaState,
+                        KeyEvent.META_CTRL_ON)) {
+                    return previousParagraph(widget, buffer);
                 }
                 break;
 
@@ -204,6 +209,9 @@ public class BaseMovementMethod implements MovementMethod {
                 } else if (KeyEvent.metaStateHasModifiers(movementMetaState,
                         KeyEvent.META_ALT_ON)) {
                     return bottom(widget, buffer);
+                } else if (KeyEvent.metaStateHasModifiers(movementMetaState,
+                        KeyEvent.META_CTRL_ON)) {
+                    return nextParagraph(widget, buffer);
                 }
                 break;
 
@@ -399,6 +407,28 @@ public class BaseMovementMethod implements MovementMethod {
      * @return True if the event was handled.
      */
     protected boolean end(EditText widget, Spannable buffer) {
+        return false;
+    }
+
+    /**
+     * Performs a previous paragraph movement action.
+     *
+     * @param widget the text view
+     * @param buffer the text buffer
+     * @return true if the event was handled, otherwise false.
+     */
+    public boolean previousParagraph(@NonNull EditText widget, @NonNull Spannable buffer) {
+        return false;
+    }
+
+    /**
+     * Performs a next paragraph movement action.
+     *
+     * @param widget the text view
+     * @param buffer the text buffer
+     * @return true if the event was handled, otherwise false.
+     */
+    public boolean nextParagraph(@NonNull EditText widget, @NonNull Spannable buffer) {
         return false;
     }
 

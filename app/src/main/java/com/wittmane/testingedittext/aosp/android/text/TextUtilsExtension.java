@@ -36,6 +36,7 @@ import java.lang.reflect.Array;
  */
 public class TextUtilsExtension {
 
+    /** @hide */
     public static final int LINE_FEED_CODE_POINT = 10;
 
     private static final int NBSP_CODE_POINT = 160;

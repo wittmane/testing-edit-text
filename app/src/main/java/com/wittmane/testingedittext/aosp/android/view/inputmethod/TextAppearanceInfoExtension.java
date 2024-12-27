@@ -19,15 +19,18 @@ package com.wittmane.testingedittext.aosp.android.view.inputmethod;
 
 import android.graphics.Typeface;
 import android.graphics.fonts.FontStyle;
+import android.os.Build;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.style.CharacterStyle;
 import android.view.inputmethod.TextAppearanceInfo;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 
+// (EW) AOSP added this in Android 14
 /**
  * (EW) content from {@link TextAppearanceInfo} that is blocked from apps accessing
  */
@@ -40,6 +43,7 @@ public class TextAppearanceInfoExtension {
      * @param textView the target {@link EditText}.
      * @return the new instance of {@link TextAppearanceInfo}.
      */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @NonNull
     public static TextAppearanceInfo createFromTextView(@NonNull EditText textView) {
         final int selectionStart = textView.getSelectionStart();

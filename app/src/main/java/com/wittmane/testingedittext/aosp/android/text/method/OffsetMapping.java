@@ -23,7 +23,8 @@ import androidx.annotation.IntDef;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-// (EW) the AOSP version of this is hidden from apps, so it had to be copied here
+// (EW) the AOSP version of this is hidden from apps, so it had to be copied here. AOSP added this
+// in Android 14.
 /**
  * The interface for the index mapping information of a transformed text returned by
  * {@link TransformationMethod}. This class is mainly used to support the
