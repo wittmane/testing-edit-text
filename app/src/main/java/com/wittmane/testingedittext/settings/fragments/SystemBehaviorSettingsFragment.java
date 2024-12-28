@@ -34,6 +34,11 @@ public class SystemBehaviorSettingsFragment extends PerTestFieldSettingsFragment
 
         manageOverrideToggle(PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX);
 
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Preference getSurroundingTextDelayPref =
+                    findPreference(getPrefKey(PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX));
+            getPreferenceScreen().removePreference(getSurroundingTextDelayPref);
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             Preference getSurroundingTextDelayPref =
                     findPreference(getPrefKey(PREF_GETSURROUNDINGTEXT_DELAY_PREFIX));

@@ -74,6 +74,7 @@
                         android:imeActionLabel="my action"
                         android:imeActionId="42"
                         android:fontFamily="cursive"
+                        android:enableTextStylingShortcuts="true"
                         android:text="example text with extra content to see how this scrolls"/>
                 </LinearLayout>
                 <LinearLayout
@@ -96,6 +97,7 @@
                         android:imeActionLabel="my action"
                         android:imeActionId="42"
                         android:fontFamily="cursive"
+                        android:enableTextStylingShortcuts="true"
                         android:text="example text with extra content to see how this scrolls"/>
                 </LinearLayout>
             </LinearLayout>
@@ -140,6 +142,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
+                        android:enableTextStylingShortcuts="true"
                         android:text="example text with extra content to see how this wraps automatically"/>
                 </LinearLayout>
                 <LinearLayout
@@ -150,6 +153,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
+                        android:enableTextStylingShortcuts="true"
                         android:text="example text with extra content to see how this wraps automatically"/>
                 </LinearLayout>
             </LinearLayout>

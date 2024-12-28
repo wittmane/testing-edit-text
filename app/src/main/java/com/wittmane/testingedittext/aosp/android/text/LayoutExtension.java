@@ -17,6 +17,10 @@
 
 package com.wittmane.testingedittext.aosp.android.text;
 
+import static android.text.Layout.DIR_LEFT_TO_RIGHT;
+import static android.text.Layout.DIR_RIGHT_TO_LEFT;
+
+import android.graphics.Path;
 import android.os.Build;
 import android.text.Layout;
 import android.text.Spanned;
@@ -105,6 +109,8 @@ public class LayoutExtension {
         return need;
     }
 
+    // (EW) made static and added TextDirectionHeuristic parameter and custom logic to get a
+    // Directions object that we can actually do something with
     /**
      * Returns the directional run information for the specified line.
      * The array alternates counts of characters in left-to-right
@@ -114,7 +120,6 @@ public class LayoutExtension {
      */
     public static Directions getLineDirections(Layout layout, TextDirectionHeuristic textDir,
                                                int line) {
-        // (EW) custom logic to get a Directions object that we can actually do something with
         int lineStart = layout.getLineStart(line);
         int lineEnd = layout.getLineEnd(line);
 
@@ -130,6 +135,7 @@ public class LayoutExtension {
         }
     }
 
+    // (EW) made static and added TextDirectionHeuristic parameter
     /**
      * Returns true if the character at offset and the preceding character
      * are at different run levels (and thus there's a split caret).
@@ -186,6 +192,9 @@ public class LayoutExtension {
         return TextUtilsExtension.packRangeInLong(0, layout.getLineEnd(line));
     }
 
+    // (EW) made static and added TextDirectionHeuristic parameter. although child classes could
+    // override the implementation, as of Android 14, BoringLayout, DynamicLayout, and StaticLayout
+    // are the only AOSP classes that extend from Layout, and nothing extends those.
     /**
      * Checks if the trailing BiDi level should be used for an offset
      *
@@ -306,71 +315,93 @@ public class LayoutExtension {
         return trailing;
     }
 
+    // (EW) made static and added TextDirectionHeuristic parameter (since
+    // Layout#getTextDirectionHeuristic is hidden, so we can't get that from the layout). although
+    // child classes could override the implementation, as of Android 14, BoringLayout,
+    // DynamicLayout, and StaticLayout are the only AOSP classes that extend from Layout, and
+    // nothing extends those.
     /**
      * Get the primary horizontal position for the specified text offset, but
      * optionally clamp it so that it doesn't exceed the width of the layout.
      */
     public static float getPrimaryHorizontal(Layout layout, TextDirectionHeuristic textDir,
                                              int offset, boolean clamped) {
-        float unclampedPrimaryHorizontal = layout.getPrimaryHorizontal(offset);
-        // (EW) custom logic based on Layout since the overload to specify clamped is hidden.
-        // textDir had to be passed because Layout#getTextDirectionHeuristic is hidden, so we can't
-        // get that from the layout.
-        if (clamped) {
-            int line = layout.getLineForOffset(offset);
-            int start = layout.getLineStart(line);
-            int end = layout.getLineEnd(line);
-            int dir = layout.getParagraphDirection(line);
-            boolean hasTab = layout.getLineContainsTab(line);
-            Directions directions = getLineDirections(layout, textDir, line);
-            boolean trailing = primaryIsTrailingPrevious(layout, textDir, offset);
+        boolean trailing = primaryIsTrailingPrevious(layout, textDir, offset);
+        return getHorizontal(layout, textDir, offset, trailing, clamped);
+    }
 
-            TabStops tabStops = null;
-            if (hasTab && layout.getText() instanceof Spanned) {
-                // Just checking this line should be good enough, tabs should be
-                // consistent across all lines in a paragraph.
-                TabStopSpan[] tabs = getParagraphSpans((Spanned) layout.getText(), start, end,
-                        TabStopSpan.class);
-                if (tabs.length > 0) {
-                    tabStops = new TabStops(TAB_INCREMENT, tabs); // XXX should reuse
-                }
-            }
+    // (EW) made static and added TextDirectionHeuristic parameter
+    private static float getHorizontal(Layout layout, TextDirectionHeuristic textDir,
+                                       int offset, boolean trailing, boolean clamped) {
+        int line = layout.getLineForOffset(offset);
 
-            TextLine tl = TextLine.obtain();
-            tl.set(layout.getPaint(), layout.getText(), start, end, dir, directions, hasTab,
-                    tabStops, layout.getEllipsisStart(line),
-                    layout.getEllipsisStart(line) + layout.getEllipsisCount(line),
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                            && layout.isFallbackLineSpacingEnabled());
-            float wid = tl.measure(offset - start, trailing, null);
-            TextLine.recycle(tl);
+        return getHorizontal(layout, textDir, offset, trailing, line, clamped);
+    }
 
-            if (wid > layout.getWidth()) {
-                // Layout#getPrimaryHorizontal already added wid, which is incorrect, so that needs
-                // to be removed and the correct (max) width needs to be added instead
-                return unclampedPrimaryHorizontal - wid + layout.getWidth();
+    // (EW) made static and added TextDirectionHeuristic parameter. added since it's private. to
+    // avoid calling Layout#getLineStartPos (which is private and called into some methods that
+    // could be overridden by child classes, which would be hard to replace accurately), we're
+    // calling into Layout#getPrimaryHorizontal to have it call into the AOSP version of this and
+    // then just modify the result for the trailing and clamped parameters we weren't able to pass
+    // since they just shift the result of Layout#getLineStartPos, which is the result of this
+    // method. we'll just match the rest of the method to be able to undo the base shift and shift
+    // based on the passed parameters. note that Layout#getPrimaryHorizontal is public, so child
+    // classes could override it, but at least as of Android 14, it isn't overridden in child
+    // classes (BoringLayout,  DynamicLayout, and StaticLayout (none of which have children)).
+    private static float getHorizontal(Layout layout, TextDirectionHeuristic textDir,
+                                       int offset, boolean trailing, int line, boolean clamped) {
+        float basePrimaryHorizontal = layout.getPrimaryHorizontal(offset);
+        boolean baseTrailing = primaryIsTrailingPrevious(layout, textDir, offset);
+
+        int start = layout.getLineStart(line);
+        int end = layout.getLineEnd(line);
+        int dir = layout.getParagraphDirection(line);
+        boolean hasTab = layout.getLineContainsTab(line);
+        Directions directions = getLineDirections(layout, textDir, line);
+
+        TabStops tabStops = null;
+        if (hasTab && layout.getText() instanceof Spanned) {
+            // Just checking this line should be good enough, tabs should be
+            // consistent across all lines in a paragraph.
+            TabStopSpan[] tabs = getParagraphSpans((Spanned) layout.getText(), start, end,
+                    TabStopSpan.class);
+            if (tabs.length > 0) {
+                tabStops = new TabStops(TAB_INCREMENT, tabs); // XXX should reuse
             }
         }
-        return unclampedPrimaryHorizontal;
+
+        TextLine tl = TextLine.obtain();
+        tl.set(layout.getPaint(), layout.getText(), start, end, dir, directions, hasTab,
+                tabStops, layout.getEllipsisStart(line),
+                layout.getEllipsisStart(line) + layout.getEllipsisCount(line),
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        && layout.isFallbackLineSpacingEnabled());
+        float baseWid = tl.measure(offset - start, baseTrailing, null);
+        float wid = tl.measure(offset - start, trailing, null);
+        TextLine.recycle(tl);
+
+        if (clamped && wid > layout.getWidth()) {
+            wid = layout.getWidth();
+        }
+
+        // remove the base wid that Layout#getPrimaryHorizontal (technically Layout#getHorizontal)
+        // already added, and instead add the add the appropriate wid based on the trailing and
+        // clamped parameters that we aren't allowed to provide it with.
+        return basePrimaryHorizontal - baseWid + wid;
     }
 
-    private static float getHorizontal(Layout layout, int offset, boolean primary) {
-        return primary
-                ? layout.getPrimaryHorizontal(offset)
-                : layout.getSecondaryHorizontal(offset);
-    }
-
-    /**
-     * Return the vertical position of the bottom of the specified line without the line spacing
-     * added.
-     */
-    public static int getLineBottomWithoutSpacing(Layout layout, int line) {
-        //TODO: (EW) getLineBottomWithoutSpacing wasn't added until Pie. comparing where Pie used
-        // this in Editor to the alternative in Oreo MR1, 4/5 called Layout#getLineBottom(line). the
-        // other called Layout#getLineTop(line + 1), but used the result slightly different, so it
-        // may not have meant to be equivalent. simply using Layout#getLineTop for older versions
-        // seems appropriate. we can't even use reflection to access
-        // Layout#getLineBottomWithoutSpacing because it is a restricted API (warning logged
+    // (EW) wrapper for Layout#getLineBottom(int, boolean) since that wasn't available in older
+    // versions
+    public static int getLineBottom(Layout layout, int line, boolean includeLineSpacing) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return layout.getLineBottom(line, includeLineSpacing);
+        }
+        //TODO: (EW) this method replaced getLineBottomWithoutSpacing, which wasn't added until Pie.
+        // comparing where Pie used this in Editor to the alternative in Oreo MR1, 4/5 called
+        // Layout#getLineBottom(line). the other called Layout#getLineTop(line + 1), but used the
+        // result slightly different, so it may not have meant to be equivalent. simply using
+        // Layout#getLineTop for older versions seems appropriate. we can't even use reflection to
+        // access Layout#getLineBottomWithoutSpacing because it is a restricted API (warning logged
         // specifies "dark greylist"). at least as of S Layout#getLineBottomWithoutSpacing simply
         // returned getLineTop(line + 1) - getLineExtra(line), but Layout#getLineExtra is also a
         // restricted API (warning logged specifies "dark greylist"), just replicating that logic
@@ -426,6 +457,121 @@ public class LayoutExtension {
             return layout.getParagraphDirection(line) > 0;
         }
         return false;
+    }
+
+    // (EW) made static and added TextDirectionHeuristic parameter since it is hidden. it's private,
+    // so there isn't risk of variable handling from child classes.
+    private static void addSelection(Layout l, TextDirectionHeuristic textDir,
+                                     int line, int start, int end, int top, int bottom,
+                                     SelectionRectangleConsumer consumer) {
+        int linestart = l.getLineStart(line);
+        int lineend = l.getLineEnd(line);
+        Directions dirs = getLineDirections(l, textDir, line);
+
+        if (lineend > linestart && l.getText().charAt(lineend - 1) == '\n') {
+            lineend--;
+        }
+
+        for (int i = 0; i < dirs.mDirections.length; i += 2) {
+            int here = linestart + dirs.mDirections[i];
+            int there = here + (dirs.mDirections[i + 1] & RUN_LENGTH_MASK);
+
+            if (there > lineend) {
+                there = lineend;
+            }
+
+            if (start <= there && end >= here) {
+                int st = Math.max(start, here);
+                int en = Math.min(end, there);
+
+                if (st != en) {
+                    float h1 = getHorizontal(l, textDir, st, false, line, false /* not clamped */);
+                    float h2 = getHorizontal(l, textDir, en, true, line, false /* not clamped */);
+
+                    float left = Math.min(h1, h2);
+                    float right = Math.max(h1, h2);
+
+                    final @TextSelectionLayout int layout =
+                            ((dirs.mDirections[i + 1] & RUN_RTL_FLAG) != 0)
+                                    ? TEXT_SELECTION_LAYOUT_RIGHT_TO_LEFT
+                                    : TEXT_SELECTION_LAYOUT_LEFT_TO_RIGHT;
+
+                    consumer.accept(left, top, right, bottom, layout);
+                }
+            }
+        }
+    }
+
+    // (EW) made static and added TextDirectionHeuristic parameter since it is hidden. it was marked
+    // final, so there isn't risk of variable handling from child classes.
+    /**
+     * Calculates the rectangles which should be highlighted to indicate a selection between start
+     * and end and feeds them into the given {@link SelectionRectangleConsumer}.
+     *
+     * @param start    the starting index of the selection
+     * @param end      the ending index of the selection
+     * @param consumer the {@link SelectionRectangleConsumer} which will receive the generated
+     *                 rectangles. It will be called every time a rectangle is generated.
+     * @see Layout#getSelectionPath(int, int, Path)
+     */
+    public static void getSelection(Layout layout, TextDirectionHeuristic textDir,
+                                    int start, int end, final SelectionRectangleConsumer consumer) {
+        if (start == end) {
+            return;
+        }
+
+        if (end < start) {
+            int temp = end;
+            end = start;
+            start = temp;
+        }
+
+        final int startline = layout.getLineForOffset(start);
+        final int endline = layout.getLineForOffset(end);
+
+        int top = layout.getLineTop(startline);
+        int bottom = getLineBottom(layout, endline, /* includeLineSpacing= */ false);
+
+        if (startline == endline) {
+            addSelection(layout, textDir, startline, start, end, top, bottom, consumer);
+        } else {
+            final float width = layout.getWidth();
+
+            addSelection(layout, textDir, startline, start, layout.getLineEnd(startline),
+                    top, layout.getLineBottom(startline), consumer);
+
+            if (layout.getParagraphDirection(startline) == DIR_RIGHT_TO_LEFT) {
+                consumer.accept(layout.getLineLeft(startline), top, 0,
+                        layout.getLineBottom(startline), TEXT_SELECTION_LAYOUT_RIGHT_TO_LEFT);
+            } else {
+                consumer.accept(layout.getLineRight(startline), top, width,
+                        layout.getLineBottom(startline), TEXT_SELECTION_LAYOUT_LEFT_TO_RIGHT);
+            }
+
+            for (int i = startline + 1; i < endline; i++) {
+                top = layout.getLineTop(i);
+                bottom = layout.getLineBottom(i);
+                if (layout.getParagraphDirection(i) == DIR_RIGHT_TO_LEFT) {
+                    consumer.accept(0, top, width, bottom, TEXT_SELECTION_LAYOUT_RIGHT_TO_LEFT);
+                } else {
+                    consumer.accept(0, top, width, bottom, TEXT_SELECTION_LAYOUT_LEFT_TO_RIGHT);
+                }
+            }
+
+            top = layout.getLineTop(endline);
+            bottom = getLineBottom(layout, endline, /* includeLineSpacing= */ false);
+
+            addSelection(layout, textDir, endline, layout.getLineStart(endline), end, top, bottom,
+                    consumer);
+
+            if (layout.getParagraphDirection(endline) == DIR_RIGHT_TO_LEFT) {
+                consumer.accept(width, top, layout.getLineRight(endline), bottom,
+                        TEXT_SELECTION_LAYOUT_RIGHT_TO_LEFT);
+            } else {
+                consumer.accept(0, top, layout.getLineLeft(endline), bottom,
+                        TEXT_SELECTION_LAYOUT_LEFT_TO_RIGHT);
+            }
+        }
     }
 
     private static float measurePara(TextPaint paint, CharSequence text, int start, int end,
@@ -539,6 +685,7 @@ public class LayoutExtension {
         }
     }
 
+    // (EW) copied since the AOSP version is package private
     /**
      * Returns the same as <code>text.getSpans()</code>, except where
      * <code>start</code> and <code>end</code> are the same and are not
@@ -633,6 +780,17 @@ public class LayoutExtension {
         }
 
         /**
+         * Returns the BiDi level of this run.
+         *
+         * @param runIndex the index of the BiDi run
+         * @return the BiDi level of this run.
+         */
+        @IntRange(from = 0)
+        public int getRunLevel(int runIndex) {
+            return (mDirections[runIndex * 2 + 1] >>> RUN_LEVEL_SHIFT) & RUN_LEVEL_MASK;
+        }
+
+        /**
          * Returns true if the BiDi run is RTL.
          *
          * @param runIndex the index of the BiDi run
@@ -644,8 +802,8 @@ public class LayoutExtension {
     }
 
     @IntDef(value = {
-            Layout.DIR_LEFT_TO_RIGHT,
-            Layout.DIR_RIGHT_TO_LEFT
+            DIR_LEFT_TO_RIGHT,
+            DIR_RIGHT_TO_LEFT
     })
     public @interface Direction {}
 
@@ -778,4 +936,34 @@ public class LayoutExtension {
 
     public static final Directions DIRS_ALL_RIGHT_TO_LEFT =
             new Directions(new int[] { 0, RUN_LENGTH_MASK | RUN_RTL_FLAG });
+
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(value = {
+            TEXT_SELECTION_LAYOUT_RIGHT_TO_LEFT,
+            TEXT_SELECTION_LAYOUT_LEFT_TO_RIGHT
+    })
+    public @interface TextSelectionLayout {}
+
+    /** @hide */
+    public static final int TEXT_SELECTION_LAYOUT_RIGHT_TO_LEFT = 0;
+    /** @hide */
+    public static final int TEXT_SELECTION_LAYOUT_LEFT_TO_RIGHT = 1;
+
+    /** @hide */
+    @FunctionalInterface
+    public interface SelectionRectangleConsumer {
+        /**
+         * Performs this operation on the given rectangle.
+         *
+         * @param left   the left edge of the rectangle
+         * @param top    the top edge of the rectangle
+         * @param right  the right edge of the rectangle
+         * @param bottom the bottom edge of the rectangle
+         * @param textSelectionLayout the layout (RTL or LTR) of the text covered by this
+         *                            selection rectangle
+         */
+        void accept(float left, float top, float right, float bottom,
+                @TextSelectionLayout int textSelectionLayout);
+    }
 }

@@ -86,6 +86,10 @@ import java.util.Locale;
             case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
             case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
             case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
+            case PREF_SKIP_PERFORMHANDWRITINGGESTURE_PREFIX:
+            case PREF_SKIP_PREVIEWHANDWRITINGGESTURE_PREFIX:
+            case PREF_SKIP_REPLACETEXT_PREFIX:
+            case PREF_SKIP_REQUESTTEXTBOUNDSINFO_PREFIX:
             case PREF_SKIP_TAKESNAPSHOT_PREFIX:
             case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
             case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
@@ -134,6 +138,7 @@ import java.util.Locale;
             case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
             case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+            case PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX:
                 return TYPE_INT;
             case PREF_TEST_GROUP_NAME_PREFIX:
             case PREF_INPUT_TYPE_CLASS_PREFIX:
@@ -190,6 +195,10 @@ import java.util.Locale;
             case PREF_DELETE_THROUGH_COMPOSING_TEXT_PREFIX:
             case PREF_KEEP_EMPTY_COMPOSING_POSITION_PREFIX:
             case PREF_OVERRIDE_TARGET_VERSION_SIMULATION_PREFIX:
+            case PREF_SKIP_PERFORMHANDWRITINGGESTURE_PREFIX:
+            case PREF_SKIP_PREVIEWHANDWRITINGGESTURE_PREFIX:
+            case PREF_SKIP_REPLACETEXT_PREFIX:
+            case PREF_SKIP_REQUESTTEXTBOUNDSINFO_PREFIX:
             case PREF_SKIP_TAKESNAPSHOT_PREFIX:
             case PREF_SKIP_GETSURROUNDINGTEXT_PREFIX:
             case PREF_SKIP_PERFORMSPELLCHECK_PREFIX:
@@ -249,6 +258,7 @@ import java.util.Locale;
             case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
             case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+            case PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX:
                 return 0;
             default:
                 Log.e(TAG, "int default missing for " + keyOrPrefix
@@ -611,6 +621,18 @@ import java.util.Locale;
                 testFieldOrDefault.mKeepEmptyComposingPosition = readBoolean(prefKey);
                 break;
 
+            case PREF_SKIP_PERFORMHANDWRITINGGESTURE_PREFIX:
+                testFieldOrDefault.mSkipPerformHandwritingGesture = readBoolean(prefKey);
+                break;
+            case PREF_SKIP_PREVIEWHANDWRITINGGESTURE_PREFIX:
+                testFieldOrDefault.mSkipPreviewHandwritingGesture = readBoolean(prefKey);
+                break;
+            case PREF_SKIP_REPLACETEXT_PREFIX:
+                testFieldOrDefault.mSkipReplaceText = readBoolean(prefKey);
+                break;
+            case PREF_SKIP_REQUESTTEXTBOUNDSINFO_PREFIX:
+                testFieldOrDefault.mSkipRequestTextBoundsInfo = readBoolean(prefKey);
+                break;
             case PREF_SKIP_TAKESNAPSHOT_PREFIX:
                 testFieldOrDefault.mSkipTakeSnapshot = readBoolean(prefKey);
                 break;
@@ -668,6 +690,9 @@ import java.util.Locale;
                 break;
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
                 testFieldOrDefault.mGetExtractedTextDelay = readInt(prefKey);
+                break;
+            case PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX:
+                testFieldOrDefault.mRequestTextBoundsInfoDelay = readInt(prefKey);
                 break;
             default:
                 return false;

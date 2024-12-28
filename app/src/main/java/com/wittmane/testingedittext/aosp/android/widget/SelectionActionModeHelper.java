@@ -33,7 +33,7 @@ import java.util.Objects;
  * Helper class for starting selection action mode
  * (synchronously without the TextClassifier, asynchronously with the TextClassifier).
  */
-public final class SelectionActionModeHelper {
+public class SelectionActionModeHelper {
 
     private final Editor mEditor;
     private final EditText mEditText;
@@ -137,7 +137,11 @@ public final class SelectionActionModeHelper {
         if (mEditor.startActionModeInternal(actionMode)) {
             final SelectionModifierCursorController controller = mEditor.getSelectionController();
             if (controller != null && mEditText.isTextEditable()) {
-                controller.show();
+                if (mEditText.showUIForTouchScreen()) {
+                    controller.show();
+                } else {
+                    controller.hide();
+                }
             }
         }
         mEditor.setRestartActionModeOnNextRefresh(false);

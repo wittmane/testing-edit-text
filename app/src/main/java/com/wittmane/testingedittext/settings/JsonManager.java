@@ -918,6 +918,7 @@ public abstract class JsonManager {
             case PREF_GETTEXTAFTERCURSOR_DELAY_PREFIX:
             case PREF_GETCURSORCAPSMODE_DELAY_PREFIX:
             case PREF_GETEXTRACTEDTEXT_DELAY_PREFIX:
+            case PREF_REQUESTTEXTBOUNDSINFO_DELAY_PREFIX:
                 minValue = context.getResources().getInteger(
                         R.integer.config_inputconnection_method_delay_min);
                 maxValue = context.getResources().getInteger(

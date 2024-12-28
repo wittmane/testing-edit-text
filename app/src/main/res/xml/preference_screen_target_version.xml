@@ -19,6 +19,31 @@
         android:key="pref_key_override_target_version_simulation"
         android:title="@string/override_app_level_settings" />
 
+    <PreferenceCategory android:title="@string/added_in_api_level_34"
+        android:key="pref_key_added_in_api_level_34">
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_skip_performhandwritinggesture"
+            android:title="@string/skip_performhandwritinggesture_title"
+            android:summary="@string/skip_performhandwritinggesture_summary" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_skip_previewhandwritinggesture"
+            android:title="@string/skip_previewhandwritinggesture_title"
+            android:summary="@string/skip_previewhandwritinggesture_summary" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_skip_replacetext"
+            android:title="@string/skip_replacetext_title"
+            android:summary="@string/skip_replacetext_summary" />
+
+        <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
+            android:key="pref_key_skip_requesttextboundsinfo"
+            android:title="@string/skip_requesttextboundsinfo_title"
+            android:summary="@string/skip_requesttextboundsinfo_summary" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/added_in_api_level_33"
         android:key="pref_key_added_in_api_level_33">
 

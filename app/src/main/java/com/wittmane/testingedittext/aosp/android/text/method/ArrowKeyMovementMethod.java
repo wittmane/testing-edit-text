@@ -26,6 +26,8 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+
 import com.wittmane.testingedittext.aosp.android.text.SelectionExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText;
 
@@ -95,6 +97,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean left(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendLeft(buffer, layout);
@@ -105,6 +110,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean right(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendRight(buffer, layout);
@@ -115,6 +123,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean up(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendUp(buffer, layout);
@@ -125,6 +136,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean down(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendDown(buffer, layout);
@@ -135,6 +149,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean pageUp(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         final boolean selecting = isSelecting(buffer);
         final int targetY = getCurrentLineTop(buffer, layout) - getPageHeight(widget);
@@ -159,6 +176,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean pageDown(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         final boolean selecting = isSelecting(buffer);
         final int targetY = getCurrentLineTop(buffer, layout) + getPageHeight(widget);
@@ -203,6 +223,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean lineStart(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendToLeftEdge(buffer, layout);
@@ -213,6 +236,9 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
 
     @Override
     protected boolean lineEnd(EditText widget, Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
         final Layout layout = widget.getLayout();
         if (isSelecting(buffer)) {
             return Selection.extendToRightEdge(buffer, layout);
@@ -245,6 +271,32 @@ public class ArrowKeyMovementMethod extends BaseMovementMethod implements Moveme
     @Override
     protected boolean end(EditText widget, Spannable buffer) {
         return lineEnd(widget, buffer);
+    }
+
+    @Override
+    public boolean previousParagraph(@NonNull EditText widget, @NonNull Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
+        final Layout layout = widget.getLayout();
+        if (isSelecting(buffer)) {
+            return Selection.extendToParagraphStart(buffer);
+        } else {
+            return Selection.moveToParagraphStart(buffer, layout);
+        }
+    }
+
+    @Override
+    public boolean nextParagraph(@NonNull EditText widget, @NonNull  Spannable buffer) {
+        if (widget.isOffsetMappingAvailable()) {
+            return false;
+        }
+        final Layout layout = widget.getLayout();
+        if (isSelecting(buffer)) {
+            return Selection.extendToParagraphEnd(buffer);
+        } else {
+            return Selection.moveToParagraphEnd(buffer, layout);
+        }
     }
 
     @Override

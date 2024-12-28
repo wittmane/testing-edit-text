@@ -57,6 +57,10 @@ public interface EditorSettings {
     boolean shouldDeleteThroughComposingText();
     boolean shouldKeepEmptyComposingPosition();
 
+    boolean shouldSkipPerformHandwritingGesture();
+    boolean shouldSkipPreviewHandwritingGesture();
+    boolean shouldSkipReplaceText();
+    boolean shouldSkipRequestTextBoundsInfo();
     boolean shouldSkipTakeSnapshot();
     boolean shouldSkipGetSurroundingText();
     boolean shouldSkipPerformSpellCheck();
@@ -77,4 +81,5 @@ public interface EditorSettings {
     int getGetTextAfterCursorDelay();
     int getGetCursorCapsModeDelay();
     int getGetExtractedTextDelay();
+    int getRequestTextBoundsInfoDelay();
 }

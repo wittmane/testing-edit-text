@@ -57,7 +57,7 @@ public class LineBreakConfigExtension {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @NonNull
     public static LineBreakConfig getLineBreakConfig(@LineBreakStyle int lineBreakStyle,
-                                                     @LineBreakWordStyle int lineBreakWordStyle) {
+            @LineBreakWordStyle int lineBreakWordStyle) {
         LineBreakConfig.Builder builder = new LineBreakConfig.Builder();
         return builder.setLineBreakStyle(lineBreakStyle)
                 .setLineBreakWordStyle(lineBreakWordStyle)
