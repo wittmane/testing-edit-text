@@ -250,16 +250,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     private boolean mStyleShortcutsEnabled = false;
 
     // (EW) from EditText
-    //TODO: (EW) should I just make my own ids, rather than block the use in prior versions?
     private static final int ID_BOLD =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    ? android.R.id.bold : RESOURCES_ID_NULL;
+                    ? android.R.id.bold : R.id.bold;
     private static final int ID_ITALIC =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    ? android.R.id.italic : RESOURCES_ID_NULL;
+                    ? android.R.id.italic : R.id.italic;
     private static final int ID_UNDERLINE =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    ? android.R.id.underline : RESOURCES_ID_NULL;
+                    ? android.R.id.underline : R.id.underline;
 
     static final String LOG_TAG = "EditText";
     static final boolean DEBUG_EXTRACT = false;
@@ -611,18 +610,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * performed on the editor.
      */
     public interface OnEditorActionListener {
-        //TODO: (EW) will we actually have varying behavior in Android 14, or will this be pulled
-        // into previous versions too?
         /**
          * Called when an action is being performed.
          *
          * @param v The view that was clicked.
-         * @param actionId Identifier of the action.  This will be either the
+         * @param actionId Identifier of the action. This will be either the
          * identifier you supplied, or {@link EditorInfo#IME_NULL
          * EditorInfo.IME_NULL} if being called due to the enter key
-         * being pressed. Starting from Android 14, the action identifier will
-         * also be included when triggered by an enter key if the input is
-         * constrained to a single line.
+         * being pressed. The action identifier will also be included when
+         * triggered by an enter key if the input is constrained to a single line.
          * @param event If triggered by an enter key, this is the event;
          * otherwise, this is null.
          * @return Return true if you have consumed the action, else false.
@@ -1058,7 +1054,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 }
 
             } else if (attr == R.styleable.EditText_android_enableTextStylingShortcuts) {
-                //TODO: (EW) test if this can apply prior to Android 14
+                // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
+                // still work as early as 23 (Marshmallow) (probably would would also work on
+                // 22 (Lollipop MR1) based on another attribute comment, but I didn't bother
+                // testing that).
                 mStyleShortcutsEnabled = typedArray.getBoolean(attr, false);
             }
         }
@@ -2418,8 +2417,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             //               typing anything into the field.
             //               https://androidacademic.blogspot.com/2018/05/android-edittext-Index-Out-Of-Bounds-exception.html
             //               points this out and states that this property isn't for EditText.
-            //TODO: (EW) why did I make this an if-else, rather than switch-case? if there isn't a
-            // good reason, maybe switch back to make diffing easier
+            // (EW) using if else, rather than switch case because resource IDs are non-final by
+            // default in Android Gradle Plugin version 8.0, so we should avoid using them in switch
+            // case statements
             if (index == R.styleable.TextAppearance_android_textColorHighlight) {
                 attributes.mTextColorHighlight =
                         appearance.getColor(attr, attributes.mTextColorHighlight);
@@ -2829,8 +2829,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @attr ref android.R.styleable#TextView_textSize
      */
     public void setTextSize(int unit, float size) {
-        //TODO: (EW) the AOSP version first checked that auto-sizing isn't enabled, but EditText
-        // never supports auto-sizing, so that was skipped.
+        // (EW) the AOSP version first checked that auto-sizing isn't enabled, but EditText never
+        // supports auto-sizing, so that was skipped.
         setTextSizeInternal(unit, size, true /* shouldRequestLayout */);
     }
 
@@ -2860,8 +2860,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
             maybeRecalculateLineHeight();
             if (shouldRequestLayout && mLayout != null) {
-                //TODO: (EW) the AOSP version had some handling for auto-sizing, but EditText
-                // never supports auto-sizing, so that was skipped.
+                // (EW) the AOSP version had some handling for auto-sizing, but EditText never
+                // supports auto-sizing, so that was skipped.
                 nullLayouts();
                 requestLayout();
                 invalidate();
@@ -5044,15 +5044,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return mHint;
     }
 
-    //TODO: (EW) I assume this is going to be called in Editor, which I didn't pull in yet, but we
-    // probably can change this to be package private (or just delete if not needed)
+    // (EW) changed to package private since the AOSP version is marked as hidden
     /**
      * Temporarily hides the hint text until the text is modified, or the hint text is modified, or
      * the view gains or loses focus.
-     *
-     * @hide
      */
-    public void hideHint() {
+    /* package */ void hideHint() {
         if (isShowingHint()) {
             mHideHint = true;
             invalidate();
@@ -9984,20 +9981,17 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             // Handle Ctrl-only shortcuts.
             switch (keyCode) {
                 case KeyEvent.KEYCODE_B:
-                    if (mStyleShortcutsEnabled && hasSelection()
-                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    if (mStyleShortcutsEnabled && hasSelection()) {
                         return onTextContextMenuItem(ID_BOLD);
                     }
                     break;
                 case KeyEvent.KEYCODE_I:
-                    if (mStyleShortcutsEnabled && hasSelection()
-                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    if (mStyleShortcutsEnabled && hasSelection()) {
                         return onTextContextMenuItem(ID_ITALIC);
                     }
                     break;
                 case KeyEvent.KEYCODE_U:
-                    if (mStyleShortcutsEnabled && hasSelection()
-                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    if (mStyleShortcutsEnabled && hasSelection()) {
                         return onTextContextMenuItem(ID_UNDERLINE);
                     }
                     break;
@@ -10802,6 +10796,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     // (EW) note that most of this code used to be in Editor.CursorAnchorInfoNotifier#updatePosition
+    // (EW) changed to package private since the AOSP version is marked as hidden and
+    // VisibleForTesting
     /**
      * Compute {@link CursorAnchorInfo} from this {@link EditText}.
      *
@@ -10814,10 +10810,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      * @return the result {@link CursorAnchorInfo} to be passed to IME.
      * @hide
      */
-    //TODO: (EW) this was marked as @VisibleForTesting, so this probably can be private
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Nullable
-    public CursorAnchorInfo getCursorAnchorInfo(
+    /* package */ CursorAnchorInfo getCursorAnchorInfo(
             @InputConnectionExtension.CursorUpdateFilter int filter,
             @NonNull CursorAnchorInfo.Builder cursorAnchorInfoBuilder,
             @NonNull Matrix viewToScreenMatrix) {
@@ -11278,8 +11273,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     public boolean onTextContextMenuItem(int id) {
         // (EW) this block is from EditText
         // TODO: Move to switch-case once the resource ID is finalized.
-        if ((id == ID_BOLD || id == ID_ITALIC || id == ID_UNDERLINE)
-                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        if (id == ID_BOLD || id == ID_ITALIC || id == ID_UNDERLINE) {
             return performStylingAction(id);
         }
 
@@ -11381,14 +11375,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
 
         Spannable spannable = getText();
-        if (actionId == ID_BOLD
-                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        if (actionId == ID_BOLD) {
             return SpanUtils.toggleBold(spannable, min, max);
-        } else if (actionId == ID_ITALIC
-                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        } else if (actionId == ID_ITALIC) {
             return SpanUtils.toggleItalic(spannable, min, max);
-        } else if (actionId == ID_UNDERLINE
-                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        } else if (actionId == ID_UNDERLINE) {
             return SpanUtils.toggleUnderline(spannable, min, max);
         }
 

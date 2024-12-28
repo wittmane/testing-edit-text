@@ -2617,14 +2617,12 @@ class Editor {
         }
     }
 
-    //TODO: (EW) probably can make private or at least package private. maybe just delete. it's not
-    // used in TextView or Editor in AOSP.
+    // (EW) changed to package private since the AOSP version is marked as hidden
     /**
      *
      * @return whether the Blink runnable is blinking or not, if null return false.
-     * @hide
      */
-    public boolean isBlinking() {
+    /* package */ boolean isBlinking() {
         if (mBlink == null) return false;
         return !mBlink.mCancelled;
     }
@@ -7700,6 +7698,7 @@ class Editor {
         private final Paint mHighlightPaint;
         private final Path mHighlightPath;
 
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         InsertModeController(@NonNull EditText textView) {
             mEditText = Objects.requireNonNull(textView);
             mIsInsertModeActive = false;
@@ -7711,8 +7710,6 @@ class Editor {
             // directly access Material 3 theme. But because Material 3 sets the colorPrimary to
             // be primary40, here we hardcoded it to be 12% of colorPrimary.
             final TypedValue typedValue = new TypedValue();
-            //TODO: (EW) there is a warning that colorPrimary requires API level 21. is this
-            // actually causing issues, and if so, what should it be changed to
             mEditText.getContext().getTheme()
                     .resolveAttribute(android.R.attr.colorPrimary, typedValue, true);
             final int colorPrimary = typedValue.data;
@@ -7800,6 +7797,7 @@ class Editor {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     boolean enterInsertMode(int offset) {
         if (mInsertModeController == null) {
             if (mEditText == null) return false;

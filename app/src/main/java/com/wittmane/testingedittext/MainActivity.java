@@ -138,7 +138,7 @@ public class MainActivity extends ThemedActivity
             mCustomEditText = new EditTextProxy(customEditText);
             customEditTextWrapper.addView(customEditText);
 
-
+            // enable ACTION_PROCESS_TEXT (see EditText#canProcessText)
             frameworkEditText.setId(View.generateViewId());
             customEditText.setId(View.generateViewId());
         }
