@@ -23,6 +23,7 @@
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.DeviceDefault.Light" parent="@android:style/Theme.DeviceDefault.Light">
@@ -45,6 +46,7 @@
              causing that, and although these probably should match, we'll just deal with this
              because it still looks fine. -->
         <item name="android:statusBarColor">?android:attr/colorPrimaryDark</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.Material" parent="@android:style/Theme.Material">
@@ -63,6 +65,7 @@
              versions of this app and the Material theme generally -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.Material.Light" parent="@android:style/Theme.Material.Light">
@@ -76,5 +79,6 @@
         <!-- (EW) see comment on Theme.Material -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 </resources>
