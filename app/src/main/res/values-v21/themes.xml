@@ -45,6 +45,9 @@
              that here. the Theme.Material.Light does look a bit different, but I'm not sure what's
              causing that, and although these probably should match, we'll just deal with this
              because it still looks fine. -->
+        <!--TODO: (EW) apparently this is now deprecated and has no effect on Android 15. also, even
+             on older versions, this doesn't seem to be working to fix the contract in the status
+             bar. I'm not sure when this stopped working.-->
         <item name="android:statusBarColor">?android:attr/colorPrimaryDark</item>
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
