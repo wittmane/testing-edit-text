@@ -40,11 +40,13 @@ import com.wittmane.testingedittext.aosp.android.graphics.MatrixExtension;
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension;
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakStyle;
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakWordStyle;
+import com.wittmane.testingedittext.aosp.android.text.BoringLayoutExtension;
 import com.wittmane.testingedittext.aosp.android.text.WordSegmentFinder;
 import com.wittmane.testingedittext.aosp.android.text.method.OffsetMapping;
 import com.wittmane.testingedittext.aosp.android.text.style.SpanUtils;
-import com.wittmane.testingedittext.aosp.android.util.FeatureFlagUtils;
 import com.wittmane.testingedittext.aosp.android.util.TypedValueExtension;
+import com.wittmane.testingedittext.aosp.android.view.MotionEventExtension;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.TextAppearanceInfoExtension;
 import com.wittmane.testingedittext.aosp.com.android.internal.graphics.ColorUtils;
 import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
@@ -140,6 +142,7 @@ import android.view.PointerIcon;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewDebug;
+import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewParent;
 import android.view.ViewStructure;
@@ -334,7 +337,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     // System wide time for last cut, copy or text changed action.
     static long sLastCutCopyOrTextChangedTime;
-
     private ColorStateList mTextColor;
     private ColorStateList mHintTextColor;
 
@@ -358,6 +360,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     private float mShadowDx;
     private float mShadowDy;
     private int mShadowColor;
+
+    private int mLastOrientation;
 
     private boolean mPreDrawRegistered;
     private boolean mPreDrawListenerDetached;
@@ -411,11 +415,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private int mLineBreakWordStyle = DEFAULT_LINE_BREAK_WORD_STYLE;
 
-    // The auto option for LINE_BREAK_WORD_STYLE_PHRASE may not be applied in recycled view due to
-    // one-way flag flipping. This is a tentative limitation during experiment and will not have the
-    // issue once this is finalized to LINE_BREAK_WORD_STYLE_PHRASE_AUTO option.
-    private boolean mUserSpeficiedLineBreakwordStyle = false;
-
     // This is used to reflect the current user preference for changing font weight and making text
     // more bold.
     private int mFontWeightAdjustment;
@@ -432,6 +431,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     private static final int FALLBACK_LINE_SPACING_ALL = 2;
 
     private int mUseFallbackLineSpacing;
+
+    private boolean mUseBoundsForWidth;
+    private boolean mShiftDrawingOffsetForStartOverhang;
+    @Nullable private Paint.FontMetrics mMinimumFontMetrics;
+    @Nullable private Paint.FontMetrics mLocalePreferredFontMetrics;
+    private boolean mUseLocalePreferredLineHeightForMinimum;
 
     @ViewDebug.ExportedProperty(category = "text")
     private int mGravity = Gravity.TOP | Gravity.START;
@@ -696,6 +701,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             // (EW) the layout only started supporting hyphenation frequency in Marshmallow
             mHyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE;
         }
+        mLastOrientation = getResources().getConfiguration().orientation;
 
         final Theme theme = context.getTheme();
 
@@ -769,12 +775,17 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         int lastBaselineToBottomHeight = -1;
         float lineHeight = -1f;
         int lineHeightUnit = -1;
+        boolean hasUseBoundForWidthValue = false;
 
         // (EW) flags for whether the android attributes were specified in order to determine if a
         // custom copy of the attribute should be ignored
         boolean allowUndoSet = false;
         boolean firstBaselineToTopHeightSet = false;
         boolean lastBaselineToBottomHeightSet = false;
+
+        // (EW) from EditText
+        boolean hasUseLocalePreferredLineHeightForMinimumInt = false;
+        boolean useLocalePreferredLineHeightForMinimumInt = false;
 
         readTextAppearance(context, typedArray, attributes, true /* styleArray */);
 
@@ -996,9 +1007,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             } else if (attr == R.styleable.EditText_android_lineBreakWordStyle) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     // (EW) the layout only started supporting line break config in Tiramisu
-                    if (typedArray.hasValue(attr)) {
-                        mUserSpeficiedLineBreakwordStyle = true;
-                    }
                     mLineBreakWordStyle = typedArray.getInt(attr,
                             LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE);
                 }
@@ -1053,7 +1061,24 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     lineHeight = typedArray.getDimensionPixelSize(attr, -1);
                 }
 
+            } else if (attr == R.styleable.EditText_android_useBoundsForWidth) {
+                //TODO: (EW) check versions this can apply for
+                mUseBoundsForWidth = typedArray.getBoolean(attr, false);
+                hasUseBoundForWidthValue = true;
+
+            } else if (attr == R.styleable.EditText_android_shiftDrawingOffsetForStartOverhang) {
+                //TODO: (EW) check versions this can apply for
+                mShiftDrawingOffsetForStartOverhang = typedArray.getBoolean(attr, false);
+
+            } else if (attr == R.styleable.EditText_android_useLocalePreferredLineHeightForMinimum) {
+                //TODO: (EW) check versions this can apply for
+
+                // (EW) from EditText
+                hasUseLocalePreferredLineHeightForMinimumInt = true;
+                useLocalePreferredLineHeightForMinimumInt = typedArray.getBoolean(attr, false);
+
             } else if (attr == R.styleable.EditText_android_enableTextStylingShortcuts) {
+                // (EW) from EditText
                 // (EW) this Android attribute was added in API level 28 (Pie), but I've seen it
                 // still work as early as 23 (Marshmallow) (probably would would also work on
                 // 22 (Lollipop MR1) based on another attribute comment, but I didn't bother
@@ -1063,6 +1088,18 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         typedArray.recycle();
+
+        // (EW) from EditText
+        if (!hasUseLocalePreferredLineHeightForMinimumInt) {
+            // (EW) the AOSP version checked CompatChanges#isChangeEnabled, which is hidden.
+            // locale-aware default line height for EditText was documented as a new option and
+            // default when targeting Android 15 (API level 35), so we'll just check the version to
+            // match the framework EditText default where this app is running since we're targeting
+            // that version.
+            useLocalePreferredLineHeightForMinimumInt =
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
+        }
+        setLocalePreferredLineHeightForMinimumUsed(useLocalePreferredLineHeightForMinimumInt);
 
         final int variation =
                 inputType & (EditorInfo.TYPE_MASK_CLASS | EditorInfo.TYPE_MASK_VARIATION);
@@ -1086,6 +1123,16 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_STATIC_LAYOUT_ONLY;
         } else {
             mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_NONE;
+        }
+
+        if (!hasUseBoundForWidthValue) {
+            // (EW) the AOSP version checked CompatChanges#isChangeEnabled, which is hidden.
+            // documentation for Android 15 indicated that TextView width changes for complex letter
+            // shapes, and that due to this change, TextView allocates more width by default when
+            // targeting Android 15 (API level 35), so we'll just check the version to match the
+            // framework EditText default where this app is running since we're targeting that
+            // version.
+            mUseBoundsForWidth = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
         }
 
         // (EW) the AOSP version had handling for different attributes that we don't support due to
@@ -1204,6 +1251,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             // (EW) doesn't matter. this won't be used. pacify java
             focusable = 0;
         }
+        boolean isAutoHandwritingEnabled = true;
 
         attrCount = typedArray.getIndexCount();
         for (int i = 0; i < attrCount; i++) {
@@ -1223,6 +1271,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 clickable = typedArray.getBoolean(attr, clickable);
             } else if (attr == R.styleable.View_android_longClickable) {
                 longClickable = typedArray.getBoolean(attr, longClickable);
+            } else if (attr == R.styleable.View_android_autoHandwritingEnabled) {
+                isAutoHandwritingEnabled = typedArray.getBoolean(attr, true);
             }
         }
         typedArray.recycle();
@@ -1240,6 +1290,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
         setClickable(clickable);
         setLongClickable(longClickable);
+        // (EW) although this was available starting in Tiramisu, the AOSP version only started
+        // calling it in Android 15
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            setAutoHandwritingEnabled(isAutoHandwritingEnabled);
+        }
 
         mEditor.prepareCursorControllers();
 
@@ -1403,8 +1458,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (!enabled) {
             // Hide the soft input if the currently active EditText is disabled
             InputMethodManager imm = getInputMethodManager();
-            if (imm != null && imm.isActive(this)) {
-                imm.hideSoftInputFromWindow(getWindowToken(), 0);
+            if (imm != null) {
+                InputMethodManagerExtension.hideSoftInputFromView(imm, this, 0);
             }
         }
 
@@ -1668,11 +1723,22 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (mEditor != null) {
             mEditor.setTransformationMethod(method);
         } else {
-            setTransformationMethodInternal(method);
+            setTransformationMethodInternal(method, /* updateText */ true);
         }
     }
 
-    void setTransformationMethodInternal(@Nullable TransformationMethod method) {
+    /**
+     * Set the transformation that is applied to the text that this TextView is displaying,
+     * optionally call the setText.
+     * @param method the new transformation method to be set.
+     * @param updateText whether the call {@link #setText} which will update the TextView to display
+     *                   the new content. This method is helpful when updating
+     *                   {@link TransformationMethod} inside {@link #setText}. It should only be
+     *                   false if text will be updated immediately after this call, otherwise the
+     *                   TextView will enter an inconsistent state.
+     */
+    void setTransformationMethodInternal(@Nullable TransformationMethod method,
+                                         boolean updateText) {
         if (method == mTransformation) {
             // Avoid the setText() below if the transformation is
             // the same.
@@ -1684,7 +1750,46 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         mTransformation = method;
 
-        setText(mText);
+        // (EW) the AOSP version would set mAllowTransformationLengthChange to true only if the
+        // method was a TransformationMethod2 (which is hidden) and text isn't selectable and the
+        // text isn't an Editable, so that would always end up being false here, so it was skipped
+
+        if (updateText) {
+            //TODO: (EW) com.android.text.flags.Flags isn't in the SDK. I'm not sure where it comes
+            // from to try to understand how it works. maybe just assume this is false to keep
+            // functionality of Android 14.
+            if (/*Flags.insertModeNotUpdateSelection()*/false) {
+                // Update the transformation text.
+                if (mTransformation == null) {
+                    mTransformed = mText;
+                } else {
+                    mTransformed = mTransformation.getTransformation(mText, this);
+                }
+                if (mTransformed == null) {
+                    // Should not happen if the transformation method follows the non-null
+                    // postcondition.
+                    mTransformed = "";
+                }
+                final boolean isOffsetMapping = mTransformed instanceof OffsetMapping;
+
+                // If the mText is a Spannable and the new TransformationMethod needs to listen to
+                // its updates, apply the watcher on it.
+                if (mTransformation != null) {
+                    Spannable sp = (Spannable) mText;
+                    final int priority = isOffsetMapping ? OFFSET_MAPPING_SPAN_PRIORITY : 0;
+                    sp.setSpan(mTransformation, 0, mText.length(),
+                            Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                                    | (priority << Spanned.SPAN_PRIORITY_SHIFT));
+                }
+                if (mLayout != null) {
+                    nullLayouts();
+                    requestLayout();
+                    invalidate();
+                }
+            } else {
+                setText(mText);
+            }
+        }
 
         // PasswordTransformationMethod always have LTR text direction heuristics returned by
         // getTextDirectionHeuristic, needs reset
@@ -2538,7 +2643,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             } else if (index == R.styleable.TextAppearance_android_lineBreakWordStyle
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 attributes.mHasLineBreakWordStyle = true;
-                mUserSpeficiedLineBreakwordStyle = true;
                 attributes.mLineBreakWordStyle =
                         appearance.getInt(attr, attributes.mLineBreakWordStyle);
             }
@@ -2784,6 +2888,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 setTypeface(getTypeface());
             }
         }
+
+        InputMethodManager imm = getInputMethodManager();
+        // if orientation changed and this EditText is currently served.
+        if (mLastOrientation != newConfig.orientation
+                && imm != null && InputMethodManagerExtension.hasActiveInputConnection(imm, this)) {
+            // EditorInfo.internalImeOptions are out of date.
+            imm.restartInput(this);
+        }
+        mLastOrientation = newConfig.orientation;
     }
 
     /**
@@ -3027,6 +3140,177 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 invalidate();
             }
         }
+    }
+
+    /**
+     * Set true for using width of bounding box as a source of automatic line breaking and drawing.
+     *
+     * If this value is false, the TextView determines the View width, drawing offset and automatic
+     * line breaking based on total advances as text widths. By setting true, use glyph bound's as a
+     * source of text width.
+     *
+     * If the font used for this TextView has glyphs that has negative bearing X or glyph xMax is
+     * greater than advance, the glyph clipping can be happened because the drawing area may be
+     * bigger than advance. By setting this to true, the TextView will reserve more spaces for
+     * drawing are, so clipping can be prevented.
+     *
+     * This value is true by default if the target API version is 35 or later.
+     *
+     * @param useBoundsForWidth true for using bounding box for width. false for using advances for
+     *                          width.
+     * @see #getUseBoundsForWidth()
+     * @see #setShiftDrawingOffsetForStartOverhang(boolean)
+     * @see #getShiftDrawingOffsetForStartOverhang()
+     */
+    public void setUseBoundsForWidth(boolean useBoundsForWidth) {
+        if (mUseBoundsForWidth != useBoundsForWidth) {
+            mUseBoundsForWidth = useBoundsForWidth;
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Returns true if using bounding box as a width, false for using advance as a width.
+     *
+     * @see #setUseBoundsForWidth(boolean)
+     * @see #setShiftDrawingOffsetForStartOverhang(boolean)
+     * @see #getShiftDrawingOffsetForStartOverhang()
+     * @return True if using bounding box for width, false if using advance for width.
+     */
+    public boolean getUseBoundsForWidth() {
+        return mUseBoundsForWidth;
+    }
+
+    /**
+     * Set true for shifting the drawing x offset for showing overhang at the start position.
+     *
+     * This flag is ignored if the {@link #getUseBoundsForWidth()} is false.
+     *
+     * If this value is false, the TextView draws text from the zero even if there is a glyph stroke
+     * in a region where the x coordinate is negative. TextView clips the stroke in the region where
+     * the X coordinate is negative unless the parents has {@link ViewGroup#getClipChildren()} to
+     * true. This is useful for aligning multiple TextViews vertically.
+     *
+     * If this value is true, the TextView draws text with shifting the x coordinate of the drawing
+     * bounding box. This prevents the clipping even if the parents doesn't have
+     * {@link ViewGroup#getClipChildren()} to true.
+     *
+     * This value is false by default.
+     *
+     * @param shiftDrawingOffsetForStartOverhang true for shifting the drawing offset for showing
+     *                                           the stroke that is in the region whre the x
+     *                                           coorinate is negative.
+     * @see #setUseBoundsForWidth(boolean)
+     * @see #getUseBoundsForWidth()
+     */
+    public void setShiftDrawingOffsetForStartOverhang(boolean shiftDrawingOffsetForStartOverhang) {
+        if (mShiftDrawingOffsetForStartOverhang != shiftDrawingOffsetForStartOverhang) {
+            mShiftDrawingOffsetForStartOverhang = shiftDrawingOffsetForStartOverhang;
+            if (mLayout != null) {
+                nullLayouts();
+                requestLayout();
+                invalidate();
+            }
+        }
+    }
+
+    /**
+     * Returns true if shifting the drawing x offset for start overhang.
+     *
+     * @see #setShiftDrawingOffsetForStartOverhang(boolean)
+     * @see #setUseBoundsForWidth(boolean)
+     * @see #getUseBoundsForWidth()
+     * @return True if shifting the drawing x offset for start overhang.
+     */
+    public boolean getShiftDrawingOffsetForStartOverhang() {
+        return mShiftDrawingOffsetForStartOverhang;
+    }
+
+    /**
+     * Set the minimum font metrics used for line spacing.
+     *
+     * <p>
+     * {@code null} is the default value. If {@code null} is set or left as default, the font
+     * metrics obtained by {@link Paint#getFontMetricsForLocale(Paint.FontMetrics)} is used.
+     *
+     * <p>
+     * The minimum meaning here is the minimum value of line spacing: maximum value of
+     * {@link Paint#ascent()}, minimum value of {@link Paint#descent()}.
+     *
+     * <p>
+     * By setting this value, each line will have minimum line spacing regardless of the text
+     * rendered. For example, usually Japanese script has larger vertical metrics than Latin script.
+     * By setting the metrics obtained by {@link Paint#getFontMetricsForLocale(Paint.FontMetrics)}
+     * for Japanese or leave it {@code null} if the TextView's locale or system locale is Japanese,
+     * the line spacing for Japanese is reserved if the TextView contains English text. If the
+     * vertical metrics of the text is larger than Japanese, for example Burmese, the bigger font
+     * metrics is used.
+     *
+     * @param minimumFontMetrics A minimum font metrics. Passing {@code null} for using the value
+     *                           obtained by
+     *                           {@link Paint#getFontMetricsForLocale(Paint.FontMetrics)}
+     * @see #getMinimumFontMetrics()
+     * @see Layout#getMinimumFontMetrics()
+     * @see Layout.Builder#setMinimumFontMetrics(Paint.FontMetrics)
+     * @see StaticLayout.Builder#setMinimumFontMetrics(Paint.FontMetrics)
+     * @see DynamicLayout.Builder#setMinimumFontMetrics(Paint.FontMetrics)
+     */
+    public void setMinimumFontMetrics(@Nullable Paint.FontMetrics minimumFontMetrics) {
+        mMinimumFontMetrics = minimumFontMetrics;
+    }
+
+    /**
+     * Get the minimum font metrics used for line spacing.
+     *
+     * @see #setMinimumFontMetrics(Paint.FontMetrics)
+     * @see Layout#getMinimumFontMetrics()
+     * @see Layout.Builder#setMinimumFontMetrics(Paint.FontMetrics)
+     * @see StaticLayout.Builder#setMinimumFontMetrics(Paint.FontMetrics)
+     * @see DynamicLayout.Builder#setMinimumFontMetrics(Paint.FontMetrics)
+     *
+     * @return a minimum font metrics. {@code null} for using the value obtained by
+     *         {@link Paint#getFontMetricsForLocale(Paint.FontMetrics)}
+     */
+    @Nullable
+    public Paint.FontMetrics getMinimumFontMetrics() {
+        return mMinimumFontMetrics;
+    }
+
+    /**
+     * Returns true if the locale preferred line height is used for the minimum line height.
+     *
+     * @return true if using locale preferred line height for the minimum line height. Otherwise
+     *         false.
+     *
+     * @see #setLocalePreferredLineHeightForMinimumUsed(boolean)
+     * @see #setMinimumFontMetrics(Paint.FontMetrics)
+     * @see #getMinimumFontMetrics()
+     */
+    public boolean isLocalePreferredLineHeightForMinimumUsed() {
+        return mUseLocalePreferredLineHeightForMinimum;
+    }
+
+    /**
+     * Set true if the locale preferred line height is used for the minimum line height.
+     *
+     * By setting this flag to true is equivalent to call
+     * {@link #setMinimumFontMetrics(Paint.FontMetrics)} with the one obtained by
+     * {@link Paint#getFontMetricsForLocale(Paint.FontMetrics)}.
+     *
+     * If custom minimum line height was specified by
+     * {@link #setMinimumFontMetrics(Paint.FontMetrics)}, this flag will be ignored.
+     *
+     * @param flag true for using locale preferred line height for the minimum line height.
+     * @see #isLocalePreferredLineHeightForMinimumUsed()
+     * @see #setMinimumFontMetrics(Paint.FontMetrics)
+     * @see #getMinimumFontMetrics()
+     */
+    public void setLocalePreferredLineHeightForMinimumUsed(boolean flag) {
+        mUseLocalePreferredLineHeightForMinimum = flag;
     }
 
     /**
@@ -3292,7 +3576,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLineBreakWordStyle(
             @LineBreakConfigExtension.LineBreakWordStyle int lineBreakWordStyle) {
-        mUserSpeficiedLineBreakwordStyle = true;
         if (mLineBreakWordStyle != lineBreakWordStyle) {
             mLineBreakWordStyle = lineBreakWordStyle;
             if (mLayout != null) {
@@ -4223,6 +4506,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return mSpacingAdd;
     }
 
+    // (EW) added the upper limit from TypedValue#createComplexDimension
     /**
      * Sets an explicit line height for this EditText. This is equivalent to the vertical distance
      * between subsequent baselines in the EditText.
@@ -4234,11 +4518,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      *
      * @attr ref android.R.styleable#TextView_lineHeight
      */
-    public void setLineHeight(@Px @IntRange(from = 0) int lineHeight) {
+    public void setLineHeight(@Px @IntRange(from = 0, to = 0x7FFFFF) int lineHeight) {
         setLineHeightPx(lineHeight);
     }
 
-    private void setLineHeightPx(@Px @FloatRange(from = 0) float lineHeight) {
+    // (EW) added the upper limit from TypedValue#createComplexDimension
+    private void setLineHeightPx(@Px @FloatRange(from = 0, to = 0x7FFFFF) float lineHeight) {
         Preconditions.checkArgumentNonNegative(lineHeight,
                 "Expecting non-negative lineHeight while the input is " + lineHeight);
 
@@ -4253,6 +4538,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
     }
 
+    // (EW) added the upper limit from TypedValue#createComplexDimension
     /**
      * Sets an explicit line height to a given unit and value for this TextView. This is equivalent
      * to the vertical distance between subsequent baselines in the TextView. See {@link
@@ -4270,7 +4556,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void setLineHeight(
             @TypedValueExtension.ComplexDimensionUnit int unit,
-            @FloatRange(from = 0) float lineHeight
+            @FloatRange(from = 0, to = 0x7FFFFF) float lineHeight
     ) {
         DisplayMetrics metrics = getDisplayMetricsOrSystem();
         // (EW) the AOSP version checked FontScaleConverterFactory#isNonLinearFontScalingActive to
@@ -4802,6 +5088,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private void setText(CharSequence text, boolean notifyBefore, int oldLength) {
+        mEditor.beforeSetText();
         mTextSetFromXmlOrResourceId = false;
         if (text == null) {
             text = "";
@@ -4950,6 +5237,20 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         setText(mCharWrapper, false, oldLength);
+    }
+
+    /**
+     * RemotableViewMethod's asyncImpl of {@link #setText(CharSequence)}.
+     * This should be called on a background thread, and returns a Runnable which is then must be
+     * called on the main thread to complete the operation and set text.
+     * @param text text to be displayed
+     * @return Runnable that sets text; must be called on the main thread by the caller of this
+     * method to complete the operation
+     * @hide
+     */
+    @NonNull
+    public Runnable setTextAsync(@Nullable CharSequence text) {
+        return () -> setText(text);
     }
 
     /**
@@ -5641,8 +5942,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
             } else if (actionCode == EditorInfo.IME_ACTION_DONE) {
                 InputMethodManager imm = getInputMethodManager();
-                if (imm != null && imm.isActive(this)) {
-                    imm.hideSoftInputFromWindow(getWindowToken(), 0);
+                if (imm != null) {
+                    InputMethodManagerExtension.hideSoftInputFromView(imm, this, 0);
                 }
                 return;
             }
@@ -6477,8 +6778,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public PointerIcon onResolvePointerIcon(MotionEvent event, int pointerIndex) {
-        if (isTextEditable()) {
-            return PointerIcon.getSystemIcon(getContext(), PointerIcon.TYPE_TEXT);
+        if (event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+            if (isTextEditable()) {
+                return PointerIcon.getSystemIcon(getContext(), PointerIcon.TYPE_TEXT);
+            }
         }
         return super.onResolvePointerIcon(event, pointerIndex);
     }
@@ -6691,6 +6994,29 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 if (mEditor.getTextActionMode() != null) {
                     stopTextActionMode();
                     return KEY_EVENT_HANDLED;
+                }
+                break;
+
+            case KeyEvent.KEYCODE_ESCAPE:
+                //TODO: (EW) com.android.text.flags.Flags isn't in the SDK. I'm not sure where it
+                // comes from to try to understand how it works. maybe just assume this is false to
+                // keep functionality of Android 14.
+                if (/*com.android.text.flags.Flags.escapeClearsFocus()*/false && event.hasNoModifiers()) {
+                    if (mEditor != null && mEditor.getTextActionMode() != null) {
+                        stopTextActionMode();
+                        return KEY_EVENT_HANDLED;
+                    }
+                    if (hasFocus()) {
+                        // (EW) the AOSP version called View#clearFocusInternal (with refocus
+                        // false), which isn't available. this seems like the best we have access
+                        // to. I'm not sure how important it is to set refocus to false always.
+                        clearFocus();
+                        InputMethodManager imm = getInputMethodManager();
+                        if (imm != null) {
+                            InputMethodManagerExtension.hideSoftInputFromView(imm, this, 0);
+                        }
+                        return KEY_EVENT_HANDLED;
+                    }
                 }
                 break;
 
@@ -6938,8 +7264,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                                 // No target for next focus, but make sure the IME
                                 // if this came from it.
                                 InputMethodManager imm = getInputMethodManager();
-                                if (imm != null && imm.isActive(this)) {
-                                    imm.hideSoftInputFromWindow(getWindowToken(), 0);
+                                if (imm != null) {
+                                    InputMethodManagerExtension.hideSoftInputFromView(imm, this, 0);
                                 }
                             }
                         }
@@ -7128,7 +7454,27 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
-
+            //TODO: (EW) android.view.inputmethod.Flags isn't in the SDK. I'm not sure where it
+            // comes from to try to understand how it works. maybe just assume this is false to
+            // keep functionality of Android 14.
+            if (/*android.view.inputmethod.Flags.editorinfoHandwritingEnabled()*/false
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                boolean handwritingEnabled = isAutoHandwritingEnabled();
+                outAttrs.setStylusHandwritingEnabled(handwritingEnabled);
+                // AndroidX Core library 1.13.0 introduced
+                // EditorInfoCompat#setStylusHandwritingEnabled and
+                // EditorInfoCompat#isStylusHandwritingEnabled which used a boolean value in the
+                // EditorInfo extras bundle. These methods do not set or check the Android V
+                // property since the Android V SDK was not yet available. In order for
+                // EditorInfoCompat#isStylusHandwritingEnabled to return the correct value for
+                // EditorInfo created by Android V TextView, the extras bundle value is also set
+                // here.
+                if (outAttrs.extras == null) {
+                    outAttrs.extras = new Bundle();
+                }
+//                outAttrs.extras.putBoolean(
+//                        STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY, handwritingEnabled);
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 //TODO: (EW) possibly could add settings for which gestures to support/report is
                 // supported
@@ -7938,6 +8284,22 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return alignment;
     }
 
+    private Paint.FontMetrics getResolvedMinimumFontMetrics() {
+        if (mMinimumFontMetrics != null) {
+            return mMinimumFontMetrics;
+        }
+        if (!mUseLocalePreferredLineHeightForMinimum
+                || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            return null;
+        }
+
+        if (mLocalePreferredFontMetrics == null) {
+            mLocalePreferredFontMetrics = new Paint.FontMetrics();
+        }
+        mTextPaint.getFontMetricsForLocale(mLocalePreferredFontMetrics);
+        return mLocalePreferredFontMetrics;
+    }
+
     /**
      * The width passed in is now the desired layout width,
      * not the full view width with padding.
@@ -7980,13 +8342,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (shouldEllipsize) hintWidth = wantWidth;
 
             if (hintBoring == UNKNOWN_BORING) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    hintBoring = BoringLayout.isBoring(mHint, mTextPaint, mTextDir,
-                            isFallbackLineSpacingForBoringLayout(), mHintBoring);
-                } else {
-                    hintBoring = isBoring(mHint, mTextPaint, mTextDir,
-                            mHintBoring);
-                }
+                hintBoring = BoringLayoutExtension.isBoring(mHint, mTextPaint, mTextDir,
+                        isFallbackLineSpacingForBoringLayout(),
+                        getResolvedMinimumFontMetrics(), mHintBoring);
+
                 if (hintBoring != null) {
                     mHintBoring = hintBoring;
                 }
@@ -8021,9 +8380,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 }
             }
             if (mHintLayout == null) {
-                final boolean autoPhraseBreaking = !mUserSpeficiedLineBreakwordStyle
-                        && FeatureFlagUtils.isEnabled(getContext(),
-                                FeatureFlagUtils.SETTINGS_AUTO_TEXT_WRAPPING);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     StaticLayout.Builder builder = StaticLayout.Builder.obtain(mHint, 0,
                             mHint.length(), mTextPaint, hintWidth)
@@ -8040,12 +8396,16 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         // in Android 14 the AOSP version passed autoPhraseBreaking to the
-                        // LineBreakConfig to be set via a hidden method. this is removed in
-                        // LineBreakConfig in Android 15, and when it is used, it relies on the
+                        // LineBreakConfig to be set via a hidden method. this was removed in
+                        // LineBreakConfig in Android 15, and when it was used, it relied on the
                         // feature flag (I'm not sure how that gets set), so it probably isn't
-                        // particularly important, so I'm just skipping it.
+                        // particularly important, so I skipped it.
                         builder.setLineBreakConfig(LineBreakConfigExtension.getLineBreakConfig(
                                 mLineBreakStyle, mLineBreakWordStyle));
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                        builder.setUseBoundsForWidth(mUseBoundsForWidth)
+                                .setMinimumFontMetrics(getResolvedMinimumFontMetrics());
                     }
                     if (shouldEllipsize) {
                         builder.setEllipsize(mEllipsize)
@@ -8081,9 +8441,17 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     .setIncludePad(mIncludePad)
                     .setUseLineSpacingFromFallbacks(isFallbackLineSpacingForStaticLayout())
                     .setBreakStrategy(mBreakStrategy)
-                    .setHyphenationFrequency(mHyphenationFrequency)
-                    .setEllipsize(getKeyListener() == null ? effectiveEllipsize : null)
-                    .setEllipsizedWidth(ellipsisWidth);
+                    .setHyphenationFrequency(mHyphenationFrequency);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                builder.setLineBreakConfig(LineBreakConfigExtension.getLineBreakConfig(
+                        mLineBreakStyle, mLineBreakWordStyle))
+                        .setUseBoundsForWidth(mUseBoundsForWidth);
+            }
+            builder.setEllipsize(getKeyListener() == null ? effectiveEllipsize : null);
+            builder.setEllipsizedWidth(ellipsisWidth);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                builder.setMinimumFontMetrics(getResolvedMinimumFontMetrics());
+            }
             result = builder.build();
         } else {
             // (EW) the AOSP version called constructors for DynamicLayout that are hidden from
@@ -8138,7 +8506,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return result;
     }
 
-    private static int desired(Layout layout) {
+    private static int desired(Layout layout, boolean useBoundsForWidth) {
         int n = layout.getLineCount();
         CharSequence text = layout.getText();
         float max = 0;
@@ -8154,6 +8522,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         for (int i = 0; i < n; i++) {
             max = Math.max(max, layout.getLineMax(i));
+        }
+
+        if (useBoundsForWidth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            max = Math.max(max, layout.computeDrawingBoundingBox().width());
         }
 
         return (int) Math.ceil(max);
@@ -8223,17 +8595,18 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             width = widthSize;
         } else {
             if (mLayout != null && mEllipsize == null) {
-                des = desired(mLayout);
+                des = desired(mLayout, mUseBoundsForWidth);
             }
 
-            if (des >= 0) {
-                fromexisting = true;
-            } else {
+            if (des < 0) {
                 // (EW) Layout.getDesiredWidthWithLimit started getting called in Pie (instead
                 // of Layout.getDesiredWidth). Layout.getDesiredWidthWithLimit was also created
                 // in Pie.
                 des = (int) Math.ceil(LayoutExtension.getDesiredWidthWithLimit(mTransformed, 0,
-                        mTransformed.length(), mTextPaint, mTextDir, widthLimit));
+                        mTransformed.length(), mTextPaint, mTextDir, widthLimit,
+                        mUseBoundsForWidth));
+            } else {
+                fromexisting = true;
             }
             width = des;
 
@@ -8242,16 +8615,13 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 int hintWidth;
 
                 if (mHintLayout != null && mEllipsize == null) {
-                    hintDes = desired(mHintLayout);
+                    hintDes = desired(mHintLayout, mUseBoundsForWidth);
                 }
 
                 if (hintDes < 0) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        hintBoring = BoringLayout.isBoring(mHint, mTextPaint, mTextDir,
-                                isFallbackLineSpacingForBoringLayout(), mHintBoring);
-                    } else {
-                        hintBoring = isBoring(mHint, mTextPaint, mTextDir, mHintBoring);
-                    }
+                    hintBoring = BoringLayoutExtension.isBoring(mHint, mTextPaint, mTextDir,
+                            isFallbackLineSpacingForBoringLayout(), getResolvedMinimumFontMetrics(),
+                            mHintBoring);
                     if (hintBoring != null) {
                         mHintBoring = hintBoring;
                     }
@@ -8260,7 +8630,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 if (hintBoring == null || hintBoring == UNKNOWN_BORING) {
                     if (hintDes < 0) {
                         hintDes = (int) Math.ceil(LayoutExtension.getDesiredWidthWithLimit(mHint, 0,
-                                mHint.length(), mTextPaint, mTextDir, widthLimit));
+                                mHint.length(), mTextPaint, mTextDir, widthLimit,
+                                mUseBoundsForWidth));
                     }
                     hintWidth = hintDes;
                 } else {
@@ -8361,16 +8732,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         setMeasuredDimension(width, height);
-    }
-
-    // (EW) based on hidden method from BoringLayout
-    private static Metrics isBoring(CharSequence text, TextPaint paint,
-                                   TextDirectionHeuristic textDir, Metrics metrics) {
-        final int textLength = text.length();
-        if (textDir != null && textDir.isRtl(text, 0, textLength)) {
-            return null;  // The heuristic considers the whole text RTL. Not boring.
-        }
-        return BoringLayout.isBoring(text, paint, metrics);
     }
 
     private int getDesiredHeight() {
@@ -9799,6 +10160,20 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             return superResult;
         }
 
+        // At this point, the event is not a long press, otherwise it would be handled above.
+        //TODO: (EW) com.android.text.flags.Flags isn't in the SDK. I'm not sure where it comes
+        // from to try to understand how it works. maybe just assume this is false to keep
+        // functionality of Android 14.
+        if (/*Flags.handwritingEndOfLineTap()*/false && action == MotionEvent.ACTION_UP
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && shouldStartHandwritingForEndOfLineTap(event)) {
+            InputMethodManager imm = getInputMethodManager();
+            if (imm != null) {
+                imm.startStylusHandwriting(this);
+                return true;
+            }
+        }
+
         final boolean touchIsFinished = (action == MotionEvent.ACTION_UP)
                 && (!mEditor.mIgnoreActionUpEvent) && isFocused();
 
@@ -9831,6 +10206,47 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         return superResult;
+    }
+
+    /**
+     * If handwriting is supported, the TextView is already focused and not empty, and the cursor is
+     * at the end of a line, a stylus tap after the end of the line will trigger handwriting.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private boolean shouldStartHandwritingForEndOfLineTap(MotionEvent actionUpEvent) {
+        if (!onCheckIsTextEditor()
+                || !isEnabled()
+                || !isAutoHandwritingEnabled()
+                || TextUtils.isEmpty(mText)
+                || didTouchFocusSelect()
+                || mLayout == null
+                || !MotionEventExtension.isStylusPointer(actionUpEvent)) {
+            return false;
+        }
+        int cursorOffset = getSelectionStart();
+        if (cursorOffset < 0 || getSelectionEnd() != cursorOffset) {
+            return false;
+        }
+        int cursorLine = mLayout.getLineForOffset(cursorOffset);
+        int cursorLineEnd = mLayout.getLineEnd(cursorLine);
+        if (cursorLine != mLayout.getLineCount() - 1) {
+            cursorLineEnd--;
+        }
+        if (cursorLineEnd != cursorOffset) {
+            return false;
+        }
+        // Check that the stylus down point is within the same line as the cursor.
+        if (getLineAtCoordinate(actionUpEvent.getY()) != cursorLine) {
+            return false;
+        }
+        // Check that the stylus down point is after the end of the line.
+        float localX = convertToLocalHorizontalCoordinate(actionUpEvent.getX());
+        if (mLayout.getParagraphDirection(cursorLine) == Layout.DIR_RIGHT_TO_LEFT
+                ? localX >= mLayout.getLineLeft(cursorLine)
+                : localX <= mLayout.getLineRight(cursorLine)) {
+            return false;
+        }
+        return isStylusHandwritingAvailable();
     }
 
     /**
@@ -9900,6 +10316,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      */
     boolean isTextEditable() {
         return onCheckIsTextEditor() && isEnabled();
+    }
+
+    /**
+     * @return true if this TextView could be filled by an Autofill service. Note that disabled
+     * fields can still be filled.
+     */
+    boolean isTextAutofillable() {
+        return onCheckIsTextEditor();
     }
 
     /**
@@ -10086,6 +10510,16 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     public boolean isAutoHandwritingEnabled() {
         return super.isAutoHandwritingEnabled() && !isAnyPasswordInputType();
     }
+
+    //TODO: (EW) just remove if this isn't called internally
+//    /** @hide */
+//    @Override
+//    public boolean shouldTrackHandwritingArea() {
+//        // The handwriting initiator tracks all editable TextViews regardless of whether handwriting
+//        // is supported, so that it can show an error message for unsupported editable TextViews.
+//        return super.shouldTrackHandwritingArea()
+//                || (Flags.handwritingUnsupportedMessage() && onCheckIsTextEditor());
+//    }
 
     @Nullable
     final TextServicesManager getTextServicesManager() {
@@ -10541,7 +10975,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void autofill(AutofillValue value) {
-        if (!isTextEditable()) {
+        if (!isTextAutofillable()) {
             Log.w(LOG_TAG, "cannot autofill non-editable EditText: " + this);
             return;
         }
@@ -10569,7 +11003,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public int getAutofillType() {
-        return isTextEditable() ? AUTOFILL_TYPE_TEXT : AUTOFILL_TYPE_NONE;
+        return isTextAutofillable() ? AUTOFILL_TYPE_TEXT : AUTOFILL_TYPE_NONE;
     }
 
     /**
@@ -10584,7 +11018,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @Override
     @Nullable
     public AutofillValue getAutofillValue() {
-        if (isTextEditable()) {
+        if (isTextAutofillable()) {
             final CharSequence text = TextUtilsExtension.trimToParcelableSize(getText());
             return AutofillValue.forText(text);
         }
@@ -10635,13 +11069,14 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
-     * Helper method to set {@code rect} to the text content's non-clipped area in the view's
-     * coordinates.
+     * Helper method to set {@code rect} to this EditText's non-clipped area in its own coordinates.
+     * This method obtains the view's visible rectangle whereas the method
+     * {@link #getContentVisibleRect} returns the text layout's visible rectangle.
      *
      * @return true if at least part of the text content is visible; false if the text content is
      * completely clipped or translated out of the visible area.
      */
-    private boolean getContentVisibleRect(Rect rect) {
+    private boolean getViewVisibleRect(Rect rect) {
         if (!getLocalVisibleRect(rect)) {
             return false;
         }
@@ -10650,6 +11085,20 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // view's coordinates. So we need to offset it with the negative scrolled amount to convert
         // it to view's coordinate.
         rect.offset(-getScrollX(), -getScrollY());
+        return true;
+    }
+
+    /**
+     * Helper method to set {@code rect} to the text content's non-clipped area in the view's
+     * coordinates.
+     *
+     * @return true if at least part of the text content is visible; false if the text content is
+     * completely clipped or translated out of the visible area.
+     */
+    private boolean getContentVisibleRect(Rect rect) {
+        if (!getViewVisibleRect(rect)) {
+            return false;
+        }
         // Clip the view's visible rect with the text layout's visible rect.
         return rect.intersect(getCompoundPaddingLeft(), getCompoundPaddingTop(),
                 getWidth() - getCompoundPaddingRight(), getHeight() - getCompoundPaddingBottom());
@@ -10891,18 +11340,35 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
         builder.setMatrix(viewToScreenMatrix);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && includeEditorBounds) {
-            final RectF editorBounds = new RectF();
-            editorBounds.set(0 /* left */, 0 /* top */,
-                    getWidth(), getHeight());
+        if (includeEditorBounds && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (mTempRect == null) {
+                mTempRect = new Rect();
+            }
+            final Rect bounds = mTempRect;
+            final RectF editorBounds;
+            boolean gotViewVisibleRect = getViewVisibleRect(bounds);
+            if (gotViewVisibleRect) {
+                editorBounds = new RectF(bounds);
+            } else {
+                // The editor is not visible at all, return empty rectangles. We still need to
+                // return an EditorBoundsInfo because IME has subscribed the EditorBoundsInfo.
+                editorBounds = new RectF();
+            }
             EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
             boundsBuilder.setEditorBounds(editorBounds);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                final RectF handwritingBounds = new RectF(
-                        -getHandwritingBoundsOffsetLeft(),
-                        -getHandwritingBoundsOffsetTop(),
-                        getWidth() + getHandwritingBoundsOffsetRight(),
-                        getHeight() + getHandwritingBoundsOffsetBottom());
+                final RectF handwritingBounds;
+                if (gotViewVisibleRect) {
+                    handwritingBounds = new RectF(editorBounds);
+                    handwritingBounds.top -= getHandwritingBoundsOffsetTop();
+                    handwritingBounds.left -= getHandwritingBoundsOffsetLeft();
+                    handwritingBounds.bottom += getHandwritingBoundsOffsetBottom();
+                    handwritingBounds.right += getHandwritingBoundsOffsetRight();
+                } else {
+                    // The editor is not visible at all, return empty rectangles. We still need to
+                    // return an EditorBoundsInfo because IME has subscribed the EditorBoundsInfo.
+                    handwritingBounds = new RectF();
+                }
                 boundsBuilder.setHandwritingBounds(handwritingBounds).build();
             }
             builder.setEditorBoundsInfo(boundsBuilder.build());
@@ -10943,7 +11409,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                             selectionStart, OffsetMapping.MAP_STRATEGY_CURSOR);
                     final int line = layout.getLineForOffset(offsetTransformed);
                     final float insertionMarkerX =
-                            layout.getPrimaryHorizontal(offsetTransformed)
+                            LayoutExtension.getPrimaryHorizontal(layout, mTextDir,
+                                    offsetTransformed,
+                                    LayoutExtension.shouldClampCursor(layout, line))
                                     + viewportToContentHorizontalOffset;
                     final float insertionMarkerTop = layout.getLineTop(line)
                             + viewportToContentVerticalOffset;
@@ -11593,6 +12061,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // (EW) the AOSP version also checked Context#canStartActivityForResult, which is hidden and
         // marked as UnsupportedAppUsage, and it seems like it might only apply to a framework view,
         // so I'm not sure that there is anything to do for that.
+        // (EW) the AOSP version also checked the config_textShareSupported resource, which isn't
+        // available, so it probably also only applies to a framework view, so I'm skipping that
+        // too.
         if (!isDeviceProvisioned()) {
             return false;
         }
@@ -11623,6 +12094,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         final ClipboardManager clipboardManager = getClipboardManager();
         final ClipDescription description = clipboardManager.getPrimaryClipDescription();
+        if (description == null) {
+            return false;
+        }
         final boolean isPlainType = description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
         if (isPlainType) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -11762,7 +12236,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return x;
     }
 
-    int getLineAtCoordinate(float y) {
+    // (EW) marking as package private scope since the AOSP version was marked as hidden and we only
+    // need to access it from Editor
+    /* package */ int getLineAtCoordinate(float y) {
         y -= getTotalPaddingTop();
         // Clamp the position to inside of the view.
         y = Math.max(0.0f, y);

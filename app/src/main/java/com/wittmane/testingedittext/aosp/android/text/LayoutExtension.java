@@ -84,7 +84,7 @@ public class LayoutExtension {
      */
     public static float getDesiredWidthWithLimit(CharSequence source, int start, int end,
                                                  TextPaint paint, TextDirectionHeuristic textDir,
-                                                 float upperLimit) {
+                                                 float upperLimit, boolean useBoundsForWidth) {
         float need = 0;
 
         int next;
@@ -95,7 +95,7 @@ public class LayoutExtension {
                 next = end;
 
             // note, omits trailing paragraph char
-            float w = measurePara(paint, source, i, next, textDir);
+            float w = measurePara(paint, source, i, next, textDir, useBoundsForWidth);
             if (w > upperLimit) {
                 return upperLimit;
             }
@@ -376,8 +376,8 @@ public class LayoutExtension {
                 layout.getEllipsisStart(line) + layout.getEllipsisCount(line),
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                         && layout.isFallbackLineSpacingEnabled());
-        float baseWid = tl.measure(offset - start, baseTrailing, null);
-        float wid = tl.measure(offset - start, trailing, null);
+        float baseWid = tl.measure(offset - start, baseTrailing, null, null);
+        float wid = tl.measure(offset - start, trailing, null, null);
         TextLine.recycle(tl);
 
         if (clamped && wid > layout.getWidth()) {
@@ -575,7 +575,7 @@ public class LayoutExtension {
     }
 
     private static float measurePara(TextPaint paint, CharSequence text, int start, int end,
-            TextDirectionHeuristic textDir) {
+            TextDirectionHeuristic textDir, boolean useBoundsForWidth) {
         MeasuredParagraph mt = null;
         TextLine tl = TextLine.obtain();
         try {
@@ -615,7 +615,7 @@ public class LayoutExtension {
             tl.set(paint, text, start, end, dir, directions, hasTabs, tabStops,
                     0 /* ellipsisStart */, 0 /* ellipsisEnd */,
                     false /* use fallback line spacing. unused */);
-            return margin + Math.abs(tl.metrics(null));
+            return margin + Math.abs(tl.metrics(null, null, useBoundsForWidth));
         } finally {
             TextLine.recycle(tl);
             if (mt != null) {

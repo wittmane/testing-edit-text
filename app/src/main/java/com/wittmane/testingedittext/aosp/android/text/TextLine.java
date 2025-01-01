@@ -26,6 +26,8 @@ import android.annotation.SuppressLint;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.FontMetricsInt;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.text.PositionedGlyphs;
 import android.graphics.text.TextRunShaper;
 import android.os.Build;
@@ -82,6 +84,11 @@ public class TextLine {
     private boolean mCharsValid;
     private Spanned mSpanned;
     private PrecomputedText mComputed;
+    private RectF mTmpRectForMeasure;
+    private RectF mTmpRectForPaintAPI;
+    private Rect mTmpRectForPrecompute;
+
+    // (EW) skipping LineInfo since it wasn't necessary for any calls we make
 
     private boolean mUseFallbackExtent = false;
 
@@ -92,8 +99,21 @@ public class TextLine {
 
     // Additional width of whitespace for justification. This value is per whitespace, thus
     // the line width will increase by mAddedWidthForJustify x (number of stretchable whitespaces).
-    private float mAddedWidthForJustify;
+    private float mAddedWordSpacingInPx;
+    private float mAddedLetterSpacingInPx;
     private boolean mIsJustifying;
+
+    public float getAddedWordSpacingInPx() {
+        return mAddedWordSpacingInPx;
+    }
+
+    public float getAddedLetterSpacingInPx() {
+        return mAddedLetterSpacingInPx;
+    }
+
+    public boolean isJustifying() {
+        return mIsJustifying;
+    }
 
     private final TextPaint mWorkPaint = new TextPaint();
     private final TextPaint mActivePaint = new TextPaint();
@@ -240,7 +260,7 @@ public class TextLine {
             }
         }
         mTabs = tabStops;
-        mAddedWidthForJustify = 0;
+        mAddedWordSpacingInPx = 0;
         mIsJustifying = false;
 
         mEllipsisStart = ellipsisStart != ellipsisEnd ? ellipsisStart : 0;
@@ -251,39 +271,152 @@ public class TextLine {
         return mCharsValid ? mChars[i] : mText.charAt(i + mStart);
     }
 
+    // (EW) skipping #justify since we're not using it currently
+
     /**
-     * Justify the line to the given width.
+     * Returns the run flag of at the given BiDi run.
+     *
+     * @param bidiRunIndex a BiDi run index.
+     * @return a run flag of the given BiDi run.
      */
-    public void justify(float justifyWidth) {
-        int end = mLen;
-        while (end > 0 && isLineEndSpace(mText.charAt(mStart + end - 1))) {
-            end--;
+    public static int calculateRunFlag(int bidiRunIndex, int bidiRunCount, int lineDirection) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // (EW) the result of this is currently only used to call Paint#setFlags with some
+            // additional flags only available in Android 15+, so we don't need this to do anything
+            // on older versions.
+            return 0;
         }
-        final int spaces = countStretchableSpaces(0, end);
-        if (spaces == 0) {
-            // There are no stretchable spaces, so we can't help the justification by adding any
-            // width.
-            return;
+        if (bidiRunCount == 1) {
+            // Easy case. If there is only single run, it is most left and most right run.
+            return Paint.TEXT_RUN_FLAG_LEFT_EDGE | Paint.TEXT_RUN_FLAG_RIGHT_EDGE;
         }
-        final float width = Math.abs(measure(end, false, null));
-        mAddedWidthForJustify = (justifyWidth - width) / spaces;
-        mIsJustifying = true;
+        if (bidiRunIndex != 0 && bidiRunIndex != (bidiRunCount - 1)) {
+            // Easy case. If the given run is the middle of the line, it is not the most left or
+            // the most right run.
+            return 0;
+        }
+
+        int runFlag = 0;
+        // For the historical reasons, the BiDi implementation of Android works differently
+        // from the Java BiDi APIs. The mDirections holds the BiDi runs in visual order, but
+        // it is reversed order if the paragraph direction is RTL. So, the first BiDi run of
+        // mDirections is located the most left of the line if the paragraph direction is LTR.
+        // If the paragraph direction is RTL, the first BiDi run is located the most right of
+        // the line.
+        if (bidiRunIndex == 0) {
+            if (lineDirection == Layout.DIR_LEFT_TO_RIGHT) {
+                runFlag |= Paint.TEXT_RUN_FLAG_LEFT_EDGE;
+            } else {
+                runFlag |= Paint.TEXT_RUN_FLAG_RIGHT_EDGE;
+            }
+        }
+        if (bidiRunIndex == (bidiRunCount - 1)) {
+            if (lineDirection == Layout.DIR_LEFT_TO_RIGHT) {
+                runFlag |= Paint.TEXT_RUN_FLAG_RIGHT_EDGE;
+            } else {
+                runFlag |= Paint.TEXT_RUN_FLAG_LEFT_EDGE;
+            }
+        }
+        return runFlag;
+    }
+
+    /**
+     * Resolve the runFlag for the inline span range.
+     *
+     * @param runFlag the runFlag of the current BiDi run.
+     * @param isRtlRun true for RTL run, false for LTR run.
+     * @param runStart the inclusive BiDi run start offset.
+     * @param runEnd the exclusive BiDi run end offset.
+     * @param spanStart the inclusive span start offset.
+     * @param spanEnd the exclusive span end offset.
+     * @return the resolved runFlag.
+     */
+    public static int resolveRunFlagForSubSequence(int runFlag, boolean isRtlRun, int runStart,
+                                                   int runEnd, int spanStart, int spanEnd) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // (EW) the result of this is currently only used to call Paint#setFlags with some
+            // additional flags only available in Android 15+, so we don't need this to do anything
+            // on older versions.
+            return 0;
+        }
+        if (runFlag == 0) {
+            // Easy case. If the run is in the middle of the line, any inline span is also in the
+            // middle of the line.
+            return 0;
+        }
+        int localRunFlag = runFlag;
+        if ((runFlag & Paint.TEXT_RUN_FLAG_LEFT_EDGE) != 0) {
+            if (isRtlRun) {
+                if (spanEnd != runEnd) {
+                    // In the RTL context, the last run is the most left run.
+                    localRunFlag &= ~Paint.TEXT_RUN_FLAG_LEFT_EDGE;
+                }
+            } else {  // LTR
+                if (spanStart != runStart) {
+                    // In the LTR context, the first run is the most left run.
+                    localRunFlag &= ~Paint.TEXT_RUN_FLAG_LEFT_EDGE;
+                }
+            }
+        }
+        if ((runFlag & Paint.TEXT_RUN_FLAG_RIGHT_EDGE) != 0) {
+            if (isRtlRun) {
+                if (spanStart != runStart) {
+                    // In the RTL context, the start of the run is the most right run.
+                    localRunFlag &= ~Paint.TEXT_RUN_FLAG_RIGHT_EDGE;
+                }
+            } else {  // LTR
+                if (spanEnd != runEnd) {
+                    // In the LTR context, the last run is the most right position.
+                    localRunFlag &= ~Paint.TEXT_RUN_FLAG_RIGHT_EDGE;
+                }
+            }
+        }
+        return localRunFlag;
     }
 
     // (EW) skipping #draw
 
+    // (EW) the only places that this was called from passed null to lineInfo, so that was skipped
     /**
      * Returns metrics information for the entire line.
      *
      * @param fmi receives font metrics information, can be null
+     * @param drawBounds output parameter for drawing bounding box. optional.
+     * @param returnDrawWidth true for returning width of the bounding box, false for returning
+     *                       total advances.
      * @return the signed width of the line
      */
-    public float metrics(FontMetricsInt fmi) {
-        return measure(mLen, false, fmi);
+    public float metrics(FontMetricsInt fmi, @Nullable RectF drawBounds, boolean returnDrawWidth) {
+        if (returnDrawWidth) {
+            if (drawBounds == null) {
+                if (mTmpRectForMeasure == null) {
+                    mTmpRectForMeasure = new RectF();
+                }
+                drawBounds = mTmpRectForMeasure;
+            }
+            drawBounds.setEmpty();
+            float w = measure(mLen, false, fmi, drawBounds);
+            float boundsWidth;
+            if (w >= 0) {
+                boundsWidth = Math.max(drawBounds.right, w) - Math.min(0, drawBounds.left);
+            } else {
+                boundsWidth = Math.max(drawBounds.right, 0) - Math.min(w, drawBounds.left);
+            }
+            if (Math.abs(w) > boundsWidth) {
+                return w;
+            } else {
+                // bounds width is always positive but output of measure is signed width.
+                // To be able to use bounds width as signed width, use the sign of the width.
+                return Math.signum(w) * boundsWidth;
+            }
+        } else {
+            return measure(mLen, false, fmi, drawBounds);
+        }
     }
 
     // (EW) skipping #shape
 
+    // (EW) the only places that this was called from passed null to lineInfo, so that was skipped
     /**
      * Returns the signed graphical offset from the leading margin.
      *
@@ -321,12 +454,13 @@ public class TextLine {
      *                 as the edge of the trailing run's edge. If false, the offset is regarded as
      *                 the edge of the preceding run's edge. See example above.
      * @param fmi receives metrics information about the requested character, can be null
+     * @param drawBounds output parameter for drawing bounding box. optional.
      * @return the signed graphical offset from the leading margin to the requested character edge.
      *         The positive value means the offset is right from the leading edge. The negative
      *         value means the offset is left from the leading edge.
      */
     public float measure(@IntRange(from = 0) int offset, boolean trailing,
-                         @Nullable FontMetricsInt fmi) {
+                         @Nullable FontMetricsInt fmi, @Nullable RectF drawBounds) {
         if (offset > mLen) {
             throw new IndexOutOfBoundsException(
                     "offset(" + offset + ") should be less than line limit(" + mLen + ")");
@@ -337,11 +471,13 @@ public class TextLine {
         }
 
         float h = 0;
-        for (int runIndex = 0; runIndex < mDirections.getRunCount(); runIndex++) {
+        final int runCount = mDirections.getRunCount();
+        for (int runIndex = 0; runIndex < runCount; runIndex++) {
             final int runStart = mDirections.getRunStart(runIndex);
             if (runStart > mLen) break;
             final int runLimit = Math.min(runStart + mDirections.getRunLength(runIndex), mLen);
             final boolean runIsRtl = mDirections.isRunRtl(runIndex);
+            final int runFlag = calculateRunFlag(runIndex, runCount, mDir);
 
             int segStart = runStart;
             for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; j++) {
@@ -350,14 +486,17 @@ public class TextLine {
                     final boolean sameDirection = (mDir == Layout.DIR_RIGHT_TO_LEFT) == runIsRtl;
 
                     if (targetIsInThisSegment && sameDirection) {
-                        return h + measureRun(segStart, offset, j, runIsRtl, fmi, null, 0);
+                        return h + measureRun(segStart, offset, j, runIsRtl, fmi, drawBounds, null,
+                                0, h, runFlag);
                     }
 
-                    final float segmentWidth = measureRun(segStart, j, j, runIsRtl, fmi, null, 0);
+                    final float segmentWidth = measureRun(segStart, j, j, runIsRtl, fmi, drawBounds,
+                            null, 0, h, runFlag);
                     h += sameDirection ? segmentWidth : -segmentWidth;
 
                     if (targetIsInThisSegment) {
-                        return h + measureRun(segStart, offset, j, runIsRtl, null, null, 0);
+                        return h + measureRun(segStart, offset, j, runIsRtl, null, null, null, 0,
+                                h, runFlag);
                     }
 
                     if (j != runLimit) {  // charAt(j) == TAB_CHAR
@@ -378,8 +517,10 @@ public class TextLine {
         return h;
     }
 
+    // (EW) skipping #measureAllBounds
+
     /**
-     * @see #measure(int, boolean, FontMetricsInt)
+     * @see #measure(int, boolean, FontMetricsInt, RectF)
      * @return The measure results for all possible offsets
      */
     public float[] measureAllOffsets(boolean[] trailing, FontMetricsInt fmi) {
@@ -389,11 +530,13 @@ public class TextLine {
         }
 
         float horizontal = 0;
-        for (int runIndex = 0; runIndex < mDirections.getRunCount(); runIndex++) {
+        final int runCount = mDirections.getRunCount();
+        for (int runIndex = 0; runIndex < runCount; runIndex++) {
             final int runStart = mDirections.getRunStart(runIndex);
             if (runStart > mLen) break;
             final int runLimit = Math.min(runStart + mDirections.getRunLength(runIndex), mLen);
             final boolean runIsRtl = mDirections.isRunRtl(runIndex);
+            final int runFlag = calculateRunFlag(runIndex, runCount, mDir);
 
             int segStart = runStart;
             for (int j = mHasTabs ? runStart : runLimit; j <= runLimit; ++j) {
@@ -409,7 +552,8 @@ public class TextLine {
                     // measureRun overwrites the result.
                     final float previousSegEndHorizontal = measurement[segStart];
                     final float width =
-                            measureRun(segStart, j, j, runIsRtl, fmi, measurement, segStart);
+                            measureRun(segStart, j, j, runIsRtl, fmi, null, measurement, segStart,
+                                    0, runFlag);
                     horizontal += sameDirection ? width : -width;
 
                     float currHorizontal = sameDirection ? oldHorizontal : horizontal;
@@ -455,6 +599,7 @@ public class TextLine {
 
     // (EW) skipping #drawRun
 
+    // (EW) the only places that this was called from passed null to lineInfo, so that was skipped
     /**
      * Measures a unidirectional (but possibly multi-styled) run of text.
      *
@@ -467,13 +612,23 @@ public class TextLine {
      * run, can be null.
      * @param advances receives the advance information about the requested run, can be null.
      * @param advancesIndex the start index to fill in the advance information.
+     * @param x horizontal offset of the run.
+     * @param runFlag the run flag to be applied for this run. (EW) only used in Android 15+
      * @return the signed width from the start of the run to the leading edge
      * of the character at offset, based on the run (not paragraph) direction
      */
     private float measureRun(int start, int offset, int limit, boolean runIsRtl,
-                             @Nullable FontMetricsInt fmi, @Nullable float[] advances,
-                             int advancesIndex) {
-        return handleRun(start, offset, limit, runIsRtl, fmi, advances, advancesIndex);
+                             @Nullable FontMetricsInt fmi, @Nullable RectF drawBounds,
+                             @Nullable float[] advances,
+                             int advancesIndex, float x, int runFlag) {
+        if (drawBounds != null && (mDir == Layout.DIR_LEFT_TO_RIGHT) == runIsRtl) {
+            float w = -measureRun(start, offset, limit, runIsRtl, null, null, null, 0, 0,
+                    runFlag);
+            return handleRun(start, offset, limit, runIsRtl, x + w, fmi,
+                    drawBounds, advances, advancesIndex, runFlag);
+        }
+        return handleRun(start, offset, limit, runIsRtl, x, fmi, drawBounds,
+                advances, advancesIndex, runFlag);
     }
 
     // (EW) skipping #shapeRun
@@ -697,7 +852,8 @@ public class TextLine {
             // with reflection. I couldn't find a good alternative, and rather than calling it
             // starting in Oreo and just skipping it on Pie, until there is a real need for it on
             // older version, it will just be skipped to be consistent between older versions.
-            wp.setWordSpacing(mAddedWidthForJustify);
+            wp.setWordSpacing(mAddedWordSpacingInPx);
+            wp.setLetterSpacing(mAddedLetterSpacingInPx / wp.getTextSize());  // Convert to Em
         }
 
         int spanStart = runStart;
@@ -850,10 +1006,33 @@ public class TextLine {
         wp.setAntiAlias(previousAntiAlias);
     }
 
+    // (EW) the only places that this was called from passed null to lineInfo, so that was skipped
     private float getRunAdvance(TextPaint wp, int start, int end, int contextStart, int contextEnd,
                                 boolean runIsRtl, int offset,
-                                @Nullable float[] advances, int advancesIndex) {
+                                @Nullable float[] advances, int advancesIndex,
+                                RectF drawingBounds) {
         if (mCharsValid) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                //TODO: (EW) reflection doesn't work (Paint$RunInfo is blocked and it looks like
+                // the Paint#getRunCharacterAdvance overloads using it is also blocked). is
+                // there anything clever that can be done, or should we just strip out support
+                // for returning the drawing bounds?
+                Log.d(TAG, "getRunAdvance: getRunCharacterAdvance mCharsValid reflection");
+                try {
+                    Class<?> runInfoClass = Class.forName("android.graphics.Paint$RunInfo");
+                    Method getRunCharacterAdvanceMethod = Paint.class.getMethod(
+                            "getRunCharacterAdvance", char[].class, int.class, int.class, int.class,
+                            int.class, boolean.class, int.class, float[].class, int.class,
+                            RectF.class, runInfoClass);
+                    return (float) getRunCharacterAdvanceMethod.invoke(wp, mChars, start, end,
+                            contextStart, contextEnd, runIsRtl, offset, advances, advancesIndex,
+                            drawingBounds, null);
+                } catch (NoSuchMethodException | IllegalAccessException |
+                         InvocationTargetException | ClassNotFoundException e) {
+                    Log.e(TAG, "getRunAdvance: Reflection failed on getRunCharacterAdvance: "
+                            + e.getMessage());
+                }
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 return wp.getRunCharacterAdvance(mChars, start, end, contextStart, contextEnd,
                         runIsRtl, offset, advances, advancesIndex);
@@ -893,9 +1072,37 @@ public class TextLine {
             }
         } else {
             final int delta = mStart;
+            // TODO: Add cluster information to the PrecomputedText for better performance of
+            // justification.
             if (mComputed == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P
                     || (advances != null
                             && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    //TODO: (EW) reflection doesn't work (Paint$RunInfo is blocked and it looks like
+                    // the Paint#getRunCharacterAdvance overloads using it is also blocked). is
+                    // there anything clever that can be done, or should we just strip out support
+                    // for returning the drawing bounds?
+                    Log.d(TAG, "getRunAdvance: getRunCharacterAdvance !mCharsValid reflection");
+                    try {
+                        //for (Method method : Paint.class.getMethods()) {
+                        //    Log.d(TAG, "getRunAdvance: Paint reflection methods: " + method);
+                        //}
+                        Class<?> runInfoClass = Class.forName("android.graphics.Paint$RunInfo");
+                        Method getRunCharacterAdvanceMethod = Paint.class.getMethod(
+                                "getRunCharacterAdvance", CharSequence.class, int.class, int.class,
+                                int.class, int.class, boolean.class, int.class, float[].class,
+                                int.class, RectF.class, runInfoClass);
+                        return (float) getRunCharacterAdvanceMethod.invoke(wp, mText, delta + start,
+                                delta + end, delta + contextStart, delta + contextEnd, runIsRtl,
+                                delta + offset, advances, advancesIndex, drawingBounds, null);
+                    } catch (NoSuchMethodException | IllegalAccessException |
+                             InvocationTargetException | ClassNotFoundException e) {
+                        Log.e(TAG, "getRunAdvance: Reflection failed on getRunCharacterAdvance: "
+                                + e.getMessage());
+                        //Accessing hidden method Landroid/graphics/Paint;->getRunCharacterAdvance(Ljava/lang/CharSequence;IIIIZI[FILandroid/graphics/RectF;Landroid/graphics/Paint$RunInfo;)F (blocked, reflection, denied)
+                        //getRunAdvance: Reflection failed on getRunCharacterAdvance: android.graphics.Paint.getRunCharacterAdvance [interface java.lang.CharSequence, int, int, int, int, boolean, int, class [F, int, class android.graphics.RectF, class android.graphics.Paint$RunInfo]
+                    }
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     return wp.getRunCharacterAdvance(mText, delta + start, delta + end,
                             delta + contextStart, delta + contextEnd, runIsRtl,
@@ -935,46 +1142,58 @@ public class TextLine {
                     }
                 }
             } else {
+                if (drawingBounds != null) {
+                    if (mTmpRectForPrecompute == null) {
+                        mTmpRectForPrecompute = new Rect();
+                    }
+                    mComputed.getBounds(start + delta, end + delta, mTmpRectForPrecompute);
+                    drawingBounds.set(mTmpRectForPrecompute);
+                }
                 return mComputed.getWidth(start + delta, end + delta);
             }
         }
     }
 
     // (EW) due to the simplified parameters in #handleRun (the only caller of this), it would
-    // always pass null for the Canvas and TextShaper.GlyphsConsumer, 0 for top, y, and bottom, and
-    // true for needWidth, so these parameters were removed to simplify, which also made decorations
-    // no longer used, so it was removed too.
+    // always pass null for the Canvas and TextShaper.GlyphsConsumer, 0 for top, y, and bottom,
+    // true for needWidth, and null for lineInfo, so these parameters were removed to simplify,
+    // which also made decorations no longer used, so it was removed too.
     /**
      * Utility function for measuring and rendering text.  The text must
      * not include a tab.
      *
-     * @param wp the working paint
-     * @param start the start of the text
-     * @param end the end of the text
-     * @param runIsRtl true if the run is right-to-left
-     * @param x the edge of the run closest to the leading margin
-     * @param fmi receives metrics information, can be null
-     * @param offset the offset for the purpose of measuring
-     * @param advances receives the advance information about the requested run, can be null.
+     * @param wp            the working paint
+     * @param start         the start of the text
+     * @param end           the end of the text
+     * @param runIsRtl      true if the run is right-to-left
+     * @param x             the edge of the run closest to the leading margin
+     * @param fmi           receives metrics information, can be null
+     * @param offset        the offset for the purpose of measuring
+     * @param advances      receives the advance information about the requested run, can be null.
      * @param advancesIndex the start index to fill in the advance information.
+     * @param runFlag       the run flag to be applied for this run. (EW) only used in Android 15+
      * @return the signed width of the run based on the run direction; only
      * valid if needWidth is true
      */
     private float handleText(TextPaint wp, int start, int end,
                              int contextStart, int contextEnd, boolean runIsRtl,
                              float x,
-                             FontMetricsInt fmi, int offset,
-                             @Nullable float[] advances, int advancesIndex) {
+                             FontMetricsInt fmi, RectF drawBounds, int offset,
+                             @Nullable float[] advances, int advancesIndex,
+                             int runFlag) {
         if (mIsJustifying && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // (EW) the AOSP version started calling this in Oreo, but on Pie, this was marked as a
             // restricted API (warning logged specifies "dark greylist"), so it can't even be called
             // with reflection. I couldn't find a good alternative, and rather than calling it
             // starting in Oreo and just skipping it on Pie, until there is a real need for it on
             // older version, it will just be skipped to be consistent between older versions.
-            wp.setWordSpacing(mAddedWidthForJustify);
+            wp.setWordSpacing(mAddedWordSpacingInPx);
+            wp.setLetterSpacing(mAddedLetterSpacingInPx / wp.getTextSize());  // Convert to Em
         }
-
         // Get metrics first (even for empty strings or "0" width runs)
+        if (drawBounds != null && fmi == null) {
+            fmi = new FontMetricsInt();
+        }
         if (fmi != null) {
             expandMetricsFromPaint(fmi, wp);
         }
@@ -984,9 +1203,32 @@ public class TextLine {
             return 0f;
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            if ((runFlag & Paint.TEXT_RUN_FLAG_LEFT_EDGE) == Paint.TEXT_RUN_FLAG_LEFT_EDGE) {
+                wp.setFlags(wp.getFlags() | Paint.TEXT_RUN_FLAG_LEFT_EDGE);
+            } else {
+                wp.setFlags(wp.getFlags() & ~Paint.TEXT_RUN_FLAG_LEFT_EDGE);
+            }
+            if ((runFlag & Paint.TEXT_RUN_FLAG_RIGHT_EDGE) == Paint.TEXT_RUN_FLAG_RIGHT_EDGE) {
+                wp.setFlags(wp.getFlags() | Paint.TEXT_RUN_FLAG_RIGHT_EDGE);
+            } else {
+                wp.setFlags(wp.getFlags() & ~Paint.TEXT_RUN_FLAG_RIGHT_EDGE);
+            }
+        }
+        if (drawBounds != null && mTmpRectForPaintAPI == null) {
+            mTmpRectForPaintAPI = new RectF();
+        }
         float totalWidth =
                 getRunAdvance(wp, start, end, contextStart, contextEnd, runIsRtl, offset,
-                        advances, advancesIndex);
+                        advances, advancesIndex, drawBounds == null ? null : mTmpRectForPaintAPI);
+        if (drawBounds != null) {
+            if (runIsRtl) {
+                mTmpRectForPaintAPI.offset(x - totalWidth, 0);
+            } else {
+                mTmpRectForPaintAPI.offset(x, 0);
+            }
+            drawBounds.union(mTmpRectForPaintAPI);
+        }
 
         if (mUseFallbackExtent && fmi != null) {
             expandMetricsFromPaint(wp, start, end, contextStart, contextEnd, runIsRtl, fmi);
@@ -1131,7 +1373,8 @@ public class TextLine {
 
     // (EW) #drawRun and #shapeRun were skipped because they weren't necessary, and since the only
     // caller, #measureRun, always passed null for the Canvas and TextShaper.GlyphsConsumer, 0 for
-    // x, top, y, and bottom, and true for needWidth, those parameters were removed to simplify.
+    // x, top, y, and bottom, true for needWidth, and null for lineInfo, those parameters were
+    // removed to simplify.
     /**
      * Utility function for handling a unidirectional run.  The run must not
      * contain tabs but can contain styles.
@@ -1143,13 +1386,13 @@ public class TextLine {
      * @param fmi receives metrics information, can be null
      * @param advances receives the advance information about the requested run, can be null.
      * @param advancesIndex the start index to fill in the advance information.
+     * @param runFlag the run flag to be applied for this run. (EW) only used in Android 15+
      * @return the signed width of the run based on the run direction; only
      * valid if needWidth is true
      */
-    private float handleRun(int start, int measureLimit, int limit, boolean runIsRtl,
-                            FontMetricsInt fmi,
-                            @Nullable float[] advances, int advancesIndex) {
-        float x = 0;
+    private float handleRun(int start, int measureLimit, int limit, boolean runIsRtl, float x,
+                            FontMetricsInt fmi, RectF drawBounds, @Nullable float[] advances,
+                            int advancesIndex, int runFlag) {
 
         if (measureLimit < start || measureLimit > limit) {
             throw new IndexOutOfBoundsException("measureLimit (" + measureLimit + ") is out of "
@@ -1168,6 +1411,14 @@ public class TextLine {
             if (fmi != null) {
                 expandMetricsFromPaint(fmi, wp);
             }
+            if (drawBounds != null) {
+                if (fmi == null) {
+                    FontMetricsInt tmpFmi = new FontMetricsInt();
+                    expandMetricsFromPaint(tmpFmi, wp);
+                    fmi = tmpFmi;
+                }
+                drawBounds.union(0f, fmi.top, 0f, fmi.bottom);
+            }
             return 0f;
         }
 
@@ -1185,8 +1436,8 @@ public class TextLine {
             final TextPaint wp = mWorkPaint;
             wp.set(mPaint);
             setHyphenEdit(wp, wp, start, limit);
-            return handleText(wp, start, limit, start, limit, runIsRtl, x, fmi, measureLimit,
-                    advances, advancesIndex);
+            return handleText(wp, start, limit, start, limit, runIsRtl, x, fmi, drawBounds,
+                    measureLimit, advances, advancesIndex, runFlag);
         }
 
         // Shaping needs to take into account context up to metric boundaries,
@@ -1270,14 +1521,17 @@ public class TextLine {
                     // and use.
                     activePaint.set(wp);
                 } else if (!equalAttributes(wp, activePaint)) {
+                    final int spanRunFlag = resolveRunFlagForSubSequence(
+                            runFlag, runIsRtl, start, measureLimit, activeStart, activeEnd);
+
                     // The style of the present chunk of text is substantially different from the
                     // style of the previous chunk. We need to handle the active piece of text
                     // and restart with the present chunk.
                     setHyphenEdit(activePaint, mPaint, activeStart, activeEnd);
                     x += handleText(activePaint, activeStart, activeEnd, i, iNext, runIsRtl,
-                            x, fmi,
+                            x, fmi, drawBounds,
                             Math.min(activeEnd, mlimit),
-                            advances, advancesIndex + activeStart - start);
+                            advances, advancesIndex + activeStart - start, spanRunFlag);
                     activeStart = j;
                     activePaint.set(wp);
                 } else {
@@ -1289,11 +1543,14 @@ public class TextLine {
 
                 activeEnd = jNext;
             }
+
+            final int spanRunFlag = resolveRunFlagForSubSequence(
+                    runFlag, runIsRtl, start, measureLimit, activeStart, activeEnd);
             // Handle the final piece of text.
             setHyphenEdit(activePaint, mPaint, activeStart, activeEnd);
             x += handleText(activePaint, activeStart, activeEnd, i, iNext, runIsRtl, x, fmi,
-                    Math.min(activeEnd, mlimit),
-                    advances, advancesIndex + activeStart - start);
+                    drawBounds, Math.min(activeEnd, mlimit),
+                    advances, advancesIndex + activeStart - start, spanRunFlag);
         }
 
         return x;
@@ -1335,7 +1592,6 @@ public class TextLine {
      */
     private void drawTextRun(Canvas c, TextPaint wp, int start, int end,
                              int contextStart, int contextEnd, boolean runIsRtl, float x, int y) {
-
         if (mCharsValid) {
             int count = end - start;
             int contextCount = contextEnd - contextStart;

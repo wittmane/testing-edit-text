@@ -29,6 +29,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -376,5 +377,14 @@ public class ViewExtension extends View {
 
         inOutLocation[0] = Math.round(position[0]);
         inOutLocation[1] = Math.round(position[1]);
+    }
+
+    /**
+     * Return whether the stylus handwriting is available for this View.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public boolean isStylusHandwritingAvailable() {
+        return getContext().getSystemService(InputMethodManager.class)
+                .isStylusHandwritingAvailable();
     }
 }
