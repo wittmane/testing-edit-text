@@ -71,7 +71,8 @@ public class LayoutExtension {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @IntDef(value = {
             Layout.JUSTIFICATION_MODE_NONE,
-            Layout.JUSTIFICATION_MODE_INTER_WORD
+            Layout.JUSTIFICATION_MODE_INTER_WORD,
+            Layout.JUSTIFICATION_MODE_INTER_CHARACTER,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface JustificationMode {}

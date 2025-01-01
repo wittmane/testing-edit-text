@@ -27,6 +27,9 @@ import com.wittmane.testingedittext.aosp.android.text.AutoGrowArray.FloatArray;
 import com.wittmane.testingedittext.aosp.android.text.AutoGrowArray.IntArray;
 import com.wittmane.testingedittext.aosp.android.text.LayoutExtension.Directions;
 
+import android.icu.lang.UCharacter;
+import android.icu.lang.UCharacterDirection;
+import android.icu.text.Bidi;
 import android.os.Build;
 import android.text.Layout;
 import android.text.Spanned;
@@ -109,6 +112,8 @@ public class MeasuredParagraph {
     // This is empty if mLtrWithoutBidi is true.
     private final @NonNull ByteArray mLevels = new ByteArray();
 
+    private Bidi mBidi;
+
     // The whole width of the text.
     // See getWholeWidth comments.
     private @FloatRange(from = 0.0f) float mWholeWidth;
@@ -147,6 +152,7 @@ public class MeasuredParagraph {
         mWidths.clear();
         mFontMetrics.clear();
         mSpanEndCache.clear();
+        mBidi = null;
     }
 
     /**
@@ -173,6 +179,13 @@ public class MeasuredParagraph {
      * This is always available.
      */
     public @LayoutExtension.Direction int getParagraphDir() {
+        if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (mBidi == null) {
+                return Layout.DIR_LEFT_TO_RIGHT;
+            }
+            return (mBidi.getParaLevel() & 0x01) == 0
+                    ? Layout.DIR_LEFT_TO_RIGHT : Layout.DIR_RIGHT_TO_LEFT;
+        }
         return mParaDir;
     }
 
@@ -183,6 +196,64 @@ public class MeasuredParagraph {
      */
     public Directions getDirections(@IntRange(from = 0) int start,  // inclusive
                                     @IntRange(from = 0) int end) {  // exclusive
+        if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Easy case: mBidi == null means the text is all LTR and no bidi suppot is needed.
+            if (mBidi == null) {
+                return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
+            }
+
+            // Easy case: If the original text only contains single directionality run, the
+            // substring is only single run.
+            if (start == end) {
+                if ((mBidi.getParaLevel() & 0x01) == 0) {
+                    return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
+                } else {
+                    return LayoutExtension.DIRS_ALL_RIGHT_TO_LEFT;
+                }
+            }
+
+            // Okay, now we need to generate the line instance.
+            Bidi bidi = mBidi.createLineBidi(start, end);
+
+            // Easy case: If the line instance only contains single directionality run, no need
+            // to reorder visually.
+            if (bidi.getRunCount() == 1) {
+                if (bidi.getRunLevel(0) == 1) {
+                    return LayoutExtension.DIRS_ALL_RIGHT_TO_LEFT;
+                } else if (bidi.getRunLevel(0) == 0) {
+                    return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
+                } else {
+                    return new Directions(new int[] {
+                            0, bidi.getRunLevel(0) << LayoutExtension.RUN_LEVEL_SHIFT | (end - start)});
+                }
+            }
+
+            // Reorder directionality run visually.
+            byte[] levels = new byte[bidi.getRunCount()];
+            for (int i = 0; i < bidi.getRunCount(); ++i) {
+                levels[i] = (byte) bidi.getRunLevel(i);
+            }
+            int[] visualOrders = Bidi.reorderVisual(levels);
+
+            int[] dirs = new int[bidi.getRunCount() * 2];
+            for (int i = 0; i < bidi.getRunCount(); ++i) {
+                int vIndex;
+                if ((mBidi.getBaseLevel() & 0x01) == 1) {
+                    // For the historical reasons, if the base directionality is RTL, the Android
+                    // draws from the right, i.e. the visually reordered run needs to be reversed.
+                    vIndex = visualOrders[bidi.getRunCount() - i - 1];
+                } else {
+                    vIndex = visualOrders[i];
+                }
+
+                // Special packing of dire
+                dirs[i * 2] = bidi.getRunStart(vIndex);
+                dirs[i * 2 + 1] = bidi.getRunLevel(vIndex) << LayoutExtension.RUN_LEVEL_SHIFT
+                        | (bidi.getRunLimit(vIndex) - dirs[i * 2]);
+            }
+
+            return new Directions(dirs);
+        }
         if (mLtrWithoutBidi) {
             return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
         }
@@ -263,7 +334,8 @@ public class MeasuredParagraph {
         return mt;
     }
 
-    // (EW) skipping #buildForMeasurement and #buildForStaticLayout
+    // (EW) skipping #buildForMeasurement, StyleRunCallback, #buildForStaticLayout,
+    // #buildForStaticLayoutTest, and #buildForStaticLayoutInternal
 
     /**
      * Reset internal state and analyzes text for bidirectional runs.
@@ -298,6 +370,60 @@ public class MeasuredParagraph {
                 if (endInPara > mTextLength) endInPara = mTextLength;
                 Arrays.fill(mCopiedBuffer, startInPara, endInPara, OBJECT_REPLACEMENT_CHARACTER);
             }
+        }
+
+        if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if ((textDir == TextDirectionHeuristics.LTR
+                    || textDir == TextDirectionHeuristics.FIRSTSTRONG_LTR
+                    || textDir == TextDirectionHeuristics.ANYRTL_LTR)
+                    && TextUtilsExtension.doesNotNeedBidi(mCopiedBuffer, 0, mTextLength)) {
+                mLevels.clear();
+                mLtrWithoutBidi = true;
+                return;
+            }
+            final int bidiRequest;
+            if (textDir == TextDirectionHeuristics.LTR) {
+                bidiRequest = Bidi.LTR;
+            } else if (textDir == TextDirectionHeuristics.RTL) {
+                bidiRequest = Bidi.RTL;
+            } else if (textDir == TextDirectionHeuristics.FIRSTSTRONG_LTR) {
+                bidiRequest = Bidi.LEVEL_DEFAULT_LTR;
+            } else if (textDir == TextDirectionHeuristics.FIRSTSTRONG_RTL) {
+                bidiRequest = Bidi.LEVEL_DEFAULT_RTL;
+            } else {
+                final boolean isRtl = textDir.isRtl(mCopiedBuffer, 0, mTextLength);
+                bidiRequest = isRtl ? Bidi.RTL : Bidi.LTR;
+            }
+            mBidi = new Bidi(mCopiedBuffer, 0, null, 0, mCopiedBuffer.length, bidiRequest);
+
+            if (mCopiedBuffer.length > 0
+                    && mBidi.getParagraphIndex(mCopiedBuffer.length - 1) != 0) {
+                // Historically, the MeasuredParagraph does not treat the CR letters as paragraph
+                // breaker but ICU BiDi treats it as paragraph breaker. In the MeasureParagraph,
+                // the given range always represents a single paragraph, so if the BiDi object has
+                // multiple paragraph, it should contains a CR letters in the text. Using CR is not
+                // common in Android and also it should not penalize the easy case, e.g. all LTR,
+                // check the paragraph count here and replace the CR letters and re-calculate
+                // BiDi again.
+                for (int i = 0; i < mTextLength; ++i) {
+                    if (Character.isSurrogate(mCopiedBuffer[i])) {
+                        // All block separators are in BMP.
+                        continue;
+                    }
+                    if (UCharacter.getDirection(mCopiedBuffer[i])
+                            == UCharacterDirection.BLOCK_SEPARATOR) {
+                        mCopiedBuffer[i] = OBJECT_REPLACEMENT_CHARACTER;
+                    }
+                }
+                mBidi = new Bidi(mCopiedBuffer, 0, null, 0, mCopiedBuffer.length, bidiRequest);
+            }
+            mLevels.resize(mTextLength);
+            byte[] rawArray = mLevels.getRawArray();
+            for (int i = 0; i < mTextLength; ++i) {
+                rawArray[i] = mBidi.getLevelAt(i);
+            }
+            mLtrWithoutBidi = false;
+            return;
         }
 
         if ((textDir == TextDirectionHeuristics.LTR
@@ -387,4 +513,15 @@ public class MeasuredParagraph {
     }
 
     // (EW) skipping #getMemoryUsage
+
+    // (EW) replacement for calls to ClientFlags#icuBidiMigration, which is hidden. that and what it
+    // calls into (TextFlags#isFeatureEnabled and then AppGlobals#getIntCoreSetting) are all blocked
+    // from reflection. I'm not certain how those flags/settings are supposed to work, but based on
+    // my analysis in BoringLayoutExtension#isBoring, I'm guessing it's some sort of handling based
+    // on the target version. I didn't see any info about this in the documented changes in
+    // Android 15, but it seems like something that could go unmentioned. I'll just work off that
+    // assumption and enable it on Android 15+.
+    private boolean icuBidiMigrationClientFlag() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
+    }
 }
