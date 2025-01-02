@@ -596,8 +596,7 @@ public class TextLine {
     private float measureRun(int start, int offset, int limit, boolean runIsRtl,
                              @Nullable FontMetricsInt fmi, @Nullable float[] advances,
                              int advancesIndex, float x, int runFlag) {
-        return handleRun(start, offset, limit, runIsRtl, x, fmi,
-                advances, advancesIndex, runFlag);
+        return handleRun(start, offset, limit, runIsRtl, x, fmi, advances, advancesIndex, runFlag);
     }
 
     // (EW) skipping #shapeRun
@@ -1279,9 +1278,8 @@ public class TextLine {
 
     // (EW) #drawRun and #shapeRun were skipped because they weren't necessary, and since the only
     // caller, #measureRun, always passed null for the Canvas and TextShaper.GlyphsConsumer, 0 for
-    // x, top, y, and bottom, true for needWidth, and null for lineInfo, those parameters were
-    // removed to simplify. drawBounds was skipped because it can't be supported (see
-    // #getRunAdvance).
+    // top, y, and bottom, true for needWidth, and null for lineInfo, those parameters were removed
+    // to simplify. drawBounds was skipped because it can't be supported (see #getRunAdvance).
     /**
      * Utility function for handling a unidirectional run.  The run must not
      * contain tabs but can contain styles.
@@ -1290,6 +1288,7 @@ public class TextLine {
      * @param measureLimit  the offset to measure to, between start and limit inclusive
      * @param limit         the limit of the run
      * @param runIsRtl      true if the run is right-to-left
+     * @param x             the end of the run closest to the leading margin
      * @param fmi           receives metrics information, can be null
      * @param advances      receives the advance information about the requested run, can be null.
      * @param advancesIndex the start index to fill in the advance information.
@@ -1335,8 +1334,8 @@ public class TextLine {
             final TextPaint wp = mWorkPaint;
             wp.set(mPaint);
             setHyphenEdit(wp, wp, start, limit);
-            return handleText(wp, start, limit, start, limit, runIsRtl, x, fmi,
-                    measureLimit, advances, advancesIndex, runFlag);
+            return handleText(wp, start, limit, start, limit, runIsRtl, x, fmi, measureLimit,
+                    advances, advancesIndex, runFlag);
         }
 
         // Shaping needs to take into account context up to metric boundaries,

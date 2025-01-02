@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2012 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -151,6 +151,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
+import static com.wittmane.testingedittext.aosp.android.widget.EditText.FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
 
 /**
  * Helper class used by EditText to handle editable text views.
@@ -2015,13 +2016,9 @@ class Editor {
             }
         }
 
-        //TODO: (EW) the AOSP version checked
-        // com.android.graphics.hwui.flags.Flags.highContrastTextSmallTextRect, which isn't in the
-        // SDK. I'm not sure where it comes from to try to understand how it works. maybe just
-        // assume this is false to keep functionality of Android 14. it also checked
-        // Canvas#isHighContrastTextEnabled, which is hidden.
-        boolean shouldDrawHighlightsOnTop = /*highContrastTextSmallTextRect()*/false
-                && /*canvas.isHighContrastTextEnabled()*/false;
+        // (EW) the AOSP version also checked Canvas#isHighContrastTextEnabled, which is hidden. if
+        // we ever enable this flag, we'll probably need to make this check too.
+        boolean shouldDrawHighlightsOnTop = FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
 
         // If high contrast text is drawing background rectangles behind the text, those cover up
         // the cursor and correction highlighter etc. So just draw the text first, then draw the

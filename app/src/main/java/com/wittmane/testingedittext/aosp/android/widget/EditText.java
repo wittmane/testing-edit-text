@@ -235,6 +235,7 @@ import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_C
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
 import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
+import static com.wittmane.testingedittext.aosp.android.view.inputmethod.EditorInfoExtension.STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY;
 import static com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection.LOG_CALLS;
 import static com.wittmane.testingedittext.aosp.android.widget.Editor.logCursor;
 
@@ -242,6 +243,30 @@ import static com.wittmane.testingedittext.aosp.android.widget.Editor.logCursor;
 // thin extension of TextView, so 99% of this code is actually from TextView
 public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
+
+    // (EW) I created the following constants as an alternative to calling methods on flag classes
+    // that I can't even find the source of, so I don't have any idea how they're supposed to work.
+    // I'm leaving them all disabled for now because I'm not sure when they should be enabled (could
+    // just be testing for a potential new feature) and this just leaves functionality the same as
+    // the previous version, which seems fine. I'm still leaving the handling for the functionality
+    // they control for simpler diffing with the AOSP version and in case I ever figure out when to
+    // enable them (which might just be always in a future version).
+    // (EW) replacement for com.android.text.flags.Flags#insertModeNotUpdateSelection. this check
+    // was added in Android 15 around alternate functionality.
+    private static final boolean FLAGS_INSERT_MODE_NOT_UPDATE_SELECTION = false;
+    // (EW) replacement for com.android.text.flags.Flags#escapeClearsFocus. this check was added in
+    // Android 15 around new functionality.
+    private static final boolean FLAGS_ESCAPE_CLEARS_FOCUS = false;
+    // (EW) replacement for android.view.inputmethod.Flags#editorinfoHandwritingEnabled. this check
+    // was added in Android 15 around new functionality.
+    private static final boolean FLAGS_EDITOR_INFO_HANDWRITING_ENABLED = false;
+    // (EW) replacement for com.android.text.flags.Flags#handwritingEndOfLineTap. this check was
+    // added in Android 15 around new functionality.
+    private static final boolean FLAGS_HANDWRITING_END_OF_LINE_TAP = false;
+    // (EW) replacement for com.android.graphics.hwui.flags.Flags#highContrastTextSmallTextRect.
+    // this check was added in Android 15 around alternate functionality.
+    /* package */ static final boolean FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT = false;
+
 
     private static final int RESOURCES_ID_NULL =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
@@ -1747,10 +1772,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // text isn't an Editable, so that would always end up being false here, so it was skipped
 
         if (updateText) {
-            //TODO: (EW) com.android.text.flags.Flags isn't in the SDK. I'm not sure where it comes
-            // from to try to understand how it works. maybe just assume this is false to keep
-            // functionality of Android 14.
-            if (/*Flags.insertModeNotUpdateSelection()*/false) {
+            if (FLAGS_INSERT_MODE_NOT_UPDATE_SELECTION) {
                 // Update the transformation text.
                 if (mTransformation == null) {
                     mTransformed = mText;
@@ -6902,10 +6924,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 break;
 
             case KeyEvent.KEYCODE_ESCAPE:
-                //TODO: (EW) com.android.text.flags.Flags isn't in the SDK. I'm not sure where it
-                // comes from to try to understand how it works. maybe just assume this is false to
-                // keep functionality of Android 14.
-                if (/*com.android.text.flags.Flags.escapeClearsFocus()*/false && event.hasNoModifiers()) {
+                if (FLAGS_ESCAPE_CLEARS_FOCUS && event.hasNoModifiers()) {
                     if (mEditor != null && mEditor.getTextActionMode() != null) {
                         stopTextActionMode();
                         return KEY_EVENT_HANDLED;
@@ -7358,10 +7377,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
-            //TODO: (EW) android.view.inputmethod.Flags isn't in the SDK. I'm not sure where it
-            // comes from to try to understand how it works. maybe just assume this is false to
-            // keep functionality of Android 14.
-            if (/*android.view.inputmethod.Flags.editorinfoHandwritingEnabled()*/false
+            if (FLAGS_EDITOR_INFO_HANDWRITING_ENABLED
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                 boolean handwritingEnabled = isAutoHandwritingEnabled();
                 outAttrs.setStylusHandwritingEnabled(handwritingEnabled);
@@ -7376,8 +7392,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 if (outAttrs.extras == null) {
                     outAttrs.extras = new Bundle();
                 }
-//                outAttrs.extras.putBoolean(
-//                        STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY, handwritingEnabled);
+                outAttrs.extras.putBoolean(
+                        STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY, handwritingEnabled);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 //TODO: (EW) possibly could add settings for which gestures to support/report is
@@ -10065,10 +10081,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         // At this point, the event is not a long press, otherwise it would be handled above.
-        //TODO: (EW) com.android.text.flags.Flags isn't in the SDK. I'm not sure where it comes
-        // from to try to understand how it works. maybe just assume this is false to keep
-        // functionality of Android 14.
-        if (/*Flags.handwritingEndOfLineTap()*/false && action == MotionEvent.ACTION_UP
+        if (FLAGS_HANDWRITING_END_OF_LINE_TAP && action == MotionEvent.ACTION_UP
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && shouldStartHandwritingForEndOfLineTap(event)) {
             InputMethodManager imm = getInputMethodManager();
@@ -10414,16 +10427,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     public boolean isAutoHandwritingEnabled() {
         return super.isAutoHandwritingEnabled() && !isAnyPasswordInputType();
     }
-
-    //TODO: (EW) just remove if this isn't called internally
-//    /** @hide */
-//    @Override
-//    public boolean shouldTrackHandwritingArea() {
-//        // The handwriting initiator tracks all editable TextViews regardless of whether handwriting
-//        // is supported, so that it can show an error message for unsupported editable TextViews.
-//        return super.shouldTrackHandwritingArea()
-//                || (Flags.handwritingUnsupportedMessage() && onCheckIsTextEditor());
-//    }
 
     @Nullable
     final TextServicesManager getTextServicesManager() {
