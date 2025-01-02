@@ -17,49 +17,53 @@
 <resources>
     <style name="Theme.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
         <!-- (EW) Android Theme.DeviceDefault inherits from Theme.Material (as of versions 21
-             (Lollipop) through at least 31 (S / Android 12)), so matching our Theme.Material since
-             this can't inherit from both-->
+             (Lollipop) through at least 35 (Vanilla Ice Cream / Android 15)), so matching our
+             Theme.Material since this can't inherit from both-->
         <item name="isLightTheme">false</item>
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.DeviceDefault.Light" parent="@android:style/Theme.DeviceDefault.Light">
         <!-- (EW) Android Theme.DeviceDefault.Light inherits from Theme.Material.Light (as of
-             versions 21 (Lollipop) through at least 31 (S / Android 12)), so matching our
-             Theme.Material.Light since this can't inherit from both-->
+             versions 21 (Lollipop) through at least 35 (Vanilla Ice Cream / Android 15)), so
+             matching our Theme.Material.Light since this can't inherit from both-->
         <item name="isLightTheme">true</item>
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_light</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
-        <!-- (EW) for some reason this theme defaults to some almost white color that makes the
-             white text/icons in the status bar barely visible. I don't see it set in
-             Theme.DeviceDefault.Light, but Theme.DeviceDefault.ResolverCommon (in the same
-             themes_device_defaults.xml file, so maybe it's getting used in some way I don't
-             recognize) has it set to @color/transparent, which seems basically the same as if that
-             was set here other than some shadow at the bottom of the status bar/top of the
-             activity, but maybe something else is causing that shadow. Theme.Material.Light, which
-             Theme.DeviceDefault.Light inherits from, uses ?attr/colorPrimaryDark, so we'll just use
-             that here. the Theme.Material.Light does look a bit different, but I'm not sure what's
-             causing that, and although these probably should match, we'll just deal with this
-             because it still looks fine. -->
-        <!--TODO: (EW) apparently this is now deprecated and has no effect on Android 15. also, even
-             on older versions, this doesn't seem to be working to fix the contract in the status
-             bar. I'm not sure when this stopped working.-->
-        <item name="android:statusBarColor">?android:attr/colorPrimaryDark</item>
+
+        <!-- (EW) Theme.DeviceDefault.Light inherits the statusBarColor value of
+             ?attr/colorPrimaryDark from Theme.Material.Light, which is fine, but
+             Theme.DeviceDefault.Light sets colorPrimaryDark to primary_dark_device_default_light,
+             which is set to system_neutral1_50 (#F1F0F7 - basically white), which makes the white
+             text/icons in the status bar barely visible. Theme.DeviceDefault.Light sets
+             colorPrimaryDark to primary_dark_material_light, which is set to material_grey_600
+             (#ff757575). that has reasonable contrast for the status bar text/icons. we could just
+             set statusBarColor to that, but documentation for changes in Android 15 indicate that
+             R.attr#statusBarColor is deprecated and has no effect in Android 15 (setting this here
+             does seem to work, so I'm not sure what's up with that documentation), and since this
+             colorPrimaryDark varies so significantly from between the device default theme and the
+             material light theme that it inherits from, I'm guessing that it could have other
+             similar issues in other places, so I'm just going to set colorPrimaryDark to indirectly
+             resolve the status bar color. android:color/primary_dark_material_light and
+             android:color/material_grey_600 are private, so I have to just hard-code the color. -->
+        <item name="android:colorPrimaryDark">#ff757575</item>
+
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.Material" parent="@android:style/Theme.Material">
-        <!-- (EW) from Theme in themes (versions 23 (M) through at least 31 (S)) that the Android
-             Material theme inherits from -->
+        <!-- (EW) from Theme in themes (versions 23 (M) through at least 35
+             (Vanilla Ice Cream / Android 15)) that the Android Material theme inherits from -->
         <item name="isLightTheme">false</item>
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
 
-        <!-- (EW) from themes_material (versions 24 (Nougat) through at least 31
-             (S / Android 12)) -->
+        <!-- (EW) from themes_material (versions 24 (Nougat) through at least 35
+             (Vanilla Ice Cream / Android 15)) -->
         <!-- (EW) the AOSP version for versions 21 (Lollipop) through 23 (Marshmallow) essentially
              used the Holo theme, which used code rather than resource files for these. see the
              comment on Theme.Holo. rather than matching the framework functionality, which would be
@@ -68,20 +72,23 @@
              versions of this app and the Material theme generally -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="Theme.Material.Light" parent="@android:style/Theme.Material.Light">
-        <!-- (EW) from Theme.Light in themes (versions 23 (Marshmallow) through at least 31
-             (S / Android 12)) that the Android Material light theme inherits from-->
+        <!-- (EW) from Theme.Light in themes (versions 23 (Marshmallow) through at least 35
+             (Vanilla Ice Cream / Android 15)) that the Android Material light theme inherits
+              from -->
         <item name="isLightTheme">true</item>
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_light</item>
 
-        <!-- (EW) from themes_material (versions 24 (Nougat) through at least 31
-             (S / Android 12)) -->
+        <!-- (EW) from themes_material (versions 24 (Nougat) through at least 35
+             (Vanilla Ice Cream / Android 15)) -->
         <!-- (EW) see comment on Theme.Material -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 </resources>
