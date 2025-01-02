@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright 2015, The Android Open Source Project
      Copyright (C) 2006 The Android Open Source Project
 
@@ -507,21 +507,6 @@
         <!-- Specify the phrase-based line break can be used when calculating the text wrapping.-->
         <attr name="android:lineBreakWordStyle" />
 
-        <!-- Whether to use width of bounding box as a source of automatic line breaking and
-          drawing.
-          If this value is false, the TextView determines the View width, drawing offset and
-          automatic line breaking based on total advances as text widths. By setting true,
-          use glyph bound's as a source of text width.  -->
-        <attr name="android:useBoundsForWidth" />
-
-        <!-- Whether to shift the drawing offset for prevent clipping start drawing offset.
-          This value is ignored when the useBoundsForWidth attribute is false.
-
-          If this value is false, the TextView draws text from the zero X coordinate. This is
-          useful for aligning multiple TextViews vertically.
-          If this value is true, the TextView shift the drawing offset not to clip the
-          stroke in the region where the X coordinate is negative. -->
-        <attr name="android:shiftDrawingOffsetForStartOverhang" />
         <!-- Whether to use the locale preferred line height for the minimum line height.
 
           This flag is useful for preventing jitter of entering letters into empty EditText.

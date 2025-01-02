@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,9 +58,9 @@ public class BoringLayoutExtension {
                     && minimumFontMetrics != null) {
                 // (EW) use the framework method to handle the determination if this is boring since
                 // it has some checks that we don't have access to
-                Metrics metricsCheck = BoringLayout.isBoring(text, paint, textDir,
+                Metrics baseMetrics = BoringLayout.isBoring(text, paint, textDir,
                         useFallbackLineSpacing, null);
-                if (metricsCheck == null) {
+                if (baseMetrics == null) {
                     return null;
                 }
 
@@ -84,7 +84,17 @@ public class BoringLayoutExtension {
                         0 /* ellipsisStart, 0 since text has not been ellipsized at this point */,
                         0 /* ellipsisEnd, 0 since text has not been ellipsized at this point */,
                         useFallbackLineSpacing);
-                fm.width = (int) Math.ceil(line.metrics(fm, fm.getDrawingBoundingBox(), false));
+                // (EW) the AOSP version passed fm's drawing bounding box as an output parameter,
+                // but our version of TextLine can't support that (see the comment in
+                // TextLine#getRunAdvance)
+                fm.width = (int) Math.ceil(line.metrics(fm));
+                // (EW) from some brief testing with the drawing bounding box output parameter
+                // accessed with reflection when enabling access to non-SDK interfaces with the adb
+                // command, it seems that the drawing bounding box isn't impacted by adjustments
+                // from the minimum font metrics, so we'll just copy the bounding box from the
+                // framework call
+                fm.getDrawingBoundingBox().set(baseMetrics.getDrawingBoundingBox());
+
                 TextLine.recycle(line);
 
                 return fm;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,7 +84,6 @@ import android.os.Parcelable;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.BoringLayout;
-import android.text.BoringLayout.Metrics;
 import android.text.DynamicLayout;
 import android.text.Editable;
 import android.text.GraphemeClusterSegmentFinder;
@@ -142,7 +141,6 @@ import android.view.PointerIcon;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewDebug;
-import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewParent;
 import android.view.ViewStructure;
@@ -432,8 +430,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     private int mUseFallbackLineSpacing;
 
-    private boolean mUseBoundsForWidth;
-    private boolean mShiftDrawingOffsetForStartOverhang;
     @Nullable private Paint.FontMetrics mMinimumFontMetrics;
     @Nullable private Paint.FontMetrics mLocalePreferredFontMetrics;
     private boolean mUseLocalePreferredLineHeightForMinimum;
@@ -815,6 +811,18 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             //         based on when the DynamicLayout is used, although I didn't completely
             //         validate that. that might indicate that there is some case that it could
             //         work, but that's still probably some edge case.
+            //     shiftDrawingOffsetForStartOverhang - this only gets used for a BoringLayout (at
+            //         least as of Android 15, when it was added), but because EditText content is
+            //         always considered selectable, the regular text always uses a DynamicLayout
+            //         (and the hint layout doesn't use this setting), so as long as the AOSP
+            //         version doesn't use this for a DynamicLayout, there's no value to supporting
+            //         this.
+            //     useBoundsForWidth - this seems to be a base for supporting
+            //         shiftDrawingOffsetForStartOverhang, but it's not clear to me what value this
+            //         is on its own. I would just leave this in, but we can't use it in our custom
+            //         version of TextLine (see comments there and in
+            //         LayoutExtension#getDesiredWidthWithLimit), so we can't fully support it. if
+            //         an API ever become available for that there, we could add this back.
             // feature not currently being implemented:
             //     autoLink - doesn't update links as you type, so this doesn't seem very beneficial
             //     linksClickable - related to autoLink
@@ -1061,21 +1069,12 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     lineHeight = typedArray.getDimensionPixelSize(attr, -1);
                 }
 
-            } else if (attr == R.styleable.EditText_android_useBoundsForWidth) {
-                //TODO: (EW) check versions this can apply for
-                mUseBoundsForWidth = typedArray.getBoolean(attr, false);
-                hasUseBoundForWidthValue = true;
-
-            } else if (attr == R.styleable.EditText_android_shiftDrawingOffsetForStartOverhang) {
-                //TODO: (EW) check versions this can apply for
-                mShiftDrawingOffsetForStartOverhang = typedArray.getBoolean(attr, false);
-
             } else if (attr == R.styleable.EditText_android_useLocalePreferredLineHeightForMinimum) {
-                //TODO: (EW) check versions this can apply for
-
-                // (EW) from EditText
-                hasUseLocalePreferredLineHeightForMinimumInt = true;
-                useLocalePreferredLineHeightForMinimumInt = typedArray.getBoolean(attr, false);
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    // (EW) from EditText
+                    hasUseLocalePreferredLineHeightForMinimumInt = true;
+                    useLocalePreferredLineHeightForMinimumInt = typedArray.getBoolean(attr, false);
+                }
 
             } else if (attr == R.styleable.EditText_android_enableTextStylingShortcuts) {
                 // (EW) from EditText
@@ -1125,15 +1124,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             mUseFallbackLineSpacing = FALLBACK_LINE_SPACING_NONE;
         }
 
-        if (!hasUseBoundForWidthValue) {
-            // (EW) the AOSP version checked CompatChanges#isChangeEnabled, which is hidden.
-            // documentation for Android 15 indicated that TextView width changes for complex letter
-            // shapes, and that due to this change, TextView allocates more width by default when
-            // targeting Android 15 (API level 35), so we'll just check the version to match the
-            // framework EditText default where this app is running since we're targeting that
-            // version.
-            mUseBoundsForWidth = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
-        }
+        // (EW) the AOSP version had some handling for using bounds for width, but we're skipping
+        // that (see above)
 
         // (EW) the AOSP version had handling for different attributes that we don't support due to
         // being deprecated, and it had some special handling around EditorInfo.TYPE_NULL for a
@@ -3140,94 +3132,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 invalidate();
             }
         }
-    }
-
-    /**
-     * Set true for using width of bounding box as a source of automatic line breaking and drawing.
-     *
-     * If this value is false, the TextView determines the View width, drawing offset and automatic
-     * line breaking based on total advances as text widths. By setting true, use glyph bound's as a
-     * source of text width.
-     *
-     * If the font used for this TextView has glyphs that has negative bearing X or glyph xMax is
-     * greater than advance, the glyph clipping can be happened because the drawing area may be
-     * bigger than advance. By setting this to true, the TextView will reserve more spaces for
-     * drawing are, so clipping can be prevented.
-     *
-     * This value is true by default if the target API version is 35 or later.
-     *
-     * @param useBoundsForWidth true for using bounding box for width. false for using advances for
-     *                          width.
-     * @see #getUseBoundsForWidth()
-     * @see #setShiftDrawingOffsetForStartOverhang(boolean)
-     * @see #getShiftDrawingOffsetForStartOverhang()
-     */
-    public void setUseBoundsForWidth(boolean useBoundsForWidth) {
-        if (mUseBoundsForWidth != useBoundsForWidth) {
-            mUseBoundsForWidth = useBoundsForWidth;
-            if (mLayout != null) {
-                nullLayouts();
-                requestLayout();
-                invalidate();
-            }
-        }
-    }
-
-    /**
-     * Returns true if using bounding box as a width, false for using advance as a width.
-     *
-     * @see #setUseBoundsForWidth(boolean)
-     * @see #setShiftDrawingOffsetForStartOverhang(boolean)
-     * @see #getShiftDrawingOffsetForStartOverhang()
-     * @return True if using bounding box for width, false if using advance for width.
-     */
-    public boolean getUseBoundsForWidth() {
-        return mUseBoundsForWidth;
-    }
-
-    /**
-     * Set true for shifting the drawing x offset for showing overhang at the start position.
-     *
-     * This flag is ignored if the {@link #getUseBoundsForWidth()} is false.
-     *
-     * If this value is false, the TextView draws text from the zero even if there is a glyph stroke
-     * in a region where the x coordinate is negative. TextView clips the stroke in the region where
-     * the X coordinate is negative unless the parents has {@link ViewGroup#getClipChildren()} to
-     * true. This is useful for aligning multiple TextViews vertically.
-     *
-     * If this value is true, the TextView draws text with shifting the x coordinate of the drawing
-     * bounding box. This prevents the clipping even if the parents doesn't have
-     * {@link ViewGroup#getClipChildren()} to true.
-     *
-     * This value is false by default.
-     *
-     * @param shiftDrawingOffsetForStartOverhang true for shifting the drawing offset for showing
-     *                                           the stroke that is in the region whre the x
-     *                                           coorinate is negative.
-     * @see #setUseBoundsForWidth(boolean)
-     * @see #getUseBoundsForWidth()
-     */
-    public void setShiftDrawingOffsetForStartOverhang(boolean shiftDrawingOffsetForStartOverhang) {
-        if (mShiftDrawingOffsetForStartOverhang != shiftDrawingOffsetForStartOverhang) {
-            mShiftDrawingOffsetForStartOverhang = shiftDrawingOffsetForStartOverhang;
-            if (mLayout != null) {
-                nullLayouts();
-                requestLayout();
-                invalidate();
-            }
-        }
-    }
-
-    /**
-     * Returns true if shifting the drawing x offset for start overhang.
-     *
-     * @see #setShiftDrawingOffsetForStartOverhang(boolean)
-     * @see #setUseBoundsForWidth(boolean)
-     * @see #getUseBoundsForWidth()
-     * @return True if shifting the drawing x offset for start overhang.
-     */
-    public boolean getShiftDrawingOffsetForStartOverhang() {
-        return mShiftDrawingOffsetForStartOverhang;
     }
 
     /**
@@ -8404,7 +8308,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                                 mLineBreakStyle, mLineBreakWordStyle));
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                        builder.setUseBoundsForWidth(mUseBoundsForWidth)
+                        // (EW) always setting to not use bounds for width since we currently can't
+                        // support it
+                        builder.setUseBoundsForWidth(false)
                                 .setMinimumFontMetrics(getResolvedMinimumFontMetrics());
                     }
                     if (shouldEllipsize) {
@@ -8445,7 +8351,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                 builder.setLineBreakConfig(LineBreakConfigExtension.getLineBreakConfig(
                         mLineBreakStyle, mLineBreakWordStyle))
-                        .setUseBoundsForWidth(mUseBoundsForWidth);
+                        // (EW) always setting to not use bounds for width since we currently can't
+                        // support it
+                        .setUseBoundsForWidth(false);
             }
             builder.setEllipsize(getKeyListener() == null ? effectiveEllipsize : null);
             builder.setEllipsizedWidth(ellipsisWidth);
@@ -8506,7 +8414,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return result;
     }
 
-    private static int desired(Layout layout, boolean useBoundsForWidth) {
+    // (EW) the AOSP version had a useBoundsForWidth parameter, but that was skipped since we
+    // currently can't support using bounds for width
+    private static int desired(Layout layout) {
         int n = layout.getLineCount();
         CharSequence text = layout.getText();
         float max = 0;
@@ -8522,10 +8432,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         for (int i = 0; i < n; i++) {
             max = Math.max(max, layout.getLineMax(i));
-        }
-
-        if (useBoundsForWidth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            max = Math.max(max, layout.computeDrawingBoundingBox().width());
         }
 
         return (int) Math.ceil(max);
@@ -8595,7 +8501,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             width = widthSize;
         } else {
             if (mLayout != null && mEllipsize == null) {
-                des = desired(mLayout, mUseBoundsForWidth);
+                des = desired(mLayout);
             }
 
             if (des < 0) {
@@ -8603,8 +8509,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 // of Layout.getDesiredWidth). Layout.getDesiredWidthWithLimit was also created
                 // in Pie.
                 des = (int) Math.ceil(LayoutExtension.getDesiredWidthWithLimit(mTransformed, 0,
-                        mTransformed.length(), mTextPaint, mTextDir, widthLimit,
-                        mUseBoundsForWidth));
+                        mTransformed.length(), mTextPaint, mTextDir, widthLimit));
             } else {
                 fromexisting = true;
             }
@@ -8615,7 +8520,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 int hintWidth;
 
                 if (mHintLayout != null && mEllipsize == null) {
-                    hintDes = desired(mHintLayout, mUseBoundsForWidth);
+                    hintDes = desired(mHintLayout);
                 }
 
                 if (hintDes < 0) {
@@ -8630,8 +8535,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 if (hintBoring == null || hintBoring == UNKNOWN_BORING) {
                     if (hintDes < 0) {
                         hintDes = (int) Math.ceil(LayoutExtension.getDesiredWidthWithLimit(mHint, 0,
-                                mHint.length(), mTextPaint, mTextDir, widthLimit,
-                                mUseBoundsForWidth));
+                                mHint.length(), mTextPaint, mTextDir, widthLimit));
                     }
                     hintWidth = hintDes;
                 } else {
@@ -12711,14 +12615,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 return;
             }
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                // selectable text translation not supported.
                 // We use the TransformationMethod to implement showing the translated text. The
                 // EditText does not support the text length change for TransformationMethod. If the
                 // text is selectable or editable, it will crash while selecting the text. To
                 // support it, it needs broader changes to text APIs, we only allow to translate non
                 // selectable and editable text in S.
                 // Cannot create translation request
-                // (EW) because EditText content is always considered selectable
+
+                // (EW) selectable text translation is not supported. quit because EditText content
+                // is always considered selectable.
                 return;
             }
             boolean isPassword = isAnyPasswordInputType() || hasPasswordTransformationMethod();

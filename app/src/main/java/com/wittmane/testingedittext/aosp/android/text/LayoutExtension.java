@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,6 +77,12 @@ public class LayoutExtension {
     @Retention(RetentionPolicy.SOURCE)
     public @interface JustificationMode {}
 
+    // (EW) the AOSP version had a boolean useBoundsForWidth parameter (added in Android 15), which
+    // was used to pass to TextLine#metrics, but that can't be used to completely replicate the AOSP
+    // version due to inaccessible APIs (see comments in TextLine). reflection is blocked for
+    // Layout#getDesiredWidthWithLimit and Layout#measurePara and everything in TextLine, so that's
+    // not an option. I'm just skipping this parameter/functionality (effectively assuming the value
+    // is false).
     /**
      * Return how wide a layout must be in order to display the
      * specified text slice with one line per paragraph.
@@ -85,7 +91,7 @@ public class LayoutExtension {
      */
     public static float getDesiredWidthWithLimit(CharSequence source, int start, int end,
                                                  TextPaint paint, TextDirectionHeuristic textDir,
-                                                 float upperLimit, boolean useBoundsForWidth) {
+                                                 float upperLimit) {
         float need = 0;
 
         int next;
@@ -96,7 +102,7 @@ public class LayoutExtension {
                 next = end;
 
             // note, omits trailing paragraph char
-            float w = measurePara(paint, source, i, next, textDir, useBoundsForWidth);
+            float w = measurePara(paint, source, i, next, textDir);
             if (w > upperLimit) {
                 return upperLimit;
             }
@@ -377,8 +383,8 @@ public class LayoutExtension {
                 layout.getEllipsisStart(line) + layout.getEllipsisCount(line),
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                         && layout.isFallbackLineSpacingEnabled());
-        float baseWid = tl.measure(offset - start, baseTrailing, null, null);
-        float wid = tl.measure(offset - start, trailing, null, null);
+        float baseWid = tl.measure(offset - start, baseTrailing, null);
+        float wid = tl.measure(offset - start, trailing, null);
         TextLine.recycle(tl);
 
         if (clamped && wid > layout.getWidth()) {
@@ -575,8 +581,10 @@ public class LayoutExtension {
         }
     }
 
+    // (EW) the AOSP version had a boolean useBoundsForWidth parameter (added in Android 15) that
+    // I'm skipping. see comment in #getDesiredWidthWithLimit.
     private static float measurePara(TextPaint paint, CharSequence text, int start, int end,
-            TextDirectionHeuristic textDir, boolean useBoundsForWidth) {
+            TextDirectionHeuristic textDir) {
         MeasuredParagraph mt = null;
         TextLine tl = TextLine.obtain();
         try {
@@ -616,7 +624,7 @@ public class LayoutExtension {
             tl.set(paint, text, start, end, dir, directions, hasTabs, tabStops,
                     0 /* ellipsisStart */, 0 /* ellipsisEnd */,
                     false /* use fallback line spacing. unused */);
-            return margin + Math.abs(tl.metrics(null, null, useBoundsForWidth));
+            return margin + Math.abs(tl.metrics(null));
         } finally {
             TextLine.recycle(tl);
             if (mt != null) {
