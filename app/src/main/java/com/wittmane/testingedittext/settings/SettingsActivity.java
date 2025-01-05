@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2007 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -27,6 +27,7 @@ import android.preference.PreferenceFragment;
 import android.util.Log;
 import android.view.MenuItem;
 
+import com.wittmane.testingedittext.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment;
@@ -56,6 +57,7 @@ public class SettingsActivity extends PreferenceActivity {
             getFragmentManager().beginTransaction()
                     .replace(android.R.id.content, new MainSettingsFragment()).commit();
         }
+        EdgeToEdgeUtils.onCreate(this);
     }
 
     @Override
@@ -102,5 +104,11 @@ public class SettingsActivity extends PreferenceActivity {
                 || ImeOptionsSettingsFragment.class.getName().equals(fragmentName)
                 || ImeActionSettingsFragment.class.getName().equals(fragmentName)
                 || DisplaySettingsFragment.class.getName().equals(fragmentName);
+    }
+
+    @Override
+    protected void onDestroy() {
+        EdgeToEdgeUtils.onDestroy(this);
+        super.onDestroy();
     }
 }

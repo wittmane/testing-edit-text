@@ -15,7 +15,7 @@
      limitations under the License.
 -->
 <resources>
-    <style name="Theme.DeviceDefault" parent="@android:style/Theme.DeviceDefault">
+    <style name="Theme.DeviceDefault.v21" parent="@android:style/Theme.DeviceDefault">
         <!-- (EW) Android Theme.DeviceDefault inherits from Theme.Material (as of versions 21
              (Lollipop) through at least 35 (Vanilla Ice Cream / Android 15)), so matching our
              Theme.Material since this can't inherit from both-->
@@ -23,11 +23,11 @@
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
-
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+    <style name="Theme.DeviceDefault" parent="Theme.DeviceDefault.v21">
     </style>
 
-    <style name="Theme.DeviceDefault.Light" parent="@android:style/Theme.DeviceDefault.Light">
+    <style name="Theme.DeviceDefault.Light.v21" parent="@android:style/Theme.DeviceDefault.Light">
         <!-- (EW) Android Theme.DeviceDefault.Light inherits from Theme.Material.Light (as of
              versions 21 (Lollipop) through at least 35 (Vanilla Ice Cream / Android 15)), so
              matching our Theme.Material.Light since this can't inherit from both-->
@@ -51,12 +51,12 @@
              similar issues in other places, so I'm just going to set colorPrimaryDark to indirectly
              resolve the status bar color. android:color/primary_dark_material_light and
              android:color/material_grey_600 are private, so I have to just hard-code the color. -->
-        <item name="android:colorPrimaryDark">#ff757575</item>
-
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+        <item name="android:colorPrimaryDark">@color/material_grey_600</item>
+    </style>
+    <style name="Theme.DeviceDefault.Light" parent="Theme.DeviceDefault.Light.v21">
     </style>
 
-    <style name="Theme.Material" parent="@android:style/Theme.Material">
+    <style name="Theme.Material.v21" parent="@android:style/Theme.Material">
         <!-- (EW) from Theme in themes (versions 23 (M) through at least 35
              (Vanilla Ice Cream / Android 15)) that the Android Material theme inherits from -->
         <item name="isLightTheme">false</item>
@@ -72,11 +72,11 @@
              versions of this app and the Material theme generally -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
-
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+    <style name="Theme.Material" parent="Theme.Material.v21">
     </style>
 
-    <style name="Theme.Material.Light" parent="@android:style/Theme.Material.Light">
+    <style name="Theme.Material.Light.v21" parent="@android:style/Theme.Material.Light">
         <!-- (EW) from Theme.Light in themes (versions 23 (Marshmallow) through at least 35
              (Vanilla Ice Cream / Android 15)) that the Android Material light theme inherits
               from -->
@@ -88,7 +88,7 @@
         <!-- (EW) see comment on Theme.Material -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
-
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+    <style name="Theme.Material.Light" parent="Theme.Material.Light.v21">
     </style>
 </resources>

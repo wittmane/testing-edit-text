@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -152,6 +152,8 @@ public class MainActivity extends ThemedActivity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        EdgeToEdgeUtils.onCreate(this);
+
         final TabHost tabHost = findViewById(R.id.tabHost);
         tabHost.setup();
         setTabs(tabHost);
@@ -628,6 +630,7 @@ public class MainActivity extends ThemedActivity
 
     @Override
     protected void onDestroy() {
+        EdgeToEdgeUtils.onDestroy(this);
         Settings.onDestroy();
         super.onDestroy();
     }
