@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.PreferenceFragment;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.ThemedActivity;
@@ -28,7 +27,7 @@ import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.preferences.EnhancedListPreference;
 
-public class DisplaySettingsFragment extends PreferenceFragment {
+public class DisplaySettingsFragment extends SettingsFragment {
     private static final String TAG = DisplaySettingsFragment.class.getSimpleName();
 
     @Override

@@ -24,10 +24,9 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
-import android.util.Log;
 import android.view.MenuItem;
 
-import com.wittmane.testingedittext.EdgeToEdgeUtils;
+import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.ModifyTextSettingsFragment;
@@ -57,7 +56,9 @@ public class SettingsActivity extends PreferenceActivity {
             getFragmentManager().beginTransaction()
                     .replace(android.R.id.content, new MainSettingsFragment()).commit();
         }
-        EdgeToEdgeUtils.onCreate(this);
+        // handle the insets excluding the bottom to support showing the preference list behind the
+        // navigation bar
+        EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
     }
 
     @Override
@@ -108,7 +109,7 @@ public class SettingsActivity extends PreferenceActivity {
 
     @Override
     protected void onDestroy() {
-        EdgeToEdgeUtils.onDestroy(this);
+        EdgeToEdgeUtils.removeInsetHandling(this);
         super.onDestroy();
     }
 }

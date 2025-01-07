@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,12 +19,11 @@ package com.wittmane.testingedittext.settings.fragments;
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 
 import android.os.Bundle;
-import android.preference.PreferenceFragment;
 import android.util.Log;
 
 import com.wittmane.testingedittext.settings.Settings;
 
-public abstract class PerTestGroupSettingsFragment extends PreferenceFragment {
+public abstract class PerTestGroupSettingsFragment extends SettingsFragment {
     private static final String TAG = PerTestGroupSettingsFragment.class.getSimpleName();
 
     public static final String GROUP_INDEX_BUNDLE_KEY = "GROUP_INDEX";

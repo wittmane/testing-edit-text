@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -47,7 +47,7 @@ import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter;
 
-public class TestFieldGroupListSettingsFragment extends PreferenceFragment {
+public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     private static final String TAG = TestFieldGroupListSettingsFragment.class.getSimpleName();
 
     private static final String STATE_AUTO_LAUNCHED_ONLY_GROUP = "AUTO_LAUNCHED_ONLY_GROUP";
