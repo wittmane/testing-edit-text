@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright 2015, The Android Open Source Project
      Copyright (C) 2006 The Android Open Source Project
 
@@ -507,6 +507,23 @@
         <!-- Specify the phrase-based line break can be used when calculating the text wrapping.-->
         <attr name="android:lineBreakWordStyle" />
 
+        <!-- Whether to use the locale preferred line height for the minimum line height.
+
+          This flag is useful for preventing jitter of entering letters into empty EditText.
+          The line height of the text is determined by the font files used for drawing text in a
+          line. However, in case of the empty text case, the line height cannot be determined and
+          the default line height: usually it is came from a font of Latin script. By making this
+          attribute to true, the TextView/EditText uses a line height that is likely used for the
+          locale associated with the widget. For example, if the system locale is Japanese, the
+          height of the EditText will be adjusted to meet the height of the Japanese font even if
+          the text is empty.
+
+          The default value for EditText is true if targetSdkVersion is
+          {@link android.os.Build.VERSION_CODE#VANILLA_ICE_CREAM} or later, otherwise false.
+          For other TextViews, the default value is false.
+        -->
+        <attr name="android:useLocalePreferredLineHeightForMinimum" />
+
         <!-- Enables styling shortcuts, e.g. Ctrl+B for bold. This is off by default.  -->
         <attr name="android:enableTextStylingShortcuts" />
     </declare-styleable>
@@ -976,5 +993,13 @@
              the alpha channel of the outlineAmbientShadowColor (typically opaque), and the
              {@link android.R.attr#ambientShadowAlpha} theme attribute. -->
         <attr name="android:outlineAmbientShadowColor" />
+
+        <!-- <p>Whether or not the auto handwriting initiation is enabled in this View.
+             <p>For a view with an active {@link android.view.inputmethod.InputConnection},
+             if auto handwriting initiation is enabled, stylus movement within its view boundary
+             will automatically trigger the handwriting mode.
+             See {@link android.view.View#setAutoHandwritingEnabled}.
+             <p>The default value of this flag is configurable by the device manufacturer. -->
+        <attr name="android:autoHandwritingEnabled" />
     </declare-styleable>
 </resources>

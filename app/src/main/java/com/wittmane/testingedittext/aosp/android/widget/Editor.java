@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2012 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -122,6 +122,7 @@ import com.wittmane.testingedittext.aosp.android.content.UndoManager;
 import com.wittmane.testingedittext.aosp.android.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.android.content.UndoOwner;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputConnectionExtension;
+import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
 import com.wittmane.testingedittext.aosp.com.android.internal.graphics.ColorUtils;
 import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.android.os.ParcelableParcel;
@@ -150,6 +151,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
+import static com.wittmane.testingedittext.aosp.android.widget.EditText.FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
 
 /**
  * Helper class used by EditText to handle editable text views.
@@ -1975,16 +1977,15 @@ class Editor {
         final int selectionEnd = mEditText.getSelectionEnd();
 
         final InputMethodState ims = mInputMethodState;
-        if (ims != null && ims.mBatchEditNesting == 0) {
+        if (ims != null && ims.mBatchEditNesting == 0
+                && (ims.mContentChanged || ims.mSelectionModeChanged)) {
             InputMethodManager imm = getInputMethodManager();
             if (imm != null) {
-                if (imm.isActive(mEditText)) {
-                    if (ims.mContentChanged || ims.mSelectionModeChanged) {
-                        // We are in extract mode and the content has changed
-                        // in some way... just report complete new text to the
-                        // input method.
-                        reportExtractedText();
-                    }
+                if (InputMethodManagerExtension.hasActiveInputConnection(imm, mEditText)) {
+                    // We are in extract mode and the content has changed
+                    // in some way... just report complete new text to the
+                    // input method.
+                    reportExtractedText();
                 }
 
                 // (EW) InputMethodManager#updateCursor was only called prior to Lollipop and was
@@ -2015,6 +2016,18 @@ class Editor {
             }
         }
 
+        // (EW) the AOSP version also checked Canvas#isHighContrastTextEnabled, which is hidden. if
+        // we ever enable this flag, we'll probably need to make this check too.
+        boolean shouldDrawHighlightsOnTop = FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
+
+        // If high contrast text is drawing background rectangles behind the text, those cover up
+        // the cursor and correction highlighter etc. So just draw the text first, then draw the
+        // others on top of the text. If high contrast text isn't enabled: draw text last, as usual.
+        if (shouldDrawHighlightsOnTop) {
+            drawLayout(canvas, layout, highlightPaths, highlightPaints, selectionHighlight,
+                    selectionHighlightPaint, cursorOffsetVertical);
+        }
+
         if (mCorrectionHighlighter != null) {
             mCorrectionHighlighter.draw(canvas, cursorOffsetVertical);
         }
@@ -2036,8 +2049,18 @@ class Editor {
             mInsertModeController.onDraw(canvas);
         }
 
+        if (!shouldDrawHighlightsOnTop) {
+            drawLayout(canvas, layout, highlightPaths, highlightPaints, selectionHighlight,
+                    selectionHighlightPaint, cursorOffsetVertical);
+        }
+    }
+
+    private void drawLayout(Canvas canvas, Layout layout, List<Path> highlightPaths,
+                            List<Paint> highlightPaints, Path selectionHighlight,
+                            Paint selectionHighlightPaint, int cursorOffsetVertical) {
         // (EW) the AOSP version had some handling for drawing using hardware acceleration, which we
-        // skipped for simplicity
+        // skipped for simplicity. there was also a shouldDrawHighlightsOnTop parameter that was
+        // only used with hardware acceleration, so it was skipped.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             layout.draw(canvas, highlightPaths, highlightPaints, selectionHighlight,
                     selectionHighlightPaint, cursorOffsetVertical);
@@ -4551,7 +4574,7 @@ class Editor {
             if (null == imm) {
                 return;
             }
-            if (!imm.isActive(mEditText)) {
+            if (!InputMethodManagerExtension.hasActiveInputConnection(imm, mEditText)) {
                 return;
             }
             // Skip if the IME has not requested the cursor/anchor position.
@@ -6152,7 +6175,7 @@ class Editor {
 
     private int getCurrentLineAdjustedForSlop(Layout layout, int prevLine, float y) {
         final int trueLine = mEditText.getLineAtCoordinate(y);
-        if (layout == null || prevLine > layout.getLineCount()
+        if (layout == null || prevLine >= layout.getLineCount()
                 || layout.getLineCount() <= 0 || prevLine < 0) {
             // Invalid parameters, just return whatever line is at y.
             return trueLine;
@@ -7698,6 +7721,16 @@ class Editor {
         private final Paint mHighlightPaint;
         private final Path mHighlightPath;
 
+        /**
+         * Whether it is in the progress of updating transformation method. It's needed because
+         * {@link EditText#setTransformationMethod(TransformationMethod)} will eventually call
+         * {@link EditText#setText(CharSequence)}.
+         * Because it normally should exit insert mode when {@link EditText#setText(CharSequence)}
+         * is called externally, we need this boolean to distinguish whether setText is triggered
+         * by setTransformation or not.
+         */
+        private boolean mUpdatingTransformationMethod;
+
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         InsertModeController(@NonNull EditText textView) {
             mEditText = Objects.requireNonNull(textView);
@@ -7706,16 +7739,10 @@ class Editor {
             mHighlightPaint = new Paint();
             mHighlightPath = new Path();
 
-            // The highlight color is supposed to be 12% of the color primary40. We can't
-            // directly access Material 3 theme. But because Material 3 sets the colorPrimary to
-            // be primary40, here we hardcoded it to be 12% of colorPrimary.
-            final TypedValue typedValue = new TypedValue();
-            mEditText.getContext().getTheme()
-                    .resolveAttribute(android.R.attr.colorPrimary, typedValue, true);
-            final int colorPrimary = typedValue.data;
-            final int highlightColor = ColorUtils.setAlphaComponent(colorPrimary,
-                    (int) (0.12f * Color.alpha(colorPrimary)));
-            mHighlightPaint.setColor(highlightColor);
+            // Insert mode highlight color is 20% opacity of the default text color.
+            int color = mEditText.getTextColors().getDefaultColor();
+            color = ColorUtils.setAlphaComponent(color, (int) (0.2f * Color.alpha(color)));
+            mHighlightPaint.setColor(color);
         }
 
         /**
@@ -7737,7 +7764,7 @@ class Editor {
             final boolean isSingleLine = mEditText.isSingleLine();
             mInsertModeTransformationMethod = new InsertModeTransformationMethod(offset,
                     isSingleLine, oldTransformationMethod);
-            mEditText.setTransformationMethodInternal(mInsertModeTransformationMethod);
+            setTransformationMethod(mInsertModeTransformationMethod, true);
             Selection.setSelection((Spannable) mEditText.getText(), offset);
 
             mIsInsertModeActive = true;
@@ -7745,6 +7772,10 @@ class Editor {
         }
 
         void exitInsertMode() {
+            exitInsertMode(true);
+        }
+
+        void exitInsertMode(boolean updateText) {
             if (!mIsInsertModeActive) return;
             if (mInsertModeTransformationMethod == null
                     || mInsertModeTransformationMethod != mEditText.getTransformationMethod()) {
@@ -7757,7 +7788,7 @@ class Editor {
             final int selectionEnd = mEditText.getSelectionEnd();
             final TransformationMethod oldTransformationMethod =
                     mInsertModeTransformationMethod.getOldTransformationMethod();
-            mEditText.setTransformationMethodInternal(oldTransformationMethod);
+            setTransformationMethod(oldTransformationMethod, updateText);
             Selection.setSelection((Spannable) mEditText.getText(), selectionStart, selectionEnd);
             mIsInsertModeActive = false;
         }
@@ -7778,22 +7809,55 @@ class Editor {
         }
 
         /**
-         * Notify the {@link InsertModeController} before the TextView's
-         * {@link TransformationMethod} is updated. If it's not in the insert mode,
-         * the given method is directly returned. Otherwise, it will wrap the given transformation
-         * method with an {@link InsertModeTransformationMethod} and then return.
-         *
-         * @param oldTransformationMethod the new {@link TransformationMethod} to be set on the
-         *                             TextView.
-         * @return the updated {@link TransformationMethod} to be set on the Textview.
+         * Update the TransformationMethod on the {@link EditText}.
+         * @param method the new method to be set on the {@link EditText}/
+         * @param updateText whether to update the text during setTransformationMethod call.
          */
-        TransformationMethod updateTransformationMethod(
-                TransformationMethod oldTransformationMethod) {
-            if (!mIsInsertModeActive) return oldTransformationMethod;
+        private void setTransformationMethod(TransformationMethod method, boolean updateText) {
+            mUpdatingTransformationMethod = true;
+            mEditText.setTransformationMethodInternal(method, updateText);
+            mUpdatingTransformationMethod = false;
+        }
 
+        /**
+         * Notify the InsertMode controller that the {@link EditText} is about to set its text.
+         */
+        void beforeSetText() {
+            // EditText#setText is called because our call to
+            // EditText#setTransformationMethodInternal in enterInsertMode(), exitInsertMode() or
+            // updateTransformationMethod().
+            // Do nothing in this case.
+            if (mUpdatingTransformationMethod) {
+                return;
+            }
+            // EditText#setText is called externally. Exit InsertMode but don't update text again
+            // when calling setTransformationMethod.
+            exitInsertMode(/* updateText */ false);
+        }
+
+        /**
+         * Notify the {@link InsertModeController} that EditText#setTransformationMethod is called.
+         * If it's not in the insert mode, the given transformation method is directly set to the
+         * EditText. Otherwise, it will wrap the given transformation method with an
+         * {@link InsertModeTransformationMethod} and then set it on the EditText.
+         *
+         * @param transformationMethod the new {@link TransformationMethod} to be set on the
+         *                             TextView.
+         */
+        void updateTransformationMethod(TransformationMethod transformationMethod) {
+            if (!mIsInsertModeActive) {
+                setTransformationMethod(transformationMethod, /* updateText */ true);
+                return;
+            }
+
+            // Changing TransformationMethod will reset selection range to [0, 0), we need to
+            // manually restore the old selection range.
+            final int selectionStart = mEditText.getSelectionStart();
+            final int selectionEnd = mEditText.getSelectionEnd();
             mInsertModeTransformationMethod = mInsertModeTransformationMethod.update(
-                    oldTransformationMethod, mEditText.isSingleLine());
-            return mInsertModeTransformationMethod;
+                    transformationMethod, mEditText.isSingleLine());
+            setTransformationMethod(mInsertModeTransformationMethod, /* updateText */ true);
+            Selection.setSelection((Spannable) mEditText.getText(), selectionStart, selectionEnd);
         }
     }
 
@@ -7806,6 +7870,9 @@ class Editor {
         return mInsertModeController.enterInsertMode(offset);
     }
 
+    /**
+     * Exit insert mode if this editor is in insert mode.
+     */
     void exitInsertMode() {
         if (mInsertModeController == null) return;
         mInsertModeController.exitInsertMode();
@@ -7818,17 +7885,18 @@ class Editor {
      */
     void setTransformationMethod(TransformationMethod method) {
         if (mInsertModeController == null || !mInsertModeController.mIsInsertModeActive) {
-            mEditText.setTransformationMethodInternal(method);
+            mEditText.setTransformationMethodInternal(method, /* updateText */ true);
             return;
         }
+        mInsertModeController.updateTransformationMethod(method);
+    }
 
-        // Changing TransformationMethod will reset selection range to [0, 0), we need to
-        // manually restore the old selection range.
-        final int selectionStart = mEditText.getSelectionStart();
-        final int selectionEnd = mEditText.getSelectionEnd();
-        method = mInsertModeController.updateTransformationMethod(method);
-        mEditText.setTransformationMethodInternal(method);
-        Selection.setSelection((Spannable) mEditText.getText(), selectionStart, selectionEnd);
+    /**
+     * Notify that the Editor that the associated {@link EditText} is about to set its text.
+     */
+    void beforeSetText() {
+        if (mInsertModeController == null) return;
+        mInsertModeController.beforeSetText();
     }
 
     static void logCursor(String location, @Nullable String msgFormat, Object ... msgArgs) {

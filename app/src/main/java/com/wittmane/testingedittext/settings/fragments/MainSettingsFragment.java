@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -62,7 +62,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class MainSettingsFragment extends PreferenceFragment {
+public class MainSettingsFragment extends SettingsFragment {
     private static final String TAG = MainSettingsFragment.class.getSimpleName();
 
     private static final int EXPORT_SETTINGS_FILE = 1;
@@ -76,7 +76,6 @@ public class MainSettingsFragment extends PreferenceFragment {
                     ? "application/json"
                     : "application/octet-stream";
 
-    private View mView;
     private String mExportData;
 
     @Override
@@ -84,13 +83,6 @@ public class MainSettingsFragment extends PreferenceFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_main);
         setHasOptionsMenu(true);
-    }
-
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-                             final Bundle savedInstanceState) {
-        mView = super.onCreateView(inflater, container, savedInstanceState);
-        return mView;
     }
 
     @Override

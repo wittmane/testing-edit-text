@@ -17,13 +17,17 @@
 package com.wittmane.testingedittext;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
 import com.wittmane.testingedittext.settings.Settings;
+
+import java.util.Set;
 
 public abstract class ThemedActivity extends Activity {
     // Note that if using AppCompatActivity instead of Activity on versions earlier than Lollipop,
@@ -82,8 +86,47 @@ public abstract class ThemedActivity extends Activity {
             // the fragment back stack. the error could also be prevented by not calling
             // super.onRestoreInstanceState when recreating the activity.
             activity.finish();
-            activity.startActivity(
-                    activity.getIntent().addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION));
+            // create a custom copy of the intent (ie not using Intent's copy constructor) to avoid
+            // getting flagged as launching an unsafe intent.
+            Intent intent = copy(activity.getIntent());
+            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            activity.startActivity(intent);
         }
+    }
+
+    private static Intent copy(Intent source) {
+        Intent target = new Intent();
+        target.setAction(source.getAction());
+        target.setDataAndType(source.getData(), source.getType());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            target.setIdentifier(source.getIdentifier());
+        }
+        target.setPackage(source.getPackage());
+        target.setComponent(source.getComponent());
+        target.setComponent(source.getComponent());
+        Set<String> categories = source.getCategories();
+        if (categories != null) {
+            for (String category : categories) {
+                target.addCategory(category);
+            }
+        }
+        target.setFlags(source.getFlags());
+        Rect sourceBounds = source.getSourceBounds();
+        if (sourceBounds != null) {
+            target.setSourceBounds(new Rect(sourceBounds));
+        }
+        Intent selector = source.getSelector();
+        if (selector != null) {
+            target.setSelector(copy(source.getSelector()));
+        }
+        Bundle extras = source.getExtras();
+        if (extras != null) {
+            target.putExtras(new Bundle(extras));
+        }
+        ClipData clipData = source.getClipData();
+        if (clipData != null) {
+            target.setClipData(new ClipData(clipData));
+        }
+        return target;
     }
 }

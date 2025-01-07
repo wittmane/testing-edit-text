@@ -90,7 +90,10 @@ public class TextAppearanceInfoExtension {
                 .setFontFeatureSettings(textPaint.getFontFeatureSettings())
                 .setFontVariationSettings(textPaint.getFontVariationSettings())
                 .setTextScaleX(textPaint.getTextScaleX())
-                .setTextColor(textPaint.getColor())
+                // When there is a hint text (text length is 0), the text color should be the normal
+                // text color rather than hint text color.
+                .setTextColor(text.length() == 0
+                        ? textView.getCurrentTextColor() : textPaint.getColor())
                 .setLinkTextColor(textPaint.linkColor)
                 // (EW) the AOSP version checked TextView#isAllCaps, but that was skipped because it
                 // isn't for editable fields (see comment in Edit#readTextAppearance)

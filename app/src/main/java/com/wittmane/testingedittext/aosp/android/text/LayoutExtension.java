@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,11 +71,18 @@ public class LayoutExtension {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @IntDef(value = {
             Layout.JUSTIFICATION_MODE_NONE,
-            Layout.JUSTIFICATION_MODE_INTER_WORD
+            Layout.JUSTIFICATION_MODE_INTER_WORD,
+            Layout.JUSTIFICATION_MODE_INTER_CHARACTER,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface JustificationMode {}
 
+    // (EW) the AOSP version had a boolean useBoundsForWidth parameter (added in Android 15), which
+    // was used to pass to TextLine#metrics, but that can't be used to completely replicate the AOSP
+    // version due to inaccessible APIs (see comments in TextLine). reflection is blocked for
+    // Layout#getDesiredWidthWithLimit and Layout#measurePara and everything in TextLine, so that's
+    // not an option. I'm just skipping this parameter/functionality (effectively assuming the value
+    // is false).
     /**
      * Return how wide a layout must be in order to display the
      * specified text slice with one line per paragraph.
@@ -574,6 +581,8 @@ public class LayoutExtension {
         }
     }
 
+    // (EW) the AOSP version had a boolean useBoundsForWidth parameter (added in Android 15) that
+    // I'm skipping. see comment in #getDesiredWidthWithLimit.
     private static float measurePara(TextPaint paint, CharSequence text, int start, int end,
             TextDirectionHeuristic textDir) {
         MeasuredParagraph mt = null;

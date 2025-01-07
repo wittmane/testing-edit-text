@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -51,6 +51,7 @@ import androidx.annotation.RequiresApi;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
+import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.SpanUtils;
 
@@ -152,6 +153,10 @@ public class MainActivity extends ThemedActivity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        // handle the insets excluding the bottom to support showing the tab's contents behind the
+        // navigation bar
+        EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
+
         final TabHost tabHost = findViewById(R.id.tabHost);
         tabHost.setup();
         setTabs(tabHost);
@@ -288,6 +293,10 @@ public class MainActivity extends ThemedActivity
             view = layoutInflater.inflate(R.layout.activity_main_tab, tabContent, false);
         }
         mTabViews.put(mCurrentTabIndex, view);
+        // handle the bottom insets in the tab's scrolling content since it isn't handled on the
+        // activity level to allow showing content behind the navigation bar
+        EdgeToEdgeUtils.addInsetHandling(this, view.findViewById(R.id.testFieldContainer),
+                false, false, false, true);
 
         return view;
     }
@@ -628,6 +637,7 @@ public class MainActivity extends ThemedActivity
 
     @Override
     protected void onDestroy() {
+        EdgeToEdgeUtils.removeInsetHandling(this);
         Settings.onDestroy();
         super.onDestroy();
     }

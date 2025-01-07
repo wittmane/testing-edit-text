@@ -34,15 +34,23 @@ public class LineBreakConfigExtension {
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @IntDef(value = {
-            LineBreakConfig.LINE_BREAK_STYLE_NONE, LineBreakConfig.LINE_BREAK_STYLE_LOOSE,
-            LineBreakConfig.LINE_BREAK_STYLE_NORMAL, LineBreakConfig.LINE_BREAK_STYLE_STRICT
+            LineBreakConfig.LINE_BREAK_STYLE_NONE,
+            LineBreakConfig.LINE_BREAK_STYLE_LOOSE,
+            LineBreakConfig.LINE_BREAK_STYLE_NORMAL,
+            LineBreakConfig.LINE_BREAK_STYLE_STRICT,
+            LineBreakConfig.LINE_BREAK_STYLE_UNSPECIFIED,
+            LineBreakConfig.LINE_BREAK_STYLE_NO_BREAK,
+            LineBreakConfig.LINE_BREAK_STYLE_AUTO
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface LineBreakStyle {}
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @IntDef(value = {
-            LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE, LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE
+            LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE,
+            LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE,
+            LineBreakConfig.LINE_BREAK_WORD_STYLE_UNSPECIFIED,
+            LineBreakConfig.LINE_BREAK_WORD_STYLE_AUTO
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface LineBreakWordStyle {}

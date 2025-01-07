@@ -271,4 +271,7 @@ public final class MathUtils {
         }
         throw new IllegalArgumentException("Addition overflow: " + a + " + " + b);
     }
+
+    // (EW) skipped #fitRect because it calls Rect#scale, which is hidden, and we don't need this
+    // method. it does look simple enough to copy the implementation if needed in the future.
 }
