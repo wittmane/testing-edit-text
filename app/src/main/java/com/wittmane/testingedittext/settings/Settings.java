@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,7 +92,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             // create a default group and field the first time the app is opened
             Log.d(TAG, "creating defaults");
             mPrefs.setIntArray(PREF_TEST_GROUP_IDS, new int[] { 0 });
-            mPrefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX, new int[] { 0 });
+            mPrefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + 0, new int[] { 0 });
         }
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         loadSettings();
