@@ -656,21 +656,23 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static int getThemeId(String theme, final Context context) {
-        switch (theme) {
-            case THEME_MATERIAL_DARK:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    return R.style.Theme_Material;
-                }
-                break;
-            case THEME_MATERIAL_LIGHT:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    return R.style.Theme_Material_Light;
-                }
-                break;
-            case THEME_HOLO_DARK:
-                return R.style.Theme_Holo;
-            case THEME_HOLO_LIGHT:
-                return R.style.Theme_Holo_Light;
+        if (theme != null) {
+            switch (theme) {
+                case THEME_MATERIAL_DARK:
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        return R.style.Theme_Material;
+                    }
+                    break;
+                case THEME_MATERIAL_LIGHT:
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        return R.style.Theme_Material_Light;
+                    }
+                    break;
+                case THEME_HOLO_DARK:
+                    return R.style.Theme_Holo;
+                case THEME_HOLO_LIGHT:
+                    return R.style.Theme_Holo_Light;
+            }
         }
         return isDarkModeEnabled(context)
                 ? R.style.Theme_DeviceDefault
