@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -39,10 +39,12 @@ import android.view.View.OnTouchListener;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.util.IconUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +65,7 @@ public abstract class DraggableListAdapterBase<TListItems, TListItemBuilder> ext
 
     protected final List<TListItems> mObjects = new ArrayList<>();
 
+    private final Context mContext;
     private final LayoutInflater mInflater;
     private final int mListItemResourceId;
     private final int mDragHandleResourceId;
@@ -108,6 +111,7 @@ public abstract class DraggableListAdapterBase<TListItems, TListItemBuilder> ext
      */
     public DraggableListAdapterBase(Context context, int listItemResourceId,
                                     int dragHandleResourceId, TListItemBuilder listItemBuilder) {
+        mContext = context;
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mListItemResourceId = listItemResourceId;
         mDragHandleResourceId = dragHandleResourceId;
@@ -243,6 +247,10 @@ public abstract class DraggableListAdapterBase<TListItems, TListItemBuilder> ext
                     return false;
                 }
             });
+            if (dragHandle instanceof ImageView) {
+                // update the color for the icon based on the theme
+                IconUtils.matchIconColor(mContext, (ImageView) dragHandle);
+            }
         }
         // long pressing anywhere on the item also starts a drag event
         new LongClickManager(view, new OnLongClickImprovedListener() {

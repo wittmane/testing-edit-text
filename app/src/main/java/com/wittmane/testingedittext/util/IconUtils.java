@@ -38,6 +38,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
@@ -108,6 +109,15 @@ public class IconUtils {
     }
 
     /**
+     * Set a view's icon to match the color that a EditText would have for its normal text.
+     * @param context The current context.
+     * @param imageView The view with the icon.
+     */
+    public static void matchIconColor(Context context, final ImageView imageView) {
+        imageView.setColorFilter(IconUtils.getColorForIcon(context, imageView));
+    }
+
+    /**
      * Get the color that should be applied for an icon based on how EditText gets it normal text
      * color.
      * @param context The current context.
@@ -143,10 +153,10 @@ public class IconUtils {
     public static ImageButton createImageButton(Context context, int imageResId) {
         ImageButton button = new EnabledStateListenerImageButton(context,
                 (buttonView, isEnabled) -> {
-                    buttonView.setColorFilter(IconUtils.getColorForIcon(context, buttonView));
+                    matchIconColor(context, buttonView);
                 });
         button.setImageResource(imageResId);
-        button.setColorFilter(IconUtils.getColorForIcon(context, button));
+        matchIconColor(context, button);
         button.setBackgroundResource(getResourceId(
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         ? android.R.attr.selectableItemBackgroundBorderless
