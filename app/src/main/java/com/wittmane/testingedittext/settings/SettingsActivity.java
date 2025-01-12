@@ -20,11 +20,13 @@ package com.wittmane.testingedittext.settings;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
+import android.window.OnBackInvokedDispatcher;
 
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
@@ -59,6 +61,13 @@ public class SettingsActivity extends PreferenceActivity {
         // handle the insets excluding the bottom to support showing the preference list behind the
         // navigation bar
         EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
+
+        // the back navigation bar button and gesture stopped calling #onBackPressed by default in
+        // Android 13, so we have to add that back
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::onBackPressed);
+        }
     }
 
     @Override
@@ -84,7 +93,7 @@ public class SettingsActivity extends PreferenceActivity {
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            super.onBackPressed();
+            onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);
