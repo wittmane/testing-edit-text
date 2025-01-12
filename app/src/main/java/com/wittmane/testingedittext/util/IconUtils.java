@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -79,10 +80,16 @@ public class IconUtils {
         ArrayList<View> views = new ArrayList<>();
         view.getRootView().findViewsWithText(views, actionBar.getTitle(),
                 View.FIND_VIEWS_WITH_TEXT);
+        TextView textView;
         if (views.size() == 1 && views.get(0) instanceof TextView) {
-            int color = ((TextView) views.get(0)).getCurrentTextColor();
-            setIconColor(menuItem, color);
+            textView = (TextView) views.get(0);
+        } else {
+            // since we can't find the text view for the action bar title, fall back to just create
+            // a new EditText with the themed context to see what the default text color is, which
+            // is probably what the action bar title would/will be
+            textView = new EditText(actionBar.getThemedContext());
         }
+        setIconColor(menuItem, textView.getCurrentTextColor());
     }
 
     /**
