@@ -23,6 +23,9 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.LocaleList;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.Spanned;
@@ -59,11 +62,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 public class MainActivity extends ThemedActivity
         implements TabContentFactory, TabHost.OnTabChangeListener {
@@ -78,8 +79,11 @@ public class MainActivity extends ThemedActivity
 
     private static final String TAB_TAG_PREFIX = "tab_";
 
+    private static final String STATE_CURRENT_TAB_INDEX = "CURRENT_TAB_INDEX";
+    private static final String STATE_ALL_TEST_FIELDS = "ALL_TEST_FIELDS";
+
     private Group[] mGroups = new Group[0];
-    private final Set<TestField> mAllTestFields = new HashSet<>();
+    private final HashMap<Integer, TestField> mAllTestFields = new HashMap<>();
     private int mCurrentTabIndex = -1;
     private final Map<Integer, View> mTabViews = new HashMap<>();
 
@@ -144,9 +148,6 @@ public class MainActivity extends ThemedActivity
             customEditText.setId(View.generateViewId());
         }
     }
-
-    //TODO: (EW) retain the current group when rotating screen
-    //TODO: (EW) retain field text when rotating screen
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -396,7 +397,7 @@ public class MainActivity extends ThemedActivity
                 }
                 if (groupIndex != position.groupIndex) {
                     // remove from other group
-                    ViewGroup parent = (ViewGroup)testField.mLayout.getParent();
+                    ViewGroup parent = (ViewGroup) testField.mLayout.getParent();
                     if (parent != null) {
                         parent.removeView(testField.mLayout);
                     }
@@ -406,21 +407,18 @@ public class MainActivity extends ThemedActivity
                 hasChanges = true;
                 // check if the field already exists (got removed from some group and wasn't loaded
                 // yet for the group it moved to due to lazy loading)
-                for (TestField field : mAllTestFields) {
-                    if (field.mId == fieldId) {
-                        testField = field;
-                        ViewGroup parent = (ViewGroup)testField.mLayout.getParent();
-                        if (parent != null) {
-                            parent.removeView(testField.mLayout);
-                        }
-                        break;
+                testField = mAllTestFields.get(fieldId);
+                if (testField != null) {
+                    ViewGroup parent = (ViewGroup) testField.mLayout.getParent();
+                    if (parent != null) {
+                        parent.removeView(testField.mLayout);
                     }
                 }
             }
 
             if (testField == null) {
                 testField = new TestField(fieldId, this);
-                mAllTestFields.add(testField);
+                mAllTestFields.put(fieldId, testField);
                 hasChanges = true;
             }
 
@@ -627,6 +625,137 @@ public class MainActivity extends ThemedActivity
             }
         }
         return true;
+    }
+
+    private static class TestFieldParcelable implements Parcelable {
+        private final int mId;
+        private final int mDebugIndex;
+        private final CharSequence mFrameworkText;
+        private final CharSequence mCustomText;
+        private final CharSequence mFrameworkSetText;
+        private final CharSequence mCustomSetText;
+        private final boolean mFrameworkHasFocus;
+        private final boolean mCustomHasFocus;
+        private final int mFrameworkCursorStart;
+        private final int mCustomCursorStart;
+        private final int mFrameworkCursorEnd;
+        private final int mCustomCursorEnd;
+
+        public TestFieldParcelable(TestField testField) {
+            mId = testField.mId;
+            mDebugIndex = -1;
+            mFrameworkText = testField.mFrameworkEditText.getText();
+            mCustomText = testField.mCustomEditText.getText();
+            mFrameworkSetText = testField.mFrameworkEditText.mSetText;
+            mCustomSetText = testField.mCustomEditText.mSetText;
+            mFrameworkHasFocus = testField.mFrameworkEditText.hasFocus();
+            mCustomHasFocus = testField.mCustomEditText.hasFocus();
+            mFrameworkCursorStart = testField.mFrameworkEditText.getSelectionStart();
+            mCustomCursorStart = testField.mCustomEditText.getSelectionStart();
+            mFrameworkCursorEnd = testField.mFrameworkEditText.getSelectionEnd();
+            mCustomCursorEnd = testField.mCustomEditText.getSelectionEnd();
+        }
+
+        protected TestFieldParcelable(Parcel in) {
+            mId = in.readInt();
+            mDebugIndex = in.readInt();
+            mFrameworkText = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in);
+            mCustomText = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in);
+            mFrameworkSetText = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in);
+            mCustomSetText = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in);
+            mFrameworkHasFocus = in.readInt() == 1;
+            mCustomHasFocus = in.readInt() == 1;
+            mFrameworkCursorStart = in.readInt();
+            mCustomCursorStart = in.readInt();
+            mFrameworkCursorEnd = in.readInt();
+            mCustomCursorEnd = in.readInt();
+        }
+
+        public static final Creator<TestFieldParcelable> CREATOR =
+                new Creator<TestFieldParcelable>() {
+                    @Override
+                    public TestFieldParcelable createFromParcel(Parcel in) {
+                        return new TestFieldParcelable(in);
+                    }
+
+                    @Override
+                    public TestFieldParcelable[] newArray(int size) {
+                        return new TestFieldParcelable[size];
+                    }
+                };
+
+        @Override
+        public void writeToParcel(@NonNull Parcel dest, int flags) {
+            dest.writeInt(mId);
+            dest.writeInt(mDebugIndex);
+            TextUtils.writeToParcel(mFrameworkText, dest, 0);
+            TextUtils.writeToParcel(mCustomText, dest, 0);
+            TextUtils.writeToParcel(mFrameworkSetText, dest, 0);
+            TextUtils.writeToParcel(mCustomSetText, dest, 0);
+            dest.writeInt(mFrameworkHasFocus ? 1 : 0);
+            dest.writeInt(mCustomHasFocus ? 1 : 0);
+            dest.writeInt(mFrameworkCursorStart);
+            dest.writeInt(mCustomCursorStart);
+            dest.writeInt(mFrameworkCursorEnd);
+            dest.writeInt(mCustomCursorEnd);
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putInt(STATE_CURRENT_TAB_INDEX, mCurrentTabIndex);
+
+        TestFieldParcelable[] testFieldParcelables = new TestFieldParcelable[mAllTestFields.size()];
+        int testFieldIndex = 0;
+        for (int fieldId : mAllTestFields.keySet()) {
+            TestField testField = mAllTestFields.get(fieldId);
+            if (testField != null) {
+                testFieldParcelables[testFieldIndex++] = new TestFieldParcelable(testField);
+            }
+        }
+        outState.putParcelableArray(STATE_ALL_TEST_FIELDS, testFieldParcelables);
+
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState (@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        int currentTabIndex = savedInstanceState.getInt(STATE_CURRENT_TAB_INDEX);
+        final TabHost tabHost = findViewById(R.id.tabHost);
+        tabHost.setCurrentTab(currentTabIndex);
+
+        TestFieldParcelable[] testFieldParcelables =
+                (TestFieldParcelable[]) savedInstanceState.getParcelableArray(
+                        STATE_ALL_TEST_FIELDS);
+        if (testFieldParcelables != null) {
+            for (TestFieldParcelable parcelable : testFieldParcelables) {
+                TestField testField = mAllTestFields.get(parcelable.mId);
+                if (testField == null) {
+                    testField = new TestField(parcelable.mId, this);
+                    mAllTestFields.put(parcelable.mId, testField);
+                }
+                testField.mFrameworkEditText.setText(parcelable.mFrameworkText);
+                testField.mFrameworkEditText.mSetText = parcelable.mFrameworkSetText;
+                testField.mFrameworkEditText.setSelection(
+                        parcelable.mFrameworkCursorStart, parcelable.mFrameworkCursorEnd);
+                if (parcelable.mFrameworkHasFocus) {
+                    testField.mFrameworkEditText.requestFocus();
+                }
+                testField.mCustomEditText.setText(parcelable.mCustomText);
+                testField.mCustomEditText.mSetText = parcelable.mCustomSetText;
+                testField.mCustomEditText.setSelection(
+                        parcelable.mCustomCursorStart, parcelable.mCustomCursorEnd);
+                if (parcelable.mCustomHasFocus) {
+                    testField.mCustomEditText.requestFocus();
+                }
+            }
+        }
     }
 
     @Override
@@ -939,6 +1068,12 @@ public class MainActivity extends ThemedActivity
             return locales;
         }
 
+        public Editable getText() {
+            return mFrameworkEditText != null
+                    ? mFrameworkEditText.getText()
+                    : mCustomEditText.getText();
+        }
+
         public void setText(CharSequence text) {
             if (mFrameworkEditText != null) {
                 mFrameworkEditText.setText(text);
@@ -972,6 +1107,38 @@ public class MainActivity extends ThemedActivity
                 return true;
             }
             return SpanUtils.textAndSpansMatch(mSetHint, hint);
+        }
+
+        public int getSelectionStart() {
+            return mFrameworkEditText != null
+                    ? mFrameworkEditText.getSelectionStart()
+                    : mCustomEditText.getSelectionStart();
+        }
+
+        public int getSelectionEnd() {
+            return mFrameworkEditText != null
+                    ? mFrameworkEditText.getSelectionEnd()
+                    : mCustomEditText.getSelectionEnd();
+        }
+
+        public void setSelection(int start, int stop) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.setSelection(start, stop);
+            } else {
+                mCustomEditText.setSelection(start, stop);
+            }
+        }
+
+        public boolean hasFocus() {
+            return mFrameworkEditText != null
+                    ? mFrameworkEditText.hasFocus()
+                    : mCustomEditText.hasFocus();
+        }
+
+        public boolean requestFocus() {
+            return mFrameworkEditText != null
+                    ? mFrameworkEditText.requestFocus()
+                    : mCustomEditText.requestFocus();
         }
     }
 }
