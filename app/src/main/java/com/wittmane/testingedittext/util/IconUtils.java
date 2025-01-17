@@ -18,6 +18,7 @@ package com.wittmane.testingedittext.util;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
@@ -27,6 +28,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -35,6 +37,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -109,12 +112,50 @@ public class IconUtils {
     }
 
     /**
-     * Set a view's icon to match the color that a EditText would have for its normal text.
+     * Set a view's icon to match the color that an EditText would have for its normal text.
      * @param context The current context.
      * @param imageView The view with the icon.
      */
     public static void matchIconColor(Context context, final ImageView imageView) {
         imageView.setColorFilter(IconUtils.getColorForIcon(context, imageView));
+    }
+
+    /**
+     * Set a dialog's icon to match the color that an EditText would have for its normal text.
+     * @param alertDialog The dialog to update.
+     */
+    public static void matchIconColor( final AlertDialog alertDialog) {
+        ImageView imageView = alertDialog.findViewById(android.R.id.icon);
+        if (imageView != null) {
+            // the title has the ID android.R.id.alertTitle, but that isn't publicly available, so
+            // we can't look that up directly. Kitkat and Android 15 (and presumably everything in
+            // between and hopefully everything after) have the ImageView and a
+            // com.android.internal.widget.DialogTitle (extends TextView) as the only views in their
+            // parent. if we can find this is the case (and that text view is visible and has text),
+            // that's probably the title, so we'll match the color of that text.
+            TextView sibling = null;
+            ViewParent viewParent = imageView.getParent();
+            if (viewParent instanceof ViewGroup) {
+                ViewGroup parent = (ViewGroup) imageView.getParent();
+                if (parent.getChildCount() == 2) {
+                    for (int i = 0; i < 2; i++) {
+                        View view = parent.getChildAt(i);
+                        if (view instanceof TextView
+                                && view.getVisibility() == View.VISIBLE
+                                && !TextUtils.isEmpty(((TextView) view).getText())) {
+                            sibling = (TextView) view;
+                        }
+                    }
+                }
+            }
+            if (sibling != null) {
+                imageView.setColorFilter(sibling.getCurrentTextColor());
+            } else {
+                // we couldn't find the expected title text view, so we'll just base the color on
+                // the default text color from the theme
+                matchIconColor(alertDialog.getContext(), imageView);
+            }
+        }
     }
 
     /**

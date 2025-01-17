@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -175,13 +175,13 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     static void showWarningConfirmationDialog(int titleId, String message, Runnable onConfirm,
                                               Context context) {
-        new AlertDialog.Builder(context)
+        IconUtils.matchIconColor(new AlertDialog.Builder(context)
                 .setTitle(titleId)
                 .setMessage(message)
-                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setIcon(R.drawable.ic_warning_white_24)
                 .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
                 .setNegativeButton(android.R.string.no, null)
-                .show();
+                .show());
     }
 
     /**

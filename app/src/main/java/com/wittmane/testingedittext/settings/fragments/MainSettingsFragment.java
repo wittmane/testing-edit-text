@@ -146,12 +146,12 @@ public class MainSettingsFragment extends SettingsFragment {
     }
 
     private void showErrorDialog(int titleId, String message) {
-        new AlertDialog.Builder(getActivity())
+        IconUtils.matchIconColor(new AlertDialog.Builder(getActivity())
                 .setTitle(titleId)
                 .setMessage(message)
-                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setIcon(R.drawable.ic_warning_white_24)
                 .setPositiveButton(android.R.string.ok, null)
-                .show();
+                .show());
     }
 
     private void processSettingsImportFile(Uri uri) {
