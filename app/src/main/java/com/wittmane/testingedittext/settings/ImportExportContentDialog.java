@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -227,7 +227,7 @@ public class ImportExportContentDialog extends AlertDialog {
                 List<CheckBox> checkBoxes = new ArrayList<>();
 
                 Button selectAllButton = IconUtils.createButton(getContext(),
-                        R.drawable.baseline_select_all_white_24, R.string.select_all);
+                        R.drawable.ic_select_all_white_24, R.string.select_all);
                 // start hidden because all checkboxes start checked
                 selectAllButton.setVisibility(View.GONE);
                 selectAllButton.setOnClickListener(v -> {
@@ -239,7 +239,7 @@ public class ImportExportContentDialog extends AlertDialog {
                 testFieldDynamicDetails.addView(selectAllButton);
 
                 Button deselectAllButton = IconUtils.createButton(getContext(),
-                        R.drawable.baseline_deselect_white_24, R.string.deselect_all);
+                        R.drawable.ic_deselect_white_24, R.string.deselect_all);
                 deselectAllButton.setOnClickListener(v -> {
                     // deselect all
                     for (CheckBox checkBox : checkBoxes) {
