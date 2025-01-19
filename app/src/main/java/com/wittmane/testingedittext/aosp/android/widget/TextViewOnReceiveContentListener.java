@@ -25,8 +25,6 @@ import static android.view.ContentInfo.SOURCE_INPUT_METHOD;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.core.view.ContentInfoCompat.Flags;
-import androidx.core.view.ContentInfoCompat.Source;
 
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -44,6 +42,8 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputContentInfo;
+
+import com.wittmane.testingedittext.aosp.android.view.ContentInfoExtension.Source;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -85,7 +85,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         // replace/insert. This is to preserve the original behavior with respect to TextWatcher
         // notifications fired from SpannableStringBuilder when replace/insert is called.
         final ClipData clip = payload.getClip();
-        final @Flags int flags = payload.getFlags();
+        final @androidx.core.view.ContentInfoCompat.Flags int flags = payload.getFlags();
         final Editable editable = ((EditText) view).getText();
         final Context context = view.getContext();
         boolean didFirst = false;
@@ -140,7 +140,7 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
     }
 
     private static @NonNull CharSequence coerceToText(@NonNull ClipData clip,
-                                                      @NonNull Context context, @Flags int flags) {
+            @NonNull Context context, @androidx.core.view.ContentInfoCompat.Flags int flags) {
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         for (int i = 0; i < clip.getItemCount(); i++) {
             CharSequence itemText;

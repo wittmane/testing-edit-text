@@ -198,9 +198,6 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.ViewCompat.FocusDirection;
-import androidx.core.view.ViewCompat.FocusRealDirection;
 
 import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.com.android.internal.util.Preconditions;
@@ -331,7 +328,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     /**
      * The span priority of the {@link OffsetMapping} that is set on the text. It must be
      * higher than the {@link DynamicLayout}'s {@link TextWatcher}, so that the transformed text is
-     * updated before {@link DynamicLayout#reflow(CharSequence, int, int, int)} being triggered
+     * updated before {@code DynamicLayout#reflow(CharSequence, int, int, int)} being triggered
      * by {@link TextWatcher#onTextChanged(CharSequence, int, int, int)}.
      */
     private static final int OFFSET_MAPPING_SPAN_PRIORITY = 200;
@@ -3628,7 +3625,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      *
      * @param color A color value in the form 0xAARRGGBB.
      * Do not pass a resource ID. To get a color value from a resource ID, call
-     * {@link ContextCompat#getColor(Context, int) getColor}.
+     * {@link androidx.core.content.ContextCompat#getColor(Context, int) getColor}.
      *
      * @see #setTextColor(ColorStateList)
      * @see #getTextColors()
@@ -5902,7 +5899,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     // it still runs, so I'm adding this wrapper to clean up the errors, but it might be a better
     // idea to actually respect the values that it claims to support and find some alternative to
     // handle this.
-    public View focusSearchRelative(@FocusDirection int direction) {
+    public View focusSearchRelative(@androidx.core.view.ViewCompat.FocusDirection int direction) {
         return focusSearch(direction);
     }
 
@@ -7244,7 +7241,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return true;
     }
 
-    private boolean hasEditorInFocusSearchDirection(@FocusRealDirection int direction) {
+    private boolean hasEditorInFocusSearchDirection(
+            @androidx.core.view.ViewCompat.FocusRealDirection int direction) {
         final View nextView = focusSearch(direction);
         return nextView != null && nextView.onCheckIsTextEditor();
     }

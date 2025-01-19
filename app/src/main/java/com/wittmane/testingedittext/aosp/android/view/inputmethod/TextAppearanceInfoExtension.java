@@ -72,6 +72,13 @@ public class TextAppearanceInfoExtension {
         int textStyle = Typeface.NORMAL;
         if (typeface != null) {
             systemFontFamilyName = typeface.getSystemFontFamilyName();
+            // (EW) there seems to be a bug with this lint. it's complaining that
+            // "Value must be ≥ 0 (was -1)", which makes no sense as there is no restriction on the
+            // range of the variable. the restriction is only coming from #getWeight and there's no
+            // reason it shouldn't be allowed to be set to a variable with a wider range or none at
+            // all. even explicitly adding the wider range to the variable doesn't satisfy this
+            // buggy lint.
+            //noinspection Range
             textWeight = typeface.getWeight();
             textStyle = typeface.getStyle();
         }
