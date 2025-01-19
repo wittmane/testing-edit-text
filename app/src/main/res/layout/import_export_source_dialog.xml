@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2024 Eli Wittman
+<!-- Copyright (C) 2024-2025 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:id="@+id/screenSourceContent">
-                <EditText
+                <android.widget.EditText
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:inputType="textMultiLine|textNoSuggestions"
