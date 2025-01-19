@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2024 Eli Wittman
+<!-- Copyright (C) 2024-2025 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -13,15 +13,18 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <item
         android:id="@+id/action_reorder_groups"
         android:icon="@drawable/ic_reorder_white_24"
         android:title="@string/reorder_groups"
-        android:showAsAction="always" />
+        android:showAsAction="always"
+        tools:ignore="AppCompatResource" />
     <item
         android:id="@+id/action_add_group"
         android:icon="@drawable/ic_add_group_white_24"
         android:title="@string/add_group"
-        android:showAsAction="always" />
+        android:showAsAction="always"
+        tools:ignore="AppCompatResource" />
 </menu>
