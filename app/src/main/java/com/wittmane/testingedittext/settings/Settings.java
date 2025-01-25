@@ -62,6 +62,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private SharedPreferenceManager mPrefs;
     private PreferenceReader mPreferenceReader;
+    private boolean mIsPrefChangedListenerRegistered;
 
     private static final Settings sInstance = new Settings();
 
@@ -76,6 +77,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     public static void init(final Context context) {
         if (sInstance.mPrefs != null) {
             // already initialized
+            if (!sInstance.mIsPrefChangedListenerRegistered) {
+                // register again since something caused an unregister
+                sInstance.registerPrefChangedListener();
+            }
             return;
         }
         sInstance.onCreate(context);
@@ -94,7 +99,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             mPrefs.setIntArray(PREF_TEST_GROUP_IDS, new int[] { 0 });
             mPrefs.setIntArray(PREF_TEST_FIELD_IDS_PREFIX + GROUP_INFIX + 0, new int[] { 0 });
         }
-        mPrefs.registerOnSharedPreferenceChangeListener(this);
+        registerPrefChangedListener();
         loadSettings();
 
         if (LIST_PREFS) {
@@ -102,6 +107,22 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
                 Log.w(TAG, "Preference key " + prefKey + " has data but wasn't loaded");
             }
         }
+    }
+
+    private void registerPrefChangedListener() {
+        if (mIsPrefChangedListenerRegistered) {
+            return;
+        }
+        mPrefs.registerOnSharedPreferenceChangeListener(this);
+        mIsPrefChangedListenerRegistered = true;
+    }
+
+    private void unregisterPrefChangedListener() {
+        if (!mIsPrefChangedListenerRegistered) {
+            return;
+        }
+        mPrefs.unregisterOnSharedPreferenceChangeListener(this);
+        mIsPrefChangedListenerRegistered = false;
     }
 
     /* package */ SharedPreferenceManager getPrefManager() {
@@ -207,7 +228,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
     }
 
     public static void onDestroy() {
-        getInstance().mPrefs.unregisterOnSharedPreferenceChangeListener(getInstance());
+        getInstance().unregisterPrefChangedListener();
     }
 
     @Override
