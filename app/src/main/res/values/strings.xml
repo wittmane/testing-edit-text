@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -377,6 +377,9 @@
     <string name="label_text">Label</string>
     <string name="default_text">Default text</string>
     <string name="hint_text">Hint text</string>
+
+    <string name="uses_app_level_defaults">Uses app level defaults</string>
+    <string name="overrides_app_level_defaults">Overrides defaults</string>
 
     <string name="display_screen">Display</string>
     <string name="theme">Theme</string>

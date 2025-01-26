@@ -262,7 +262,32 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                     getLabeledMaxLength(fieldSettings.getMaxLength(), context),
                     fieldSettings.shouldAllowUndo() ? context.getString(R.string.allow_undo) : null,
                     getLabeledTextLocales(fieldSettings.getTextLocales(), context),
-                    getLabeledImeHintLocales(fieldSettings.getImeHintLocales(), context)
+                    getLabeledImeHintLocales(fieldSettings.getImeHintLocales(), context),
+                    fieldSettings.overridesTextInputModification()
+                            ? getLabeledProperty(R.string.modify_text_input_screen,
+                                    context.getString(R.string.overrides_app_level_defaults),
+                                    context)
+                            : null,
+                    fieldSettings.overridesTextReturn()
+                            ? getLabeledProperty(R.string.returning_text_screen,
+                                    context.getString(R.string.overrides_app_level_defaults),
+                                    context)
+                            : null,
+                    fieldSettings.overridesTextComposition()
+                            ? getLabeledProperty(R.string.composing_text_screen,
+                                    context.getString(R.string.overrides_app_level_defaults),
+                                    context)
+                            : null,
+                    fieldSettings.overridesTargetVersion()
+                            ? getLabeledProperty(R.string.simulate_old_target_versions_screen,
+                                    context.getString(R.string.overrides_app_level_defaults),
+                                    context)
+                            : null,
+                    fieldSettings.overridesSystemBehavior()
+                            ? getLabeledProperty(R.string.simulate_system_behavior_screen,
+                                    context.getString(R.string.overrides_app_level_defaults),
+                                    context)
+                            : null
             };
             StringBuilder sb = new StringBuilder();
             for (String summaryPiece : summaryInfo) {

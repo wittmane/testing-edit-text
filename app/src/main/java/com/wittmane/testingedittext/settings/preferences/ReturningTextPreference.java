@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@ import android.content.Context;
 import android.os.Build;
 import android.util.AttributeSet;
 
+import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.fragments.ReturningTextSettingsFragment;
 
 public class ReturningTextPreference extends PerTestFieldPreference {
@@ -53,5 +56,13 @@ public class ReturningTextPreference extends PerTestFieldPreference {
 
     @Override
     protected void updateDisplayText() {
+        int groupIndex = getGroupIndex();
+        int fieldIndex = getFieldIndex();
+        if (groupIndex != -1 && fieldIndex != -1) {
+            TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
+            setSummary(getContext().getString(fieldSettings.overridesTextReturn()
+                    ? R.string.overrides_app_level_defaults
+                    : R.string.uses_app_level_defaults));
+        }
     }
 }

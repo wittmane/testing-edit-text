@@ -1109,5 +1109,25 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         public Locale[] getImeHintLocales() {
             return getField().mImeHintLocales;
         }
+
+        public boolean overridesTextInputModification() {
+            return getField().mOverrideTextInputModification;
+        }
+
+        public boolean overridesTextReturn() {
+            return getField().mOverrideTextReturn;
+        }
+
+        public boolean overridesTextComposition() {
+            return getField().mOverrideTextComposition;
+        }
+
+        public boolean overridesTargetVersion() {
+            return getField().mOverrideTargetVersion;
+        }
+
+        public boolean overridesSystemBehavior() {
+            return getField().mOverrideSystemBehavior;
+        }
     }
 }
