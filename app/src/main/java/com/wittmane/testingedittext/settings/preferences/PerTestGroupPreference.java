@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,9 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
-import android.preference.PreferenceManager;
 import android.util.AttributeSet;
+import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Preference to link to a test field group specific settings screen.
@@ -59,12 +60,10 @@ public abstract class PerTestGroupPreference extends Preference {
     }
 
     @Override
-    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
-        super.onAttachedToHierarchy(preferenceManager);
-
-        if (mGroupIndex >= 0) {
-            updateDisplayText();
-        }
+    protected View onCreateView(ViewGroup parent) {
+        View view = super.onCreateView(parent);
+        updateDisplayText();
+        return view;
     }
 
     protected void setGroupIndex(int groupIndex) {
