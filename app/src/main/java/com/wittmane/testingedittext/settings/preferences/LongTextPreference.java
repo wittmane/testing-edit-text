@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,37 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.preference.SwitchPreference;
-import android.text.TextUtils;
+import android.os.Build;
+import android.preference.Preference;
 import android.util.AttributeSet;
 import android.view.View;
 
 import com.wittmane.testingedittext.util.PreferenceUtils;
 
-public class LongTextSwitchPreference extends SwitchPreference {
-    private static final String TAG = LongTextSwitchPreference.class.getSimpleName();
+public class LongTextPreference extends Preference {
+    private static final String TAG = LongTextPreference.class.getSimpleName();
 
-    public LongTextSwitchPreference(Context context, AttributeSet attrs) {
+    public LongTextPreference(Context context) {
+        super(context);
+    }
+
+    public LongTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
+    public LongTextPreference(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public LongTextPreference(Context context, AttributeSet attrs, int defStyleAttr,
+                              int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+    }
+
     private CharSequence getDisplayedSummary() {
-        // based on logic from TwoStatePreference#syncSummaryView
-        boolean isChecked = isChecked();
-        CharSequence summaryOn = getSummaryOn();
-        if (isChecked && !TextUtils.isEmpty(summaryOn)) {
-            return summaryOn;
-        }
-        CharSequence summaryOff = getSummaryOff();
-        if (!isChecked && !TextUtils.isEmpty(summaryOff)) {
-            return summaryOff;
-        }
         return getSummary();
     }
 

@@ -23,7 +23,6 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.Preference;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,7 +30,7 @@ import android.view.ViewGroup;
 /**
  * Preference to link to a test field group specific settings screen.
  */
-public abstract class PerTestGroupPreference extends Preference {
+public abstract class PerTestGroupPreference extends LongTextPreference {
     private static final String TAG = PerTestGroupPreference.class.getSimpleName();
 
     private int mGroupIndex = -1;

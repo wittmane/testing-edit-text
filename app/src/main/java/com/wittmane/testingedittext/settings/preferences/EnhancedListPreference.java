@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import android.view.ViewTreeObserver.OnPreDrawListener;
 import android.widget.TextView;
 
 //TODO: (EW) see if there is a way to reduce duplicate code with DialogPreferenceBase and
-// LongTextSwitchPreference
+// LongTextSwitchPreference/LongTextPreference (PreferenceUtils#handleLongText)
 /**
  * A ListPreference with a few minor enhancements.
  * - shows its value in the summary
