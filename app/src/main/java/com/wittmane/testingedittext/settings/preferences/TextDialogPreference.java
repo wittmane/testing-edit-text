@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -352,10 +353,23 @@ public class TextDialogPreference extends DialogPreferenceBase {
     private void openKeyboard() {
         mEditText.requestFocus();
         mEditText.post(new Runnable() {
-            public void run() {
+            private int mCount = 0;
+            @Override
+            public void run()
+            {
                 InputMethodManager imm = (InputMethodManager)getContext().getSystemService(
                         Context.INPUT_METHOD_SERVICE);
-                imm.showSoftInput(mEditText, 0);
+                boolean imeOpened = imm.showSoftInput(mEditText, 0);
+                if (imeOpened) {
+                    return;
+                }
+                if (++mCount >= 20) {
+                    // it's been a minute and it still won't open. stop trying.
+                    Log.e(TAG, "Failed to open the IME");
+                    return;
+                }
+                // something seems to have blocked the IME from launching. try again later.
+                new Handler().postDelayed(this, 50);
             }
         });
     }
