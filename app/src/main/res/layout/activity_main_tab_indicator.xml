@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2025 Eli Wittman
+     Copyright (C) 2014 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<!-- (EW) I used tab_indicator_material as a starting point to match the default TabWidget except on
+     attributes I specifically created this to deviate from, particularly removing unnecessary
+     whitespace from forcing tabs to be the same width, allowing long text to ellipsize, centering
+     text that wraps (since we're not showing an icon), and reducing the min width. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="?android:attr/actionBarSize"
+    android:layout_weight="0"
+    android:orientation="horizontal"
+    android:minWidth="60dp"
+    style="@style/Widget.Tab">
+
+    <TextView
+        android:id="@android:id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:gravity="center"
+        android:ellipsize="end"
+        android:height="@null"
+        android:textAllCaps="false"
+        style="@style/Widget.TabText" />
+
+</LinearLayout>

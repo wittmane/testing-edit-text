@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright (C) 2006 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,6 +81,14 @@
         <item name="android:background">@color/none</item>
 
         <item name="android:textColor">@android:color/black</item>
+    </style>
+
+    <style name="Widget.Tab" parent="android:Widget.Holo.Tab">
+    </style>
+
+    <!-- (EW) from styles_holo (Widget.Holo.TabText) -->
+    <style name="Widget.TabText" parent="android:Widget.Holo.ActionBar.TabText">
+        <item name="android:maxWidth">180dip</item>
     </style>
 
 </resources>

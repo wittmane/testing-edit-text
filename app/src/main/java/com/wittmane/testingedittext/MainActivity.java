@@ -201,7 +201,14 @@ public class MainActivity extends ThemedActivity
                         ? getString(R.string.main_screen_title)
                         : getGroupDisplayName(this, groupIndex);
             }
-            spec.setIndicator(groupName);
+            // the default TabHost uses the layout from R.styleable.TabWidget_tabLayout, which is
+            // defined as tab_indicator_material in styles_material or tab_indicator_holo in
+            // styles_holo
+            View tabIndicator = LayoutInflater.from(this).inflate(
+                    R.layout.activity_main_tab_indicator, tabHost.getTabWidget(), false);
+            final TextView tabTitleView = tabIndicator.findViewById(android.R.id.title);
+            tabTitleView.setText(groupName);
+            spec.setIndicator(tabIndicator);
             spec.setContent(this);
             tabHost.addTab(spec);
             mGroups[groupIndex] = new Group(groupId, groupName);
@@ -291,7 +298,7 @@ public class MainActivity extends ThemedActivity
                 }
             });
         } else {
-            view = layoutInflater.inflate(R.layout.activity_main_tab, tabContent, false);
+            view = layoutInflater.inflate(R.layout.activity_main_tab_content, tabContent, false);
         }
         mTabViews.put(mCurrentTabIndex, view);
         // handle the bottom insets in the tab's scrolling content since it isn't handled on the
