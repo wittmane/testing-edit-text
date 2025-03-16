@@ -58,6 +58,7 @@ import com.wittmane.testingedittext.aosp.android.view.textservice.SpellCheckerSu
 import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
 import com.wittmane.testingedittext.settings.EditorSettings;
 import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.ViewUtils;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Color;
@@ -12717,7 +12718,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.M)
     void startActivityForResult(Intent intent, int requestCode) {
         Fragment tempFragment = FragmentForResult.newInstance(this);
-        Activity activity = getActivity();
+        Activity activity = ViewUtils.getActivity(this);
         if (activity == null) {
             return;
         }
@@ -12769,23 +12770,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     // implementation uses a temporary fragment to handle receiving the result, we need to make sure
     // that we can get the fragment manager (the Context needs to be an Activity).
     boolean canStartActivityForResult() {
-        return getActivity() != null;
-    }
-
-    // (EW) copied from MediaRouteButton. this is necessary because the way the AOSP Editor gets the
-    // DragAndDropPermissions isn't accessible for apps, so we need to find the activity to get it.
-    @Nullable Activity getActivity() {
-        // Gross way of unwrapping the Activity so we can get the FragmentManager
-        Context context = getContext();
-        while (context instanceof ContextWrapper) {
-            if (context instanceof Activity) {
-                return (Activity)context;
-            }
-            context = ((ContextWrapper)context).getBaseContext();
-        }
-        // (EW) MediaRouteButton threw an IllegalStateException because its Context was not an
-        // Activity, but an EditText could be added to a view with a Context that isn't an Activity,
-        // so we'll null to allow it to be handled.
-        return null;
+        return ViewUtils.getActivity(this) != null;
     }
 }
