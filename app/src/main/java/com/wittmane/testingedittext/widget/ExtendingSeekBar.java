@@ -329,8 +329,12 @@ public class ExtendingSeekBar extends ViewGroup {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         measureChild(mInternalSeekBar, widthMeasureSpec, heightMeasureSpec);
-        int maxHeight = Math.max(mInternalSeekBar.getMeasuredHeight(), getSuggestedMinimumHeight());
-        int maxWidth = Math.max(mInternalSeekBar.getMeasuredWidth(), getSuggestedMinimumWidth());
+        int maxHeight = Math.max(
+                mInternalSeekBar.getMeasuredHeight() + getPaddingTop() + getPaddingBottom(),
+                getSuggestedMinimumHeight());
+        int maxWidth = Math.max(
+                mInternalSeekBar.getMeasuredWidth() + getPaddingLeft() + getPaddingRight(),
+                getSuggestedMinimumWidth());
         int childState = mInternalSeekBar.getMeasuredState();
         setMeasuredDimension(resolveSizeAndState(maxWidth, widthMeasureSpec, childState),
                 resolveSizeAndState(maxHeight, heightMeasureSpec,

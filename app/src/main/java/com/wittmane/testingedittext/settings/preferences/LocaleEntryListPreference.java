@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import com.wittmane.testingedittext.settings.datamanager.LocaleArrayDataManager;
 import com.wittmane.testingedittext.text.inputfilters.AlphaFilter;
 import com.wittmane.testingedittext.text.inputfilters.AlphaNumericFilter;
 import com.wittmane.testingedittext.text.inputfilters.LowerCaseFilter;
+import com.wittmane.testingedittext.util.ResourceUtils;
 
 import java.util.Locale;
 
@@ -69,11 +70,11 @@ public class LocaleEntryListPreference
         textFieldLayout.setOrientation(LinearLayout.HORIZONTAL);
 
         EditText languageView = createEditText(data != null ? data.getLanguage() : "",
-                R.string.locale_language, false);
+                R.string.locale_language, false, false, true);
         EditText countryView = createEditText(data != null ? data.getCountry() : "",
-                R.string.locale_country, true);
+                R.string.locale_country, true, true, true);
         EditText variantView = createEditText(data != null ? data.getVariant() : "",
-                R.string.locale_variant, false);
+                R.string.locale_variant, false, true, false);
         textFieldLayout.addView(languageView);
         textFieldLayout.addView(countryView);
         textFieldLayout.addView(variantView);
@@ -149,11 +150,23 @@ public class LocaleEntryListPreference
         };
     }
 
-    private EditText createEditText(CharSequence text, int hintResId, boolean caps) {
+    private EditText createEditText(CharSequence text, int hintResId, boolean caps,
+                                    boolean includeLeftPadding, boolean includeRightPadding) {
         EditText editText = new EditText(getContext());
         editText.setSingleLine();
         LinearLayout.LayoutParams editTextLayoutParams = new LinearLayout.LayoutParams(
                 0, LayoutParams.WRAP_CONTENT, 1f);
+        int paddingNegation = ResourceUtils.getDimensionPixels(
+                R.attr.edittextUnderlineBackgroundPaddingNegation, getContext());
+        // just setting the padding to 0 doesn't change the underline, so set a negative margin to
+        // invert the padding to effectively have 0 margin/padding with the underline filling the
+        // area
+        if (!includeLeftPadding) {
+            editTextLayoutParams.leftMargin = paddingNegation;
+        }
+        if (!includeRightPadding) {
+            editTextLayoutParams.rightMargin = paddingNegation;
+        }
         editText.setLayoutParams(editTextLayoutParams);
         editText.setImeOptions(EditorInfo.IME_ACTION_NEXT);
         if (!TextUtils.isEmpty(text)) {

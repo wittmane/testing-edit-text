@@ -236,6 +236,7 @@ import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
 import static com.wittmane.testingedittext.aosp.android.view.inputmethod.EditorInfoExtension.STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY;
 import static com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection.LOG_CALLS;
 import static com.wittmane.testingedittext.aosp.android.widget.Editor.logCursor;
+import static com.wittmane.testingedittext.util.ResourceUtils.RESOURCES_ID_NULL;
 
 // (EW) copy of AOSP's EditText to allow complete customization. note that EditText is just a very
 // thin extension of TextView, so 99% of this code is actually from TextView
@@ -264,10 +265,6 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     // (EW) replacement for com.android.graphics.hwui.flags.Flags#highContrastTextSmallTextRect.
     // this check was added in Android 15 around alternate functionality.
     /* package */ static final boolean FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT = false;
-
-
-    private static final int RESOURCES_ID_NULL =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
 
     // (EW) from EditText
     // True if the style shortcut is enabled.

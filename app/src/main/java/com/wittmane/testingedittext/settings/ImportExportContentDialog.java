@@ -86,6 +86,7 @@ public class ImportExportContentDialog extends AlertDialog {
         mIncludeOtherSettings = includeOtherSettings;
         setCancelable(true);
         setCanceledOnTouchOutside(true);
+        setIcon(0);
         setTitle(mIsImport ? R.string.import_settings : R.string.export_settings);
         setButton(DialogInterface.BUTTON_POSITIVE, context.getText(android.R.string.ok),
                 (dialog, which) -> {

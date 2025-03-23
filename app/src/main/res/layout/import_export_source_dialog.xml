@@ -16,21 +16,18 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:paddingTop="?attr/dialogPreferredPaddingTop"
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom"
+    android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+    android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
+    android:clipToPadding="false">
 
-    <!-- (EW) matching padding for contentPanel/scrollView/message from AOSP's
-         alert_dialog.xml to match the general look of the normal AlertDialog.
-         customPanel/custom already adds 5dp top and bottom padding.
-         contentPanel/scrollView/message has a total top padding of 7, bottom
-         padding of 17, start padding of 19, and end padding of 15. -->
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="2dp"
-        android:paddingBottom="12dp"
-        android:paddingStart="19dp"
-        android:paddingEnd="15dp">
+        android:layout_marginStart="?attr/radiobuttonIconPaddingNegation">
 
         <RadioGroup
             android:layout_width="match_parent"

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
         android:layout_gravity="center"
         android:background="?android:selectableItemBackground"
         android:paddingVertical="12dp"
-        android:paddingHorizontal="8dp"/>
+        android:paddingHorizontal="0dp"/>
 
     <TextView
         android:id="@+id/title"
@@ -37,7 +37,7 @@
         android:maxLines="3"
         android:ellipsize="end"
         android:paddingStart="0dp"
-        android:paddingEnd="8dp"
+        android:paddingEnd="0dp"
         android:paddingVertical="8dp"
         android:textSize="18sp"/>
 

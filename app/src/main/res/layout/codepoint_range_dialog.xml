@@ -17,7 +17,9 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center_horizontal">
+    android:gravity="center_horizontal"
+    android:paddingTop="?attr/dialogPreferredPaddingTop"
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -27,30 +29,41 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="start">
+            android:gravity="start"
+            android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+            android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
+            android:clipToPadding="false">
 
+            <!-- (EW) compensate for the EditText underline (background) padding to keep it flush
+                 with the rest of the content (or edge of where the content is allowed) -->
             <TableLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minWidth="250sp"
-                android:padding="5dp"
                 android:stretchColumns="1,2"
-                android:shrinkColumns="1,2">
+                android:shrinkColumns="1,2"
+                android:layout_marginEnd="?attr/edittextUnderlineBackgroundPaddingNegation">
 
                 <TableRow>
+
+                    <!-- (EW) use horizontal padding that matches the positive built-in padding from
+                         the EditText that we negated in the table. this will keep the last column
+                         flush (if text extends that far) with the edge of the EditTexts below. we
+                         also want some padding between the labels to make sure the columns don't
+                         collide. -->
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_column="1"
-                        android:paddingHorizontal="5dp"
+                        android:paddingHorizontal="?attr/edittextUnderlineBackgroundPadding"
                         android:gravity="center"
                         android:text="@string/from_range_start" />
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:paddingHorizontal="5dp"
+                        android:paddingHorizontal="?attr/edittextUnderlineBackgroundPadding"
                         android:gravity="center"
                         android:text="@string/to_range_end" />
 
@@ -185,10 +198,13 @@
 
             </TableLayout>
 
+            <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the rest of the
+                 content -->
             <CheckBox
                 android:id="@+id/split_unicode_for_surrogate_pairs"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="?attr/checkboxIconPaddingNegation"
                 android:text="@string/use_split_unicode_for_surrogate_pairs" />
 
         </LinearLayout>

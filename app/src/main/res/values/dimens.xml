@@ -22,4 +22,91 @@
     <!-- (EW) from dimens_material (versions 24 (Nougat) through at least 31 (S / Android 12) -->
     <dimen name="text_edit_floating_toolbar_elevation">2dp</dimen>
     <dimen name="text_edit_floating_toolbar_margin">20dp</dimen>
+
+    <!-- (EW) value from alert_dialog_holo (version 19 through at least 35) to match padding
+         used in the basic text alert dialog -->
+    <dimen name="dialog_preferred_padding_top_holo">8dp</dimen>
+    <!-- (EW) value from alert_dialog_holo (version 19 through at least 35) to match padding
+         used in the basic text alert dialog -->
+    <dimen name="dialog_preferred_padding_horizontal_holo">16dp</dimen>
+    <!-- (EW) value from alert_dialog_holo (version 19 through at least 35) to match padding
+         used in the basic text alert dialog -->
+    <dimen name="dialog_preferred_padding_bottom_holo">8dp</dimen>
+
+    <!-- (EW) value from alert_dialog_padding_top_material in dimens_material (version 21) and
+         dialog_padding_top_material in dimens_material (version 22 through at least 35), used
+         in alert_dialog_material (version 21 through 23), to match padding used in the basic
+         text alert dialog -->
+    <dimen name="dialog_preferred_padding_top_material">18dp</dimen>
+    <!-- (EW) value from alert_dialog_padding_material in dimens_material (version 21), used in
+         alert_dialog_material (version 21), (replaced with ?attr/dialogPreferredPadding in
+         version 22) to match padding used in the basic text alert dialog -->
+    <dimen name="dialog_preferred_padding_horizontal_material_pre_v22">24dp</dimen>
+    <!-- (EW) lack of value from alert_dialog_material (version 21 through at least 35) to match
+         padding used in the basic text alert dialog -->
+    <dimen name="dialog_preferred_padding_bottom_material">0dp</dimen>
+
+    <!-- (EW) themes_holo specifies listChoiceIndicatorSingle to be
+         drawable/btn_radio_holo_dark or drawable/btn_radio_holo_light, which is specified as the
+         value for button in Widget.CompoundButton.RadioButton in styles. the nested focused state
+         drawables have an extra border around the checkbox (less padding around the content), so
+         those were used to determine how much padding was built in. padding was determined from
+         measuring the pixels and working with
+         px = dp * (dpi / 160), mdpi = 160 dpi, hdpi = 240 dpi, xhdpi = 320 dpi, xxhdpi = 480 dpi
+         the calculated dp padding doesn't match exactly between the different pixel density images,
+         and the smaller ones had a very faint colored pixel at the edge, so a rough estimate of
+         what all of them are targeting, leaning on the smaller side to reduce the risk of clipping,
+         was taken. since this already isn't terribly precise, there is really no need to split this
+         value by pixel density. -->
+    <dimen name="radiobutton_icon_padding_negation_holo">-4dp</dimen>
+    <!-- (EW) themes_material specifies listChoiceIndicatorSingle to be
+         drawable/btn_radio_material_anim, which is specified as the value for button in
+         Widget.CompoundButton.RadioButton in styles. the raw paths draws between -9 and 9 (both x
+         and y) with a stroke width of 2 and translate to be centered since negative values would
+         clip. it uses 32x32 viewport and is meant to be 32dp, so the content ends up drawing
+         between 6 and 26 dp (both x and y). -->
+    <dimen name="radiobutton_icon_padding_negation_material">-6dp</dimen>
+
+    <!-- (EW) themes_holo specifies listChoiceIndicatorMultiple to be
+         drawable/btn_check_holo_dark or drawable/btn_check_holo_light, which is specified as the
+         value for button in Widget.CompoundButton.CheckBox in styles. the nested focused state
+         drawables have an extra border around the checkbox (less padding around the content), so
+         those were used to determine how much padding was build in. padding was determined from
+         measuring the pixels and working with
+         px = dp * (dpi / 160), mdpi = 160 dpi, hdpi = 240 dpi, xhdpi = 320 dpi, xxhdpi = 480 dpi
+         there is a very faint gradient around the box. measuring only the portion that is truly
+         empty leaves too much of a seemingly unaccounted for gap, but going to the edge of the
+         clearly visible portion may look a bit weird from being clipped if looking closely, so
+         we'll work off of a middle point where the gradient is slightly noticeable to allow
+         blending reasonably. the calculated dp padding doesn't match exactly between the different
+         pixel density images, but since this already isn't terribly precise with the gradient,
+         there is really no need to split this value by pixel density, and we'll just primarily base
+         this off of the smallest padding. -->
+    <dimen name="checkbox_icon_padding_negation_holo">-5dp</dimen>
+    <!-- (EW) themes_material specifies listChoiceIndicatorMultiple to be
+         drawable/btn_check_material_anim, which is specified as the value for button in
+         Widget.CompoundButton.CheckBox in styles. the measurements on that drawable are convoluted.
+         the raw paths draws between -9 and 9 (both x and y) but they get scaled up to 7.5 and then
+         scaled down to 0.2 (and translated to be centered since negative values would clip) to fit
+         on a 48x48 viewport, which is meant to be 32dp (so those values effective scale down to
+         0.666), which gives a grand total scale of 1 to have the path values be dp, so the content
+         ends up drawing between 7 and 25 (both x and y). -->
+    <dimen name="checkbox_icon_padding_negation_material">-7dp</dimen>
+
+    <!-- (EW) themes_holo specifies editTextBackground to be drawable/edit_text_holo_light or
+         drawable/edit_text_holo_dark, which are made up of numerous 9-patch images that have the
+         padding built in. padding was determined from measuring the pixels and working with
+         px = dp * (dpi / 160), mdpi = 160 dpi, hdpi = 240 dpi, xhdpi = 320 dpi, xxhdpi = 480 dpi
+         most have a consistent padding of 4dp, but drawable/textfield_activated_holo_light and
+         drawable/textfield_activated_holo_dark have less padding (bolder underline), which makes
+         the padding less consistent at 3dp to 3.5dp, so we'll just go with the smallest to simplify
+         (probably not worth creating separate versions for the different pixel densities). -->
+    <dimen name="edittext_underline_background_padding_negation_holo">-3dp</dimen>
+    <dimen name="edittext_underline_background_padding_holo">3dp</dimen>
+    <!-- (EW) based on edit_text_inset_horizontal_material in dimens_material, which is used as the
+         left and right inset in drawable/textfield_activated_mtrl_alpha, which is the default
+         editTextBackground, specified in themes_material. -->
+    <dimen name="edittext_underline_background_padding_negation_material">-4dp</dimen>
+    <dimen name="edittext_underline_background_padding_material">4dp</dimen>
+
 </resources>

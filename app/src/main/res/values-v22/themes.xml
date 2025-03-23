@@ -14,23 +14,27 @@
      limitations under the License.
 -->
 <resources>
+    <style name="Theme.DeviceDefault.v22" parent="Theme.DeviceDefault.v21">
+        <item name="dialogPreferredPaddingHorizontal">?android:attr/dialogPreferredPadding</item>
+    </style>
     <style name="Theme.DeviceDefault" parent="Theme.DeviceDefault.v22">
-        <!-- (EW) ensure the status bar icons are light to contrast well with the dark background-->
-        <item name="android:windowLightStatusBar">false</item>
     </style>
 
+    <style name="Theme.DeviceDefault.Light.v22" parent="Theme.DeviceDefault.Light.v21">
+        <item name="dialogPreferredPaddingHorizontal">?android:attr/dialogPreferredPadding</item>
+    </style>
     <style name="Theme.DeviceDefault.Light" parent="Theme.DeviceDefault.Light.v22">
-        <!-- (EW) ensure the status bar icons are dark to contrast well with the light background-->
-        <item name="android:windowLightStatusBar">true</item>
     </style>
 
+    <style name="Theme.Material.v22" parent="Theme.Material.v21">
+        <item name="dialogPreferredPaddingHorizontal">?android:attr/dialogPreferredPadding</item>
+    </style>
     <style name="Theme.Material" parent="Theme.Material.v22">
-        <!-- (EW) ensure the status bar icons are light to contrast well with the dark background-->
-        <item name="android:windowLightStatusBar">false</item>
     </style>
 
+    <style name="Theme.Material.Light.v22" parent="Theme.Material.Light.v21">
+        <item name="dialogPreferredPaddingHorizontal">?android:attr/dialogPreferredPadding</item>
+    </style>
     <style name="Theme.Material.Light" parent="Theme.Material.Light.v22">
-        <!-- (EW) ensure the status bar icons are dark to contrast well with the light background-->
-        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>
