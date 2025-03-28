@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.datamanager.ListDataManager;
 import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.ResourceUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -115,11 +116,23 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
     protected abstract void setExtraDataUI(TFullData data);
 
-    protected EditText createEditText(CharSequence text) {
+    protected EditText createEditText(CharSequence text, boolean includeLeftPadding,
+                                      boolean includeRightPadding) {
         EditText editText = new EditText(getContext());
         editText.setSingleLine();
         TableRow.LayoutParams editTextLayoutParams = new TableRow.LayoutParams(
                 0, LayoutParams.WRAP_CONTENT, 1f);
+        int paddingNegation = ResourceUtils.getDimensionPixels(
+                R.attr.edittextUnderlineBackgroundPaddingNegation, getContext());
+        // just setting the padding to 0 doesn't change the underline, so set a negative margin to
+        // invert the padding to effectively have 0 margin/padding with the underline filling the
+        // area
+        if (!includeLeftPadding) {
+            editTextLayoutParams.leftMargin = paddingNegation;
+        }
+        if (!includeRightPadding) {
+            editTextLayoutParams.rightMargin = paddingNegation;
+        }
         editText.setLayoutParams(editTextLayoutParams);
         editText.setImeOptions(EditorInfo.IME_ACTION_NEXT);
         if (!TextUtils.isEmpty(text)) {
@@ -157,9 +170,10 @@ public abstract class EntryListPreference<TRowData, TFullData,
         TableRow.LayoutParams removeButtonLayoutParams = new TableRow.LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0f);
         removeButtonLayoutParams.gravity = Gravity.CENTER;
+        // add some space between the row content and the remove button since the row content
+        // shouldn't have any margin/padding on the right/left
+        removeButtonLayoutParams.leftMargin = (int) ResourceUtils.dpToPx(4, getContext());
         removeButton.setLayoutParams(removeButtonLayoutParams);
-        // don't allow removing the last row
-        removeButton.setVisibility(View.INVISIBLE);
         buttonWrapperLayout.addView(removeButton);
 
         Row row = new Row(tableRow, rowContent, removeButton);
@@ -176,6 +190,9 @@ public abstract class EntryListPreference<TRowData, TFullData,
                 // see if an extra row should be added in case it was skipped before due to the max
                 // row limit since there is room now
                 addExtraRowIfNecessary();
+                // if the extra row wasn't added, it may be relevant to change whether there is
+                // visible space for the remove button
+                updateLastRowRemoveButtonVisibility();
 
                 // in case invalid data got removed, we should revalidate and potentially enable the
                 // accept button again
@@ -183,6 +200,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
             }
         });
 
+        // make sure the previous row's remove button is visible
         if (mRows.size() > 0) {
             mRows.get(mRows.size() - 1).mRemoveButton.setVisibility(View.VISIBLE);
         }
@@ -277,6 +295,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
         tableRow.addView(buttonWrapperLayout);
         mTextTable.addView(tableRow);
         mRows.add(row);
+        updateLastRowRemoveButtonVisibility();
     }
 
     public static class Row {
@@ -459,7 +478,8 @@ public abstract class EntryListPreference<TRowData, TFullData,
         }
         Row lastRow = mRows.get(mRows.size() - 1);
         if (shouldHaveExtraRow(lastRow.mContent)) {
-            // since this row isn't functioning as the extra row anymore, it can be removed
+            // since this row isn't functioning as the extra row anymore, it can be removed, so the
+            // button should be visible
             lastRow.mRemoveButton.setVisibility(View.VISIBLE);
 
             addRow(null);
@@ -472,9 +492,18 @@ public abstract class EntryListPreference<TRowData, TFullData,
             return;
         }
         Row lastRow = mRows.get(mRows.size() - 1);
+        // if there is only a single row, either the row isn't populated (enough) to get an extra
+        // row or only the one row is allowed. in either case, we don't need to keep blank space for
+        // the remove button. if there are multiple rows, we only should show the remove button when
+        // the row is populated (or populated enough to normally add an extra row) because that
+        // would mean we're at the row limit (we don't need to allow deleting a blank extra row
+        // since it would just come back).
         lastRow.mRemoveButton.setVisibility(
-                shouldHaveExtraRow(lastRow.mContent) && mRows.size() > 1
-                        ? View.VISIBLE : View.INVISIBLE);
+                mRows.size() == 1
+                        ? View.GONE
+                        : (shouldHaveExtraRow(lastRow.mContent)
+                                ? View.VISIBLE
+                                : View.INVISIBLE));
     }
 
     protected void removeDuplicateExtraRowIfNecessary() {
@@ -494,8 +523,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
             mTextTable.removeView(lastRow.mTableRow);
             mRows.remove(lastRow);
 
-            // this is the new extra row, so it shouldn't be able to be removed
-            secondLastRow.mRemoveButton.setVisibility(View.INVISIBLE);
+            updateLastRowRemoveButtonVisibility();
         }
     }
 }

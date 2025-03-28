@@ -132,6 +132,7 @@ import com.wittmane.testingedittext.aosp.android.text.method.WordIterator;
 import com.wittmane.testingedittext.aosp.android.text.TextUtilsExtension;
 import com.wittmane.testingedittext.aosp.android.widget.EditText.OnEditorActionListener;
 import com.wittmane.testingedittext.util.SpanUtils;
+import com.wittmane.testingedittext.util.ViewUtils;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
 
 import java.lang.annotation.Retention;
@@ -607,7 +608,7 @@ class Editor {
         }
         // (EW) the AOSP version unregistered using ViewRootImpl, which is hidden, so we have to use
         // a different method to unregister the callback
-        Activity activity = mEditText.getActivity();
+        Activity activity = ViewUtils.getActivity(mEditText);
         if (activity == null) {
             return;
         }
@@ -626,7 +627,7 @@ class Editor {
         }
         // (EW) the AOSP version registered using ViewRootImpl, which is hidden, so we have to use a
         // different method to register the callback
-        Activity activity = mEditText.getActivity();
+        Activity activity = ViewUtils.getActivity(mEditText);
         if (activity == null) {
             return;
         }
@@ -2758,7 +2759,7 @@ class Editor {
         // up the activity and get it from that.
         final DragAndDropPermissions permissions;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Activity activity = mEditText.getActivity();
+            Activity activity = ViewUtils.getActivity(mEditText);
             if (activity != null) {
                 permissions = activity.requestDragAndDropPermissions(event);
             } else {

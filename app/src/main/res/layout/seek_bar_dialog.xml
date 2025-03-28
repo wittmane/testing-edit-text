@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright 2012, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,21 +19,30 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="10dp">
+    android:paddingTop="?attr/dialogPreferredPaddingTop"
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom"
+    android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+    android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
+    android:clipToPadding="false">
+
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:layout_margin="10dp">
+        android:gravity="center_horizontal">
+
         <TextView android:id="@+id/seek_bar_dialog_value"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="20sp"/>
+
     </LinearLayout>
+
     <com.wittmane.testingedittext.widget.ExtendingSeekBar
         android:id="@+id/seek_bar_dialog_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"/>
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"/>
+
 </LinearLayout>

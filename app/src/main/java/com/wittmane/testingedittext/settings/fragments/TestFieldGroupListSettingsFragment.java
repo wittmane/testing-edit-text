@@ -45,6 +45,7 @@ import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
 import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter;
 
 public class TestFieldGroupListSettingsFragment extends SettingsFragment {
@@ -162,6 +163,11 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         ListView listView = new ListView(getActivity());
         listView.setLayoutParams(new LinearLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, 0, 1));
+
+        int dialogHorizontalPadding = ResourceUtils.getDimensionPixels(
+                R.attr.dialogPreferredPaddingHorizontal, getActivity());
+        listView.setPadding(dialogHorizontalPadding, 0, dialogHorizontalPadding, 0);
+        listView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         DraggableGroupedListAdapter<GroupEntry, FieldEntry> adapter =
                 new DraggableGroupedListAdapter<>(getActivity(),
                         (view, group, field) -> {
@@ -181,9 +187,14 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         listView.setAdapter(adapter);
         layout.addView(listView);
 
+        int negativeCheckboxIconPadding = ResourceUtils.getDimensionPixels(
+                R.attr.checkboxIconPaddingNegation, getActivity());
         CheckBox checkBox = new CheckBox(getActivity());
-        checkBox.setLayoutParams(new LinearLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, 0));
+        LinearLayout.LayoutParams checkBoxLayoutParams = new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, 0);
+        checkBoxLayoutParams.setMarginStart(dialogHorizontalPadding + negativeCheckboxIconPadding);
+        checkBoxLayoutParams.setMarginEnd(dialogHorizontalPadding);
+        checkBox.setLayoutParams(checkBoxLayoutParams);
         checkBox.setText(R.string.expand_groups);
         checkBox.setOnCheckedChangeListener(
                 (buttonView, isChecked) -> adapter.expandGroups(isChecked));

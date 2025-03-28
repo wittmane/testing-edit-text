@@ -21,7 +21,6 @@ import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.PorterDuff;
@@ -30,7 +29,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -50,11 +48,6 @@ import java.util.ArrayList;
 
 public class IconUtils {
     private static final String TAG = IconUtils.class.getSimpleName();
-
-    //TODO: (EW) this is defined multiple places. find a good place to put it for everything to
-    // reference.
-    private static final int RESOURCES_ID_NULL =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
 
     /**
      * Set all item icons in a menu to match the action bar's text color.
@@ -198,7 +191,7 @@ public class IconUtils {
                 });
         button.setImageResource(imageResId);
         matchIconColor(context, button);
-        button.setBackgroundResource(getResourceId(
+        button.setBackgroundResource(ResourceUtils.getResourceId(
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         ? android.R.attr.selectableItemBackgroundBorderless
                         : android.R.attr.selectableItemBackground, context));
@@ -226,7 +219,7 @@ public class IconUtils {
         button.setCompoundDrawablesRelativeWithIntrinsicBounds(drawable,null, null, null);
 
         button.setBackgroundResource(
-                getResourceId(android.R.attr.selectableItemBackground, context));
+                ResourceUtils.getResourceId(android.R.attr.selectableItemBackground, context));
 
         button.setText(textResId);
 
@@ -241,7 +234,7 @@ public class IconUtils {
         // affect the right side of the button, and if text wraps multiple lines, the drawable
         // padding wouldn't affect the top or bottom, but this keeps a consistent padding around the
         // whole button, which seems fine.
-        int padding = (int) dpToPx(4, context);
+        int padding = (int) ResourceUtils.dpToPx(4, context);
         button.setPadding(padding, padding, padding, padding);
         button.setCompoundDrawablePadding(padding);
         // remove the minimum height/width from the button
@@ -301,18 +294,6 @@ public class IconUtils {
 
     private interface OnEnabledChangeListener<T extends View> {
         void onEnabledChanged(T view, boolean isEnabled);
-    }
-
-    private static int getResourceId(int attr, Context context) {
-        TypedArray typedArray = context.getTheme().obtainStyledAttributes(new int[] { attr });
-        int resId = typedArray.getResourceId(0, RESOURCES_ID_NULL);
-        typedArray.recycle();
-        return resId;
-    }
-
-    private static float dpToPx(float px, Context context) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, px,
-                context.getResources().getDisplayMetrics());
     }
 
     /**

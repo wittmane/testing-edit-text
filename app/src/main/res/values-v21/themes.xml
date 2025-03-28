@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright (C) 2014 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,15 @@
         <item name="floatingToolbarPopupBackgroundDrawable">@drawable/floating_popup_background_dark</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_material</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_material_pre_v22</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_material</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_material</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
     </style>
     <style name="Theme.DeviceDefault" parent="Theme.DeviceDefault.v21">
     </style>
@@ -52,6 +61,15 @@
              resolve the status bar color. android:color/primary_dark_material_light and
              android:color/material_grey_600 are private, so I have to just hard-code the color. -->
         <item name="android:colorPrimaryDark">@color/material_grey_600</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_material</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_material_pre_v22</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_material</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_material</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
     </style>
     <style name="Theme.DeviceDefault.Light" parent="Theme.DeviceDefault.Light.v21">
     </style>
@@ -72,6 +90,15 @@
              versions of this app and the Material theme generally -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_material</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_material_pre_v22</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_material</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_material</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
     </style>
     <style name="Theme.Material" parent="Theme.Material.v21">
     </style>
@@ -88,6 +115,14 @@
         <!-- (EW) see comment on Theme.Material -->
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container_material</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Material.TextSuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_material</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_material_pre_v22</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_material</item>
+
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
     </style>
     <style name="Theme.Material.Light" parent="Theme.Material.Light.v21">
     </style>

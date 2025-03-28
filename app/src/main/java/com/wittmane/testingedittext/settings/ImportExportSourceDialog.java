@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -60,6 +60,7 @@ public class ImportExportSourceDialog extends AlertDialog {
         mExportData = exportData;
         setCancelable(true);
         setCanceledOnTouchOutside(true);
+        setIcon(0);
         setTitle(isImport ? R.string.import_settings : R.string.export_settings);
         setButton(DialogInterface.BUTTON_POSITIVE, context.getText(android.R.string.ok),
                 (dialog, which) -> {

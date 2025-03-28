@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,9 +48,9 @@ public class TextTranslateListPreference
                         ? "\u2190"
                         : "\u2192");
         return new View[] {
-                createEditText(data == null ? null : data.getOriginal()),
+                createEditText(data == null ? null : data.getOriginal(), false, true),
                 rangeIndicator,
-                createEditText(data == null ? null : data.getTranslation())
+                createEditText(data == null ? null : data.getTranslation(), true, false)
         };
     }
 

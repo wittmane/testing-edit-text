@@ -20,9 +20,10 @@ import static android.view.View.DRAG_FLAG_OPAQUE;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 
+import static com.wittmane.testingedittext.util.ResourceUtils.RESOURCES_ID_NULL;
+
 import android.content.ClipData;
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Point;
 import android.os.Build;
 import android.os.Handler;
@@ -58,8 +59,6 @@ import java.util.TimerTask;
  * @param <TListItemBuilder> Object type for the builder to update the display for each list item.
  */
 public abstract class DraggableListAdapterBase<TListItems, TListItemBuilder> extends BaseAdapter {
-    private static final int RESOURCES_ID_NULL =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? Resources.ID_NULL : 0;
     private static final int SCROLL_TIMER_TIMEOUT = 75;
     private static final int SCROLL_SPEED = 1;
 

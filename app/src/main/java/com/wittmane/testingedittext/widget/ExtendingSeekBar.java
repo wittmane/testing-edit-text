@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.wittmane.testingedittext.widget;
 
 import androidx.annotation.Nullable;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
@@ -26,6 +27,7 @@ import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuff.Mode;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -39,6 +41,7 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -46,7 +49,10 @@ import android.widget.SeekBar;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.aosp.android.util.MathUtils;
+import com.wittmane.testingedittext.util.ViewUtils;
 
+import java.lang.reflect.Field;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -83,6 +89,7 @@ public class ExtendingSeekBar extends ViewGroup {
     private OnExtendingSeekBarChangeListener mOnExtendingSeekBarChangeListener;
     private final SeekBar.OnSeekBarChangeListener mOnInternalSeekBarChangeListener =
             new OnSeekBarChangeListenerProxy();
+    //TODO: (EW) find a better way to manage this that avoids accidentally leaving this set to true
     private boolean mIgnoreInternalProgressChanges = false;
 
     private InternalSeekBar mInternalSeekBar;
@@ -104,7 +111,7 @@ public class ExtendingSeekBar extends ViewGroup {
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public ExtendingSeekBar(Context context, AttributeSet attrs, int defStyleAttr,
-                             int defStyleRes) {
+                            int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init(attrs);
     }
@@ -322,8 +329,12 @@ public class ExtendingSeekBar extends ViewGroup {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         measureChild(mInternalSeekBar, widthMeasureSpec, heightMeasureSpec);
-        int maxHeight = Math.max(mInternalSeekBar.getMeasuredHeight(), getSuggestedMinimumHeight());
-        int maxWidth = Math.max(mInternalSeekBar.getMeasuredWidth(), getSuggestedMinimumWidth());
+        int maxHeight = Math.max(
+                mInternalSeekBar.getMeasuredHeight() + getPaddingTop() + getPaddingBottom(),
+                getSuggestedMinimumHeight());
+        int maxWidth = Math.max(
+                mInternalSeekBar.getMeasuredWidth() + getPaddingLeft() + getPaddingRight(),
+                getSuggestedMinimumWidth());
         int childState = mInternalSeekBar.getMeasuredState();
         setMeasuredDimension(resolveSizeAndState(maxWidth, widthMeasureSpec, childState),
                 resolveSizeAndState(maxHeight, heightMeasureSpec,
@@ -455,6 +466,7 @@ public class ExtendingSeekBar extends ViewGroup {
         if (changeProgressPosition) {
             setProgress(shift > 0 ? mCurrentMaxValue : mCurrentMinValue);
         }
+        mInternalSeekBar.updatePadding();
     }
 
     /**
@@ -546,15 +558,28 @@ public class ExtendingSeekBar extends ViewGroup {
     }
 
     private synchronized void handleSeekBarWidth() {
-        final int width = getWidth();
-        if (width == 0) {
+        if (mInternalSeekBar == null) {
             // can't determine what will fit yet
             return;
         }
+        Rect minPadding = mInternalSeekBar.getPadding(false, false);
+        Rect maxPadding = mInternalSeekBar.getPadding(true, true);
 
-        // make sure there is room for a tick and a space between ticks, each being 1 dp (or at
-        // least 1px)
-        mMaxVisibleSteps = width / Math.max(2, (int)(dpToPx(1) * 2));
+        mMaxVisibleSteps = getVisibleSteps(minPadding.left, minPadding.right);
+
+        // subtract 1 to convert the number of allowed points to the number of spaces between points
+        int maxInternalRange = mMaxVisibleSteps - 1;
+        if ((mRequestedVisibleRange <= 0 || mMaxValue - mMinValue <= mRequestedVisibleRange)
+                && maxInternalRange >= mMaxValue - mMinValue) {
+            // the full range with the specified precision fits. make sure there isn't extra padding
+            // for the arrows that won't be shown.
+            mInternalSeekBar.updatePadding();
+            return;
+        }
+
+        // since the full range won't fit, account for any potential extra padding from the arrows
+        mMaxVisibleSteps = getVisibleSteps(maxPadding.left, maxPadding.right);
+        maxInternalRange = mMaxVisibleSteps - 1;
 
         int stepsToShiftRange;
         if (mMaxVisibleSteps >= DEFAULT_STEPS_TO_SHIFT_RANGE * 4) {
@@ -562,7 +587,7 @@ public class ExtendingSeekBar extends ViewGroup {
             // both sides, the default can be used
             stepsToShiftRange = DEFAULT_STEPS_TO_SHIFT_RANGE;
         } else if (mMaxVisibleSteps < 3) {
-            // don't have enough room to even have a point one each side to shift and a single point
+            // don't have enough room to even have a point on each side to shift and a single point
             // to select a value, so we can't use the shifting range functionality. this really
             // shouldn't ever happen.
             final int currentValue = getProgress();
@@ -571,6 +596,7 @@ public class ExtendingSeekBar extends ViewGroup {
             mCurrentMaxValue = mMaxValue;
             setProgress(currentValue);
             mIgnoreInternalProgressChanges = false;
+            mInternalSeekBar.updatePadding();
             return;
         } else {
             // make sure there is at least as much space for real steps as the combined shift range
@@ -583,17 +609,9 @@ public class ExtendingSeekBar extends ViewGroup {
                     stepsToShiftRange);
         }
 
-        // subtract 1 to convert the number of allowed points to the number of spaces between points
-        int maxInternalRange = mMaxVisibleSteps - 1;
-
         int visibleRange = (maxInternalRange - stepsToShiftRange * 2) * mStepValue;
         if (mRequestedVisibleRange > 0 && visibleRange > mRequestedVisibleRange) {
             maxInternalRange = mRequestedVisibleRange / mStepValue + stepsToShiftRange * 2;
-        }
-
-        if (maxInternalRange >= mMaxValue - mMinValue) {
-            // the full range with the specified precision fits, so nothing to do
-            return;
         }
 
         mStepsToShiftRange = stepsToShiftRange;
@@ -622,6 +640,7 @@ public class ExtendingSeekBar extends ViewGroup {
 
         // don't bother setting anything if it didn't change in case that would trigger any events
         if (mCurrentMinValue == newCurrentMinValue && mCurrentMaxValue == newCurrentMaxValue) {
+            mIgnoreInternalProgressChanges = false;
             return;
         }
 
@@ -633,10 +652,30 @@ public class ExtendingSeekBar extends ViewGroup {
 
         setProgress(currentValue);
         mIgnoreInternalProgressChanges = false;
+
+        // make sure there is enough padding for the arrows
+        mInternalSeekBar.updatePadding();
+    }
+
+    private int getVisibleSteps(int leftArrowOrThumbPadding, int rightArrowOrThumbPadding) {
+        int baseWidth = getWidth();
+        if (baseWidth == 0) {
+            // can't determine what will fit yet
+            return 0;
+        }
+        float paddedTickWidth = Math.max(2, dpToPx(1) * 2);
+        int usableWidth = baseWidth - getPaddingLeft() - getPaddingRight()
+                - leftArrowOrThumbPadding - rightArrowOrThumbPadding;
+        // add half padded tick width because there doesn't need to be adding after the last tick
+        return (int) ((usableWidth + (paddedTickWidth / 2)) / paddedTickWidth);
     }
 
     private float dpToPx(float dp) {
         return dp * mDensity;
+    }
+
+    private float pxToDp(float px) {
+        return px / mDensity;
     }
 
     @SuppressLint("AppCompatCustomView")
@@ -676,21 +715,105 @@ public class ExtendingSeekBar extends ViewGroup {
             // certain if that is a real issue beyond the dialog.
             int color = Color.parseColor("#999999");
 
-            setSmallTickMark(createRectangleDrawable(1, 2, color));
-            setMediumTickMark(createRectangleDrawable(1, 6, color));
-            setLargeTickMark(createRectangleDrawable(1, 12, color));
-            setExtendLeftArrow(createTriangleDrawable(5, 5, false, color));
-            setExtendRightArrow(createTriangleDrawable(5, 5, true, color));
+            float thumbWidth = pxToDp(getThumb().getMinimumWidth());
+            float thumbHeight = pxToDp(getThumb().getMinimumHeight());
+
+            // since we need padding on the edge of the line to avoid clipping the thumb when it's
+            // at the edge, set the arrow to fill the padding to make it look more flush when the
+            // arrow is visible. also, constrain the size somewhat arbitrarily to avoid making it
+            // too tiny or ridiculously large.
+            float arrowWidth = MathUtils.constrain(thumbWidth / 2, 5, 15);
+            // make the arrow an equilateral triangle
+            float arrowHeight = (float) (2 * arrowWidth / Math.sqrt(3));
+
+            // set the small tick to be the height of the line
+            //TODO: (EW) this probably should be calculated. ideally this is meant to match the
+            // height of the progress drawable, but getCurrentDrawable().getIntrinsicHeight()
+            // returns padding included in the drawable, rather than just the actual bar. the
+            // drawable uses android.R.dimen.seekbar_track_background_height_material (in material),
+            // but that isn't public, so we can't use that. for now we'll just hard-code it.
+            float smallTickHeight = 2;
+            // set the largest tick to match the height of the thumb (or the arrow if that happens
+            // to be larger). also, constrain the size somewhat arbitrarily to be reasonably large
+            // (to allow 2 clearly smaller marks)
+            float largeTickHeight = MathUtils.constrain(Math.max(thumbHeight, arrowHeight), 12, 30);
+            // set the medium tick to be halfway between the large and small tick
+            float mediumTickHeight = (largeTickHeight + smallTickHeight) / 2;
+
+            setSmallTickMark(createRectangleDrawable(1, smallTickHeight, color));
+            setMediumTickMark(createRectangleDrawable(1, mediumTickHeight, color));
+            setLargeTickMark(createRectangleDrawable(1, largeTickHeight, color));
+            setExtendLeftArrow(createTriangleDrawable(arrowWidth, arrowHeight, false, color));
+            setExtendRightArrow(createTriangleDrawable(arrowWidth, arrowHeight, true, color));
         }
 
-        @Override
-        public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        private Rect getPadding(boolean showLeftArrow, boolean showRightArrow) {
+            // ensure there is enough padding around the base seekbar to show the arrows, and ticks.
+            // the base seekbar manages its height to fit the whole thumb and progress bar, but it
+            // doesn't account for the thumb extending past the edge of the bar (allowing it to
+            // clip). the main view should manage extra padding, and the padding for this internal
+            // seekbar should only be used to account for additionally drawn content to allow the
+            // base SeekBar just handle its normal drawing.
+            Drawable currentDrawable = getCurrentDrawable();
+            Drawable thumb = getThumb();
+
+            // based on AbsSeekBar#onMeasure
+            int baseHeight = Math.max(getDrawableHeight(thumb),
+                    Math.max(getMinHeight(),
+                            Math.min(getMaxHeight(), getDrawableHeight(currentDrawable))));
+
+            int maxExtraContentHeight = Math.max(getDrawableHeight(mLargeTickMark),
+                    Math.max(getDrawableHeight(mMediumTickMark),
+                            getDrawableHeight(mSmallTickMark)));
+
+            int thumbHorizontalPadding = getDrawableWidth(thumb) / 2;
+            int leftPadding = thumbHorizontalPadding;
+            int rightPadding = thumbHorizontalPadding;
+            // if either arrow should show, add the arrow paddings. include the padding even if one
+            // arrow isn't visible to avoid weird shifting when the arrows change visibility.
+            if (showLeftArrow || showRightArrow) {
+                int leftArrowWidth = getDrawableWidth(mExtendLeftArrow);
+                int rightArrowWidth = getDrawableWidth(mExtendRightArrow);
+                leftPadding = Math.max(leftPadding, leftArrowWidth);
+                rightPadding = Math.max(rightPadding, rightArrowWidth);
+                maxExtraContentHeight = Math.max(maxExtraContentHeight,
+                        Math.max(leftArrowWidth, rightArrowWidth));
+            }
+            int verticalPadding;
+            if (maxExtraContentHeight > baseHeight) {
+                verticalPadding = (maxExtraContentHeight - baseHeight) / 2;
+            } else {
+                verticalPadding = 0;
+            }
+            return new Rect(leftPadding, verticalPadding, rightPadding, verticalPadding);
         }
 
-        @Override
-        protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-            super.onLayout(changed, left, top, right, bottom);
+        private void updatePadding() {
+            Rect padding = getPadding(shouldShowLeftArrow(), shouldShowRightArrow());
+            if (padding.left != getPaddingLeft() || padding.top != getPaddingTop()
+                    || padding.right != getPaddingRight() || padding.bottom != getPaddingBottom()) {
+                Activity activity = ViewUtils.getActivity(this);
+                if (activity != null) {
+                    activity.runOnUiThread(() -> {
+                        setPadding(padding.left, padding.top, padding.right, padding.bottom);
+                        if (!isInLayout()) {
+                            requestLayout();
+                        } else {
+                            ViewTreeObserver treeObserver = getViewTreeObserver();
+                            treeObserver.addOnGlobalLayoutListener(
+                                    new ViewTreeObserver.OnGlobalLayoutListener() {
+                                        @Override
+                                        public void onGlobalLayout() {
+                                            if (!isInLayout()) {
+                                                treeObserver.removeOnGlobalLayoutListener(this);
+                                                requestLayout();
+                                            }
+                                        }
+                                    });
+                        }
+                    });
+                }
+            }
         }
 
         @Override
@@ -718,8 +841,7 @@ public class ExtendingSeekBar extends ViewGroup {
             final int saveCount = canvas.save();
             canvas.translate(getPaddingLeft(), getHeight() / 2f);
 
-            // draw the start arrow if there is more
-            if (mMinValue < mCurrentMinValue) {
+            if (shouldShowLeftArrow()) {
                 mExtendLeftArrow.draw(canvas);
             }
 
@@ -742,8 +864,7 @@ public class ExtendingSeekBar extends ViewGroup {
                 canvas.translate(spacing, 0);
             }
 
-            // draw the end arrow if there is more
-            if (mCurrentMaxValue < mMaxValue) {
+            if (shouldShowRightArrow()) {
                 canvas.translate(-spacing, 0);
                 mExtendRightArrow.draw(canvas);
             }
@@ -752,6 +873,16 @@ public class ExtendingSeekBar extends ViewGroup {
 
             // make sure the thumb is on top
             drawThumb(canvas);
+        }
+
+        private boolean shouldShowLeftArrow() {
+            // draw the start arrow if there is more
+            return mMinValue < mCurrentMinValue;
+        }
+
+        private boolean shouldShowRightArrow() {
+            // draw the end arrow if there is more
+            return mCurrentMaxValue < mMaxValue;
         }
 
         // from AbsSeekBar
@@ -764,6 +895,71 @@ public class ExtendingSeekBar extends ViewGroup {
                 canvas.translate(getPaddingLeft() - getThumbOffset(), getPaddingTop());
                 thumb.draw(canvas);
                 canvas.restoreToCount(saveCount);
+            }
+        }
+
+        @Override
+        public Drawable getCurrentDrawable() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                // (EW) this line works on Pie, but logs the warning:
+                // Accessing hidden field Landroid/widget/ProgressBar;->mCurrentDrawable:Landroid/graphics/drawable/Drawable; (light greylist, reflection)
+                return getPrivateField(ProgressBar.class, "mCurrentDrawable", null);
+            }
+            return super.getCurrentDrawable();
+        }
+
+        @Override
+        public int getMinWidth() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                // (EW) this line works on Pie, but logs the warning:
+                //Accessing hidden field Landroid/widget/ProgressBar;->mMinWidth:I (light greylist, reflection)
+                int result = getPrivateField(ProgressBar.class, "mMinWidth", /*24*/0);
+                Log.d(TAG, "getMinWidth()=" + result);
+                return result;
+            }
+            return super.getMinWidth();
+        }
+
+        @Override
+        public int getMaxWidth() {
+            //TODO: (EW) this line doesn't work on Pie, and logs the warning:
+            // Accessing hidden field Landroid/widget/ProgressBar;->mMaxWidth:I (dark greylist, reflection)
+            // I'm not sure why this isn't allowed when the others are.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                return getPrivateField(ProgressBar.class, "mMaxWidth", 48);
+            }
+            return super.getMaxWidth();
+        }
+
+        @Override
+        public int getMinHeight() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                // (EW) this line works on Pie, but logs the warning:
+                // Accessing hidden field Landroid/widget/ProgressBar;->mMinHeight:I (light greylist, reflection)
+                return getPrivateField(ProgressBar.class, "mMinHeight", 24);
+            }
+            return super.getMinHeight();
+        }
+
+        @Override
+        public int getMaxHeight() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                // (EW) this line works on Pie, but logs the warning:
+                // Accessing hidden field Landroid/widget/ProgressBar;->mMaxHeight:I (light greylist, reflection)
+                return getPrivateField(ProgressBar.class, "mMaxHeight", 48);
+            }
+            return super.getMaxHeight();
+        }
+
+        private <T> T getPrivateField(Class<?> parentClass, String fieldName, T defaultValue) {
+            try {
+                Field field = parentClass.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return (T) field.get(this);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                Log.e(TAG, fieldName + ": Failed to get field: " + e.getClass().getSimpleName()
+                        + ": " + e.getMessage());
+                return defaultValue;
             }
         }
 
@@ -802,6 +998,24 @@ public class ExtendingSeekBar extends ViewGroup {
             return getMax() - getMin() + 1;
         }
 
+        @Override
+        public void setProgressDrawableTiled(Drawable d) {
+            super.setProgressDrawableTiled(d);
+            updatePadding();
+        }
+
+        @Override
+        public void setProgressDrawable(Drawable d) {
+            super.setProgressDrawable(d);
+            updatePadding();
+        }
+
+        @Override
+        public void setThumb(Drawable thumb) {
+            super.setThumb(thumb);
+            updatePadding();
+        }
+
         private ColorStateList mTickMarkTintList = null;
         private PorterDuff.Mode mTickMarkTintMode = null;
         private boolean mHasTickMarkTint = false;
@@ -818,6 +1032,7 @@ public class ExtendingSeekBar extends ViewGroup {
                 }
                 centerDrawable(tickMark);
                 applyTickMarkTint();
+                updatePadding();
             }
             invalidate();
         }
@@ -837,6 +1052,7 @@ public class ExtendingSeekBar extends ViewGroup {
                     setDrawableBoundsRightEdge(extendArrow);
                 }
                 applyTickMarkTint();
+                updatePadding();
             }
             invalidate();
         }
@@ -1409,6 +1625,14 @@ public class ExtendingSeekBar extends ViewGroup {
                 + slowMovementScale;
 
         return (int)(baseShiftSteps * shiftScale * mStepValue);
+    }
+
+    private static int getDrawableWidth(Drawable drawable) {
+        return drawable == null ? 0 : drawable.getIntrinsicWidth();
+    }
+
+    private static int getDrawableHeight(Drawable drawable) {
+        return drawable == null ? 0 : drawable.getIntrinsicHeight();
     }
 
     private String getDebugState() {

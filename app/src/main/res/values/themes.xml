@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
      Copyright (C) 2006 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,15 @@
         <item name="isLightTheme">false</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_holo</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_holo</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_holo</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_holo</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
     </style>
 
     <style name="Theme.DeviceDefault.Light" parent="@android:style/Theme.DeviceDefault.Light">
@@ -31,6 +40,15 @@
         <item name="isLightTheme">true</item>
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_holo</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_holo</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_holo</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_holo</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
     </style>
 
     <style name="Theme.Holo" parent="@android:style/Theme.Holo">
@@ -47,6 +65,15 @@
         <!-- (EW) prior to Nougat, android.R.style.TextAppearance_SuggestionHighlight was just
              directly used in Editor-->
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_holo</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_holo</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_holo</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_holo</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
     </style>
 
     <style name="Theme.Holo.Light" parent="@android:style/Theme.Holo.Light">
@@ -61,5 +88,14 @@
         <item name="textEditSuggestionContainerLayout">@layout/text_edit_suggestion_container</item>
         <!-- (EW) see comment in Theme.Holo -->
         <item name="textEditSuggestionHighlightStyle">@style/TextAppearance.Holo.SuggestionHighlight</item>
+
+        <item name="dialogPreferredPaddingTop">@dimen/dialog_preferred_padding_top_holo</item>
+        <item name="dialogPreferredPaddingHorizontal">@dimen/dialog_preferred_padding_horizontal_holo</item>
+        <item name="dialogPreferredPaddingBottom">@dimen/dialog_preferred_padding_bottom_holo</item>
+
+        <item name="radiobuttonIconPaddingNegation">@dimen/radiobutton_icon_padding_negation_holo</item>
+        <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
+        <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
     </style>
 </resources>

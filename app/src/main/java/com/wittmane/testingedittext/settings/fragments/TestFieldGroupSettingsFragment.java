@@ -48,6 +48,7 @@ import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
 import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
 import com.wittmane.testingedittext.settings.preferences.TextDialogPreference;
 import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableListAdapter;
 
 import java.util.ArrayList;
@@ -141,6 +142,10 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     private void showReorderFieldsDialog() {
         ListView listView = new ListView(getActivity());
+        int dialogHorizontalPadding = ResourceUtils.getDimensionPixels(
+                R.attr.dialogPreferredPaddingHorizontal, getActivity());
+        listView.setPadding(dialogHorizontalPadding, 0, dialogHorizontalPadding, 0);
+        listView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         DraggableListAdapter<FieldEntry> adapter = new DraggableListAdapter<>(getActivity(),
                 (view, item) -> {
                     TextView titleView = view.findViewById(R.id.title);

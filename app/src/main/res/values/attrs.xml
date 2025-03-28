@@ -42,6 +42,26 @@
         <attr name="actionModeUndoDrawable" format="reference" />
         <!-- Drawable to use for the Redo action button in WebView selection action modes. -->
         <attr name="actionModeRedoDrawable" format="reference" />
+
+        <!-- (EW) Preferred top padding for dialog content. -->
+        <attr name="dialogPreferredPaddingTop" format="dimension" />
+        <!-- (EW) Preferred start/end padding for dialog content. -->
+        <attr name="dialogPreferredPaddingHorizontal" format="dimension" />
+        <!-- (EW) Preferred bottom padding for dialog content. -->
+        <attr name="dialogPreferredPaddingBottom" format="dimension" />
+
+        <!-- (EW) Inverse of the padding built into the radiobutton icon to allow shifting to align
+             the icon to an edge. -->
+        <attr name="radiobuttonIconPaddingNegation" format="dimension" />
+        <!-- (EW) Inverse of the padding built into the checkbox icon to allow shifting to align the
+             icon to an edge. -->
+        <attr name="checkboxIconPaddingNegation" format="dimension" />
+        <!-- (EW) Inverse of the padding built into the EditText background to allow shifting to
+             align the underline to an edge. Just setting the EditText's padding to 0 doesn't change
+             the underline. Using a negative margin with this can create the same effect as what
+             most probably would expect from setting the padding to 0. -->
+        <attr name="edittextUnderlineBackgroundPaddingNegation" format="dimension" />
+        <attr name="edittextUnderlineBackgroundPadding" format="dimension" />
     </declare-styleable>
 
     <declare-styleable name="ExtendingSeekBar">

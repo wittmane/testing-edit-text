@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingLeft="5dp"
-    android:paddingRight="5dp">
+    android:paddingTop="?attr/dialogPreferredPaddingTop"
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -28,6 +28,8 @@
         <TableLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+            android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
             android:id="@+id/text_table" >
             <!-- rows will be added programmatically -->
         </TableLayout>
