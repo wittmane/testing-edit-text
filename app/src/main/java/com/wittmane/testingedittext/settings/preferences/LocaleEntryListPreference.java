@@ -82,6 +82,7 @@ public class LocaleEntryListPreference
         cellLayout.addView(textFieldLayout);
 
         TextView localeNameView = new TextView(getContext());
+        localeNameView.setVisibility(data == null ? View.GONE : View.VISIBLE);
 
         cellLayout.addView(localeNameView);
 
@@ -101,6 +102,9 @@ public class LocaleEntryListPreference
                 Locale locale = new Locale(languageView.getText().toString(),
                         countryView.getText().toString(), variantView.getText().toString());
                 localeNameView.setText(locale.getDisplayName());
+                localeNameView.setVisibility(TextUtils.isEmpty(localeNameView.getText())
+                        ? View.GONE
+                        : View.VISIBLE);
 
                 updateAcceptButtonState();
             }
