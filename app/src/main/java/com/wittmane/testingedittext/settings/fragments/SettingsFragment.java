@@ -48,7 +48,10 @@ public abstract class SettingsFragment extends PreferenceFragment {
 
     @Override
     public void onDetach() {
-        EdgeToEdgeUtils.removeInsetHandling(getActivity(), mView.findViewById(android.R.id.list));
+        if (mView != null) {
+            EdgeToEdgeUtils.removeInsetHandling(getActivity(),
+                    mView.findViewById(android.R.id.list));
+        }
         super.onDetach();
     }
 }

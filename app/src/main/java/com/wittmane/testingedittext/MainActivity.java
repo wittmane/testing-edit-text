@@ -731,15 +731,14 @@ public class MainActivity extends ThemedActivity
     }
 
     @Override
-    protected void onRestoreInstanceState (@NonNull Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         int currentTabIndex = savedInstanceState.getInt(STATE_CURRENT_TAB_INDEX);
         final TabHost tabHost = findViewById(R.id.tabHost);
         tabHost.setCurrentTab(currentTabIndex);
 
-        TestFieldParcelable[] testFieldParcelables =
-                (TestFieldParcelable[]) savedInstanceState.getParcelableArray(
-                        STATE_ALL_TEST_FIELDS);
+        TestFieldParcelable[] testFieldParcelables = getTestFieldParcelableArray(savedInstanceState,
+                STATE_ALL_TEST_FIELDS);
         if (testFieldParcelables != null) {
             for (TestFieldParcelable parcelable : testFieldParcelables) {
                 TestField testField = mAllTestFields.get(parcelable.mId);
@@ -763,6 +762,41 @@ public class MainActivity extends ThemedActivity
                 }
             }
         }
+    }
+
+    private static TestFieldParcelable[] getTestFieldParcelableArray(
+            @NonNull Bundle savedInstanceState, String key) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return savedInstanceState.getParcelableArray(key, TestFieldParcelable.class);
+        } else {
+            Parcelable[] parcelableArray = savedInstanceState.getParcelableArray(key);
+            if (parcelableArray instanceof TestFieldParcelable[]) {
+                return (TestFieldParcelable[]) parcelableArray;
+            } else if (parcelableArray != null) {
+                // for some reason in some cases the array gets typed generically as Parcelable[],
+                // but all of the elements are the expected type. move the elements into a new
+                // properly typed array in this case.
+                boolean allElementsCorrectType = true;
+                for (Parcelable parcelable : parcelableArray) {
+                    if (parcelable != null && !(parcelable instanceof TestFieldParcelable)) {
+                        allElementsCorrectType = false;
+                        break;
+                    }
+                }
+                if (allElementsCorrectType) {
+                    Log.w(TAG, "Parcelable array type is wrong, but elements are correct");
+                    TestFieldParcelable[] testFieldParcelables =
+                            new TestFieldParcelable[parcelableArray.length];
+                    for (int i = 0; i < parcelableArray.length; i++) {
+                        testFieldParcelables[i] = (TestFieldParcelable) parcelableArray[i];
+                    }
+                    return testFieldParcelables;
+                } else {
+                    Log.e(TAG, "Unexpected Parcelable[]: " + parcelableArray.getClass());
+                }
+            }
+        }
+        return null;
     }
 
     @Override
