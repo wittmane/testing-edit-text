@@ -117,6 +117,15 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        if (getFragmentManager().getBackStackEntryCount() > 0) {
+            super.onBackPressed();
+        } else {
+            finish();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         EdgeToEdgeUtils.removeInsetHandling(this);
         super.onDestroy();
