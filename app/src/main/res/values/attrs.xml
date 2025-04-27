@@ -196,6 +196,18 @@
         <attr name="defaultValueText" format="string|reference" />
     </declare-styleable>
 
+    <declare-styleable name="LinearScrollLayout">
+        <attr name="pinFirst" format="boolean" />
+        <attr name="pinLast" format="boolean" />
+        <attr name="contentMinLength" format="dimension" />
+        <attr name="android:clipToPadding" />
+        <attr name="android:showDividers" />
+        <attr name="android:dividerPadding" />
+        <attr name="android:divider" />
+        <attr name="android:orientation" />
+        <attr name="android:gravity" />
+    </declare-styleable>
+
     <declare-styleable name="TextDialogPreference">
         <!-- The type of data being placed in a text field, used to help an
              input method decide how to let the user enter text. -->
