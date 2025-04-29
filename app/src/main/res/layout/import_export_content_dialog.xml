@@ -13,89 +13,76 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.wittmane.testingedittext.widget.LinearScrollLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+    android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
     android:paddingTop="?attr/dialogPreferredPaddingTop"
-    android:paddingBottom="?attr/dialogPreferredPaddingBottom">
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom"
+    android:clipToPadding="false">
 
-    <ScrollView
+    <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the title -->
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:overScrollMode="ifContentScrolls">
+        android:layout_marginStart="?attr/checkboxIconPaddingNegation">
+
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/field_defaults"
+            android:checked="true"
+            android:id="@+id/fieldDefaults" />
+
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/test_fields"
+            android:checked="true"
+            android:id="@+id/testFields" />
 
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
-            android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
-            android:clipToPadding="false">
+            android:paddingStart="30dp"
+            android:id="@+id/testFieldDetails">
 
-            <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the title -->
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/testFieldOption" />
+
             <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="?attr/checkboxIconPaddingNegation">
-
-                <CheckBox
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/field_defaults"
-                    android:checked="true"
-                    android:id="@+id/fieldDefaults" />
-
-                <CheckBox
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/test_fields"
-                    android:checked="true"
-                    android:id="@+id/testFields" />
-
-                <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="30dp"
-                    android:id="@+id/testFieldDetails">
-
-                    <Spinner
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:id="@+id/testFieldOption" />
-
-                    <LinearLayout
-                        android:orientation="vertical"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="30dp"
-                        android:id="@+id/testFieldDynamicDetails">
-
-                    </LinearLayout>
-
-                    <CheckBox
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/embed_field_defaults"
-                        android:checked="false"
-                        android:enabled="false"
-                        android:id="@+id/embedFieldDefaults" />
-
-                </LinearLayout>
-
-                <CheckBox
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/other_settings"
-                    android:checked="true"
-                    android:id="@+id/otherSettings" />
+                android:paddingStart="30dp"
+                android:id="@+id/testFieldDynamicDetails">
 
             </LinearLayout>
 
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/embed_field_defaults"
+                android:checked="false"
+                android:enabled="false"
+                android:id="@+id/embedFieldDefaults" />
+
         </LinearLayout>
 
-    </ScrollView>
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/other_settings"
+            android:checked="true"
+            android:id="@+id/otherSettings" />
 
-</LinearLayout>
+    </LinearLayout>
+
+</com.wittmane.testingedittext.widget.LinearScrollLayout>

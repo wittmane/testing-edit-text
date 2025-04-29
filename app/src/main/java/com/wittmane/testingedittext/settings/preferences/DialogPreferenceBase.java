@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,24 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.preference.DialogPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
 public abstract class DialogPreferenceBase extends DialogPreference {
+    private static final String TAG = DialogPreferenceBase.class.getSimpleName();
 
     private CharSequence mBaseSummary;
     private CharSequence mValueSummary;
@@ -42,6 +47,16 @@ public abstract class DialogPreferenceBase extends DialogPreference {
     public DialogPreferenceBase(final Context context, final AttributeSet attrs) {
         super(context, attrs);
         mBaseSummary = getSummary();
+    }
+
+    @Override
+    protected void showDialog(Bundle state) {
+        super.showDialog(state);
+        Dialog dialog = getDialog();
+        if (dialog != null) {
+            dialog.getWindow().setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        }
     }
 
     @Override

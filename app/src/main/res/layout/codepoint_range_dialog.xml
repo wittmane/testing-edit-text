@@ -13,202 +13,189 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.wittmane.testingedittext.widget.LinearScrollLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
+    android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+    android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
     android:paddingTop="?attr/dialogPreferredPaddingTop"
-    android:paddingBottom="?attr/dialogPreferredPaddingBottom">
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom"
+    android:clipToPadding="false">
 
-    <ScrollView
+    <!-- (EW) compensate for the EditText underline (background) padding to keep it flush
+         with the rest of the content (or edge of where the content is allowed) -->
+    <TableLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:minWidth="250sp"
+        android:stretchColumns="1,2"
+        android:shrinkColumns="1,2"
+        android:layout_marginEnd="?attr/edittextUnderlineBackgroundPaddingNegation">
 
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start"
-            android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
-            android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
-            android:clipToPadding="false">
+        <TableRow>
 
-            <!-- (EW) compensate for the EditText underline (background) padding to keep it flush
-                 with the rest of the content (or edge of where the content is allowed) -->
-            <TableLayout
-                android:layout_width="match_parent"
+            <!-- (EW) use horizontal padding that matches the positive built-in padding from
+                 the EditText that we negated in the table. this will keep the last column
+                 flush (if text extends that far) with the edge of the EditTexts below. we
+                 also want some padding between the labels to make sure the columns don't
+                 collide. -->
+
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minWidth="250sp"
-                android:stretchColumns="1,2"
-                android:shrinkColumns="1,2"
-                android:layout_marginEnd="?attr/edittextUnderlineBackgroundPaddingNegation">
+                android:layout_column="1"
+                android:paddingHorizontal="?attr/edittextUnderlineBackgroundPadding"
+                android:gravity="center"
+                android:text="@string/from_range_start" />
 
-                <TableRow>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="?attr/edittextUnderlineBackgroundPadding"
+                android:gravity="center"
+                android:text="@string/to_range_end" />
 
-                    <!-- (EW) use horizontal padding that matches the positive built-in padding from
-                         the EditText that we negated in the table. this will keep the last column
-                         flush (if text extends that far) with the edge of the EditTexts below. we
-                         also want some padding between the labels to make sure the columns don't
-                         collide. -->
+        </TableRow>
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_column="1"
-                        android:paddingHorizontal="?attr/edittextUnderlineBackgroundPadding"
-                        android:gravity="center"
-                        android:text="@string/from_range_start" />
+        <TableRow
+            android:layout_height="match_parent"
+            android:baselineAligned="true">
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:paddingHorizontal="?attr/edittextUnderlineBackgroundPadding"
-                        android:gravity="center"
-                        android:text="@string/to_range_end" />
-
-                </TableRow>
-
-                <TableRow
-                    android:layout_height="match_parent"
-                    android:baselineAligned="true">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/character" />
-
-                    <android.widget.EditText
-                        android:id="@+id/codepoint_dialog_start_character"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:inputType="text"
-                        android:imeOptions="actionNext"
-                        android:selectAllOnFocus="true" />
-
-                    <android.widget.EditText
-                        android:id="@+id/codepoint_dialog_end_character"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:gravity="center|bottom"
-                        android:inputType="text"
-                        android:maxLength="2"
-                        android:imeOptions="actionDone"
-                        android:selectAllOnFocus="true" />
-
-                </TableRow>
-
-                <TableRow>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/codepoint" />
-
-                    <android.widget.EditText
-                        android:id="@+id/codepoint_dialog_start_codepoint"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:inputType="text"
-                        android:maxLength="7"
-                        android:imeOptions="actionNext" />
-
-                    <android.widget.EditText
-                        android:id="@+id/codepoint_dialog_end_codepoint"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:inputType="text"
-                        android:maxLength="7"
-                        android:imeOptions="actionDone" />
-
-                </TableRow>
-
-                <TableRow>
-
-                    <!--(EW) for some reason layout_gravity="bottom" on a TextView directly in the
-                        TableRow doesn't actually go to the bottom when a different cell expands the
-                        height, so we need a wrapper to fill the height, but then we lose the
-                        baseline alignment, so we need a dummy EditText to get the TextView's
-                        baseline to align with the other cells in the row-->
-                    <!--TODO: (EW) this dummy EditText seems like bad style. see if there is a
-                         better way to accomplish this.-->
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:baselineAligned="true"
-                        android:baselineAlignedChildIndex="0">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="bottom"
-                            android:text="@string/unicode" />
-                        <android.widget.EditText
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_gravity="bottom"
-                            android:gravity="center|bottom"
-                            android:focusable="false"
-                            android:enabled="false"
-                            android:visibility="invisible" />
-
-                    </LinearLayout>
-
-                    <!--(EW) the wrapper layout is necessary so that the row's height will always
-                        expand when text wraps to more lines. without it on a device with a small
-                        height, when a second unicode identifier is added, it may make the first
-                        disappear (scrolled out of view, but that isn't obvious).-->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent">
-
-                        <com.wittmane.testingedittext.widget.SoftWrapEditText
-                            android:id="@+id/codepoint_dialog_start_unicode"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="bottom"
-                            android:gravity="center|bottom"
-                            android:inputType="textMultiLine"
-                            android:maxEms="6"
-                            android:imeOptions="actionNext" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent">
-
-                        <com.wittmane.testingedittext.widget.SoftWrapEditText
-                            android:id="@+id/codepoint_dialog_end_unicode"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="bottom"
-                            android:gravity="center|bottom"
-                            android:inputType="textMultiLine"
-                            android:maxEms="6"
-                            android:imeOptions="actionDone" />
-
-                    </LinearLayout>
-
-                </TableRow>
-
-            </TableLayout>
-
-            <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the rest of the
-                 content -->
-            <CheckBox
-                android:id="@+id/split_unicode_for_surrogate_pairs"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="?attr/checkboxIconPaddingNegation"
-                android:text="@string/use_split_unicode_for_surrogate_pairs" />
+                android:text="@string/character" />
 
-        </LinearLayout>
+            <android.widget.EditText
+                android:id="@+id/codepoint_dialog_start_character"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:inputType="text"
+                android:imeOptions="actionNext"
+                android:selectAllOnFocus="true" />
 
-    </ScrollView>
+            <android.widget.EditText
+                android:id="@+id/codepoint_dialog_end_character"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:gravity="center|bottom"
+                android:inputType="text"
+                android:maxLength="2"
+                android:imeOptions="actionDone"
+                android:selectAllOnFocus="true" />
 
-</LinearLayout>
+        </TableRow>
+
+        <TableRow>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/codepoint" />
+
+            <android.widget.EditText
+                android:id="@+id/codepoint_dialog_start_codepoint"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:inputType="text"
+                android:maxLength="7"
+                android:imeOptions="actionNext" />
+
+            <android.widget.EditText
+                android:id="@+id/codepoint_dialog_end_codepoint"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:inputType="text"
+                android:maxLength="7"
+                android:imeOptions="actionDone" />
+
+        </TableRow>
+
+        <TableRow>
+
+            <!--(EW) for some reason layout_gravity="bottom" on a TextView directly in the
+                TableRow doesn't actually go to the bottom when a different cell expands the
+                height, so we need a wrapper to fill the height, but then we lose the
+                baseline alignment, so we need a dummy EditText to get the TextView's
+                baseline to align with the other cells in the row-->
+            <!--TODO: (EW) this dummy EditText seems like bad style. see if there is a
+                 better way to accomplish this.-->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:baselineAligned="true"
+                android:baselineAlignedChildIndex="0">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:text="@string/unicode" />
+                <android.widget.EditText
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="bottom"
+                    android:gravity="center|bottom"
+                    android:focusable="false"
+                    android:enabled="false"
+                    android:visibility="invisible" />
+
+            </LinearLayout>
+
+            <!--(EW) the wrapper layout is necessary so that the row's height will always
+                expand when text wraps to more lines. without it on a device with a small
+                height, when a second unicode identifier is added, it may make the first
+                disappear (scrolled out of view, but that isn't obvious).-->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent">
+
+                <com.wittmane.testingedittext.widget.SoftWrapEditText
+                    android:id="@+id/codepoint_dialog_start_unicode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:gravity="center|bottom"
+                    android:inputType="textMultiLine"
+                    android:maxEms="6"
+                    android:imeOptions="actionNext" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent">
+
+                <com.wittmane.testingedittext.widget.SoftWrapEditText
+                    android:id="@+id/codepoint_dialog_end_unicode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:gravity="center|bottom"
+                    android:inputType="textMultiLine"
+                    android:maxEms="6"
+                    android:imeOptions="actionDone" />
+
+            </LinearLayout>
+
+        </TableRow>
+
+    </TableLayout>
+
+    <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the rest of the
+         content -->
+    <CheckBox
+        android:id="@+id/split_unicode_for_surrogate_pairs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="?attr/checkboxIconPaddingNegation"
+        android:text="@string/use_split_unicode_for_surrogate_pairs" />
+
+</com.wittmane.testingedittext.widget.LinearScrollLayout>

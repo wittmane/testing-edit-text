@@ -51,14 +51,13 @@ import androidx.annotation.RequiresApi;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.aosp.android.util.MathUtils;
 import com.wittmane.testingedittext.util.ViewUtils;
+import com.wittmane.testingedittext.widget.ExtendingSeekBar.InternalSeekBar;
 
 import java.lang.reflect.Field;
 import java.util.Timer;
 import java.util.TimerTask;
 
-//TODO: (EW) it would be nice to be able to extend View instead of ViewGroup since we don't want to
-// allow extra children
-public class ExtendingSeekBar extends ViewGroup {
+public class ExtendingSeekBar extends WrappedView<InternalSeekBar> {
     private static final String TAG = ExtendingSeekBar.class.getSimpleName();
 
     private static final int TIMER_TIMEOUT = 200;
@@ -92,8 +91,6 @@ public class ExtendingSeekBar extends ViewGroup {
     //TODO: (EW) find a better way to manage this that avoids accidentally leaving this set to true
     private boolean mIgnoreInternalProgressChanges = false;
 
-    private InternalSeekBar mInternalSeekBar;
-
     public ExtendingSeekBar(Context context) {
         super(context);
         init(null);
@@ -119,14 +116,14 @@ public class ExtendingSeekBar extends ViewGroup {
     private void init(AttributeSet attrs) {
         mDensity = getDisplayMetrics().density;
 
-        mInternalSeekBar = new InternalSeekBar(getContext(), attrs, android.R.attr.seekBarStyle);
+        mInternalView = new InternalSeekBar(getContext(), attrs, android.R.attr.seekBarStyle);
 
         final TypedArray a = getContext().obtainStyledAttributes(
                 attrs, R.styleable.ExtendingSeekBar, 0, 0);
         mAlwaysShowTicks = a.getBoolean(R.styleable.ExtendingSeekBar_alwaysShowTickMarks, false);
         mZeroBasedTick = a.getBoolean(R.styleable.ExtendingSeekBar_zeroBasedTickMarks, true);
-        int min = a.getInt(R.styleable.ExtendingSeekBar_min, mInternalSeekBar.getMin());
-        int max = a.getInt(R.styleable.ExtendingSeekBar_max, mInternalSeekBar.getMax());
+        int min = a.getInt(R.styleable.ExtendingSeekBar_min, mInternalView.getMin());
+        int max = a.getInt(R.styleable.ExtendingSeekBar_max, mInternalView.getMax());
         int step = a.getInt(R.styleable.ExtendingSeekBar_step, 1);
         mRequestedVisibleRange = a.getInt(R.styleable.ExtendingSeekBar_visibleRange, -1);
         int progress = a.getInt(R.styleable.ExtendingSeekBar_progress, min);
@@ -142,75 +139,75 @@ public class ExtendingSeekBar extends ViewGroup {
             // this method.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                     && needsTileify(progressDrawable)) {
-                mInternalSeekBar.setProgressDrawableTiled(progressDrawable);
+                mInternalView.setProgressDrawableTiled(progressDrawable);
             } else {
-                mInternalSeekBar.setProgressDrawable(progressDrawable);
+                mInternalView.setProgressDrawable(progressDrawable);
             }
         }
 
         if (a.hasValue(R.styleable.ExtendingSeekBar_extendLeftArrow)) {
-            mInternalSeekBar.setExtendLeftArrow(
+            mInternalView.setExtendLeftArrow(
                     a.getDrawable(R.styleable.ExtendingSeekBar_extendLeftArrow));
         }
         if (a.hasValue(R.styleable.ExtendingSeekBar_extendRightArrow)) {
-            mInternalSeekBar.setExtendRightArrow(
+            mInternalView.setExtendRightArrow(
                     a.getDrawable(R.styleable.ExtendingSeekBar_extendRightArrow));
         }
 
         if (a.hasValue(R.styleable.ExtendingSeekBar_smallTickMark)) {
-            mInternalSeekBar.setSmallTickMark(
+            mInternalView.setSmallTickMark(
                     a.getDrawable(R.styleable.ExtendingSeekBar_smallTickMark));
         }
         if (a.hasValue(R.styleable.ExtendingSeekBar_mediumTickMark)) {
-            mInternalSeekBar.setMediumTickMark(
+            mInternalView.setMediumTickMark(
                     a.getDrawable(R.styleable.ExtendingSeekBar_mediumTickMark));
         }
         if (a.hasValue(R.styleable.ExtendingSeekBar_largeTickMark)) {
-            mInternalSeekBar.setLargeTickMark(
+            mInternalView.setLargeTickMark(
                     a.getDrawable(R.styleable.ExtendingSeekBar_largeTickMark));
         }
 
         if (a.hasValue(R.styleable.ExtendingSeekBar_thumb)) {
-            mInternalSeekBar.setThumb(a.getDrawable(R.styleable.ExtendingSeekBar_thumb));
+            mInternalView.setThumb(a.getDrawable(R.styleable.ExtendingSeekBar_thumb));
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             // based on ProgressBar
             if (a.hasValue(R.styleable.ExtendingSeekBar_progressTintMode)) {
-                mInternalSeekBar.setProgressTintMode(parseTintMode(a.getInt(
+                mInternalView.setProgressTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_progressTintMode, -1), null));
             }
             if (a.hasValue(R.styleable.ExtendingSeekBar_progressTint)) {
-                mInternalSeekBar.setProgressTintList(a.getColorStateList(
+                mInternalView.setProgressTintList(a.getColorStateList(
                         R.styleable.ExtendingSeekBar_progressTint));
             }
             if (a.hasValue(R.styleable.ExtendingSeekBar_progressBackgroundTintMode)) {
-                mInternalSeekBar.setProgressBackgroundTintMode(parseTintMode(a.getInt(
+                mInternalView.setProgressBackgroundTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_progressBackgroundTintMode, -1),
                         null));
             }
             if (a.hasValue(R.styleable.ExtendingSeekBar_progressBackgroundTint)) {
-                mInternalSeekBar.setProgressBackgroundTintList(a.getColorStateList(
+                mInternalView.setProgressBackgroundTintList(a.getColorStateList(
                         R.styleable.ExtendingSeekBar_progressBackgroundTint));
             }
 
             // based on AbsSeekBar
             if (a.hasValue(R.styleable.ExtendingSeekBar_tickMarkTintMode)) {
-                mInternalSeekBar.setTickMarkTintMode(parseTintMode(a.getInt(
+                mInternalView.setTickMarkTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_tickMarkTintMode, -1), null));
             }
             if (a.hasValue(R.styleable.ExtendingSeekBar_tickMarkTint)) {
-                mInternalSeekBar.setTickMarkTintList(
+                mInternalView.setTickMarkTintList(
                         a.getColorStateList(R.styleable.ExtendingSeekBar_tickMarkTint));
             }
 
             // based on AbsSeekBar
             if (a.hasValue(R.styleable.ExtendingSeekBar_thumbTintMode)) {
-                mInternalSeekBar.setThumbTintMode(parseTintMode(a.getInt(
+                mInternalView.setThumbTintMode(parseTintMode(a.getInt(
                         R.styleable.ExtendingSeekBar_thumbTintMode, -1), null));
             }
             if (a.hasValue(R.styleable.ExtendingSeekBar_thumbTint)) {
-                mInternalSeekBar.setThumbTintList(
+                mInternalView.setThumbTintList(
                         a.getColorStateList(R.styleable.ExtendingSeekBar_thumbTint));
             }
         }
@@ -218,7 +215,7 @@ public class ExtendingSeekBar extends ViewGroup {
 
         LayoutParams layoutParams =
                 new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-        addView(mInternalSeekBar, layoutParams);
+        addView(mInternalView, layoutParams);
 
         mMaxVisibleSteps = mRequestedVisibleRange;
         if (max <= min) {
@@ -227,7 +224,7 @@ public class ExtendingSeekBar extends ViewGroup {
         setRange(min, max, step);
         setProgress(progress);
 
-        mInternalSeekBar.setOnSeekBarChangeListener(mOnInternalSeekBarChangeListener);
+        mInternalView.setOnSeekBarChangeListener(mOnInternalSeekBarChangeListener);
     }
 
     private DisplayMetrics getDisplayMetrics() {
@@ -326,30 +323,6 @@ public class ExtendingSeekBar extends ViewGroup {
         }
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        measureChild(mInternalSeekBar, widthMeasureSpec, heightMeasureSpec);
-        int maxHeight = Math.max(
-                mInternalSeekBar.getMeasuredHeight() + getPaddingTop() + getPaddingBottom(),
-                getSuggestedMinimumHeight());
-        int maxWidth = Math.max(
-                mInternalSeekBar.getMeasuredWidth() + getPaddingLeft() + getPaddingRight(),
-                getSuggestedMinimumWidth());
-        int childState = mInternalSeekBar.getMeasuredState();
-        setMeasuredDimension(resolveSizeAndState(maxWidth, widthMeasureSpec, childState),
-                resolveSizeAndState(maxHeight, heightMeasureSpec,
-                        childState << MEASURED_HEIGHT_STATE_SHIFT));
-    }
-
-    @Override
-    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        int parentLeft = getPaddingLeft();
-        int parentRight = right - left - getPaddingRight();
-        final int parentTop = getPaddingTop();
-        final int parentBottom = bottom - top - getPaddingBottom();
-        mInternalSeekBar.layout(parentLeft, parentTop, parentRight, parentBottom);
-    }
-
     /**
      * <p>Return the lower limit of this progress bar's range.</p>
      *
@@ -428,7 +401,7 @@ public class ExtendingSeekBar extends ViewGroup {
         }
 
         // don't bother with setting the internal min since it should always be 0
-        mInternalSeekBar.setMax(max);
+        mInternalView.setMax(max);
         // reset the progress to match the new range
         setProgress(currentProgress);
         mIgnoreInternalProgressChanges = false;
@@ -454,11 +427,11 @@ public class ExtendingSeekBar extends ViewGroup {
         if (mCurrentMinValue + shift - mStepsToShiftRange * mStepValue <= mMinValue) {
             mCurrentMinValue = mMinValue;
             mCurrentMaxValue = mMinValue
-                    + (mInternalSeekBar.getTotalSteps() - 1 - mStepsToShiftRange) * mStepValue;
+                    + (mInternalView.getTotalSteps() - 1 - mStepsToShiftRange) * mStepValue;
         } else if (mCurrentMaxValue + shift + mStepsToShiftRange * mStepValue >= mMaxValue) {
             mCurrentMaxValue = mMaxValue;
             mCurrentMinValue = mMaxValue
-                    - (mInternalSeekBar.getTotalSteps() - 1 - mStepsToShiftRange) * mStepValue;
+                    - (mInternalView.getTotalSteps() - 1 - mStepsToShiftRange) * mStepValue;
         } else {
             mCurrentMinValue += shift;
             mCurrentMaxValue += shift;
@@ -466,7 +439,7 @@ public class ExtendingSeekBar extends ViewGroup {
         if (changeProgressPosition) {
             setProgress(shift > 0 ? mCurrentMaxValue : mCurrentMinValue);
         }
-        mInternalSeekBar.updatePadding();
+        mInternalView.updatePadding();
     }
 
     /**
@@ -490,14 +463,14 @@ public class ExtendingSeekBar extends ViewGroup {
             int currentCenter = (mCurrentMaxValue - mCurrentMinValue) / 2;
             shiftRange(progress - currentCenter, false);
             internalProgress = getInternalProgress(progress);
-        } else if (internalProgress < mInternalSeekBar.getMin()) {
+        } else if (internalProgress < mInternalView.getMin()) {
             shiftRange(progress - mCurrentMinValue, false);
             internalProgress = getInternalProgress(progress);
-        } else if (internalProgress > mInternalSeekBar.getMax()) {
+        } else if (internalProgress > mInternalView.getMax()) {
             shiftRange(progress - mCurrentMaxValue, false);
             internalProgress = getInternalProgress(progress);
         }
-        mInternalSeekBar.setProgress(internalProgress);
+        mInternalView.setProgress(internalProgress);
     }
 
     /**
@@ -510,7 +483,7 @@ public class ExtendingSeekBar extends ViewGroup {
      * @see #getMax()
      */
     public synchronized int getProgress() {
-        int internalProgress = mInternalSeekBar.getProgress();
+        int internalProgress = mInternalView.getProgress();
         int unclippedExternalProgress = getExternalProgress(internalProgress);
         return clipToCurrentRange(unclippedExternalProgress);
     }
@@ -519,7 +492,7 @@ public class ExtendingSeekBar extends ViewGroup {
         int result;
         if (externalProgress == mMaxValue) {
             // if the max isn't directly on an step interval, just round it up for the base value
-            result = mInternalSeekBar.getMax();
+            result = mInternalView.getMax();
         } else {
             result = (externalProgress - getBaseOffset()) / mStepValue;
         }
@@ -558,12 +531,12 @@ public class ExtendingSeekBar extends ViewGroup {
     }
 
     private synchronized void handleSeekBarWidth() {
-        if (mInternalSeekBar == null) {
+        if (mInternalView == null) {
             // can't determine what will fit yet
             return;
         }
-        Rect minPadding = mInternalSeekBar.getPadding(false, false);
-        Rect maxPadding = mInternalSeekBar.getPadding(true, true);
+        Rect minPadding = mInternalView.getPadding(false, false);
+        Rect maxPadding = mInternalView.getPadding(true, true);
 
         mMaxVisibleSteps = getVisibleSteps(minPadding.left, minPadding.right);
 
@@ -573,7 +546,7 @@ public class ExtendingSeekBar extends ViewGroup {
                 && maxInternalRange >= mMaxValue - mMinValue) {
             // the full range with the specified precision fits. make sure there isn't extra padding
             // for the arrows that won't be shown.
-            mInternalSeekBar.updatePadding();
+            mInternalView.updatePadding();
             return;
         }
 
@@ -596,7 +569,7 @@ public class ExtendingSeekBar extends ViewGroup {
             mCurrentMaxValue = mMaxValue;
             setProgress(currentValue);
             mIgnoreInternalProgressChanges = false;
-            mInternalSeekBar.updatePadding();
+            mInternalView.updatePadding();
             return;
         } else {
             // make sure there is at least as much space for real steps as the combined shift range
@@ -645,7 +618,7 @@ public class ExtendingSeekBar extends ViewGroup {
         }
 
         // don't bother with setting the internal min since it should always be 0
-        mInternalSeekBar.setMax(maxInternalRange);
+        mInternalView.setMax(maxInternalRange);
 
         mCurrentMinValue = newCurrentMinValue;
         mCurrentMaxValue = newCurrentMaxValue;
@@ -654,7 +627,7 @@ public class ExtendingSeekBar extends ViewGroup {
         mIgnoreInternalProgressChanges = false;
 
         // make sure there is enough padding for the arrows
-        mInternalSeekBar.updatePadding();
+        mInternalView.updatePadding();
     }
 
     private int getVisibleSteps(int leftArrowOrThumbPadding, int rightArrowOrThumbPadding) {
@@ -679,7 +652,7 @@ public class ExtendingSeekBar extends ViewGroup {
     }
 
     @SuppressLint("AppCompatCustomView")
-    private class InternalSeekBar extends SeekBar {
+    protected class InternalSeekBar extends SeekBar {
         private Drawable mSmallTickMark;
         private Drawable mMediumTickMark;
         private Drawable mLargeTickMark;
@@ -1380,7 +1353,7 @@ public class ExtendingSeekBar extends ViewGroup {
                     mHandler.post(new Runnable() {
                         public void run() {
                             notifyProgressChanged(progress, true);
-                            mInternalSeekBar.invalidate();
+                            mInternalView.invalidate();
                         }
                     });
 
@@ -1641,7 +1614,7 @@ public class ExtendingSeekBar extends ViewGroup {
                 + " = = "
                 + (mMaxValue == mCurrentMaxValue ? "" : mCurrentMaxValue + " - - ")
                 + mMaxValue
-                + " (" + getMin() + " - " + getMax() + ") (" + mInternalSeekBar.getProgress()
-                + " / " + mInternalSeekBar.getMax() + ")";
+                + " (" + getMin() + " - " + getMax() + ") (" + mInternalView.getProgress()
+                + " / " + mInternalView.getMax() + ")";
     }
 }
