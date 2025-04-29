@@ -13,48 +13,34 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.wittmane.testingedittext.widget.LinearScrollLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+    android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
     android:paddingTop="?attr/dialogPreferredPaddingTop"
-    android:paddingBottom="?attr/dialogPreferredPaddingBottom">
+    android:paddingBottom="?attr/dialogPreferredPaddingBottom"
+    android:clipToPadding="false"
+    app:contentMinLength="50dp"
+    app:pinLast="true">
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <TableLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
-            android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
-            android:clipToPadding="false"
-            android:id="@+id/text_table" >
-            <!-- rows will be added programmatically -->
-        </TableLayout>
-
-    </ScrollView>
-
-    <LinearLayout
-        android:orientation="vertical"
+    <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="start"
-        android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
-        android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
-        android:clipToPadding="false">
+        android:id="@+id/text_table" >
+        <!-- rows will be added programmatically -->
+    </TableLayout>
 
-        <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the rest of the
-             content -->
-        <CheckBox
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="?attr/checkboxIconPaddingNegation"
-            android:id="@+id/escape_characters"
-            android:text="@string/use_special_characters" />
+    <!-- (EW) compensate for the CheckBox icon padding to keep it flush with the rest of the
+         content -->
+    <CheckBox
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="?attr/checkboxIconPaddingNegation"
+        android:id="@+id/escape_characters"
+        android:text="@string/use_special_characters" />
 
-    </LinearLayout>
-
-</LinearLayout>
+</com.wittmane.testingedittext.widget.LinearScrollLayout>

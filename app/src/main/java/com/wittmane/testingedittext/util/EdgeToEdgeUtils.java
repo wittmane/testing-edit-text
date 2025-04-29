@@ -301,7 +301,8 @@ public class EdgeToEdgeUtils {
 
     private static void printViewStructure(View view, int indent) {
         Log.d(TAG, "printViewStructure: " + repeat(' ', indent) + view
-                + " (" + visibilityName(view.getVisibility()) + ")");
+                + " (" + visibilityName(view.getVisibility()) + ") "
+                + view.getX() + "," + view.getY() + " " + view.getWidth() + "x" + view.getHeight());
         if (view instanceof ViewGroup) {
             for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
                 printViewStructure(((ViewGroup) view).getChildAt(i), indent + 2);

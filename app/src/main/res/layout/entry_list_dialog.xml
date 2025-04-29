@@ -13,27 +13,21 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.wittmane.testingedittext.widget.LinearScrollLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
+    android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
     android:paddingTop="?attr/dialogPreferredPaddingTop"
     android:paddingBottom="?attr/dialogPreferredPaddingBottom">
 
-    <ScrollView
+    <TableLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="wrap_content"
+        android:id="@+id/text_table" >
+        <!-- rows will be added programmatically -->
+    </TableLayout>
 
-        <TableLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="?attr/dialogPreferredPaddingHorizontal"
-            android:paddingEnd="?attr/dialogPreferredPaddingHorizontal"
-            android:id="@+id/text_table" >
-            <!-- rows will be added programmatically -->
-        </TableLayout>
-
-    </ScrollView>
-
-</LinearLayout>
+</com.wittmane.testingedittext.widget.LinearScrollLayout>
