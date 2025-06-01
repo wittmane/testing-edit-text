@@ -52,6 +52,15 @@ public class PreferenceSummaryManager {
 
     private static final CharSequence DEFAULT_ELLIPSIS = "\u2026";
     private static final char ZERO_WIDTH_NO_BREAK_SPACE = '\uFEFF';
+    private static final int SUMMARY_PART_DIVIDER_NEW_LINE_COUNT = 2;
+    private static final String SUMMARY_PART_DIVIDER;
+    static {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < SUMMARY_PART_DIVIDER_NEW_LINE_COUNT; i++) {
+            sb.append('\n');
+        }
+        SUMMARY_PART_DIVIDER = sb.toString();
+    }
 
     private final Preference mPref;
     private final Runnable mPrefOnClick;
@@ -193,7 +202,7 @@ public class PreferenceSummaryManager {
             sb.append(currentDescriptionSummary);
         }
         if (!TextUtils.isEmpty(currentDescriptionSummary) && !TextUtils.isEmpty(mValueSummary)) {
-            sb.append('\n');
+            sb.append(SUMMARY_PART_DIVIDER);
         }
         if (!TextUtils.isEmpty(mValueSummary)) {
             sb.append(mValueSummary);
@@ -267,8 +276,6 @@ public class PreferenceSummaryManager {
         mEllipsisManager.updateSummary();
     }
 
-    //TODO: (EW) consider adding 2 new lines between the base and value summary so there is a blank
-    // line for a clearer division (at least when ellipsizing the base)
     private class EllipsisManager implements OnPreDrawListener {
         private int mPreDrawCallCount = 0;
         private boolean mIsAttached = false;
@@ -355,13 +362,13 @@ public class PreferenceSummaryManager {
                     mIsSummaryFlipped = true;
                     setCurrentSuperSummary(new StringBuilder()
                             .append(mValueSummary)
-                            .append('\n')
+                            .append(SUMMARY_PART_DIVIDER)
                             .append(currentDescriptionSummary));
                 } else {
                     mIsSummaryFlipped = false;
                     setCurrentSuperSummary(new StringBuilder()
                             .append(currentDescriptionSummary)
-                            .append('\n')
+                            .append(SUMMARY_PART_DIVIDER)
                             .append(mValueSummary));
                 }
             }
@@ -536,7 +543,7 @@ public class PreferenceSummaryManager {
                     mIsPartialSummary = false;
                     setCurrentSuperSummary(new StringBuilder()
                             .append(currentDescriptionSummary)
-                            .append('\n')
+                            .append(SUMMARY_PART_DIVIDER)
                             .append(mValueSummary));
                     // cancel this drawing pass since we need to change the text for the next
                     // measure
@@ -558,7 +565,7 @@ public class PreferenceSummaryManager {
                     CharSequence partialValueSummary = getPartialSummary(mValueSummary,
                             mValueSummaryMaxRowsCharCounts, valueSummaryAllowedLines);
                     sb.append(partialValueSummary);
-                    sb.append('\n');
+                    sb.append(SUMMARY_PART_DIVIDER);
                     sb.append(currentDescriptionSummary);
                     setCurrentSuperSummary(sb);
                     // cancel this drawing pass since we need to change the text for the next
@@ -575,7 +582,7 @@ public class PreferenceSummaryManager {
                             currentDescriptionSummary, mDescriptionSummaryMaxRowsCharCounts,
                             descriptionSummaryAllowedLines);
                     sb.append(partialDescriptionSummary);
-                    sb.append('\n');
+                    sb.append(SUMMARY_PART_DIVIDER);
                     sb.append(mValueSummary);
                     setCurrentSuperSummary(sb);
                     // cancel this drawing pass since we need to change the text for the next
@@ -598,7 +605,7 @@ public class PreferenceSummaryManager {
                             currentDescriptionSummary, mDescriptionSummaryMaxRowsCharCounts,
                             descriptionSummaryAllowedLines);
                     sb.append(partialDescriptionSummary);
-                    sb.append('\n');
+                    sb.append(SUMMARY_PART_DIVIDER);
                     sb.append(mValueSummary);
                     setCurrentSuperSummary(sb);
                     // cancel this drawing pass since we need to change the text for the next
@@ -633,7 +640,7 @@ public class PreferenceSummaryManager {
                 }
             }
             if (descriptionSummaryAllowedLength > 0 && valueSummaryAllowedLength > 0) {
-                sb.append('\n');
+                sb.append(SUMMARY_PART_DIVIDER);
             }
             if (valueSummaryAllowedLength > 0) {
                 if (valueSummaryAllowedLength < mValueSummary.length()) {
@@ -665,19 +672,26 @@ public class PreferenceSummaryManager {
                     ? mValueSummaryMaxRowsCharCounts.length
                     : 0;
 
+            // if both parts need to be shown, reduce the max by the number of blank lines between
+            // the parts
+            int maxSummaryLines = maxLines
+                    - (descriptionSummaryVisibleRowCount == 0 || valueSummaryVisibleRowCount == 0
+                            ? 0
+                            : (SUMMARY_PART_DIVIDER_NEW_LINE_COUNT - 1));
+
             int descriptionSummaryAllowedRows;
             int valueSummaryAllowedRows;
-            if (descriptionSummaryVisibleRowCount <= maxLines / 2) {
+            if (descriptionSummaryVisibleRowCount <= maxSummaryLines / 2) {
                 descriptionSummaryAllowedRows = descriptionSummaryVisibleRowCount;
-                valueSummaryAllowedRows = Math.min(maxLines - descriptionSummaryAllowedRows,
+                valueSummaryAllowedRows = Math.min(maxSummaryLines - descriptionSummaryAllowedRows,
                         valueSummaryVisibleRowCount);
-            } else if (valueSummaryVisibleRowCount <= maxLines / 2) {
+            } else if (valueSummaryVisibleRowCount <= maxSummaryLines / 2) {
                 valueSummaryAllowedRows = valueSummaryVisibleRowCount;
-                descriptionSummaryAllowedRows = Math.min(maxLines - valueSummaryAllowedRows,
+                descriptionSummaryAllowedRows = Math.min(maxSummaryLines - valueSummaryAllowedRows,
                         descriptionSummaryVisibleRowCount);
             } else {
-                descriptionSummaryAllowedRows = maxLines / 2;
-                valueSummaryAllowedRows = maxLines - descriptionSummaryAllowedRows;
+                descriptionSummaryAllowedRows = maxSummaryLines / 2;
+                valueSummaryAllowedRows = maxSummaryLines - descriptionSummaryAllowedRows;
             }
 
             return getDescriptionSummary ? descriptionSummaryAllowedRows : valueSummaryAllowedRows;
@@ -859,17 +873,23 @@ public class PreferenceSummaryManager {
                     currentPart++;
                 }
             } else if (TextUtils.equals(visibleText, "\n")
-                    && currentPart > 0 && summaryPartsEllipsized[currentPart - 1]
+                    && currentPart > 0
+                    && (summaryPartsEllipsized[currentPart - 1]
+                            || SUMMARY_PART_DIVIDER_NEW_LINE_COUNT > 1)
                     && partTextPosition == 0) {
-                // for some reason the first part can get ellipsized in some circumstances. see the
-                // comment in #getPartialSummary for one case of it. theoretically the handling
-                // there should prevent this, but if this can happen from that, it seems reasonable
-                // that something else could also cause it, so we should handle it. we'll just
-                // ignore an extra blank line, which will simply result in one less line to show
-                // text once everything is measured, which isn't great, but it at least leaves the
-                // ellipses in appropriate (framework determined) places without trying to make even
-                // more passes.
-                Log.e(TAG, "Unexpected blank line in " + mPref.getKey() + " (line " + i + ")");
+                // if we're adding multiple new lines as a divider, we should have a blank line
+                // here, but if that's not the case, log an error
+                if (SUMMARY_PART_DIVIDER_NEW_LINE_COUNT < 2) {
+                    // for some reason the first part can get ellipsized in some circumstances. see
+                    // the comment in #getPartialSummary for one case of it. theoretically the
+                    // handling there should prevent this, but if this can happen from that, it
+                    // seems reasonable that something else could also cause it, so we should handle
+                    // it. we'll just ignore an extra blank line, which will simply result in one
+                    // less line to show text once everything is measured, which isn't great, but it
+                    // at least leaves the ellipses in appropriate (framework determined) places
+                    // without trying to make even more passes.
+                    Log.e(TAG, "Unexpected blank line in " + mPref.getKey() + " (line " + i + ")");
+                }
             } else {
                 // unexpected text
                 Log.e(TAG, "Unexpected text in " + mPref.getKey() + " (line " + i + "): "
@@ -995,7 +1015,7 @@ public class PreferenceSummaryManager {
         return true;
     }
 
-    private int[][] segregateSummaryPartLineCounts(int[] visibleLineCharCounts,
+    private static int[][] segregateSummaryPartLineCounts(int[] visibleLineCharCounts,
                                                    int[] summaryPartVisibleLineCounts) {
         int summaryPartCount = summaryPartVisibleLineCounts.length;
         int[][] populatedSummaryPartsVisibleRowCharCounts = new int[summaryPartCount][];
@@ -1003,10 +1023,16 @@ public class PreferenceSummaryManager {
         for (int partIndex = 0; partIndex < summaryPartCount; partIndex++) {
             int partVisibleLineCount = summaryPartVisibleLineCounts[partIndex];
             populatedSummaryPartsVisibleRowCharCounts[partIndex] = new int[partVisibleLineCount];
-            System.arraycopy(visibleLineCharCounts, rowIndex,
-                    populatedSummaryPartsVisibleRowCharCounts[partIndex], 0,
-                    partVisibleLineCount);
+            if (partVisibleLineCount > 0) {
+                System.arraycopy(visibleLineCharCounts, rowIndex,
+                        populatedSummaryPartsVisibleRowCharCounts[partIndex], 0,
+                        partVisibleLineCount);
+            }
             rowIndex += partVisibleLineCount;
+            if (summaryPartCount > 1) {
+                // skip over blank lines dividing the summary parts
+                rowIndex += SUMMARY_PART_DIVIDER_NEW_LINE_COUNT - 1;
+            }
         }
         return populatedSummaryPartsVisibleRowCharCounts;
     }
