@@ -1086,6 +1086,15 @@ public class PreferenceSummaryManager {
         if (titleTextView != mTitleTextView && titleTextView != null) {
             // allow the title to wrap
             titleTextView.setSingleLine(false);
+            // limit the number of lines for the title. currently there seems to be no limit on any
+            // version, but if something somewhat reasonable gets added in the future, we can use
+            // that
+            int titleMaxLines = titleTextView.getMaxLines();
+            if (titleMaxLines < 2 || titleMaxLines > 8) {
+                titleTextView.setMaxLines(3);
+            }
+            // make sure the text shows an ellipsis for any overflow
+            titleTextView.setEllipsize(TruncateAt.END);
             // fix the text alignment to match the LTR/RTL layout
             titleTextView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         }
