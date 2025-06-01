@@ -22,22 +22,19 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.DialogPreference;
-import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.TextView;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
+import com.wittmane.testingedittext.util.PreferenceSummaryManager;
 
 public abstract class DialogPreferenceBase extends DialogPreference {
     private static final String TAG = DialogPreferenceBase.class.getSimpleName();
 
-    private CharSequence mBaseSummary;
-    private CharSequence mValueSummary;
+    private final PreferenceSummaryManager mSummaryManager;
 
     /** SharedPreference wrapper */
     private SharedPreferenceManager mSharedPrefManager;
@@ -46,7 +43,7 @@ public abstract class DialogPreferenceBase extends DialogPreference {
 
     public DialogPreferenceBase(final Context context, final AttributeSet attrs) {
         super(context, attrs);
-        mBaseSummary = getSummary();
+        mSummaryManager = new PreferenceSummaryManager(this, this::onClick, super::setSummary);
     }
 
     @Override
@@ -61,8 +58,7 @@ public abstract class DialogPreferenceBase extends DialogPreference {
 
     @Override
     public void setSummary(CharSequence summary) {
-        mBaseSummary = summary;
-        setFullSummary();
+        mSummaryManager.onSetSummary(summary);
     }
 
     /**
@@ -71,21 +67,7 @@ public abstract class DialogPreferenceBase extends DialogPreference {
      * @param summary the display text for the current value of the preference
      */
     protected void setValueSummary(CharSequence summary) {
-        mValueSummary = summary;
-        setFullSummary();
-    }
-
-    private void setFullSummary() {
-        if (TextUtils.isEmpty(mValueSummary)) {
-            super.setSummary(mBaseSummary);
-        } else if (TextUtils.isEmpty(mBaseSummary)) {
-            super.setSummary(mValueSummary);
-        } else {
-            super.setSummary(new StringBuilder()
-                    .append(mBaseSummary)
-                    .append('\n')
-                    .append(mValueSummary));
-        }
+        mSummaryManager.onSetValueSummary(summary);
     }
 
     /**
@@ -119,11 +101,7 @@ public abstract class DialogPreferenceBase extends DialogPreference {
 
         updateValueSummary();
 
-        // allow the title to wrap
-        TextView titleTextView = view.findViewById(android.R.id.title);
-        if (titleTextView != null) {
-            titleTextView.setSingleLine(false);
-        }
+        mSummaryManager.onBindView(view);
     }
 
     protected SharedPreferenceManager getPrefs() {

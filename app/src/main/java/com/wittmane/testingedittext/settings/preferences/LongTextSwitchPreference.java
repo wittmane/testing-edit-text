@@ -18,36 +18,57 @@ package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
 import android.preference.SwitchPreference;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 
-import com.wittmane.testingedittext.util.PreferenceUtils;
+import com.wittmane.testingedittext.util.PreferenceSummaryManager;
 
 public class LongTextSwitchPreference extends SwitchPreference {
     private static final String TAG = LongTextSwitchPreference.class.getSimpleName();
 
+    private final PreferenceSummaryManager mSummaryManager;
+
     public LongTextSwitchPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mSummaryManager = new PreferenceSummaryManager(this, this::onClick, super::setSummary,
+                super::setSummaryOn, super::setSummaryOff);
     }
 
-    private CharSequence getDisplayedSummary() {
-        // based on logic from TwoStatePreference#syncSummaryView
-        boolean isChecked = isChecked();
-        CharSequence summaryOn = getSummaryOn();
-        if (isChecked && !TextUtils.isEmpty(summaryOn)) {
-            return summaryOn;
+    @Override
+    public void setSummary(CharSequence summary) {
+        mSummaryManager.onSetSummary(summary);
+    }
+
+    @Override
+    public void setSummaryOn(CharSequence summaryOn) {
+        if (mSummaryManager != null) {
+            mSummaryManager.onSetSummaryOn(summaryOn);
+        } else {
+            super.setSummaryOn(summaryOn);
         }
-        CharSequence summaryOff = getSummaryOff();
-        if (!isChecked && !TextUtils.isEmpty(summaryOff)) {
-            return summaryOff;
+    }
+
+    @Override
+    public void setSummaryOff(CharSequence summaryOff) {
+        if (mSummaryManager != null) {
+            mSummaryManager.onSetSummaryOff(summaryOff);
+        } else {
+            super.setSummaryOff(summaryOff);
         }
-        return getSummary();
+    }
+
+    @Override
+    public void setChecked(boolean checked) {
+        boolean changed = checked != isChecked();
+        super.setChecked(checked);
+        if (changed) {
+            mSummaryManager.onSetChecked(checked);
+        }
     }
 
     @Override
     protected void onBindView(View view) {
         super.onBindView(view);
-        PreferenceUtils.handleLongText(this, view, preference -> preference.getDisplayedSummary());
+        mSummaryManager.onBindView(view);
     }
 }

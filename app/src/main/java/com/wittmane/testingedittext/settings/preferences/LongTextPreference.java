@@ -23,36 +23,43 @@ import android.preference.Preference;
 import android.util.AttributeSet;
 import android.view.View;
 
-import com.wittmane.testingedittext.util.PreferenceUtils;
+import com.wittmane.testingedittext.util.PreferenceSummaryManager;
 
 public class LongTextPreference extends Preference {
     private static final String TAG = LongTextPreference.class.getSimpleName();
 
+    private final PreferenceSummaryManager mSummaryManager;
+
     public LongTextPreference(Context context) {
         super(context);
+        mSummaryManager = new PreferenceSummaryManager(this, this::onClick, super::setSummary);
     }
 
     public LongTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mSummaryManager = new PreferenceSummaryManager(this, this::onClick, super::setSummary);
     }
 
     public LongTextPreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        mSummaryManager = new PreferenceSummaryManager(this, this::onClick, super::setSummary);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public LongTextPreference(Context context, AttributeSet attrs, int defStyleAttr,
                               int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+        mSummaryManager = new PreferenceSummaryManager(this, this::onClick, super::setSummary);
     }
 
-    private CharSequence getDisplayedSummary() {
-        return getSummary();
+    @Override
+    public void setSummary(CharSequence summary) {
+        mSummaryManager.onSetSummary(summary);
     }
 
     @Override
     protected void onBindView(View view) {
         super.onBindView(view);
-        PreferenceUtils.handleLongText(this, view, preference -> preference.getDisplayedSummary());
+        mSummaryManager.onBindView(view);
     }
 }
