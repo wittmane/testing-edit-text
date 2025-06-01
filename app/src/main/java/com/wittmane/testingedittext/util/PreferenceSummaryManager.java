@@ -1086,11 +1086,15 @@ public class PreferenceSummaryManager {
         if (titleTextView != mTitleTextView && titleTextView != null) {
             // allow the title to wrap
             titleTextView.setSingleLine(false);
+            // fix the text alignment to match the LTR/RTL layout
+            titleTextView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         }
         TextView summaryTextView = view.findViewById(android.R.id.summary);
         if (summaryTextView != mSummaryTextView && summaryTextView != null) {
             // make sure the text shows an ellipsis for any overflow
             summaryTextView.setEllipsize(TruncateAt.END);
+            // fix the text alignment to match the LTR/RTL layout
+            summaryTextView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         }
         if (view != mView || titleTextView != mTitleTextView
                 || summaryTextView != mSummaryTextView) {
