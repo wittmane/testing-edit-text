@@ -59,9 +59,9 @@ public class PreferenceSummaryManager {
     private final Consumer<CharSequence> mPrefSuperSetSummaryOn;
     private final Consumer<CharSequence> mPrefSuperSetSummaryOff;
 
-    private CharSequence mBaseSummary;
-    private CharSequence mBaseSummaryOn;
-    private CharSequence mBaseSummaryOff;
+    private CharSequence mDescriptionSummary;
+    private CharSequence mDescriptionSummaryOn;
+    private CharSequence mDescriptionSummaryOff;
     private CharSequence mValueSummary;
 
     private View mView;
@@ -115,10 +115,10 @@ public class PreferenceSummaryManager {
         mPrefSuperSetSummary = superSetSummary;
         mPrefSuperSetSummaryOn = superSetSummaryOn;
         mPrefSuperSetSummaryOff = superSetSummaryOff;
-        mBaseSummary = mPref.getSummary();
+        mDescriptionSummary = mPref.getSummary();
         if (mPref instanceof TwoStatePreference) {
-            mBaseSummaryOn = ((TwoStatePreference) mPref).getSummaryOn();
-            mBaseSummaryOff = ((TwoStatePreference) mPref).getSummaryOff();
+            mDescriptionSummaryOn = ((TwoStatePreference) mPref).getSummaryOn();
+            mDescriptionSummaryOff = ((TwoStatePreference) mPref).getSummaryOff();
         }
     }
 
@@ -130,11 +130,11 @@ public class PreferenceSummaryManager {
      * @param summary The (description) summary to use.
      */
     public void onSetSummary(CharSequence summary) {
-        if (mBaseSummary != null && mBaseSummary.equals(summary)) {
+        if (mDescriptionSummary != null && mDescriptionSummary.equals(summary)) {
             // this value was already set, so nothing needs to be done
             return;
         }
-        mBaseSummary = summary;
+        mDescriptionSummary = summary;
         mEllipsisManager.updateSummary();
     }
 
@@ -146,11 +146,11 @@ public class PreferenceSummaryManager {
      * @param summaryOn The (description) summary to be shown when checked.
      */
     public void onSetSummaryOn(CharSequence summaryOn) {
-        if (mBaseSummaryOn != null && mBaseSummaryOn.equals(summaryOn)) {
+        if (mDescriptionSummaryOn != null && mDescriptionSummaryOn.equals(summaryOn)) {
             // this value was already set, so nothing needs to be done
             return;
         }
-        mBaseSummaryOn = summaryOn;
+        mDescriptionSummaryOn = summaryOn;
         mEllipsisManager.updateSummary();
     }
 
@@ -162,11 +162,11 @@ public class PreferenceSummaryManager {
      * @param summaryOff The (description) summary to be shown when unchecked.
      */
     public void onSetSummaryOff(CharSequence summaryOff) {
-        if (mBaseSummaryOff != null && mBaseSummaryOff.equals(summaryOff)) {
+        if (mDescriptionSummaryOff != null && mDescriptionSummaryOff.equals(summaryOff)) {
             // this value was already set, so nothing needs to be done
             return;
         }
-        mBaseSummaryOff = summaryOff;
+        mDescriptionSummaryOff = summaryOff;
         mEllipsisManager.updateSummary();
     }
 
@@ -180,18 +180,19 @@ public class PreferenceSummaryManager {
     public void onSetChecked(boolean checked) {
         // refresh the summary if there are different on/off summaries
         if (mPref instanceof TwoStatePreference
-                && (!TextUtils.isEmpty(mBaseSummaryOn) || !TextUtils.isEmpty(mBaseSummaryOff))) {
+                && (!TextUtils.isEmpty(mDescriptionSummaryOn)
+                        || !TextUtils.isEmpty(mDescriptionSummaryOff))) {
             mEllipsisManager.updateSummary();
         }
     }
 
     private CharSequence getFullSummary() {
-        CharSequence currentBaseSummary = getCurrentBaseSummary();
+        CharSequence currentDescriptionSummary = getCurrentDescriptionSummary();
         StringBuilder sb = new StringBuilder();
-        if (!TextUtils.isEmpty(currentBaseSummary)) {
-            sb.append(currentBaseSummary);
+        if (!TextUtils.isEmpty(currentDescriptionSummary)) {
+            sb.append(currentDescriptionSummary);
         }
-        if (!TextUtils.isEmpty(currentBaseSummary) && !TextUtils.isEmpty(mValueSummary)) {
+        if (!TextUtils.isEmpty(currentDescriptionSummary) && !TextUtils.isEmpty(mValueSummary)) {
             sb.append('\n');
         }
         if (!TextUtils.isEmpty(mValueSummary)) {
@@ -200,7 +201,7 @@ public class PreferenceSummaryManager {
         return sb;
     }
 
-    private CharSequence getCurrentBaseSummary() {
+    private CharSequence getCurrentDescriptionSummary() {
         return getCurrentSummary(true);
     }
 
@@ -208,38 +209,38 @@ public class PreferenceSummaryManager {
         return getCurrentSummary(false);
     }
 
-    private CharSequence getCurrentSummary(boolean getBase) {
+    private CharSequence getCurrentSummary(boolean getDescriptionSummary) {
         if (mPref instanceof TwoStatePreference) {
             // based on logic from TwoStatePreference#syncSummaryView
             boolean isChecked = ((TwoStatePreference) mPref).isChecked();
-            CharSequence summaryOn = getBase
-                    ? mBaseSummaryOn
+            CharSequence summaryOn = getDescriptionSummary
+                    ? mDescriptionSummaryOn
                     : ((TwoStatePreference) mPref).getSummaryOn();
             if (isChecked && !TextUtils.isEmpty(summaryOn)) {
                 return summaryOn;
             }
-            CharSequence summaryOff = getBase
-                    ? mBaseSummaryOff
+            CharSequence summaryOff = getDescriptionSummary
+                    ? mDescriptionSummaryOff
                     : ((TwoStatePreference) mPref).getSummaryOff();
             if (!isChecked && !TextUtils.isEmpty(summaryOff)) {
                 return summaryOff;
             }
         }
-        return getBase ? mBaseSummary : mPref.getSummary();
+        return getDescriptionSummary ? mDescriptionSummary : mPref.getSummary();
     }
 
     private void setCurrentSuperSummary(CharSequence summary) {
         if (mPref instanceof TwoStatePreference) {
             // based on logic from TwoStatePreference#syncSummaryView
             boolean isChecked = ((TwoStatePreference) mPref).isChecked();
-            if (isChecked && !TextUtils.isEmpty(mBaseSummaryOn)
+            if (isChecked && !TextUtils.isEmpty(mDescriptionSummaryOn)
                     && mPrefSuperSetSummaryOn != null) {
                 if (!TextUtils.equals(summary, ((TwoStatePreference) mPref).getSummaryOn())) {
                     mPrefSuperSetSummaryOn.accept(summary);
                 }
                 return;
             }
-            if (!isChecked && !TextUtils.isEmpty(mBaseSummaryOff)
+            if (!isChecked && !TextUtils.isEmpty(mDescriptionSummaryOff)
                     && mPrefSuperSetSummaryOff != null) {
                 if (!TextUtils.equals(summary, ((TwoStatePreference) mPref).getSummaryOff())) {
                     mPrefSuperSetSummaryOff.accept(summary);
@@ -275,9 +276,9 @@ public class PreferenceSummaryManager {
         private boolean mIsSummaryFlipped;
         private boolean mIsPartialSummary;
         CharSequence mEllipsis;
-        int[] mBaseSummaryMaxRowsCharCounts;
+        int[] mDescriptionSummaryMaxRowsCharCounts;
         int[] mValueSummaryMaxRowsCharCounts;
-        int[] mBaseSummaryShownRowsCharCounts;
+        int[] mDescriptionSummaryShownRowsCharCounts;
         int[] mValueSummaryShownRowsCharCounts;
 
         public synchronized boolean wasMeasured() {
@@ -288,9 +289,9 @@ public class PreferenceSummaryManager {
             return !mWasMeasured && mIsAttached;
         }
 
-        public synchronized boolean isBaseSummaryEllipsized() {
-            CharSequence currentBaseSummary = getCurrentBaseSummary();
-            if (TextUtils.isEmpty(currentBaseSummary)) {
+        public synchronized boolean isDescriptionSummaryEllipsized() {
+            CharSequence currentDescriptionSummary = getCurrentDescriptionSummary();
+            if (TextUtils.isEmpty(currentDescriptionSummary)) {
                 // nothing to ellipsize
                 return false;
             }
@@ -300,9 +301,9 @@ public class PreferenceSummaryManager {
                 // chance to manage the ellipsis properly
                 return true;
             }
-            int baseSummaryAllowedLength =
+            int descriptionSummaryAllowedLength =
                     getSummaryAllowedLength(true, mSummaryTextView.getMaxLines());
-            return baseSummaryAllowedLength < currentBaseSummary.length();
+            return descriptionSummaryAllowedLength < currentDescriptionSummary.length();
         }
 
         public synchronized boolean isValueSummaryEllipsized() {
@@ -322,12 +323,12 @@ public class PreferenceSummaryManager {
         }
 
         public synchronized boolean isEllipsized() {
-            return isBaseSummaryEllipsized() || isValueSummaryEllipsized();
+            return isDescriptionSummaryEllipsized() || isValueSummaryEllipsized();
         }
 
         public synchronized void updateSummary() {
-            CharSequence currentBaseSummary = getCurrentBaseSummary();
-            if (TextUtils.isEmpty(currentBaseSummary) && TextUtils.isEmpty(mValueSummary)) {
+            CharSequence currentDescriptionSummary = getCurrentDescriptionSummary();
+            if (TextUtils.isEmpty(currentDescriptionSummary) && TextUtils.isEmpty(mValueSummary)) {
                 // we don't need a long click listener since there is no summary text
                 setClickListeners(false);
                 mIsSummaryFlipped = false;
@@ -341,25 +342,25 @@ public class PreferenceSummaryManager {
                 mIsPartialSummary = false;
                 if (TextUtils.isEmpty(mValueSummary)) {
                     mIsSummaryFlipped = false;
-                    setCurrentSuperSummary(currentBaseSummary);
-                } else if (TextUtils.isEmpty(currentBaseSummary)) {
+                    setCurrentSuperSummary(currentDescriptionSummary);
+                } else if (TextUtils.isEmpty(currentDescriptionSummary)) {
                     mIsSummaryFlipped = false;
                     setCurrentSuperSummary(mValueSummary);
                 } else if (canMeasure) {
                     // since we hooked up the pre-draw listener, temporarily set the value first to
                     // make sure that can be fully shown. this will be blocked and reset to the
                     // correct order in the pre-draw listener, where we'll be able to see how much
-                    // of the base summary will get ellipsized so that we can manually add the
-                    // ellipsis to prevent the value at the end from being hidden.
+                    // of the description summary will get ellipsized so that we can manually add
+                    // the ellipsis to prevent the value at the end from being hidden.
                     mIsSummaryFlipped = true;
                     setCurrentSuperSummary(new StringBuilder()
                             .append(mValueSummary)
                             .append('\n')
-                            .append(currentBaseSummary));
+                            .append(currentDescriptionSummary));
                 } else {
                     mIsSummaryFlipped = false;
                     setCurrentSuperSummary(new StringBuilder()
-                            .append(currentBaseSummary)
+                            .append(currentDescriptionSummary)
                             .append('\n')
                             .append(mValueSummary));
                 }
@@ -384,9 +385,9 @@ public class PreferenceSummaryManager {
             }
 
             mEllipsis = null;
-            mBaseSummaryMaxRowsCharCounts = null;
+            mDescriptionSummaryMaxRowsCharCounts = null;
             mValueSummaryMaxRowsCharCounts = null;
-            mBaseSummaryShownRowsCharCounts = null;
+            mDescriptionSummaryShownRowsCharCounts = null;
             mValueSummaryShownRowsCharCounts = null;
             setClickListeners(isEllipsized());
 
@@ -465,7 +466,7 @@ public class PreferenceSummaryManager {
             // we managed ellipsis, so we don't need to keep listening
             detach();
 
-            // the click listener is to show the full base summary if it is ellipsized
+            // the click listener is to show the full description summary if it is ellipsized
             setClickListeners(isEllipsized());
 
             if (mEllipsis != null || mIsSummaryFlipped || mIsPartialSummary) {
@@ -483,7 +484,7 @@ public class PreferenceSummaryManager {
 
         private CharSequence[] getSummaryParts() {
             int maxLines = mSummaryTextView.getMaxLines();
-            CharSequence currentBaseSummary = getCurrentBaseSummary();
+            CharSequence currentDescriptionSummary = getCurrentDescriptionSummary();
             CharSequence summaryPart1;
             CharSequence summaryPart2;
             if (mIsSummaryFlipped) {
@@ -494,14 +495,14 @@ public class PreferenceSummaryManager {
                 } else {
                     summaryPart1 = mValueSummary;
                 }
-                summaryPart2 = currentBaseSummary;
+                summaryPart2 = currentDescriptionSummary;
             } else {
                 if (mIsPartialSummary) {
-                    int baseSummaryAllowedLines = getSummaryAllowedLines(true, maxLines);
-                    summaryPart1 = getPartialSummary(currentBaseSummary,
-                            mBaseSummaryMaxRowsCharCounts, baseSummaryAllowedLines);
+                    int descriptionSummaryAllowedLines = getSummaryAllowedLines(true, maxLines);
+                    summaryPart1 = getPartialSummary(currentDescriptionSummary,
+                            mDescriptionSummaryMaxRowsCharCounts, descriptionSummaryAllowedLines);
                 } else {
-                    summaryPart1 = currentBaseSummary;
+                    summaryPart1 = currentDescriptionSummary;
                 }
                 summaryPart2 = mValueSummary;
             }
@@ -510,44 +511,47 @@ public class PreferenceSummaryManager {
 
         private boolean handleNextPassSetup(EllipsisMeasurement measurement) {
             int maxLines = mSummaryTextView.getMaxLines();
-            CharSequence currentBaseSummary = getCurrentBaseSummary();
-            if (TextUtils.isEmpty(currentBaseSummary) || TextUtils.isEmpty(mValueSummary)) {
+            CharSequence currentDescriptionSummary = getCurrentDescriptionSummary();
+            if (TextUtils.isEmpty(currentDescriptionSummary) || TextUtils.isEmpty(mValueSummary)) {
                 // only need a single pass
                 mEllipsis = measurement.ellipsis;
-                mBaseSummaryMaxRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[0];
+                mDescriptionSummaryMaxRowsCharCounts =
+                        measurement.summaryPartsVisibleRowCharCounts[0];
                 mValueSummaryMaxRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[1];
             } else if (mIsSummaryFlipped && mValueSummaryMaxRowsCharCounts == null) {
                 // first pass - primarily measuring the value summary (effectively on its own)
                 mEllipsis = measurement.ellipsis;
                 mValueSummaryMaxRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[0];
-                int [] baseSummaryRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[1];
-                // if the base summary is entirely visible, nothing is ellipsized
-                if (sum(baseSummaryRowsCharCounts) >= currentBaseSummary.length()) {
+                int [] descriptionSummaryRowsCharCounts =
+                        measurement.summaryPartsVisibleRowCharCounts[1];
+                // if the description summary is entirely visible, nothing is ellipsized
+                if (sum(descriptionSummaryRowsCharCounts) >= currentDescriptionSummary.length()) {
                     // since everything is visible, we're fully measured
-                    mBaseSummaryMaxRowsCharCounts = baseSummaryRowsCharCounts;
+                    mDescriptionSummaryMaxRowsCharCounts = descriptionSummaryRowsCharCounts;
                 } else {
                     // something needs to be ellipsized, but we only measured how much of the value
-                    // fits or how much of the base fits when the whole value fits. we still need to
-                    // determine how much of the base fits in the normal order.
+                    // fits or how much of the description fits when the whole value fits. we still
+                    // need to determine how much of the description fits in the normal order.
                     mIsSummaryFlipped = false;
                     mIsPartialSummary = false;
                     setCurrentSuperSummary(new StringBuilder()
-                            .append(currentBaseSummary)
+                            .append(currentDescriptionSummary)
                             .append('\n')
                             .append(mValueSummary));
                     // cancel this drawing pass since we need to change the text for the next
                     // measure
                     return true;
                 }
-            } else if (mBaseSummaryMaxRowsCharCounts == null) {
-                // second pass - measuring the base summary (effectively on its own)
-                mBaseSummaryMaxRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[0];
-                int baseSummaryAllowedLines = getSummaryAllowedLines(true, maxLines);
+            } else if (mDescriptionSummaryMaxRowsCharCounts == null) {
+                // second pass - measuring the description summary (effectively on its own)
+                mDescriptionSummaryMaxRowsCharCounts =
+                        measurement.summaryPartsVisibleRowCharCounts[0];
+                int descriptionSummaryAllowedLines = getSummaryAllowedLines(true, maxLines);
                 int valueSummaryAllowedLines = getSummaryAllowedLines(false, maxLines);
-                if (baseSummaryAllowedLines != mBaseSummaryMaxRowsCharCounts.length) {
-                    // the base summary needs to be ellipsized, but we didn't measure how much of
-                    // the last line we're planning on showing will fit when the ellipsis is on that
-                    // line
+                if (descriptionSummaryAllowedLines != mDescriptionSummaryMaxRowsCharCounts.length) {
+                    // the description summary needs to be ellipsized, but we didn't measure how
+                    // much of the last line we're planning on showing will fit when the ellipsis is
+                    // on that line
                     mIsSummaryFlipped = true;
                     mIsPartialSummary = true;
                     StringBuilder sb = new StringBuilder();
@@ -555,7 +559,7 @@ public class PreferenceSummaryManager {
                             mValueSummaryMaxRowsCharCounts, valueSummaryAllowedLines);
                     sb.append(partialValueSummary);
                     sb.append('\n');
-                    sb.append(currentBaseSummary);
+                    sb.append(currentDescriptionSummary);
                     setCurrentSuperSummary(sb);
                     // cancel this drawing pass since we need to change the text for the next
                     // measure
@@ -567,9 +571,10 @@ public class PreferenceSummaryManager {
                     mIsSummaryFlipped = false;
                     mIsPartialSummary = true;
                     StringBuilder sb = new StringBuilder();
-                    CharSequence partialBaseSummary = getPartialSummary(currentBaseSummary,
-                            mBaseSummaryMaxRowsCharCounts, baseSummaryAllowedLines);
-                    sb.append(partialBaseSummary);
+                    CharSequence partialDescriptionSummary = getPartialSummary(
+                            currentDescriptionSummary, mDescriptionSummaryMaxRowsCharCounts,
+                            descriptionSummaryAllowedLines);
+                    sb.append(partialDescriptionSummary);
                     sb.append('\n');
                     sb.append(mValueSummary);
                     setCurrentSuperSummary(sb);
@@ -578,9 +583,9 @@ public class PreferenceSummaryManager {
                     return true;
                 }
             } else if (mIsSummaryFlipped) {
-                // third pass - measuring the base summary for only the rows that will be shown
-                mBaseSummaryShownRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[1];
-                int baseSummaryAllowedLines = getSummaryAllowedLines(true, maxLines);
+                // third pass - measuring the description summary for only the rows that will be shown
+                mDescriptionSummaryShownRowsCharCounts = measurement.summaryPartsVisibleRowCharCounts[1];
+                int descriptionSummaryAllowedLines = getSummaryAllowedLines(true, maxLines);
                 int valueSummaryAllowedLines = getSummaryAllowedLines(false, maxLines);
                 if (valueSummaryAllowedLines != mValueSummaryMaxRowsCharCounts.length) {
                     // the value summary needs to be ellipsized, but we didn't measure how much of
@@ -589,9 +594,10 @@ public class PreferenceSummaryManager {
                     mIsSummaryFlipped = false;
                     mIsPartialSummary = true;
                     StringBuilder sb = new StringBuilder();
-                    CharSequence partialBaseSummary = getPartialSummary(currentBaseSummary,
-                            mBaseSummaryMaxRowsCharCounts, baseSummaryAllowedLines);
-                    sb.append(partialBaseSummary);
+                    CharSequence partialDescriptionSummary = getPartialSummary(
+                            currentDescriptionSummary, mDescriptionSummaryMaxRowsCharCounts,
+                            descriptionSummaryAllowedLines);
+                    sb.append(partialDescriptionSummary);
                     sb.append('\n');
                     sb.append(mValueSummary);
                     setCurrentSuperSummary(sb);
@@ -611,21 +617,22 @@ public class PreferenceSummaryManager {
 
         private void setFinalEllipsizedSummary() {
             int maxLines = mSummaryTextView.getMaxLines();
-            CharSequence currentBaseSummary = getCurrentBaseSummary();
+            CharSequence currentDescriptionSummary = getCurrentDescriptionSummary();
             StringBuilder sb = new StringBuilder();
-            int baseSummaryAllowedLength = getSummaryAllowedLength(true, maxLines);
+            int descriptionSummaryAllowedLength = getSummaryAllowedLength(true, maxLines);
             int valueSummaryAllowedLength = getSummaryAllowedLength(false, maxLines);
-            if (baseSummaryAllowedLength > 0) {
-                if (baseSummaryAllowedLength < currentBaseSummary.length()) {
-                    CharSequence visibleBaseSummary =
-                            currentBaseSummary.subSequence(0, baseSummaryAllowedLength);
-                    sb.append(visibleBaseSummary);
+            if (descriptionSummaryAllowedLength > 0) {
+                if (descriptionSummaryAllowedLength < currentDescriptionSummary.length()) {
+                    CharSequence visibleDescriptionSummary =
+                            currentDescriptionSummary.subSequence(0,
+                                    descriptionSummaryAllowedLength);
+                    sb.append(visibleDescriptionSummary);
                     sb.append(mEllipsis);
                 } else {
-                    sb.append(currentBaseSummary);
+                    sb.append(currentDescriptionSummary);
                 }
             }
-            if (baseSummaryAllowedLength > 0 && valueSummaryAllowedLength > 0) {
+            if (descriptionSummaryAllowedLength > 0 && valueSummaryAllowedLength > 0) {
                 sb.append('\n');
             }
             if (valueSummaryAllowedLength > 0) {
@@ -642,50 +649,50 @@ public class PreferenceSummaryManager {
             mIsSummaryFlipped = false;
         }
 
-        private int getSummaryAllowedLines(boolean getBaseSummary, int maxLines) {
-            if ((mBaseSummaryMaxRowsCharCounts == null
-                    && !TextUtils.isEmpty(getCurrentBaseSummary()))
+        private int getSummaryAllowedLines(boolean getDescriptionSummary, int maxLines) {
+            if ((mDescriptionSummaryMaxRowsCharCounts == null
+                    && !TextUtils.isEmpty(getCurrentDescriptionSummary()))
                     || (mValueSummaryMaxRowsCharCounts == null
                             && !TextUtils.isEmpty(mValueSummary))) {
                 // not sufficiently measured to determine yet
                 return -1;
             }
 
-            int baseSummaryVisibleRowCount = mBaseSummaryMaxRowsCharCounts != null
-                    ? mBaseSummaryMaxRowsCharCounts.length
+            int descriptionSummaryVisibleRowCount = mDescriptionSummaryMaxRowsCharCounts != null
+                    ? mDescriptionSummaryMaxRowsCharCounts.length
                     : 0;
             int valueSummaryVisibleRowCount = mValueSummaryMaxRowsCharCounts != null
                     ? mValueSummaryMaxRowsCharCounts.length
                     : 0;
 
-            int baseSummaryAllowedRows;
+            int descriptionSummaryAllowedRows;
             int valueSummaryAllowedRows;
-            if (baseSummaryVisibleRowCount <= maxLines / 2) {
-                baseSummaryAllowedRows = baseSummaryVisibleRowCount;
-                valueSummaryAllowedRows = Math.min(maxLines - baseSummaryAllowedRows,
+            if (descriptionSummaryVisibleRowCount <= maxLines / 2) {
+                descriptionSummaryAllowedRows = descriptionSummaryVisibleRowCount;
+                valueSummaryAllowedRows = Math.min(maxLines - descriptionSummaryAllowedRows,
                         valueSummaryVisibleRowCount);
             } else if (valueSummaryVisibleRowCount <= maxLines / 2) {
                 valueSummaryAllowedRows = valueSummaryVisibleRowCount;
-                baseSummaryAllowedRows = Math.min(maxLines - valueSummaryAllowedRows,
-                        baseSummaryVisibleRowCount);
+                descriptionSummaryAllowedRows = Math.min(maxLines - valueSummaryAllowedRows,
+                        descriptionSummaryVisibleRowCount);
             } else {
-                baseSummaryAllowedRows = maxLines / 2;
-                valueSummaryAllowedRows = maxLines - baseSummaryAllowedRows;
+                descriptionSummaryAllowedRows = maxLines / 2;
+                valueSummaryAllowedRows = maxLines - descriptionSummaryAllowedRows;
             }
 
-            return getBaseSummary ? baseSummaryAllowedRows : valueSummaryAllowedRows;
+            return getDescriptionSummary ? descriptionSummaryAllowedRows : valueSummaryAllowedRows;
         }
 
-        private int getSummaryAllowedLength(boolean getBaseSummary, int maxLines) {
-            int summaryAllowedLines = getSummaryAllowedLines(getBaseSummary, maxLines);
+        private int getSummaryAllowedLength(boolean getDescriptionSummary, int maxLines) {
+            int summaryAllowedLines = getSummaryAllowedLines(getDescriptionSummary, maxLines);
             if (summaryAllowedLines < 0) {
                 return -1;
             }
 
-            return sum(getBaseSummary
-                    ? (mBaseSummaryShownRowsCharCounts != null
-                            ? mBaseSummaryShownRowsCharCounts
-                            : mBaseSummaryMaxRowsCharCounts)
+            return sum(getDescriptionSummary
+                    ? (mDescriptionSummaryShownRowsCharCounts != null
+                            ? mDescriptionSummaryShownRowsCharCounts
+                            : mDescriptionSummaryMaxRowsCharCounts)
                     : (mValueSummaryShownRowsCharCounts != null
                             ? mValueSummaryShownRowsCharCounts
                             : mValueSummaryMaxRowsCharCounts),
@@ -697,11 +704,11 @@ public class PreferenceSummaryManager {
                                                   int[] visibleRowCharacters,
                                                   int allowedLines) {
 
-        int partialBaseSummaryLength = sum(visibleRowCharacters, allowedLines);
+        int partialDescriptionSummaryLength = sum(visibleRowCharacters, allowedLines);
         // trim the last new line that may be included since one will get added to split the summary
         // parts
-        if (summaryPiece.charAt(partialBaseSummaryLength - 1) == '\n') {
-            partialBaseSummaryLength--;
+        if (summaryPiece.charAt(partialDescriptionSummaryLength - 1) == '\n') {
+            partialDescriptionSummaryLength--;
         }
         // trim any trailing spaces. at least on some versions (seen on kitkat), when there is a
         // trailing space before a new line (eg the first part of a partial summary) and there isn't
@@ -709,12 +716,13 @@ public class PreferenceSummaryManager {
         // ellipsize the end of that line (in the middle of the TextView) and add an extra blank
         // line. I assume that's just a bug in the framework, but we can avoid it by removing the
         // trailing space.
-        while (partialBaseSummaryLength > 0
-                && Character.isWhitespace(summaryPiece.charAt(partialBaseSummaryLength - 1))) {
-            partialBaseSummaryLength--;
+        while (partialDescriptionSummaryLength > 0
+                && Character.isWhitespace(
+                        summaryPiece.charAt(partialDescriptionSummaryLength - 1))) {
+            partialDescriptionSummaryLength--;
         }
 
-        return summaryPiece.subSequence(0, partialBaseSummaryLength);
+        return summaryPiece.subSequence(0, partialDescriptionSummaryLength);
     }
 
     private static int sum(int[] list) {
@@ -779,7 +787,7 @@ public class PreferenceSummaryManager {
                         + lineDisplayedText);
                 return null;
             }
-            // full text of the current summary part (base or value)
+            // full text of the current summary part (description or value)
             CharSequence summaryPart = populatedSummaryParts[currentPart];
 
             int ellipsisCount = layout.getEllipsisCount(i);
@@ -794,9 +802,9 @@ public class PreferenceSummaryManager {
                             : lineEnd);
 
             // based on the number of characters shown in the current line, get the
-            // corresponding text from the intended summary part (base or value). this generally
-            // should just match the visible text (other than maybe a trailing new line), but we
-            // should verify it to make sure we're measuring the right thing.
+            // corresponding text from the intended summary part (description or value). this
+            // generally should just match the visible text (other than maybe a trailing new line),
+            // but we should verify it to make sure we're measuring the right thing.
             int expectedLineSummaryPartEnd =
                     Math.min(partTextPosition + visibleText.length(), summaryPart.length());
             CharSequence expectedLineText = summaryPart.subSequence(partTextPosition,
