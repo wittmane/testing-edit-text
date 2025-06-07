@@ -56,6 +56,14 @@ public class TextTranslateListPreference
         };
     }
 
+    private static EditText getOriginalEditText(View[] rowContent) {
+        return (EditText) rowContent[0];
+    }
+
+    private static EditText getTranslationEditText(View[] rowContent) {
+        return (EditText) rowContent[2];
+    }
+
     @Override
     protected boolean isDataValid() {
         HashSet<String> originalTexts = new HashSet<>();
@@ -80,7 +88,7 @@ public class TextTranslateListPreference
             if (canRemoveAsExtraLine(row.mContent)) {
                 continue;
             }
-            EditText originalEditText = (EditText) row.mContent[0];
+            EditText originalEditText = (EditText) getOriginalEditText(row.mContent);
             CharSequence originalText = originalEditText.getText();
             if (TextUtils.isEmpty(originalText)) {
                 originalEditText.setError(
@@ -105,16 +113,16 @@ public class TextTranslateListPreference
     @Override
     protected boolean shouldHaveExtraRow(View[] rowContent) {
         // there needs to be the original text to translate, but it can translate to ""
-        return !TextUtils.isEmpty(((EditText)rowContent[0]).getText());
+        return !TextUtils.isEmpty(getOriginalEditText(rowContent).getText());
     }
 
     @Override
     protected TranslateText getUIRowData(View[] rowContent) {
         TranslateText translation = new TranslateText();
         translation.setOriginal(
-                ((EditText)rowContent[0]).getText().toString());
+                getOriginalEditText(rowContent).getText().toString());
         translation.setTranslation(
-                ((EditText)rowContent[2]).getText().toString());
+                getTranslationEditText(rowContent).getText().toString());
         return translation;
     }
 

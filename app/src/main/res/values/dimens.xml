@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2014 The Android Open Source Project
+<!-- Copyright (C) 2022-2025 Eli Wittman
+     Copyright (C) 2014 The Android Open Source Project
      Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,8 +106,13 @@
     <dimen name="edittext_underline_background_padding_holo">3dp</dimen>
     <!-- (EW) based on edit_text_inset_horizontal_material in dimens_material, which is used as the
          left and right inset in drawable/textfield_activated_mtrl_alpha, which is the default
-         editTextBackground, specified in themes_material. -->
-    <dimen name="edittext_underline_background_padding_negation_material">-4dp</dimen>
+         editTextBackground, specified in themes_material.
+         theoretically, the negation should be -4, but for some reason that prevents the context
+         menu from appearing when the cursor is at the edge of the text, so this is reduced slightly
+         (shouldn't really be noticeable) to avoid that issue. maybe somehow some rounding makes
+         that point out of bounds and the system prevents showing the menu. I've seen this issue as
+         far back as Oreo. -->
+    <dimen name="edittext_underline_background_padding_negation_material">-3.99dp</dimen>
     <dimen name="edittext_underline_background_padding_material">4dp</dimen>
 
 </resources>
