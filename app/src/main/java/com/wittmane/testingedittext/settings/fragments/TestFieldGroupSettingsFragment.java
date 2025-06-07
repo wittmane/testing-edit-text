@@ -224,8 +224,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
     /**
      * Preference to link to the main settings screen for a specific test field.
      */
-    private static class IndividualTestFieldPreference extends PerTestFieldPreference {//
-
+    private static class IndividualTestFieldPreference extends PerTestFieldPreference {
         /**
          * Create a new preference for a test field.
          * @param context the context for this application.

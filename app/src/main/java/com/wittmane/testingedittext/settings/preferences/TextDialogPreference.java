@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,10 @@ import android.widget.Button;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.text.inputfilters.PlainTextFilter;
+import com.wittmane.testingedittext.text.inputfilters.SingleLineFilter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TextDialogPreference extends DialogPreferenceBase {
     private static final String TAG = TextDialogPreference.class.getSimpleName();
@@ -146,6 +150,7 @@ public class TextDialogPreference extends DialogPreferenceBase {
         int inputTypeClass = INPUT_TYPE_CLASS_MASK & mInputType;
         int flags = INPUT_TYPE_FLAG_MASK & mInputType;
         int inputType;
+        List<InputFilter> inputFilters = new ArrayList<>();
         if (inputTypeClass == INPUT_TYPE_CLASS_NUMBER) {
             inputType = InputType.TYPE_CLASS_NUMBER;
             if ((flags & INPUT_TYPE_NUMBER_FLAG_SIGNED) > 0) {
@@ -158,14 +163,16 @@ public class TextDialogPreference extends DialogPreferenceBase {
             inputType = InputType.TYPE_CLASS_TEXT;
             if ((flags & INPUT_TYPE_TEXT_FLAG_MULTI_LINE) > 0) {
                 inputType |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
+            } else {
+                inputFilters.add(new SingleLineFilter());
             }
         }
         mEditText.setInputType(inputType);
         if (inputTypeClass != INPUT_TYPE_CLASS_TEXT || (flags & INPUT_TYPE_TEXT_FLAG_STYLED) < 1) {
             // spans won't be saved, so don't allow them to be entered to make that more clear
-            mEditText.setFilters(new InputFilter[] { new PlainTextFilter() });
+            inputFilters.add(new PlainTextFilter());
         }
-
+        mEditText.setFilters(inputFilters.toArray(new InputFilter[0]));
 
         mEditText.addTextChangedListener(new TextWatcher() {
             @Override
