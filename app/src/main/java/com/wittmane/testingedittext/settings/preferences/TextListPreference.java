@@ -17,6 +17,7 @@
 package com.wittmane.testingedittext.settings.preferences;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -24,6 +25,7 @@ import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.datamanager.StringTextListDataManager;
 
@@ -31,9 +33,14 @@ import java.util.List;
 
 public class TextListPreference
         extends TextEntryListPreferenceBase<String, StringTextListDataManager> {
+    private boolean mAllowDuplicates;
 
     public TextListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
+        final TypedArray a = context.obtainStyledAttributes(
+                attrs, R.styleable.TextListPreference, 0, 0);
+        mAllowDuplicates = a.getBoolean(R.styleable.TextListPreference_allowDuplicates, true);
+        a.recycle();
     }
 
     @Override
@@ -61,7 +68,7 @@ public class TextListPreference
     @Override
     protected StringTextListDataManager createDataManager(SharedPreferenceManager prefs,
                                                           String key) {
-        return new StringTextListDataManager(prefs, key);
+        return new StringTextListDataManager(prefs, key, mAllowDuplicates);
     }
 
     @Override

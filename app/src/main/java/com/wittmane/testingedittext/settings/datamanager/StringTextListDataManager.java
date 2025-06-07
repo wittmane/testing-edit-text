@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,12 @@ import com.wittmane.testingedittext.datatype.TextList;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
 public class StringTextListDataManager extends TextListDataManager<String> {
-    public StringTextListDataManager(SharedPreferenceManager prefs, String key) {
+    private boolean mAllowDuplicates;
+
+    public StringTextListDataManager(SharedPreferenceManager prefs, String key,
+                                     boolean allowDuplicates) {
         super(prefs, key);
+        mAllowDuplicates = allowDuplicates;
     }
 
     @Override
@@ -40,6 +44,7 @@ public class StringTextListDataManager extends TextListDataManager<String> {
     @NonNull
     @Override
     protected String[] flattenRowData(@NonNull TextList<String> fullData) {
-        return fullData.getDataArray();
+        String[] dataArray = fullData.getDataArray();
+        return mAllowDuplicates ? dataArray : stripDuplicates(dataArray, new String[0]);
     }
 }

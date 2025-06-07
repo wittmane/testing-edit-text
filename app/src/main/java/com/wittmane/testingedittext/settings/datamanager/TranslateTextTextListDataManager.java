@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public class TranslateTextTextListDataManager extends TextListDataManager<Transl
     @NonNull
     @Override
     protected String[] flattenRowData(@NonNull TextList<TranslateText> fullData) {
-        TranslateText[] dataArray = fullData.getDataArray();
+        TranslateText[] dataArray = stripDuplicates(fullData.getDataArray(), new TranslateText[0]);
         String[] result = new String[dataArray.length * 2];
         for (int i = 0; i < dataArray.length; i++) {
             result[i * 2] = dataArray[i].getOriginal();

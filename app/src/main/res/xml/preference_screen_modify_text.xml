@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2025 Eli Wittman
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -49,7 +49,8 @@
         <com.wittmane.testingedittext.settings.preferences.TextListPreference
             android:key="pref_key_restrict_specific"
             android:title="@string/restrict_specific_title"
-            android:summary="@string/restrict_specific_summary" />
+            android:summary="@string/restrict_specific_summary"
+            app:allowDuplicates="false" />
 
         <com.wittmane.testingedittext.settings.preferences.CodepointRangeDialogPreference
             android:key="pref_key_restrict_range"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -517,7 +517,8 @@ import java.util.Locale;
     }
 
     public PrefInfo<TextList<String>> readTextListStringWithInfo(PreferenceKey prefKey) {
-        return readWithInfo(prefKey, StringTextListDataManager::new);
+        return readWithInfo(prefKey,
+                (prefs, key) -> new StringTextListDataManager(prefs, key, true));
     }
 
     public TextList<String> readTextListString(PreferenceKey prefKey) {

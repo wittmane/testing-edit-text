@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1169,7 +1169,8 @@ public abstract class JsonManager {
         TextList<String> textList = new TextList<>(
                 stringArray,
                 textListJsonObject.getBoolean(TEXT_LIST_ESCAPE_CHARS_JSON_PROP));
-        return preferenceSetter(prefKeyOrPrefix, textList, StringTextListDataManager::new);
+        return preferenceSetter(prefKeyOrPrefix, textList,
+                (prefs, key) -> new StringTextListDataManager(prefs, key, true));
     }
 
     private static Consumer<String> validateTextListTranslateText(JsonObject jsonObject,

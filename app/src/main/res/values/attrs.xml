@@ -208,6 +208,10 @@
         <attr name="android:gravity" />
     </declare-styleable>
 
+    <declare-styleable name="TextListPreference">
+        <attr name="allowDuplicates" format="boolean" />
+    </declare-styleable>
+
     <declare-styleable name="TextDialogPreference">
         <!-- The type of data being placed in a text field, used to help an
              input method decide how to let the user enter text. -->
