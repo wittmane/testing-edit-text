@@ -115,7 +115,7 @@
 
     <string name="translate_specific_title">Translate specific text</string>
     <string name="translate_specific_summary">Change text into different text</string>
-    <string name="text_cant_be_blank_error">Text can\'t be blank</string>
+    <string name="input_text_cant_be_blank_error">Input text can\'t be blank</string>
     <string name="duplicates_not_allowed_error">Duplicates are not allowed</string>
 
     <string name="translate_full_match_only_title">Use full match for translation</string>

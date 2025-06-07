@@ -85,18 +85,16 @@ public class TextTranslateListPreference
 
         // update errors
         for (Row row : mRows) {
-            if (canRemoveAsExtraLine(row.mContent)) {
-                continue;
-            }
-            EditText originalEditText = (EditText) getOriginalEditText(row.mContent);
+            boolean ignoreLine = canRemoveAsExtraLine(row.mContent);
+            EditText originalEditText = getOriginalEditText(row.mContent);
             CharSequence originalText = originalEditText.getText();
-            if (TextUtils.isEmpty(originalText)) {
+            if (!ignoreLine && TextUtils.isEmpty(originalText)) {
                 originalEditText.setError(
-                        getContext().getString(R.string.text_cant_be_blank_error));
-            } else if (duplicateOriginalTexts.contains(originalText.toString())) {
+                        getContext().getString(R.string.input_text_cant_be_blank_error));
+            } else if (!ignoreLine && duplicateOriginalTexts.contains(originalText.toString())) {
                 originalEditText.setError(
                         getContext().getString(R.string.duplicates_not_allowed_error));
-            } else {
+            } else if (!TextUtils.isEmpty(originalEditText.getError())) {
                 originalEditText.setError(null);
             }
         }
