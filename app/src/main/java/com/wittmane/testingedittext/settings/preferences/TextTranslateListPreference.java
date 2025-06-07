@@ -25,10 +25,12 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.datatype.TranslateText;
 import com.wittmane.testingedittext.settings.datamanager.TranslateTextTextListDataManager;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 
+import java.util.HashSet;
 import java.util.List;
 
 public class TextTranslateListPreference
@@ -52,6 +54,46 @@ public class TextTranslateListPreference
                 rangeIndicator,
                 createEditText(data == null ? null : data.getTranslation(), true, false)
         };
+    }
+
+    @Override
+    protected boolean isDataValid() {
+        HashSet<String> originalTexts = new HashSet<>();
+        HashSet<String> duplicateOriginalTexts = new HashSet<>();
+        boolean isValid = true;
+        for (TranslateText translateText : getUIData().getDataArray()) {
+            String original = translateText.getOriginal();
+            if (TextUtils.isEmpty(original)) {
+                isValid = false;
+                continue;
+            }
+            if (originalTexts.contains(original)) {
+                isValid = false;
+                duplicateOriginalTexts.add(original);
+                continue;
+            }
+            originalTexts.add(original);
+        }
+
+        // update errors
+        for (Row row : mRows) {
+            if (canRemoveAsExtraLine(row.mContent)) {
+                continue;
+            }
+            EditText originalEditText = (EditText) row.mContent[0];
+            CharSequence originalText = originalEditText.getText();
+            if (TextUtils.isEmpty(originalText)) {
+                originalEditText.setError(
+                        getContext().getString(R.string.text_cant_be_blank_error));
+            } else if (duplicateOriginalTexts.contains(originalText.toString())) {
+                originalEditText.setError(
+                        getContext().getString(R.string.duplicates_not_allowed_error));
+            } else {
+                originalEditText.setError(null);
+            }
+        }
+
+        return isValid;
     }
 
     @Override

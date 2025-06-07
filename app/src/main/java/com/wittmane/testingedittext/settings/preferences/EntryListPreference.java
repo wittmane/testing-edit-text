@@ -138,6 +138,22 @@ public abstract class EntryListPreference<TRowData, TFullData,
         if (!TextUtils.isEmpty(text)) {
             editText.setText(text);
         }
+
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int start, int count,
+                                          int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int start, int before,
+                                      int count) { }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                updateAcceptButtonState();
+            }
+        });
+
         return editText;
     }
 
