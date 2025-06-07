@@ -50,9 +50,9 @@ public class TextTranslateListPreference
                         ? "\u2190"
                         : "\u2192");
         return new View[] {
-                createEditText(data == null ? null : data.getOriginal(), false, true),
+                createEditText(data == null ? null : data.getOriginal(), false, true, true),
                 rangeIndicator,
-                createEditText(data == null ? null : data.getTranslation(), true, false)
+                createEditText(data == null ? null : data.getTranslation(), true, false, true)
         };
     }
 

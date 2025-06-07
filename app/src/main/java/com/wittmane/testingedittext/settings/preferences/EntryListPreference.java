@@ -22,6 +22,7 @@ import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.preference.PreferenceManager;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
@@ -46,6 +47,8 @@ import androidx.annotation.NonNull;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
 import com.wittmane.testingedittext.settings.datamanager.ListDataManager;
+import com.wittmane.testingedittext.text.inputfilters.PlainTextFilter;
+import com.wittmane.testingedittext.text.inputfilters.SingleLineFilter;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.ResourceUtils;
 
@@ -117,7 +120,7 @@ public abstract class EntryListPreference<TRowData, TFullData,
     protected abstract void setExtraDataUI(TFullData data);
 
     protected EditText createEditText(CharSequence text, boolean includeLeftPadding,
-                                      boolean includeRightPadding) {
+                                      boolean includeRightPadding, boolean isPlainText) {
         EditText editText = new EditText(getContext());
         editText.setSingleLine();
         TableRow.LayoutParams editTextLayoutParams = new TableRow.LayoutParams(
@@ -138,6 +141,12 @@ public abstract class EntryListPreference<TRowData, TFullData,
         if (!TextUtils.isEmpty(text)) {
             editText.setText(text);
         }
+        List<InputFilter> inputFilters = new ArrayList<>();
+        inputFilters.add(new SingleLineFilter());
+        if (isPlainText) {
+            inputFilters.add(new PlainTextFilter());
+        }
+        editText.setFilters(inputFilters.toArray(new InputFilter[0]));
 
         editText.addTextChangedListener(new TextWatcher() {
             @Override

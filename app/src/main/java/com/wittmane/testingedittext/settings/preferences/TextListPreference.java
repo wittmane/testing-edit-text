@@ -46,7 +46,7 @@ public class TextListPreference
     @Override
     protected View[] createRowContent(String data) {
         return new View[] {
-                createEditText(data, false, false)
+                createEditText(data, false, false, true)
         };
     }
 
