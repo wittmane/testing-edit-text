@@ -376,13 +376,14 @@ class Editor {
         } else {
             mProcessTextIntentActionsHandler = null;
         }
-        // (EW) the AOSP version checks com.android.internal.R.bool.config_enableHapticTextHandle,
-        // which apps can't access, even with reflection (and the value isn't stable to be able to
-        // hard-code the int value), so we have our own config to check, but it won't necessarily
-        // match with the framework EditText.
-        //TODO: (EW) consider adding a setting to enable haptic feedback instead
-        mHapticTextHandleEnabled = mEditText.getContext().getResources().getBoolean(
-                R.bool.config_enableHapticTextHandle);
+        // (EW) the AOSP version (starting in Pie) checks
+        // com.android.internal.R.bool.config_enableHapticTextHandle, which apps can't access, even
+        // with reflection (and the value isn't stable to be able to hard-code the int value), so we
+        // have to manage differently. it seems that the OS handles checking the touch feedback
+        // setting for apps, so always setting this to true seems to make the custom EditText match
+        // functionality in the framework EditText. I'm not certain why the framework EditText
+        // needed the special check.
+        mHapticTextHandleEnabled = true;
 
         // (EW) the AOSP version checks AppGlobals.getIntCoreSetting starting in R, which is on the
         // hidden API blacklist, so it can't even be used with reflection. it might be nice to pull
