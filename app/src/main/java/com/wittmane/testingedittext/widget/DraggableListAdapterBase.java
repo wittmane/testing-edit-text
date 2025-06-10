@@ -240,6 +240,10 @@ public abstract class DraggableListAdapterBase<TListItems, TListItemBuilder> ext
                             coordinate.mX = view.getWidth() / 2f;
                             coordinate.mY = view.getHeight() / 2f;
                         }
+                        touchView.performHapticFeedback(
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                                        ? HapticFeedbackConstants.DRAG_START
+                                        : HapticFeedbackConstants.LONG_PRESS);
                         startDragDrop(view, position, (int) coordinate.mX, (int) coordinate.mY);
                         return true;
                     }
@@ -255,7 +259,6 @@ public abstract class DraggableListAdapterBase<TListItems, TListItemBuilder> ext
         new LongClickManager(view, new OnLongClickImprovedListener() {
             @Override
             public boolean onLongClick(View v, float x, float y) {
-                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                 startDragDrop(view, position, (int) x, (int) y);
                 return true;
             }
