@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -238,6 +238,8 @@ public class PreferenceKeys {
             "pref_key_theme";
     public static final String PREF_SHOW_REFERENCE_EDITTEXT =
             "pref_key_show_reference_edittext";
+    public static final String PREF_SHOW_FIELD_QUICK_SETTINGS_BUTTON =
+            "pref_key_show_field_quick_settings_button";
     //#endregion
     //#endregion
 
@@ -362,7 +364,8 @@ public class PreferenceKeys {
 
     public static final String[] MISC_PREF_KEYS = new String[] {
             PREF_THEME,
-            PREF_SHOW_REFERENCE_EDITTEXT
+            PREF_SHOW_REFERENCE_EDITTEXT,
+            PREF_SHOW_FIELD_QUICK_SETTINGS_BUTTON
     };
     //#endregion
 

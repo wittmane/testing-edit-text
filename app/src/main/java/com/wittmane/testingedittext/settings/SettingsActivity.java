@@ -17,6 +17,9 @@
 
 package com.wittmane.testingedittext.settings;
 
+import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
+import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettingsFragment.GROUP_INDEX_BUNDLE_KEY;
+
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
@@ -46,6 +49,8 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment
 public class SettingsActivity extends PreferenceActivity {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
+    public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
+
     @Override
     protected void onCreate(final Bundle savedState) {
         setTheme(Settings.getThemeId(this));
@@ -67,6 +72,23 @@ public class SettingsActivity extends PreferenceActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::onBackPressed);
+        }
+
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            int fieldId = extras.getInt(FIELD_ID_BUNDLE_KEY, -1);
+            FieldPosition position = fieldId >= 0 ? Settings.getTestFieldPosition(fieldId) : null;
+            if (position != null) {
+                Bundle targetExtras = new Bundle();
+                targetExtras.putString(GROUP_INDEX_BUNDLE_KEY, "" + position.groupIndex);
+                targetExtras.putString(FIELD_INDEX_BUNDLE_KEY, "" + position.fieldIndex);
+                Fragment f = new TestFieldSettingsFragment();
+                f.setArguments(targetExtras);
+                FragmentTransaction transaction = getFragmentManager().beginTransaction();
+                transaction.replace(android.R.id.content, f);
+                transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+                transaction.commitAllowingStateLoss();
+            }
         }
     }
 

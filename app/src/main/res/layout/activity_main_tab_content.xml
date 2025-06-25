@@ -54,6 +54,10 @@
                         android:gravity="center_horizontal"
                         android:text="@string/custom_edittext"/>
                 </LinearLayout>
+                <Space
+                    android:id="@+id/quick_settings_header_space"
+                    android:layout_width="24dp"
+                    android:layout_height="match_parent"/>
             </LinearLayout>
 
             <!-- text fields will be added programmatically -->

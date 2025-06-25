@@ -17,6 +17,7 @@
 package com.wittmane.testingedittext;
 
 import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName;
+import static com.wittmane.testingedittext.settings.SettingsActivity.FIELD_ID_BUNDLE_KEY;
 
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +32,7 @@ import android.text.InputType;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -41,6 +43,7 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TabHost;
 import android.widget.TabHost.TabContentFactory;
@@ -51,6 +54,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.wittmane.testingedittext.function.Function;
+import com.wittmane.testingedittext.settings.FieldPosition;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
@@ -102,6 +107,7 @@ public class MainActivity extends ThemedActivity
         private final TextView mLabel;
         private final EditTextProxy mFrameworkEditText;
         private final EditTextProxy mCustomEditText;
+        private final ImageButton mQuickSettingsButton;
         private final LinearLayout mLayout;
         public TestField(int id, Context context) {
             mId = id;
@@ -120,32 +126,78 @@ public class MainActivity extends ThemedActivity
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
             mLayout.addView(textFieldWrapperLayout);
 
-            LinearLayout frameworkEditTextWrapper = new LinearLayout(context);
-            frameworkEditTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
+            mFrameworkEditText = addEditText(context, textFieldWrapperLayout,
+                    android.widget.EditText::new, EditTextProxy::new);
+
+            mCustomEditText = addEditText(context, textFieldWrapperLayout,
+                    com.wittmane.testingedittext.aosp.android.widget.EditText::new,
+                    EditTextProxy::new);
+
+            mQuickSettingsButton = addImageButton(context, textFieldWrapperLayout,
+                    R.drawable.ic_tune_white_24);
+            mQuickSettingsButton.setOnClickListener(v -> {
+                final Intent intent = new Intent();
+                intent.setClass(context, SettingsActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                        | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                intent.putExtra(FIELD_ID_BUNDLE_KEY, id);
+                context.startActivity(intent);
+            });
+        }
+
+        private static <TEditText extends View> EditTextProxy addEditText(
+                Context context, ViewGroup textFieldWrapperLayout,
+                Function<Context, TEditText> createEditText,
+                Function<TEditText, EditTextProxy> createEditTextProxy) {
+            LinearLayout editTextWrapper = new LinearLayout(context);
+            editTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
-            textFieldWrapperLayout.addView(frameworkEditTextWrapper);
+            textFieldWrapperLayout.addView(editTextWrapper);
 
-            android.widget.EditText frameworkEditText = new android.widget.EditText(context);
-            frameworkEditText.setLayoutParams(new LinearLayout.LayoutParams(
+            TEditText editText = createEditText.apply(context);
+            editText.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-            mFrameworkEditText = new EditTextProxy(frameworkEditText);
-            frameworkEditTextWrapper.addView(frameworkEditText);
-
-            LinearLayout customEditTextWrapper = new LinearLayout(context);
-            customEditTextWrapper.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
-            textFieldWrapperLayout.addView(customEditTextWrapper);
-
-            com.wittmane.testingedittext.aosp.android.widget.EditText customEditText =
-                    new com.wittmane.testingedittext.aosp.android.widget.EditText(context);
-            customEditText.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-            mCustomEditText = new EditTextProxy(customEditText);
-            customEditTextWrapper.addView(customEditText);
+            editTextWrapper.addView(editText);
 
             // enable ACTION_PROCESS_TEXT (see EditText#canProcessText)
-            frameworkEditText.setId(View.generateViewId());
-            customEditText.setId(View.generateViewId());
+            editText.setId(View.generateViewId());
+
+            return createEditTextProxy.apply(editText);
+        }
+
+        private static ImageButton addImageButton(
+                Context context, ViewGroup textFieldWrapperLayout, int imageResId) {
+
+            LinearLayout imageButtonWrapperWrapper = new LinearLayout(context);
+            imageButtonWrapperWrapper.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT, 0));
+            textFieldWrapperLayout.addView(imageButtonWrapperWrapper);
+
+            LinearLayout imageButtonWrapper = new LinearLayout(context);
+            imageButtonWrapper.setLayoutParams(new LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+            imageButtonWrapperWrapper.addView(imageButtonWrapper);
+
+            // use an invisible zero width edit text to allow centering the icon button to the
+            // default edit text height so it can stay pinned there, regardless of how large the
+            // real edit texts expand
+            android.widget.EditText layoutHelperEditText = new android.widget.EditText(context);
+            layoutHelperEditText.setLayoutParams(new LayoutParams(0, LayoutParams.WRAP_CONTENT));
+            layoutHelperEditText.setFocusable(false);
+            layoutHelperEditText.setEnabled(false);
+            layoutHelperEditText.setVisibility(View.INVISIBLE);
+            imageButtonWrapper.addView(layoutHelperEditText);
+
+            ImageButton imageButton = IconUtils.createImageButton(context, imageResId);
+            LinearLayout.LayoutParams imageButtonLayoutParams =
+                    new LinearLayout.LayoutParams(
+                            LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            imageButtonLayoutParams.gravity = Gravity.CENTER;
+            imageButton.setLayoutParams(imageButtonLayoutParams);
+            imageButtonWrapper.addView(imageButton);
+
+            return imageButton;
         }
     }
 
@@ -455,6 +507,10 @@ public class MainActivity extends ThemedActivity
         currentView.findViewById(R.id.edittext_type_column_labels)
                 .setVisibility(showReferenceEditText ? View.VISIBLE : View.GONE);
 
+        boolean showFieldQuickSettingsButton = Settings.getShowFieldQuickSettingsButton();
+        currentView.findViewById(R.id.quick_settings_header_space)
+                .setVisibility(showFieldQuickSettingsButton ? View.VISIBLE : View.GONE);
+
         // update the settings for the individual fields
         for (int fieldIndex = 0; fieldIndex < fieldsOnLayout.size(); fieldIndex++) {
             TestField testField = fieldsOnLayout.get(fieldIndex);
@@ -470,15 +526,9 @@ public class MainActivity extends ThemedActivity
                     .setVisibility(showReferenceEditText ? View.VISIBLE : View.GONE);
 
             updateField(testField.mCustomEditText, groupIndex, fieldIndex);
-        }
-    }
 
-    private static class FieldPosition {
-        public final int groupIndex;
-        public final int fieldIndex;
-        public FieldPosition(int groupIndex, int fieldIndex) {
-            this.groupIndex = groupIndex;
-            this.fieldIndex = fieldIndex;
+            testField.mQuickSettingsButton.setVisibility(
+                    showFieldQuickSettingsButton ? View.VISIBLE : View.GONE);
         }
     }
 

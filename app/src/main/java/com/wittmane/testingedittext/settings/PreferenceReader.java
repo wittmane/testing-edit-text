@@ -124,6 +124,7 @@ import java.util.Locale;
             case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
             case PREF_ALLOW_UNDO_PREFIX:
             case PREF_SHOW_REFERENCE_EDITTEXT:
+            case PREF_SHOW_FIELD_QUICK_SETTINGS_BUTTON:
                 return TYPE_BOOLEAN;
             case PREF_IME_ACTION_ID_PREFIX:
             case PREF_MAX_LENGTH_PREFIX:
@@ -232,6 +233,7 @@ import java.util.Locale;
             case PREF_IME_OPTIONS_FLAG_NO_PERSONALIZED_LEARNING_PREFIX:
             case PREF_SELECT_ALL_ON_FOCUS_PREFIX:
             case PREF_SHOW_REFERENCE_EDITTEXT:
+            case PREF_SHOW_FIELD_QUICK_SETTINGS_BUTTON:
                 return false;
             case PREF_ALLOW_UNDO_PREFIX:
                 return true;

@@ -59,6 +59,7 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     private String mTheme;
     private boolean mShowReferenceEditText;
+    private boolean mShowFieldQuickSettingsButton;
 
     private SharedPreferenceManager mPrefs;
     private PreferenceReader mPreferenceReader;
@@ -342,6 +343,9 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             case PREF_SHOW_REFERENCE_EDITTEXT:
                 mShowReferenceEditText = mPreferenceReader.readBoolean(prefKey);
                 break;
+            case PREF_SHOW_FIELD_QUICK_SETTINGS_BUTTON:
+                mShowFieldQuickSettingsButton = mPreferenceReader.readBoolean(prefKey);
+                break;
             default:
                 return false;
         }
@@ -578,6 +582,17 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         return getGroupByIndex(groupIndex).mFieldIds[fieldIndex];
     }
 
+    public static FieldPosition getTestFieldPosition(int fieldId) {
+        for (int groupIndex = 0; groupIndex < getTestFieldGroupCount(); groupIndex++) {
+            for (int fieldIndex = 0; fieldIndex < getTestFieldCount(groupIndex); fieldIndex++) {
+                if (getField(groupIndex, fieldIndex).mId == fieldId) {
+                    return new FieldPosition(groupIndex, fieldIndex);
+                }
+            }
+        }
+        return null;
+    }
+
     private static TestField getField(int groupIndex, int fieldIndex) {
         int fieldId = getTestFieldId(groupIndex, fieldIndex);
         TestField field = getField(fieldId);
@@ -719,6 +734,10 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
 
     public static boolean getShowReferenceEditText() {
         return getInstance().mShowReferenceEditText;
+    }
+
+    public static boolean getShowFieldQuickSettingsButton() {
+        return getInstance().mShowFieldQuickSettingsButton;
     }
 
     private static int[] deepCopy(int[] array) {
