@@ -29,9 +29,21 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_horizontal">
+        android:gravity="center_horizontal"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
 
-        <TextView android:id="@+id/seek_bar_dialog_value"
+        <android.widget.EditText
+            android:id="@+id/seek_bar_dialog_value_edit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="20dp"
+            android:gravity="center"
+            android:inputType="number"
+            android:selectAllOnFocus="true"/>
+
+        <TextView
+            android:id="@+id/seek_bar_dialog_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="20sp"/>

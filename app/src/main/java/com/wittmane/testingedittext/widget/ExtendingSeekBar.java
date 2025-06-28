@@ -458,18 +458,15 @@ public class ExtendingSeekBar extends WrappedView<InternalSeekBar> {
 
     public synchronized void setProgress(int progress, boolean center) {
         progress = Math.max(mMinValue, Math.min(progress, mMaxValue));
-        int internalProgress = getInternalProgress(progress);
         if (center) {
             int currentCenter = (mCurrentMaxValue - mCurrentMinValue) / 2;
             shiftRange(progress - currentCenter, false);
-            internalProgress = getInternalProgress(progress);
-        } else if (internalProgress < mInternalView.getMin()) {
+        } else if (progress < mCurrentMinValue) {
             shiftRange(progress - mCurrentMinValue, false);
-            internalProgress = getInternalProgress(progress);
-        } else if (internalProgress > mInternalView.getMax()) {
+        } else if (progress > mCurrentMaxValue) {
             shiftRange(progress - mCurrentMaxValue, false);
-            internalProgress = getInternalProgress(progress);
         }
+        int internalProgress = getInternalProgress(progress);
         mInternalView.setProgress(internalProgress);
     }
 
@@ -1410,8 +1407,13 @@ public class ExtendingSeekBar extends WrappedView<InternalSeekBar> {
                 if (shift != 0) {
                     if (mShiftCount == 1) {
                         shiftRange(shift, false);
-                        Log.w(TAG, "onProgressChanged: starting timer");
-                        startTimer();
+                        if (fromUser) {
+                            startTimer();
+                        } else {
+                            mShiftCount = 0;
+                            mCurrentShiftSteps = 0;
+                            return;
+                        }
                     }
                     mCurrentShiftSteps = shift / mStepValue;
                     if (shift > 1) {

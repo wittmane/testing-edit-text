@@ -79,7 +79,8 @@
             app:maxValue="@integer/config_shift_codepoint_max"
             app:stepValue="@integer/config_shift_codepoint_step"
             app:defaultValue="@integer/config_shift_codepoint_default"
-            app:valueText="@string/unit_codepoints" />
+            app:valueText="@string/unit_codepoints"
+            app:showEditText="true" />
 
     </PreferenceCategory>
 

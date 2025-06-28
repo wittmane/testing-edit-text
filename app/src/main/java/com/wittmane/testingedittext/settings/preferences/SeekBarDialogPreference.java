@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,13 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
+import android.text.Editable;
+import android.text.InputType;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.wittmane.testingedittext.R;
@@ -32,6 +36,7 @@ import com.wittmane.testingedittext.widget.ExtendingSeekBar.OnExtendingSeekBarCh
 
 public class SeekBarDialogPreference extends DialogPreferenceBase
         implements OnExtendingSeekBarChangeListener {
+    private static final String TAG = SeekBarDialogPreference.class.getSimpleName();
 
     private final int mMaxValue;
     private final int mMinValue;
@@ -39,8 +44,10 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     private final int mDefaultValue;
     private final String mValueText;
     private final String mDefaultValueText;
+    private final boolean mShowEditText;
 
-    private TextView mValueView;
+    private EditText mEditText;
+    private TextView mLabelView;
     private ExtendingSeekBar mSeekBar;
 
     public SeekBarDialogPreference(final Context context, final AttributeSet attrs) {
@@ -60,6 +67,7 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
                 defaultDefaultValue);
         mValueText = a.getString(R.styleable.SeekBarDialogPreference_valueText);
         mDefaultValueText = a.getString(R.styleable.SeekBarDialogPreference_defaultValueText);
+        mShowEditText = a.getBoolean(R.styleable.SeekBarDialogPreference_showEditText, false);
         a.recycle();
         setDialogLayoutResource(R.layout.seek_bar_dialog);
     }
@@ -70,7 +78,51 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
         mSeekBar = view.findViewById(R.id.seek_bar_dialog_bar);
         mSeekBar.setRange(mMinValue, mMaxValue, mStepValue);
         mSeekBar.setOnSeekBarChangeListener(this);
-        mValueView = (TextView)view.findViewById(R.id.seek_bar_dialog_value);
+        mLabelView = (TextView)view.findViewById(R.id.seek_bar_dialog_label);
+        mEditText = (EditText)view.findViewById(R.id.seek_bar_dialog_value_edit);
+        if (mShowEditText) {
+            mEditText.setInputType(InputType.TYPE_CLASS_NUMBER
+                    | (mMinValue < 0 ? InputType.TYPE_NUMBER_FLAG_SIGNED : 0));
+            mEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    int value;
+                    try {
+                        value = Integer.parseInt(s.toString());
+                    } catch (Exception e) {
+                        mEditText.setError(getContext().getString(R.string.invalid_number));
+                        setAcceptButtonEnabled(false);
+                        return;
+                    }
+                    if (mSeekBar.getProgress() == value) {
+                        return;
+                    }
+                    if (value < mMinValue) {
+                        mEditText.setError(getContext().getString(R.string.min_value, mMinValue));
+                        setAcceptButtonEnabled(false);
+                    } else if (value > mMaxValue) {
+                        mEditText.setError(getContext().getString(R.string.max_value, mMaxValue));
+                        setAcceptButtonEnabled(false);
+                    } else {
+                        if (!TextUtils.isEmpty(mEditText.getError())) {
+                            mEditText.setError(null);
+                        }
+                        setAcceptButtonEnabled(true);
+                        mSeekBar.setProgress(value);
+                    }
+                }
+            });
+        } else {
+            mEditText.setVisibility(View.GONE);
+        }
 
         return view;
     }
@@ -79,8 +131,13 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     protected void onBindDialogView(final View view) {
         super.onBindDialogView(view);
         final int value = readValue();
-        mValueView.setText(getValueText(value, true));
         mSeekBar.setProgress(value);
+        if (mShowEditText) {
+            mEditText.setText("" + value);
+            mLabelView.setText(String.format(mValueText, "").trim());
+        } else {
+            mLabelView.setText(getValueText(value, true));
+        }
 
         // allow the title to wrap
         TextView titleTextView = view.findViewById(android.R.id.title);
@@ -113,7 +170,20 @@ public class SeekBarDialogPreference extends DialogPreferenceBase
     @Override
     public void onProgressChanged(final ExtendingSeekBar seekBar, final int progress,
                                   final boolean fromUser) {
-        mValueView.setText(getValueText(progress, true));
+        if (mShowEditText) {
+            if (!("" + progress).equals(mEditText.getText().toString())) {
+                if (!TextUtils.isEmpty(mEditText.getError())) {
+                    mEditText.setError(null);
+                    setAcceptButtonEnabled(true);
+                }
+                mEditText.setText("" + progress);
+                if (mEditText.hasFocus()) {
+                    mEditText.selectAll();
+                }
+            }
+        } else {
+            mLabelView.setText(getValueText(progress, true));
+        }
     }
 
     @Override

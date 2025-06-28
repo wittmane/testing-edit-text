@@ -194,6 +194,7 @@
         <attr name="defaultValue" format="integer" />
         <attr name="valueText" format="string|reference" />
         <attr name="defaultValueText" format="string|reference" />
+        <attr name="showEditText" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="LinearScrollLayout">

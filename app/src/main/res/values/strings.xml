@@ -68,6 +68,10 @@
     <string name="deselect_all">Deselect all</string>
     <string name="ad_hoc_import_group_name">Group</string>
 
+    <string name="invalid_number">Invalid number</string>
+    <string name="min_value">Min value: <xliff:g id="MIN_VALUE">%d</xliff:g></string>
+    <string name="max_value">Max value: <xliff:g id="MAX_VALUE">%d</xliff:g></string>
+
     <!-- Title of the button to revert to the default value of the device in the settings dialog
          [CHAR LIMIT=15] -->
     <string name="button_default">Default</string>
