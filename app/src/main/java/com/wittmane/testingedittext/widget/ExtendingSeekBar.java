@@ -40,7 +40,6 @@ import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
@@ -117,6 +116,7 @@ public class ExtendingSeekBar extends WrappedView<InternalSeekBar> {
         mDensity = getDisplayMetrics().density;
 
         mInternalView = new InternalSeekBar(getContext(), attrs, android.R.attr.seekBarStyle);
+        mInternalView.setId(NO_ID);
 
         final TypedArray a = getContext().obtainStyledAttributes(
                 attrs, R.styleable.ExtendingSeekBar, 0, 0);
