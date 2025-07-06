@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.util;
 
+import static com.wittmane.testingedittext.util.ResourceUtils.RESOURCES_ID_NULL;
+
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.AlertDialog;
@@ -41,6 +43,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.wittmane.testingedittext.R;
 
@@ -185,6 +188,17 @@ public class IconUtils {
      * @return The button that was created.
      */
     public static ImageButton createImageButton(Context context, int imageResId) {
+        return createImageButton(context, imageResId, RESOURCES_ID_NULL);
+    }
+
+    /**
+     * Create an icon-only button
+     * @param context The current context.
+     * @param imageResId The resource ID of the drawable.
+     * @param imageResId The resource ID of the tooltip.
+     * @return The button that was created.
+     */
+    public static ImageButton createImageButton(Context context, int imageResId, int tooltipResId) {
         ImageButton button = new EnabledStateListenerImageButton(context,
                 (buttonView, isEnabled) -> {
                     matchIconColor(context, buttonView);
@@ -198,6 +212,19 @@ public class IconUtils {
         button.setLayoutParams(
                 new ViewGroup.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         button.setPadding(0, 0, 0, 0);
+        CharSequence tooltipText = tooltipResId == RESOURCES_ID_NULL
+                ? null
+                : context.getString(tooltipResId);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            button.setTooltipText(tooltipText);
+        } else {
+            if (!TextUtils.isEmpty(tooltipText)) {
+                button.setOnLongClickListener(view -> {
+                    Toast.makeText(context, tooltipText, Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+            }
+        }
         return button;
     }
 

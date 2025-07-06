@@ -134,7 +134,7 @@ public class MainActivity extends ThemedActivity
                     EditTextProxy::new);
 
             mQuickSettingsButton = addImageButton(context, textFieldWrapperLayout,
-                    R.drawable.ic_tune_white_24);
+                    R.drawable.ic_tune_white_24, R.string.edit_field_settings);
             mQuickSettingsButton.setOnClickListener(v -> {
                 final Intent intent = new Intent();
                 intent.setClass(context, SettingsActivity.class);
@@ -166,8 +166,8 @@ public class MainActivity extends ThemedActivity
             return createEditTextProxy.apply(editText);
         }
 
-        private static ImageButton addImageButton(
-                Context context, ViewGroup textFieldWrapperLayout, int imageResId) {
+        private static ImageButton addImageButton(Context context, ViewGroup textFieldWrapperLayout,
+                                                  int imageResId, int tooltipResId) {
 
             LinearLayout imageButtonWrapperWrapper = new LinearLayout(context);
             imageButtonWrapperWrapper.setLayoutParams(new LinearLayout.LayoutParams(
@@ -189,7 +189,8 @@ public class MainActivity extends ThemedActivity
             layoutHelperEditText.setVisibility(View.INVISIBLE);
             imageButtonWrapper.addView(layoutHelperEditText);
 
-            ImageButton imageButton = IconUtils.createImageButton(context, imageResId);
+            ImageButton imageButton =
+                    IconUtils.createImageButton(context, imageResId, tooltipResId);
             LinearLayout.LayoutParams imageButtonLayoutParams =
                     new LinearLayout.LayoutParams(
                             LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);

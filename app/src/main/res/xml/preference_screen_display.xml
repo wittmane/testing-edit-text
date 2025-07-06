@@ -27,6 +27,6 @@
 
     <com.wittmane.testingedittext.settings.preferences.LongTextSwitchPreference
         android:key="pref_key_show_field_quick_settings_button"
-        android:title="@string/show_reference_edittext" />
+        android:title="@string/show_field_quick_settings_button" />
 
 </PreferenceScreen>
