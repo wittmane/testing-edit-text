@@ -37,6 +37,7 @@ import android.graphics.Canvas;
 
 import com.wittmane.testingedittext.aosp.android.app.ContextImplExtension;
 import com.wittmane.testingedittext.aosp.android.graphics.MatrixExtension;
+import com.wittmane.testingedittext.aosp.android.graphics.fonts.FontVariationAxisExtension;
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension;
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakStyle;
 import com.wittmane.testingedittext.aosp.android.graphics.text.LineBreakConfigExtension.LineBreakWordStyle;
@@ -231,6 +232,7 @@ import static android.view.ContentInfo.SOURCE_CLIPBOARD;
 import static android.view.ContentInfo.SOURCE_PROCESS_TEXT;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
+import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_IN_WINDOW_KEY;
 import static android.view.accessibility.AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
 import static android.view.inputmethod.CursorAnchorInfo.FLAG_HAS_VISIBLE_REGION;
 import static com.wittmane.testingedittext.aosp.android.view.inputmethod.EditorInfoExtension.STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY;
@@ -265,6 +267,24 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     // (EW) replacement for com.android.graphics.hwui.flags.Flags#highContrastTextSmallTextRect.
     // this check was added in Android 15 around alternate functionality.
     /* package */ static final boolean FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT = false;
+    // (EW) replacement for com.android.text.flags.Flags#fixNullTypefaceBolding. this check was
+    // added in Android 16 around alternate functionality.
+    private static final boolean FLAGS_FIX_NULL_TYPEFACE_BOLDING = false;
+    // (EW) replacement for com.android.text.flags.Flags#typefaceRedesignReadonly. this check was
+    // added in Android 16 around alternate functionality.
+    private static final boolean FLAGS_TYPEFACE_REDESIGN_READONLY = false;
+    // (EW) replacement for android.view.inputmethod.Flags#writingTools. this check was added in
+    // Android 16 around new functionality.
+    private static final boolean FLAGS_WRITING_TOOLS = false;
+    // (EW) replacement for com.android.text.flags.Flags#handwritingGestureWithTransformation. this
+    // check was added in Android 16 around alternate functionality.
+    private static final boolean FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION = false;
+    // (EW) replacement for android.view.inputmethod.Flags#initiationWithoutInputConnection. this
+    // check was added in Android 16 around new functionality.
+    private static final boolean FLAGS_INITIATION_WITHOUT_INPUT_CONNECTION = false;
+    // (EW) replacement for android.view.accessibility.Flags#a11yCharacterInWindowApi. this
+    // check was added in Android 16 around new functionality.
+    private static final boolean FLAGS_A11Y_CHARACTER_IN_WINDOW_API = false;
 
     // (EW) from EditText
     // True if the style shortcut is enabled.
@@ -496,6 +516,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     private Scroller mScroller;
 
     private Object mTempCursor;
+    private Matrix mTempMatrix;
 
     private BoringLayout.Metrics mHintBoring;
     private BoringLayout mSavedHintLayout;
@@ -1644,6 +1665,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         InputMethodManager imm = getInputMethodManager();
         if (imm != null) imm.restartInput(this);
+
+        ensureEditorFocusedNotifiedToHandwritingInitiator();
     }
 
     private void setInputTypeFromEditor() {
@@ -3051,7 +3074,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (mFontWeightAdjustment != 0
                 && mFontWeightAdjustment != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) {
             if (tf == null) {
-                tf = Typeface.DEFAULT;
+                if (FLAGS_FIX_NULL_TYPEFACE_BOLDING) {
+                    tf = Typeface.DEFAULT_BOLD;
+                } else {
+                    tf = Typeface.DEFAULT;
+                }
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     int newWeight = Math.min(
@@ -3607,7 +3634,41 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                         && fontVariationSettings.equals(existingSettings))) {
             return true;
         }
-        boolean effective = mTextPaint.setFontVariationSettings(fontVariationSettings);
+
+        boolean effective;
+        if (FLAGS_TYPEFACE_REDESIGN_READONLY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (mFontWeightAdjustment != 0
+                    && mFontWeightAdjustment != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) {
+                List<FontVariationAxis> axes =
+                        FontVariationAxisExtension.fromFontVariationSettingsForList(
+                                fontVariationSettings);
+                if (axes == null) {
+                    return false;  // invalid format of the font variation settings.
+                }
+                boolean wghtAdjusted = false;
+                for (int i = 0; i < axes.size(); ++i) {
+                    FontVariationAxis axis = axes.get(i);
+                    if (FontVariationAxisExtension.getOpenTypeTagValue(axis) == 0x77676874 /* wght */) {
+                        axes.set(i, new FontVariationAxis("wght",
+                                Math.clamp(axis.getStyleValue() + mFontWeightAdjustment,
+                                        FontStyle.FONT_WEIGHT_MIN, FontStyle.FONT_WEIGHT_MAX)));
+                        wghtAdjusted = true;
+                    }
+                }
+                if (!wghtAdjusted) {
+                    axes.add(new FontVariationAxis("wght",
+                            Math.clamp(400 + mFontWeightAdjustment,
+                                    FontStyle.FONT_WEIGHT_MIN, FontStyle.FONT_WEIGHT_MAX)));
+                }
+                mTextPaint.setFontVariationSettings(
+                        FontVariationAxisExtension.toFontVariationSettings(axes));
+            } else {
+                mTextPaint.setFontVariationSettings(fontVariationSettings);
+            }
+            effective = true;
+        } else {
+            effective = mTextPaint.setFontVariationSettings(fontVariationSettings);
+        }
 
         if (effective && mLayout != null) {
             nullLayouts();
@@ -5458,6 +5519,29 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      */
     public void setRawInputType(int type) {
         mEditor.mInputType = type;
+    }
+
+    private void ensureEditorFocusedNotifiedToHandwritingInitiator() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // (EW) ViewRootImpl#getHandwritingInitiator doesn't exist in older versions, so there
+            // isn't anything to do
+            return;
+        }
+        if (!FLAGS_INITIATION_WITHOUT_INPUT_CONNECTION
+                || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                        && isHandwritingDelegate())) {
+            return;
+        }
+
+        if (isFocused() && hasWindowFocus() && onCheckIsTextEditor()) {
+            //TODO: (EW) the AOSP version calls ViewRootImpl#getHandwritingInitiator to be able to
+            // call HandwritingInitiator#onEditorFocused, but View#getViewRootImpl and ViewRootImpl
+            // are hidden. View#getViewRootImpl isn't blocked from reflection but
+            // ViewRootImpl#getHandwritingInitiator is, so reflection isn't an option. I'm not sure
+            // that there is any other option. maybe something will change in the future that will
+            // allow this to be done. this whole method wasn't added until Android 16, so whatever
+            // issue not doing anything here causes probably already existed in Android 13 - 15.
+        }
     }
 
     @Override
@@ -7392,6 +7476,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                         STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY, handwritingEnabled);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                if (FLAGS_WRITING_TOOLS) {
+                    // default to same behavior as isSuggestionsEnabled().
+                    outAttrs.setWritingToolsEnabled(isSuggestionsEnabled());
+                }
                 //TODO: (EW) possibly could add settings for which gestures to support/report is
                 // supported
                 ArrayList<Class<? extends HandwritingGesture>> gestures = new ArrayList<>();
@@ -7950,7 +8038,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
         int startOffset = mLayout.getOffsetForHorizontal(line, point.x);
         if (LayoutExtension.isLevelBoundary(mLayout, getTextDir(), startOffset)) {
-            // TODO(b/247551937): Support gesture at level boundaries.
+            // Gesture at level boundaries is not supported.
             return handleGestureFailure(gesture);
         }
 
@@ -9203,6 +9291,22 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private PointF convertFromScreenToContentCoordinates(PointF point) {
+        if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+            if (mTempMatrix == null) {
+                mTempMatrix = new Matrix();
+            }
+            Matrix matrix = mTempMatrix;
+            matrix.reset();
+            transformMatrixToLocal(matrix);
+            matrix.postTranslate(
+                    -viewportToContentHorizontalOffset(),
+                    -viewportToContentVerticalOffset()
+            );
+
+            float[] copy = new float[] { point.x, point.y };
+            matrix.mapPoints(copy);
+            return new PointF(copy[0], copy[1]);
+        }
         int[] screenToViewport = getLocationOnScreen();
         PointF copy = new PointF(point);
         copy.offset(
@@ -9212,6 +9316,22 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private RectF convertFromScreenToContentCoordinates(RectF rect) {
+        if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+            if (mTempMatrix == null) {
+                mTempMatrix = new Matrix();
+            }
+            Matrix matrix = mTempMatrix;
+            matrix.reset();
+            transformMatrixToLocal(matrix);
+            matrix.postTranslate(
+                    -viewportToContentHorizontalOffset(),
+                    -viewportToContentVerticalOffset()
+            );
+
+            RectF copy = new RectF(rect);
+            matrix.mapRect(copy);
+            return copy;
+        }
         int[] screenToViewport = getLocationOnScreen();
         RectF copy = new RectF(rect);
         copy.offset(
@@ -9298,7 +9418,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return selectionMin >= 0 && selectionMax > 0 && selectionMin != selectionMax;
     }
 
-    String getSelectedText() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ String getSelectedText() {
         if (!hasSelection()) {
             return null;
         }
@@ -10855,8 +10977,10 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
     }
 
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
     @RequiresApi(api = Build.VERSION_CODES.O)
-    boolean canRequestAutofill() {
+    /* package */ boolean canRequestAutofill() {
         if (!isAutofillable()) {
             return false;
         }
@@ -10878,6 +11002,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void autofill(AutofillValue value) {
+        if (AUTOFILL_HELPER_VERBOSE) {
+            Log.v(LOG_TAG, "autofill() called on textview for id:" + getAutofillId());
+        }
         if (!isTextAutofillable()) {
             Log.w(LOG_TAG, "cannot autofill non-editable EditText: " + this);
             return;
@@ -10932,7 +11059,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     @Override
     public void addExtraDataToAccessibilityNodeInfo(
             AccessibilityNodeInfo info, String extraDataKey, Bundle arguments) {
-        if (arguments != null && extraDataKey.equals(EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)) {
+        boolean isCharacterLocationKey = extraDataKey.equals(
+                EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY);
+        boolean isCharacterLocationInWindowKey = (FLAGS_A11Y_CHARACTER_IN_WINDOW_API
+                && extraDataKey.equals(EXTRA_DATA_TEXT_CHARACTER_LOCATION_IN_WINDOW_KEY));
+        if (arguments != null && (isCharacterLocationKey || isCharacterLocationInWindowKey)) {
             int positionInfoStartIndex = arguments.getInt(
                     EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, -1);
             int positionInfoLength = arguments.getInt(
@@ -10954,7 +11085,11 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                     RectF bounds = cursorAnchorInfo
                             .getCharacterBounds(positionInfoStartIndex + i);
                     if (bounds != null) {
-                        mapRectFromViewToScreenCoords(bounds, true);
+                        if (isCharacterLocationKey) {
+                            mapRectFromViewToScreenCoords(bounds, true);
+                        } else if (isCharacterLocationInWindowKey) {
+                            mapRectFromViewToWindowCoords(bounds, true);
+                        }
                         boundingRects[i] = bounds;
                     }
                 }
@@ -10972,6 +11107,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
+     * Don't use, it returns wrong result when the view is scaled. This method can be removed once
+     * FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION is enabled.
+     * Assume
      * Helper method to set {@code rect} to this EditText's non-clipped area in its own coordinates.
      * This method obtains the view's visible rectangle whereas the method
      * {@link #getContentVisibleRect} returns the text layout's visible rectangle.
@@ -10992,6 +11130,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     /**
+     * Don't use, it returns wrong result when view is scaled. This method can be removed once
+     * FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION is enabled.
      * Helper method to set {@code rect} to the text content's non-clipped area in the view's
      * coordinates.
      *
@@ -11000,6 +11140,60 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
      */
     private boolean getContentVisibleRect(Rect rect) {
         if (!getViewVisibleRect(rect)) {
+            return false;
+        }
+        // Clip the view's visible rect with the text layout's visible rect.
+        return rect.intersect(getCompoundPaddingLeft(), getCompoundPaddingTop(),
+                getWidth() - getCompoundPaddingRight(), getHeight() - getCompoundPaddingBottom());
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private boolean getEditorAndHandwritingBounds(@NonNull RectF editorBounds,
+                                                  @Nullable RectF handwritingBounds) {
+        if (mTempRect == null) {
+            mTempRect = new Rect();
+        }
+        Rect rect = mTempRect;
+        if (!getGlobalVisibleRect(rect)) {
+            return false;
+        }
+        if (mTempMatrix == null) {
+            mTempMatrix = new Matrix();
+        }
+
+        Matrix matrix = mTempMatrix;
+        matrix.reset();
+        transformMatrixRootToLocal(matrix);
+        editorBounds.set(rect);
+        // When the view has transformations like scaleX/scaleY computing the global visible
+        // rectangle will already apply the transformations. The getLocalVisibleRect only offsets
+        // the global rectangle to local. And the result is wrong the View is scaled.
+        //
+        // This approach use the local transformation matrix to map the global rectangle to
+        // local instead.
+        //
+        // Note: it doesn't work well with rotation. Because Rect must be
+        // axis-aligned, when a rotated Rect becomes quadrilateral, the quadrilateral's
+        // bounding box is stored at Rect instead. It makes the returned Rect larger than
+        // the correct size.
+        matrix.mapRect(editorBounds);
+
+        if (handwritingBounds != null) {
+            // Similar to editorBounds, handwritingBounds must be computed in global coordinates
+            // and then converted back to local coordinates. Otherwise, if the view is scaled,
+            // the handwritingBoundsOffsets are also scaled, which is not the expected behavior.
+            handwritingBounds.top = rect.top -  getHandwritingBoundsOffsetTop();
+            handwritingBounds.left = rect.left - getHandwritingBoundsOffsetLeft();
+            handwritingBounds.bottom = rect.bottom + getHandwritingBoundsOffsetBottom();
+            handwritingBounds.right = rect.right + getHandwritingBoundsOffsetRight();
+            matrix.mapRect(handwritingBounds);
+        }
+        return true;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private boolean getContentVisibleRect(RectF rect) {
+        if (!getEditorAndHandwritingBounds(rect, /* handwritingBounds= */null)) {
             return false;
         }
         // Clip the view's visible rect with the text layout's visible rect.
@@ -11030,9 +11224,15 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 // character bounds in this case yet.
                 return;
             }
-            final Rect rect = new Rect();
-            getContentVisibleRect(rect);
-            final RectF visibleRect = new RectF(rect);
+            final RectF visibleRect = new RectF();
+
+            if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+                getContentVisibleRect(visibleRect);
+            } else {
+                final Rect rect = new Rect();
+                getContentVisibleRect(rect);
+                visibleRect.set(rect);
+            }
 
             final float[] characterBounds = getCharacterBounds(startIndex, endIndex,
                     viewportToContentHorizontalOffset, viewportToContentVerticalOffset);
@@ -11244,33 +11444,35 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         builder.setMatrix(viewToScreenMatrix);
 
         if (includeEditorBounds && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (mTempRect == null) {
-                mTempRect = new Rect();
-            }
-            final Rect bounds = mTempRect;
-            final RectF editorBounds;
-            boolean gotViewVisibleRect = getViewVisibleRect(bounds);
-            if (gotViewVisibleRect) {
-                editorBounds = new RectF(bounds);
+            final RectF editorBounds = new RectF();
+            final RectF handwritingBounds = new RectF();
+            final boolean gotViewVisibleRect;
+            if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                getEditorAndHandwritingBounds(editorBounds, handwritingBounds);
+                gotViewVisibleRect = false;
             } else {
-                // The editor is not visible at all, return empty rectangles. We still need to
+                if (mTempRect == null) {
+                    mTempRect = new Rect();
+                }
+                final Rect bounds = mTempRect;
+
+                gotViewVisibleRect = getViewVisibleRect(bounds);
+                // If the editor is not visible at all, return empty rectangles. We still need to
                 // return an EditorBoundsInfo because IME has subscribed the EditorBoundsInfo.
-                editorBounds = new RectF();
+                if (gotViewVisibleRect) {
+                    editorBounds.set(bounds);
+                }
             }
             EditorBoundsInfo.Builder boundsBuilder = new EditorBoundsInfo.Builder();
             boundsBuilder.setEditorBounds(editorBounds);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                final RectF handwritingBounds;
                 if (gotViewVisibleRect) {
-                    handwritingBounds = new RectF(editorBounds);
+                    handwritingBounds.set(editorBounds);
                     handwritingBounds.top -= getHandwritingBoundsOffsetTop();
                     handwritingBounds.left -= getHandwritingBoundsOffsetLeft();
                     handwritingBounds.bottom += getHandwritingBoundsOffsetBottom();
                     handwritingBounds.right += getHandwritingBoundsOffsetRight();
-                } else {
-                    // The editor is not visible at all, return empty rectangles. We still need to
-                    // return an EditorBoundsInfo because IME has subscribed the EditorBoundsInfo.
-                    handwritingBounds = new RectF();
                 }
                 boundsBuilder.setHandwritingBounds(handwritingBounds).build();
             }
@@ -11346,29 +11548,57 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
             if (includeVisibleLineBounds
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                final Rect visibleRect = new Rect();
-                if (getContentVisibleRect(visibleRect)) {
-                    // Subtract the viewportToContentVerticalOffset to convert the view
-                    // coordinates to layout coordinates.
-                    final float visibleTop =
-                            visibleRect.top - viewportToContentVerticalOffset;
-                    final float visibleBottom =
-                            visibleRect.bottom - viewportToContentVerticalOffset;
-                    final int firstLine =
-                            layout.getLineForVertical((int) Math.floor(visibleTop));
-                    final int lastLine =
-                            layout.getLineForVertical((int) Math.ceil(visibleBottom));
+                if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+                    final RectF visibleRect = new RectF();
+                    if (getContentVisibleRect(visibleRect)) {
+                        // Subtract the viewportToContentVerticalOffset to convert the view
+                        // coordinates to layout coordinates.
+                        final float visibleTop =
+                                visibleRect.top - viewportToContentVerticalOffset;
+                        final float visibleBottom =
+                                visibleRect.bottom - viewportToContentVerticalOffset;
+                        final int firstLine =
+                                layout.getLineForVertical((int) Math.floor(visibleTop));
+                        final int lastLine =
+                                layout.getLineForVertical((int) Math.ceil(visibleBottom));
 
-                    for (int line = firstLine; line <= lastLine; ++line) {
-                        final float left = layout.getLineLeft(line)
-                                + viewportToContentHorizontalOffset;
-                        final float top = layout.getLineTop(line)
-                                + viewportToContentVerticalOffset;
-                        final float right = layout.getLineRight(line)
-                                + viewportToContentHorizontalOffset;
-                        final float bottom = LayoutExtension.getLineBottom(layout, line, false)
-                                + viewportToContentVerticalOffset;
-                        builder.addVisibleLineBounds(left, top, right, bottom);
+                        for (int line = firstLine; line <= lastLine; ++line) {
+                            final float left = layout.getLineLeft(line)
+                                    + viewportToContentHorizontalOffset;
+                            final float top = layout.getLineTop(line)
+                                    + viewportToContentVerticalOffset;
+                            final float right = layout.getLineRight(line)
+                                    + viewportToContentHorizontalOffset;
+                            final float bottom = LayoutExtension.getLineBottom(layout, line, false)
+                                    + viewportToContentVerticalOffset;
+                            builder.addVisibleLineBounds(left, top, right, bottom);
+                        }
+                    }
+                } else {
+                    final Rect visibleRect = new Rect();
+                    if (getContentVisibleRect(visibleRect)) {
+                        // Subtract the viewportToContentVerticalOffset to convert the view
+                        // coordinates to layout coordinates.
+                        final float visibleTop =
+                                visibleRect.top - viewportToContentVerticalOffset;
+                        final float visibleBottom =
+                                visibleRect.bottom - viewportToContentVerticalOffset;
+                        final int firstLine =
+                                layout.getLineForVertical((int) Math.floor(visibleTop));
+                        final int lastLine =
+                                layout.getLineForVertical((int) Math.ceil(visibleBottom));
+
+                        for (int line = firstLine; line <= lastLine; ++line) {
+                            final float left = layout.getLineLeft(line)
+                                    + viewportToContentHorizontalOffset;
+                            final float top = layout.getLineTop(line)
+                                    + viewportToContentVerticalOffset;
+                            final float right = layout.getLineRight(line)
+                                    + viewportToContentHorizontalOffset;
+                            final float bottom = LayoutExtension.getLineBottom(layout, line, false)
+                                    + viewportToContentVerticalOffset;
+                            builder.addVisibleLineBounds(left, top, right, bottom);
+                        }
                     }
                 }
             }
@@ -11919,15 +12149,21 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         mEditor.hideFloatingToolbar(durationMs);
     }
 
-    boolean canUndo() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canUndo() {
         return mEditor.canUndo();
     }
 
-    boolean canRedo() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canRedo() {
         return mEditor.canRedo();
     }
 
-    boolean canCut() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canCut() {
         if (hasPasswordTransformationMethod()) {
             return false;
         }
@@ -11939,7 +12175,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return false;
     }
 
-    boolean canCopy() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canCopy() {
         if (hasPasswordTransformationMethod()) {
             return false;
         }
@@ -11960,7 +12198,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 && isSuggestionsEnabled() && mEditor.shouldOfferToShowSuggestions();
     }
 
-    boolean canShare() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canShare() {
         // (EW) the AOSP version also checked Context#canStartActivityForResult, which is hidden and
         // marked as UnsupportedAppUsage, and it seems like it might only apply to a framework view,
         // so I'm not sure that there is anything to do for that.
@@ -11983,14 +12223,18 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return mDeviceProvisionedState == DEVICE_PROVISIONED_YES;
     }
 
-    boolean canPaste() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canPaste() {
         return (mEditor.mKeyListener != null
                 && getSelectionStart() >= 0
                 && getSelectionEnd() >= 0
                 && getClipboardManager().hasPrimaryClip());
     }
 
-    boolean canPasteAsPlainText() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canPasteAsPlainText() {
         if (!canPaste()) {
             return false;
         }
@@ -12027,7 +12271,9 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         return canShare();
     }
 
-    boolean canSelectAllText() {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ boolean canSelectAllText() {
         return canSelectText() && !hasPasswordTransformationMethod()
                 && !(getSelectionStart() == 0 && getSelectionEnd() == mText.length());
     }
