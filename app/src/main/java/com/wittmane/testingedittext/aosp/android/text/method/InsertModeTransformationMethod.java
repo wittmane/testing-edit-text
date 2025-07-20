@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2024-2025 Eli Wittman
  * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +61,11 @@ import java.lang.reflect.Array;
  *   the new transformed text: "hello abc\n\n world", and the highlight range will be [5, 11).
  */
 public class InsertModeTransformationMethod implements TransformationMethod, TextWatcher {
+
+    // (EW) replacement for com.android.text.flags.Flags#insertModeHighlightRange. this check was
+    // added in Android 16 around new functionality.
+    private static final boolean FLAGS_INSERT_MODE_HIGHLIGHT_RANGE = false;
+
     /** The start offset of the highlight range in the original text, inclusive. */
     private int mStart;
     /**
@@ -173,9 +179,15 @@ public class InsertModeTransformationMethod implements TransformationMethod, Tex
                 // The text change is before the highlight start, move the highlight start.
                 mStart += diff;
             } else {
-                // The text change covers the highlight start. Extend the highlight start to the
-                // change start. This should be a rare case.
-                mStart = start;
+                if (FLAGS_INSERT_MODE_HIGHLIGHT_RANGE) {
+                    // The text change covers the highlight start. Don't change the start except
+                    // when it's out of range.
+                    mStart = Math.min(mStart, s.length());
+                } else {
+                    // The text change covers the highlight start. Extend the highlight start to the
+                    // change start. This should be a rare case.
+                    mStart = start;
+                }
             }
         }
 
@@ -183,9 +195,15 @@ public class InsertModeTransformationMethod implements TransformationMethod, Tex
             // The text change is before the highlight end, move the highlight end.
             mEnd += diff;
         } else if (start < mEnd) {
-            // The text change covers the highlight end. Extend the highlight end to the
-            // change end. This should be a rare case.
-            mEnd = start + count;
+            if (FLAGS_INSERT_MODE_HIGHLIGHT_RANGE) {
+                // The text change covers the highlight end. Don't change the end except when it's
+                // out of range.
+                mEnd = Math.min(mEnd, s.length());
+            } else {
+                // The text change covers the highlight end. Extend the highlight end to the
+                // change end. This should be a rare case.
+                mEnd = start + count;
+            }
         }
     }
 

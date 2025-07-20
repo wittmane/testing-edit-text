@@ -26,6 +26,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,46 +56,18 @@ public class FontVariationAxisExtension {
         return (c1 << 24) | (c2 << 16) | (c3 << 8) | c4;
     }
 
-    // (EW) the AOSP version is marked as hidden
+    // (EW) the AOSP version (added in Android 16) is marked as hidden
     @RequiresApi(api = Build.VERSION_CODES.O)
     public static @NonNull List<FontVariationAxis> fromFontVariationSettingsForList(
             @Nullable String settings) {
-        if (settings == null || settings.isEmpty()) {
+        // FontVariationAxis#fromFontVariationSettings just calls into
+        // FontVariationAxis#fromFontVariationSettingsForList and converts the result into an array,
+        // so we'll just do the inverse
+        FontVariationAxis[] axisArray = FontVariationAxis.fromFontVariationSettings(settings);
+        if (axisArray == null) {
             return Collections.emptyList();
         }
-        final ArrayList<FontVariationAxis> axisList = new ArrayList<>();
-        final int length = settings.length();
-        for (int i = 0; i < length; i++) {
-            final char c = settings.charAt(i);
-            if (Character.isWhitespace(c)) {
-                continue;
-            }
-            if (!(c == '\'' || c == '"') || length < i + 6 || settings.charAt(i + 5) != c) {
-                throw new IllegalArgumentException(
-                        "Tag should be wrapped with double or single quote: " + settings);
-            }
-            final String tagString = settings.substring(i + 1, i + 5);
-
-            i += 6;  // Move to end of tag.
-            int endOfValueString = settings.indexOf(',', i);
-            if (endOfValueString == -1) {
-                endOfValueString = length;
-            }
-            final float value;
-            try {
-                // Float.parseFloat ignores leading/trailing whitespaces.
-                value = Float.parseFloat(settings.substring(i, endOfValueString));
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(
-                        "Failed to parse float string: " + e.getMessage());
-            }
-            axisList.add(new FontVariationAxis(tagString, value));
-            i = endOfValueString;
-        }
-        if (axisList.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return axisList;
+        return new ArrayList<>(Arrays.asList(axisArray));
     }
 
     // (EW) the AOSP version is marked as hidden

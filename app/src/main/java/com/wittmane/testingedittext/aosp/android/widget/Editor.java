@@ -123,7 +123,7 @@ import com.wittmane.testingedittext.aosp.android.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.android.content.UndoOwner;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputConnectionExtension;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
-import com.wittmane.testingedittext.aosp.android.view.menu.MenuExtension;
+import com.wittmane.testingedittext.aosp.android.view.MenuExtension;
 import com.wittmane.testingedittext.aosp.com.android.internal.graphics.ColorUtils;
 import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.android.os.ParcelableParcel;

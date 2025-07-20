@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -179,6 +179,9 @@ public class MeasuredParagraph {
      * This is always available.
      */
     public @LayoutExtension.Direction int getParagraphDir() {
+        // (EW) the ClientFlags#icuBidiMigration check was removed in Android 16, but given that our
+        // fake version of that is just a version check enabling the functionality in an earlier
+        // version, we'll leave it
         if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (mBidi == null) {
                 return Layout.DIR_LEFT_TO_RIGHT;
@@ -196,6 +199,9 @@ public class MeasuredParagraph {
      */
     public Directions getDirections(@IntRange(from = 0) int start,  // inclusive
                                     @IntRange(from = 0) int end) {  // exclusive
+        // (EW) the ClientFlags#icuBidiMigration check was removed in Android 16, but given that our
+        // fake version of that is just a version check enabling the functionality in an earlier
+        // version, we'll leave it
         if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // Easy case: mBidi == null means the text is all LTR and no bidi suppot is needed.
             if (mBidi == null) {
@@ -372,6 +378,9 @@ public class MeasuredParagraph {
             }
         }
 
+        // (EW) the ClientFlags#icuBidiMigration check was removed in Android 16, but given that our
+        // fake version of that is just a version check enabling the functionality in an earlier
+        // version, we'll leave it
         if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if ((textDir == TextDirectionHeuristics.LTR
                     || textDir == TextDirectionHeuristics.FIRSTSTRONG_LTR

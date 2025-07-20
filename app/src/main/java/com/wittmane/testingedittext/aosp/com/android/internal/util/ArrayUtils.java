@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -609,10 +609,9 @@ public class ArrayUtils {
     }
 
     /**
-     * Adds value to given array if not already present, providing set-like
-     * behavior.
+     * Adds value to given array. The method allows duplicate values.
      */
-    public static boolean[] appendBoolean(@Nullable boolean[] cur, boolean val) {
+    public static boolean[] appendBooleanDuplicatesAllowed(@Nullable boolean[] cur, boolean val) {
         if (cur == null) {
             return new boolean[] { val };
         }
@@ -622,7 +621,6 @@ public class ArrayUtils {
         ret[N] = val;
         return ret;
     }
-
 
     /**
      * Adds value to given array if not already present, providing set-like

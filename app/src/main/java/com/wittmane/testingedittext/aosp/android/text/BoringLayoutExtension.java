@@ -45,15 +45,18 @@ public class BoringLayoutExtension {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // (EW) the BoringLayout#isBoring overload that takes a Paint.FontMetrics (added in
             // Android 15) is hidden and blocked from reflection. that parameter is just used to
-            // adjust the result if ClientFlags#fixLineHeightForLocale returns true. that and what
-            // it calls into (TextFlags#isFeatureEnabled and then AppGlobals#getIntCoreSetting) are
-            // all blocked from reflection. I'm not certain how those flags/settings are supposed to
-            // work, but based on the documentation for locale-aware default line height for
-            // EditText indicating the new option and default when targeting Android 15 (API level
-            // 35), my best guess is that it's managing that. since we're targeting that version, I
-            // think that should always be true on Android 15+, so we'll just use a version check to
-            // mimic that, and then copy in most of the AOSP code, since we can't just modify the
-            // result because the minimum needs to be set before some other calculations.
+            // adjust the result if com.android.text.flags.Flags#fixLineHeightForLocale (ClientFlags
+            // prior to Android 16) returns true. I can't find the source for
+            // com.android.text.flags.Flags, so I have no way to verify what that does now, but
+            // ClientFlags#fixLineHeightForLocale and what it called into
+            // (TextFlags#isFeatureEnabled and then AppGlobals#getIntCoreSetting) were all blocked
+            // from reflection. I'm not certain how those flags/settings were supposed to work, but
+            // based on the documentation for locale-aware default line height for EditText
+            // indicating the new option and default when targeting Android 15 (API level 35), my
+            // best guess is that it was managing that. since we're targeting that Android 15, I
+            // think that flag should always be true on Android 15+, so we'll just use a version
+            // check to mimic that, and then copy in most of the AOSP code, since we can't just
+            // modify the result because the minimum needs to be set before some other calculations.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
                     && minimumFontMetrics != null) {
                 // (EW) use the framework method to handle the determination if this is boring since

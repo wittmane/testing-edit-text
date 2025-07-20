@@ -321,7 +321,7 @@ public class ViewExtension extends View {
         }
     }
 
-    // (EW) the AOSP version is marked as hidden
+    // (EW) the AOSP version (added in Android 16) is marked as hidden
     /**
      * Modifiers the input matrix such that it maps root view's coordinates to view-local
      * coordinates.
@@ -332,7 +332,8 @@ public class ViewExtension extends View {
         transformMatrixRootToLocal(this, matrix);
     }
 
-    // (EW) moved the AOSP logic into a static function to call on any view
+    // (EW) moved the AOSP logic into a static function to call on any view since this has a
+    // recursive call
     private static void transformMatrixRootToLocal(View view, @NonNull Matrix matrix) {
         final ViewParent parent = view.getParent();
         if (parent instanceof View) {

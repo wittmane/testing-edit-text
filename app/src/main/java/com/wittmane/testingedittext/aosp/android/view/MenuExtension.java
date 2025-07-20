@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.wittmane.testingedittext.aosp.android.view.menu;
+package com.wittmane.testingedittext.aosp.android.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
