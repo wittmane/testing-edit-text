@@ -38,6 +38,7 @@ import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
 import android.text.style.ReplacementSpan;
 import com.wittmane.testingedittext.aosp.android.util.Pools.SynchronizedPool;
+import com.wittmane.testingedittext.wrapper.Flags;
 
 import java.util.Arrays;
 
@@ -179,10 +180,10 @@ public class MeasuredParagraph {
      * This is always available.
      */
     public @LayoutExtension.Direction int getParagraphDir() {
-        // (EW) the ClientFlags#icuBidiMigration check was removed in Android 16, but given that our
-        // fake version of that is just a version check enabling the functionality in an earlier
-        // version, we'll leave it
-        if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // (EW) the icuBidiMigration check was removed in Android 16 to always use the new
+        // implementation, but we need to maintain multiple versions, so we'll keep the wrapped
+        // check to to manage that (basically just a version check for newer versions)
+        if (Flags.icuBidiMigration() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (mBidi == null) {
                 return Layout.DIR_LEFT_TO_RIGHT;
             }
@@ -199,10 +200,10 @@ public class MeasuredParagraph {
      */
     public Directions getDirections(@IntRange(from = 0) int start,  // inclusive
                                     @IntRange(from = 0) int end) {  // exclusive
-        // (EW) the ClientFlags#icuBidiMigration check was removed in Android 16, but given that our
-        // fake version of that is just a version check enabling the functionality in an earlier
-        // version, we'll leave it
-        if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // (EW) the icuBidiMigration check was removed in Android 16 to always use the new
+        // implementation, but we need to maintain multiple versions, so we'll keep the wrapped
+        // check to to manage that (basically just a version check for newer versions)
+        if (Flags.icuBidiMigration() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // Easy case: mBidi == null means the text is all LTR and no bidi suppot is needed.
             if (mBidi == null) {
                 return LayoutExtension.DIRS_ALL_LEFT_TO_RIGHT;
@@ -378,10 +379,10 @@ public class MeasuredParagraph {
             }
         }
 
-        // (EW) the ClientFlags#icuBidiMigration check was removed in Android 16, but given that our
-        // fake version of that is just a version check enabling the functionality in an earlier
-        // version, we'll leave it
-        if (icuBidiMigrationClientFlag() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // (EW) the icuBidiMigration check was removed in Android 16 to always use the new
+        // implementation, but we need to maintain multiple versions, so we'll keep the wrapped
+        // check to to manage that (basically just a version check for newer versions)
+        if (Flags.icuBidiMigration() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if ((textDir == TextDirectionHeuristics.LTR
                     || textDir == TextDirectionHeuristics.FIRSTSTRONG_LTR
                     || textDir == TextDirectionHeuristics.ANYRTL_LTR)
@@ -523,14 +524,4 @@ public class MeasuredParagraph {
 
     // (EW) skipping #getMemoryUsage
 
-    // (EW) replacement for calls to ClientFlags#icuBidiMigration, which is hidden. that and what it
-    // calls into (TextFlags#isFeatureEnabled and then AppGlobals#getIntCoreSetting) are all blocked
-    // from reflection. I'm not certain how those flags/settings are supposed to work, but based on
-    // my analysis in BoringLayoutExtension#isBoring, I'm guessing it's some sort of handling based
-    // on the target version. I didn't see any info about this in the documented changes in
-    // Android 15, but it seems like something that could go unmentioned. I'll just work off that
-    // assumption and enable it on Android 15+.
-    private boolean icuBidiMigrationClientFlag() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
-    }
 }

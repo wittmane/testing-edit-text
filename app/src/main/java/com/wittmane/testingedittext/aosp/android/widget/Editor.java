@@ -135,6 +135,7 @@ import com.wittmane.testingedittext.aosp.android.widget.EditText.OnEditorActionL
 import com.wittmane.testingedittext.util.SpanUtils;
 import com.wittmane.testingedittext.util.ViewUtils;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
+import com.wittmane.testingedittext.wrapper.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -153,7 +154,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
-import static com.wittmane.testingedittext.aosp.android.widget.EditText.FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
 
 /**
  * Helper class used by EditText to handle editable text views.
@@ -163,10 +163,6 @@ class Editor {
     private static final boolean DEBUG_UNDO = false;
     private static final boolean DEBUG_CURSOR_ANCHOR_INFO = false;
     private static final boolean LOG_SENDING_UPDATES = true;
-
-    // (EW) replacement for com.android.text.flags.Flags#contextMenuHideUnavailableItems. this check
-    // was added in Android 16 around new functionality.
-    private static final boolean FLAGS_CONTEXT_MENU_HIDE_UNAVAILABLE_ITEMS = false;
 
     private static final int DELAY_BEFORE_HANDLE_FADES_OUT = 4000;
     private static final int RECENT_CUT_COPY_DURATION_MS = 15 * 1000; // 15 seconds in millis
@@ -2029,9 +2025,12 @@ class Editor {
             }
         }
 
-        // (EW) the AOSP version also checked Canvas#isHighContrastTextEnabled, which is hidden. if
-        // we ever enable this flag, we'll probably need to make this check too.
-        boolean shouldDrawHighlightsOnTop = FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
+        //TODO: (EW) the AOSP version also checks Canvas#isHighContrastTextEnabled, which is hidden
+        // and blocked from reflection. if we want to actually enable this flag, we'll probably need
+        // to make this check too, but at least right now, I don't know that there is a way to do
+        // that.
+        boolean shouldDrawHighlightsOnTop = Flags.highContrastTextSmallTextRect()
+                && false;
 
         // If high contrast text is drawing background rectangles behind the text, those cover up
         // the cursor and correction highlighter etc. So just draw the text first, then draw the
@@ -2969,7 +2968,7 @@ class Editor {
             menuItemOrderPasteAsPlainText = 11;
         }
 
-        if (FLAGS_CONTEXT_MENU_HIDE_UNAVAILABLE_ITEMS) {
+        if (Flags.contextMenuHideUnavailableItems()) {
             if (mEditText.canUndo()) {
                 menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_UNDO, menuItemOrderUndo,
                                 R.string.undo)

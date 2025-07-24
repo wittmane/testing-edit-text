@@ -60,6 +60,7 @@ import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
 import com.wittmane.testingedittext.settings.EditorSettings;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.ViewUtils;
+import com.wittmane.testingedittext.wrapper.Flags;
 import com.wittmane.testingedittext.wrapper.Insets;
 
 import android.graphics.Color;
@@ -244,47 +245,6 @@ import static com.wittmane.testingedittext.util.ResourceUtils.RESOURCES_ID_NULL;
 // thin extension of TextView, so 99% of this code is actually from TextView
 public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = EditText.class.getSimpleName();
-
-    // (EW) I created the following constants as an alternative to calling methods on flag classes
-    // that I can't even find the source of, so I don't have any idea how they're supposed to work.
-    // I'm leaving them all disabled for now because I'm not sure when they should be enabled (could
-    // just be testing for a potential new feature) and this just leaves functionality the same as
-    // the previous version, which seems fine. I'm still leaving the handling for the functionality
-    // they control for simpler diffing with the AOSP version and in case I ever figure out when to
-    // enable them (which might just be always in a future version).
-    // (EW) replacement for com.android.text.flags.Flags#insertModeNotUpdateSelection. this check
-    // was added in Android 15 around alternate functionality.
-    private static final boolean FLAGS_INSERT_MODE_NOT_UPDATE_SELECTION = false;
-    // (EW) replacement for com.android.text.flags.Flags#escapeClearsFocus. this check was added in
-    // Android 15 around new functionality.
-    private static final boolean FLAGS_ESCAPE_CLEARS_FOCUS = false;
-    // (EW) replacement for android.view.inputmethod.Flags#editorinfoHandwritingEnabled. this check
-    // was added in Android 15 around new functionality.
-    private static final boolean FLAGS_EDITOR_INFO_HANDWRITING_ENABLED = false;
-    // (EW) replacement for com.android.text.flags.Flags#handwritingEndOfLineTap. this check was
-    // added in Android 15 around new functionality.
-    private static final boolean FLAGS_HANDWRITING_END_OF_LINE_TAP = false;
-    // (EW) replacement for com.android.graphics.hwui.flags.Flags#highContrastTextSmallTextRect.
-    // this check was added in Android 15 around alternate functionality.
-    /* package */ static final boolean FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT = false;
-    // (EW) replacement for com.android.text.flags.Flags#fixNullTypefaceBolding. this check was
-    // added in Android 16 around alternate functionality.
-    private static final boolean FLAGS_FIX_NULL_TYPEFACE_BOLDING = false;
-    // (EW) replacement for com.android.text.flags.Flags#typefaceRedesignReadonly. this check was
-    // added in Android 16 around alternate functionality.
-    private static final boolean FLAGS_TYPEFACE_REDESIGN_READONLY = false;
-    // (EW) replacement for android.view.inputmethod.Flags#writingTools. this check was added in
-    // Android 16 around new functionality.
-    private static final boolean FLAGS_WRITING_TOOLS = false;
-    // (EW) replacement for com.android.text.flags.Flags#handwritingGestureWithTransformation. this
-    // check was added in Android 16 around alternate functionality.
-    private static final boolean FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION = false;
-    // (EW) replacement for android.view.inputmethod.Flags#initiationWithoutInputConnection. this
-    // check was added in Android 16 around new functionality.
-    private static final boolean FLAGS_INITIATION_WITHOUT_INPUT_CONNECTION = false;
-    // (EW) replacement for android.view.accessibility.Flags#a11yCharacterInWindowApi. this
-    // check was added in Android 16 around new functionality.
-    private static final boolean FLAGS_A11Y_CHARACTER_IN_WINDOW_API = false;
 
     // (EW) from EditText
     // True if the style shortcut is enabled.
@@ -1790,7 +1750,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         // text isn't an Editable, so that would always end up being false here, so it was skipped
 
         if (updateText) {
-            if (FLAGS_INSERT_MODE_NOT_UPDATE_SELECTION) {
+            if (Flags.insertModeNotUpdateSelection()) {
                 // Update the transformation text.
                 if (mTransformation == null) {
                     mTransformed = mText;
@@ -3074,7 +3034,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         if (mFontWeightAdjustment != 0
                 && mFontWeightAdjustment != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) {
             if (tf == null) {
-                if (FLAGS_FIX_NULL_TYPEFACE_BOLDING) {
+                if (Flags.fixNullTypefaceBolding()) {
                     tf = Typeface.DEFAULT_BOLD;
                 } else {
                     tf = Typeface.DEFAULT;
@@ -3636,7 +3596,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         boolean effective;
-        if (FLAGS_TYPEFACE_REDESIGN_READONLY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Flags.typefaceRedesignReadonly() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (mFontWeightAdjustment != 0
                     && mFontWeightAdjustment != Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) {
                 List<FontVariationAxis> axes =
@@ -5527,7 +5487,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             // isn't anything to do
             return;
         }
-        if (!FLAGS_INITIATION_WITHOUT_INPUT_CONNECTION
+        if (!Flags.initiationWithoutInputConnection()
                 || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                         && isHandwritingDelegate())) {
             return;
@@ -5540,7 +5500,13 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             // ViewRootImpl#getHandwritingInitiator is, so reflection isn't an option. I'm not sure
             // that there is any other option. maybe something will change in the future that will
             // allow this to be done. this whole method wasn't added until Android 16, so whatever
-            // issue not doing anything here causes probably already existed in Android 13 - 15.
+            // issue not doing anything here causes probably already existed in Android 13 - 15, but
+            // this functionality is hidden behind a feature flag (which was enabled on every device
+            // I tested that the flag existed in). also, note that the
+            // initiationWithoutInputConnection flag did exist in Android 15, so if we ever find a
+            // solution to this that also works back that far, we'll need to consider whether to
+            // still artificially restrict this functionality on that version to match the framework
+            // EditText.
         }
     }
 
@@ -7003,7 +6969,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                 break;
 
             case KeyEvent.KEYCODE_ESCAPE:
-                if (FLAGS_ESCAPE_CLEARS_FOCUS && event.hasNoModifiers()) {
+                if (Flags.escapeClearsFocus() && event.hasNoModifiers()) {
                     if (mEditor != null && mEditor.getTextActionMode() != null) {
                         stopTextActionMode();
                         return KEY_EVENT_HANDLED;
@@ -7457,7 +7423,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 outAttrs.contentMimeTypes = getReceiveContentMimeTypes();
             }
-            if (FLAGS_EDITOR_INFO_HANDWRITING_ENABLED
+            if (Flags.editorinfoHandwritingEnabled()
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                 boolean handwritingEnabled = isAutoHandwritingEnabled();
                 outAttrs.setStylusHandwritingEnabled(handwritingEnabled);
@@ -7476,7 +7442,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
                         STYLUS_HANDWRITING_ENABLED_ANDROIDX_EXTRAS_KEY, handwritingEnabled);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                if (FLAGS_WRITING_TOOLS) {
+                if (Flags.writingTools() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
                     // default to same behavior as isSuggestionsEnabled().
                     outAttrs.setWritingToolsEnabled(isSuggestionsEnabled());
                 }
@@ -9291,7 +9257,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private PointF convertFromScreenToContentCoordinates(PointF point) {
-        if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+        if (Flags.handwritingGestureWithTransformation()) {
             if (mTempMatrix == null) {
                 mTempMatrix = new Matrix();
             }
@@ -9316,7 +9282,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
     }
 
     private RectF convertFromScreenToContentCoordinates(RectF rect) {
-        if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+        if (Flags.handwritingGestureWithTransformation()
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (mTempMatrix == null) {
                 mTempMatrix = new Matrix();
             }
@@ -10199,7 +10166,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
         }
 
         // At this point, the event is not a long press, otherwise it would be handled above.
-        if (FLAGS_HANDWRITING_END_OF_LINE_TAP && action == MotionEvent.ACTION_UP
+        if (Flags.handwritingEndOfLineTap() && action == MotionEvent.ACTION_UP
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && shouldStartHandwritingForEndOfLineTap(event)) {
             InputMethodManager imm = getInputMethodManager();
@@ -11061,7 +11028,8 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             AccessibilityNodeInfo info, String extraDataKey, Bundle arguments) {
         boolean isCharacterLocationKey = extraDataKey.equals(
                 EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY);
-        boolean isCharacterLocationInWindowKey = (FLAGS_A11Y_CHARACTER_IN_WINDOW_API
+        boolean isCharacterLocationInWindowKey = (Flags.a11yCharacterInWindowApi()
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
                 && extraDataKey.equals(EXTRA_DATA_TEXT_CHARACTER_LOCATION_IN_WINDOW_KEY));
         if (arguments != null && (isCharacterLocationKey || isCharacterLocationInWindowKey)) {
             int positionInfoStartIndex = arguments.getInt(
@@ -11108,7 +11076,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     /**
      * Don't use, it returns wrong result when the view is scaled. This method can be removed once
-     * FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION is enabled.
+     * Flags#handwritingGestureWithTransformation is enabled.
      * Assume
      * Helper method to set {@code rect} to this EditText's non-clipped area in its own coordinates.
      * This method obtains the view's visible rectangle whereas the method
@@ -11131,7 +11099,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     /**
      * Don't use, it returns wrong result when view is scaled. This method can be removed once
-     * FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION is enabled.
+     * Flags#handwritingGestureWithTransformation is enabled.
      * Helper method to set {@code rect} to the text content's non-clipped area in the view's
      * coordinates.
      *
@@ -11226,7 +11194,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             }
             final RectF visibleRect = new RectF();
 
-            if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+            if (Flags.handwritingGestureWithTransformation()) {
                 getContentVisibleRect(visibleRect);
             } else {
                 final Rect rect = new Rect();
@@ -11447,7 +11415,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
             final RectF editorBounds = new RectF();
             final RectF handwritingBounds = new RectF();
             final boolean gotViewVisibleRect;
-            if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION
+            if (Flags.handwritingGestureWithTransformation()
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 getEditorAndHandwritingBounds(editorBounds, handwritingBounds);
                 gotViewVisibleRect = false;
@@ -11548,7 +11516,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
             if (includeVisibleLineBounds
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                if (FLAGS_HANDWRITING_GESTURE_WITH_TRANSFORMATION) {
+                if (Flags.handwritingGestureWithTransformation()) {
                     final RectF visibleRect = new RectF();
                     if (getContentVisibleRect(visibleRect)) {
                         // Subtract the viewportToContentVerticalOffset to convert the view

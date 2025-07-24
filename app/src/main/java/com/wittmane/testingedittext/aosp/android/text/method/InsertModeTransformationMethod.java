@@ -38,6 +38,7 @@ import android.view.View;
 
 import com.wittmane.testingedittext.aosp.com.android.internal.util.ArrayUtils;
 import com.wittmane.testingedittext.aosp.com.android.internal.util.Preconditions;
+import com.wittmane.testingedittext.wrapper.Flags;
 
 import java.lang.reflect.Array;
 
@@ -61,11 +62,6 @@ import java.lang.reflect.Array;
  *   the new transformed text: "hello abc\n\n world", and the highlight range will be [5, 11).
  */
 public class InsertModeTransformationMethod implements TransformationMethod, TextWatcher {
-
-    // (EW) replacement for com.android.text.flags.Flags#insertModeHighlightRange. this check was
-    // added in Android 16 around new functionality.
-    private static final boolean FLAGS_INSERT_MODE_HIGHLIGHT_RANGE = false;
-
     /** The start offset of the highlight range in the original text, inclusive. */
     private int mStart;
     /**
@@ -179,7 +175,7 @@ public class InsertModeTransformationMethod implements TransformationMethod, Tex
                 // The text change is before the highlight start, move the highlight start.
                 mStart += diff;
             } else {
-                if (FLAGS_INSERT_MODE_HIGHLIGHT_RANGE) {
+                if (Flags.insertModeHighlightRange()) {
                     // The text change covers the highlight start. Don't change the start except
                     // when it's out of range.
                     mStart = Math.min(mStart, s.length());
@@ -195,7 +191,7 @@ public class InsertModeTransformationMethod implements TransformationMethod, Tex
             // The text change is before the highlight end, move the highlight end.
             mEnd += diff;
         } else if (start < mEnd) {
-            if (FLAGS_INSERT_MODE_HIGHLIGHT_RANGE) {
+            if (Flags.insertModeHighlightRange()) {
                 // The text change covers the highlight end. Don't change the end except when it's
                 // out of range.
                 mEnd = Math.min(mEnd, s.length());
