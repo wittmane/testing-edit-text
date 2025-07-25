@@ -29,6 +29,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.wrapper.Flags;
+
 /**
  * (EW) content from {@link BoringLayoutExtension} that is blocked from apps accessing
  */
@@ -45,16 +47,11 @@ public class BoringLayoutExtension {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // (EW) the BoringLayout#isBoring overload that takes a Paint.FontMetrics (added in
             // Android 15) is hidden and blocked from reflection. that parameter is just used to
-            // adjust the result if ClientFlags#fixLineHeightForLocale returns true. that and what
-            // it calls into (TextFlags#isFeatureEnabled and then AppGlobals#getIntCoreSetting) are
-            // all blocked from reflection. I'm not certain how those flags/settings are supposed to
-            // work, but based on the documentation for locale-aware default line height for
-            // EditText indicating the new option and default when targeting Android 15 (API level
-            // 35), my best guess is that it's managing that. since we're targeting that version, I
-            // think that should always be true on Android 15+, so we'll just use a version check to
-            // mimic that, and then copy in most of the AOSP code, since we can't just modify the
-            // result because the minimum needs to be set before some other calculations.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+            // adjust the result if fixLineHeightForLocale returns true. we'll just mimic that
+            // check and then copy in most of the AOSP code since we can't just modify the result
+            // because the minimum needs to be set before some other calculations.
+            if (Flags.fixLineHeightForLocale()
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
                     && minimumFontMetrics != null) {
                 // (EW) use the framework method to handle the determination if this is boring since
                 // it has some checks that we don't have access to

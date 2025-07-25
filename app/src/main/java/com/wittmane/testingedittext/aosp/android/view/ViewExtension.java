@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2025 Eli Wittman
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -318,6 +318,36 @@ public class ViewExtension extends View {
 
         if (!hasIdentityMatrix(view)) {
             ev.transform(getInverseMatrix(view));
+        }
+    }
+
+    // (EW) the AOSP version (added in Android 16) is marked as hidden
+    /**
+     * Modifiers the input matrix such that it maps root view's coordinates to view-local
+     * coordinates.
+     *
+     * @param matrix input matrix to modify
+     */
+    public void transformMatrixRootToLocal(@NonNull Matrix matrix) {
+        transformMatrixRootToLocal(this, matrix);
+    }
+
+    // (EW) moved the AOSP logic into a static function to call on any view since this has a
+    // recursive call
+    private static void transformMatrixRootToLocal(View view, @NonNull Matrix matrix) {
+        final ViewParent parent = view.getParent();
+        if (parent instanceof View) {
+            final View vp = (View) parent;
+            transformMatrixRootToLocal(vp, matrix);
+            matrix.postTranslate(vp.getScrollX(), vp.getScrollY());
+        }
+        // This method is different from transformMatrixToLocal that it doesn't perform any
+        // transformation for ViewRootImpl
+
+        matrix.postTranslate(-view.getLeft(), -view.getTop());
+
+        if (!hasIdentityMatrix(view)) {
+            matrix.postConcat(getInverseMatrix(view));
         }
     }
 

@@ -123,6 +123,7 @@ import com.wittmane.testingedittext.aosp.android.content.UndoOperation;
 import com.wittmane.testingedittext.aosp.android.content.UndoOwner;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputConnectionExtension;
 import com.wittmane.testingedittext.aosp.android.view.inputmethod.InputMethodManagerExtension;
+import com.wittmane.testingedittext.aosp.android.view.MenuExtension;
 import com.wittmane.testingedittext.aosp.com.android.internal.graphics.ColorUtils;
 import com.wittmane.testingedittext.aosp.com.android.internal.inputmethod.EditableInputConnection;
 import com.wittmane.testingedittext.aosp.android.os.ParcelableParcel;
@@ -134,6 +135,7 @@ import com.wittmane.testingedittext.aosp.android.widget.EditText.OnEditorActionL
 import com.wittmane.testingedittext.util.SpanUtils;
 import com.wittmane.testingedittext.util.ViewUtils;
 import com.wittmane.testingedittext.wrapper.BreakIterator;
+import com.wittmane.testingedittext.wrapper.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -152,7 +154,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static android.view.ContentInfo.SOURCE_DRAG_AND_DROP;
-import static com.wittmane.testingedittext.aosp.android.widget.EditText.FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
 
 /**
  * Helper class used by EditText to handle editable text views.
@@ -369,7 +370,9 @@ class Editor {
     private final DelayedUpdater mDelayedUpdater = new DelayedUpdater();
     private CharSequence mTextAtLastExtract;
 
-    Editor(EditText editText) {
+    // (EW) AOSP changed this changed to public and hidden and VisibleForTesting in Android 16, but
+    // we don't need that, so we'll just keep it package private
+    /* package */ Editor(EditText editText) {
         mEditText = editText;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             mProcessTextIntentActionsHandler = new ProcessTextIntentActionsHandler(this);
@@ -420,10 +423,13 @@ class Editor {
         // 0.5f was returned (not actually coming from the default value). this replaced
         // LINE_SLOP_MULTIPLIER_FOR_HANDLEVIEWS from older versions, which was also 0.5f.
         mLineSlopRatio = 0.5f;
-        // (EW) the AOSP version checks AppGlobals.getIntCoreSetting (added in Android 14) with a
-        // default value of TextFlags.ENABLE_NEW_CONTEXT_MENU_DEFAULT (false). reflection is
-        // blocked, so we'll just stick with the default for now.
-        mUseNewContextMenu = false;
+        // (EW) the AOSP version checked AppGlobals.getIntCoreSetting (added in Android 14) with a
+        // default value of TextFlags.ENABLE_NEW_CONTEXT_MENU_DEFAULT (false) to set
+        // mUseNewContextMenu. reflection was blocked, so we just stuck with the default initially.
+        // this was removed in Android 16, but the functionality it controlled was enabled always at
+        // this point, so we'll just have this managed by the version check. the Android 15 emulator
+        // and device I've used seem to have this enabled, so we'll just start enabling it there.
+        mUseNewContextMenu = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
         if (EditText.DEBUG_CURSOR) {
             logCursor("Editor", "Cursor drag from anywhere is %s.",
                     mFlagCursorDragFromAnywhereEnabled ? "enabled" : "disabled");
@@ -2018,9 +2024,12 @@ class Editor {
             }
         }
 
-        // (EW) the AOSP version also checked Canvas#isHighContrastTextEnabled, which is hidden. if
-        // we ever enable this flag, we'll probably need to make this check too.
-        boolean shouldDrawHighlightsOnTop = FLAGS_HIGH_CONTRAST_TEXT_SMALL_TEXT_RECT;
+        //TODO: (EW) the AOSP version also checks Canvas#isHighContrastTextEnabled, which is hidden
+        // and blocked from reflection. if we want to actually enable this flag, we'll probably need
+        // to make this check too, but at least right now, I don't know that there is a way to do
+        // that.
+        boolean shouldDrawHighlightsOnTop = Flags.highContrastTextSmallTextRect()
+                && false;
 
         // If high contrast text is drawing background rectangles behind the text, those cover up
         // the cursor and correction highlighter etc. So just draw the text first, then draw the
@@ -2898,6 +2907,45 @@ class Editor {
             }
         }
 
+        if (mUseNewContextMenu) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                MenuExtension.setOptionalIconsVisible(menu, mEditText.getContext(), true);
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                menu.setGroupDividerEnabled(true);
+            }
+
+            // (EW) the AOSP version called some helper method to do stuff with
+            // AssistantCallbackHelper, but it only worked if SelectionActionModeHelper had a
+            // TextClassification object, which we stripped out, so we'll skip this too.
+
+            final int keyboard = mEditText.getResources().getConfiguration().keyboard;
+            menu.setQwertyMode(keyboard == Configuration.KEYBOARD_QWERTY);
+        }
+
+        setTextContextMenuItems(menu);
+
+        mPreserveSelection = true;
+
+        // No-op for the old context menu because it doesn't have icons.
+        adjustIconSpacing(menu);
+    }
+
+    /* package */ void setTextContextMenuItems(ContextMenu menu) {
+        final TypedArray a = mEditText.getContext().obtainStyledAttributes(new int[]{
+                // TODO: Make Undo/Redo be public attribute.
+                R.attr.actionModeUndoDrawable,
+                R.attr.actionModeRedoDrawable,
+                android.R.attr.actionModeCutDrawable,
+                android.R.attr.actionModeCopyDrawable,
+                android.R.attr.actionModePasteDrawable,
+                android.R.attr.actionModeSelectAllDrawable,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        ? android.R.attr.actionModeShareDrawable
+                        : 0,
+        });
+
         final int menuItemOrderUndo = 2;
         final int menuItemOrderRedo = 3;
         final int menuItemOrderCut = 4;
@@ -2912,22 +2960,6 @@ class Editor {
             menuItemOrderSelectAll = 8;
             menuItemOrderShare = 9;
             menuItemOrderAutofill = 10;
-
-            // (EW) the AOSP version called Menu#setOptionalIconsVisible, which is hidden. I think
-            // this being missing is what's preventing the icons from showing, but since
-            // mUseNewContextMenu is currently always false, it doesn't seem worth trying to find
-            // some alternative now.
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                menu.setGroupDividerEnabled(true);
-            }
-
-            // (EW) the AOSP version called some helper method to do stuff with
-            // AssistantCallbackHelper, but it only worked if SelectionActionModeHelper had a
-            // TextClassification object, which we stripped out, so we'll skip this too.
-
-            final int keyboard = mEditText.getResources().getConfiguration().keyboard;
-            menu.setQwertyMode(keyboard == Configuration.KEYBOARD_QWERTY);
         } else {
             menuItemOrderShare = 7;
             menuItemOrderSelectAll = 8;
@@ -2935,90 +2967,163 @@ class Editor {
             menuItemOrderPasteAsPlainText = 11;
         }
 
-        final TypedArray a = mEditText.getContext().obtainStyledAttributes(new int[] {
-                // TODO: Make Undo/Redo be public attribute.
-                R.attr.actionModeUndoDrawable,
-                R.attr.actionModeRedoDrawable,
-                android.R.attr.actionModeCutDrawable,
-                android.R.attr.actionModeCopyDrawable,
-                android.R.attr.actionModePasteDrawable,
-                android.R.attr.actionModeSelectAllDrawable,
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? android.R.attr.actionModeShareDrawable : 0,
-        });
+        if (Flags.contextMenuHideUnavailableItems()) {
+            if (mEditText.canUndo()) {
+                menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_UNDO, menuItemOrderUndo,
+                                R.string.undo)
+                        .setAlphabeticShortcut('z')
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                        .setIcon(a.getDrawable(0));
+            }
 
-        menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_UNDO, menuItemOrderUndo,
-                R.string.undo)
-                .setAlphabeticShortcut('z')
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
-                .setIcon(a.getDrawable(0))
-                .setEnabled(mEditText.canUndo());
-        MenuItem redoMenuItem = menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_REDO,
-                menuItemOrderRedo, R.string.redo);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // (EW) this call was only added in Android 14, but the API was available earlier, so
-            // we'll just call it as long as we can
-            redoMenuItem.setAlphabeticShortcut('z',
-                    KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
-        }
-        redoMenuItem.setOnMenuItemClickListener(mOnContextMenuItemClickListener)
-                .setIcon(a.getDrawable(1))
-                .setEnabled(mEditText.canRedo());
+            if (mEditText.canRedo()) {
+                MenuItem redoMenuItem = menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_REDO,
+                        menuItemOrderRedo, R.string.redo);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // (EW) this call was only added in Android 14, but the API was available
+                    // earlier, so we'll just call it as long as we can
+                    redoMenuItem.setAlphabeticShortcut('z',
+                            KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+                }
+                redoMenuItem.setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                        .setIcon(a.getDrawable(1));
+            }
 
-        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_CUT, menuItemOrderCut,
-                android.R.string.cut)
-                .setAlphabeticShortcut('x')
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
-                .setIcon(a.getDrawable(2))
-                .setEnabled(mEditText.canCut());
-        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_COPY, menuItemOrderCopy,
-                android.R.string.copy)
-                .setAlphabeticShortcut('c')
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
-                .setIcon(a.getDrawable(3))
-                .setEnabled(mEditText.canCopy());
-        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_PASTE, menuItemOrderPaste,
-                android.R.string.paste)
-                .setAlphabeticShortcut('v')
-                .setEnabled(mEditText.canPaste())
-                .setIcon(a.getDrawable(4))
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        MenuItem pasteAsPlainTextMenuItem = menu.add(CONTEXT_MENU_GROUP_CLIPBOARD,
-                EditText.ID_PASTE_AS_PLAIN_TEXT, menuItemOrderPasteAsPlainText,
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                        ? android.R.string.paste_as_plain_text
-                        : R.string.paste_as_plain_text);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // (EW) this call was only added in Android 14, but the API was available earlier, so
-            // we'll just call it as long as we can
-            pasteAsPlainTextMenuItem.setAlphabeticShortcut('v',
-                    KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
-        }
-        pasteAsPlainTextMenuItem.setEnabled(mEditText.canPasteAsPlainText())
-                .setIcon(a.getDrawable(4))
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_SELECT_ALL, menuItemOrderSelectAll,
-                android.R.string.selectAll)
-                .setAlphabeticShortcut('a')
-                .setEnabled(mEditText.canSelectAllText())
-                .setIcon(a.getDrawable(5))
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            if (mEditText.canCut()) {
+                menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_CUT, menuItemOrderCut,
+                                android.R.string.cut)
+                        .setAlphabeticShortcut('x')
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                        .setIcon(a.getDrawable(2));
+            }
 
-        menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_SHARE, menuItemOrderShare,
-                R.string.share)
-                .setEnabled(mEditText.canShare())
-                .setIcon(a.getDrawable(6))
-                .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_AUTOFILL, menuItemOrderAutofill,
-                    R.string.autofill)
-                    .setEnabled(mEditText.canRequestAutofill())
+            if (mEditText.canCopy()) {
+                menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_COPY, menuItemOrderCopy,
+                                android.R.string.copy)
+                        .setAlphabeticShortcut('c')
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                        .setIcon(a.getDrawable(3));
+            }
+
+            if (mEditText.canPaste()) {
+                menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_PASTE, menuItemOrderPaste,
+                                android.R.string.paste)
+                        .setAlphabeticShortcut('v')
+                        .setIcon(a.getDrawable(4))
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            }
+
+            if (mEditText.canPasteAsPlainText()) {
+                MenuItem pasteAsPlainTextMenuItem = menu.add(CONTEXT_MENU_GROUP_CLIPBOARD,
+                        EditText.ID_PASTE_AS_PLAIN_TEXT, menuItemOrderPasteAsPlainText,
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                                ? android.R.string.paste_as_plain_text
+                                : R.string.paste_as_plain_text);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // (EW) this call was only added in Android 14, but the API was available
+                    // earlier, so we'll just call it as long as we can
+                    pasteAsPlainTextMenuItem.setAlphabeticShortcut('v',
+                            KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+                }
+                pasteAsPlainTextMenuItem.setIcon(a.getDrawable(4))
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            }
+
+            if (mEditText.canSelectAllText()) {
+                menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_SELECT_ALL,
+                                menuItemOrderSelectAll, android.R.string.selectAll)
+                        .setAlphabeticShortcut('a')
+                        .setIcon(a.getDrawable(5))
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            }
+
+            if (mEditText.canShare()) {
+                menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_SHARE, menuItemOrderShare,
+                                R.string.share)
+                        .setIcon(a.getDrawable(6))
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            }
+
+            final String selected = mEditText.getSelectedText();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mEditText.canRequestAutofill()
+                    && (selected == null || selected.isEmpty())) {
+                menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_AUTOFILL, menuItemOrderAutofill,
+                                R.string.autofill)
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            }
+        } else {
+            menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_UNDO, menuItemOrderUndo,
+                            R.string.undo)
+                    .setAlphabeticShortcut('z')
+                    .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                    .setIcon(a.getDrawable(0))
+                    .setEnabled(mEditText.canUndo());
+            MenuItem redoMenuItem = menu.add(CONTEXT_MENU_GROUP_UNDO_REDO, EditText.ID_REDO,
+                    menuItemOrderRedo, R.string.redo);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // (EW) this call was only added in Android 14, but the API was available earlier,
+                // so we'll just call it as long as we can
+                redoMenuItem.setAlphabeticShortcut('z',
+                        KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+            }
+            redoMenuItem.setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                    .setIcon(a.getDrawable(1))
+                    .setEnabled(mEditText.canRedo());
+
+            menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_CUT, menuItemOrderCut,
+                            android.R.string.cut)
+                    .setAlphabeticShortcut('x')
+                    .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                    .setIcon(a.getDrawable(2))
+                    .setEnabled(mEditText.canCut());
+            menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_COPY, menuItemOrderCopy,
+                            android.R.string.copy)
+                    .setAlphabeticShortcut('c')
+                    .setOnMenuItemClickListener(mOnContextMenuItemClickListener)
+                    .setIcon(a.getDrawable(3))
+                    .setEnabled(mEditText.canCopy());
+            menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_PASTE, menuItemOrderPaste,
+                            android.R.string.paste)
+                    .setAlphabeticShortcut('v')
+                    .setEnabled(mEditText.canPaste())
+                    .setIcon(a.getDrawable(4))
                     .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
-        }
-        mPreserveSelection = true;
-        a.recycle();
+            MenuItem pasteAsPlainTextMenuItem = menu.add(CONTEXT_MENU_GROUP_CLIPBOARD,
+                    EditText.ID_PASTE_AS_PLAIN_TEXT, menuItemOrderPasteAsPlainText,
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                            ? android.R.string.paste_as_plain_text
+                            : R.string.paste_as_plain_text);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // (EW) this call was only added in Android 14, but the API was available earlier,
+                // so we'll just call it as long as we can
+                pasteAsPlainTextMenuItem.setAlphabeticShortcut('v',
+                        KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+            }
+            pasteAsPlainTextMenuItem.setEnabled(mEditText.canPasteAsPlainText())
+                    .setIcon(a.getDrawable(4))
+                    .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            menu.add(CONTEXT_MENU_GROUP_CLIPBOARD, EditText.ID_SELECT_ALL, menuItemOrderSelectAll,
+                            android.R.string.selectAll)
+                    .setAlphabeticShortcut('a')
+                    .setEnabled(mEditText.canSelectAllText())
+                    .setIcon(a.getDrawable(5))
+                    .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
 
-        // No-op for the old context menu because it doesn't have icons.
-        adjustIconSpacing(menu);
+            menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_SHARE, menuItemOrderShare,
+                            R.string.share)
+                    .setEnabled(mEditText.canShare())
+                    .setIcon(a.getDrawable(6))
+                    .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                final String selected = mEditText.getSelectedText();
+                menu.add(CONTEXT_MENU_GROUP_MISC, EditText.ID_AUTOFILL, menuItemOrderAutofill,
+                                R.string.autofill)
+                        .setEnabled(mEditText.canRequestAutofill()
+                                && (selected == null || selected.isEmpty()))
+                        .setOnMenuItemClickListener(mOnContextMenuItemClickListener);
+            }
+        }
+        a.recycle();
     }
 
     /**
