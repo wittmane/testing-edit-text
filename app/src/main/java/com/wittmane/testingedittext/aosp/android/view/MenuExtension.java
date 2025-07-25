@@ -35,32 +35,33 @@ import java.util.HashSet;
  */
 public class MenuExtension {
 
-    // (EW) the AOSP version is marked as hidden. made static to allow calling on any Menu. this is
-    // a hacky solution to try to call the AOSP version and won't always work, but it seems to be
-    // the best we can do.
+    // (EW) the AOSP version (added in Android 14) is marked as hidden. made static to allow calling
+    // on any Menu. this is a hacky solution to try to call the AOSP version and won't always work,
+    // but it seems to be the best we can do.
+    //TODO: (EW) I'm hoping that in future versions this API or something similar will be properly
+    // exposed. see if there is something better we can do in future versions.
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public static void setOptionalIconsVisible(Menu menu, Context context, boolean visible) {
-        // this was blocked from reflection when I tested it, but in case that ever changes, we can
-        // still try since this would be a better solution than the hack below.
+        // (EW) this was blocked from reflection when I tested it, but in case that ever changes, we
+        // can still try since this would be a better solution than the hack below.
         try {
             Method setOptionalIconsVisibleMethod =
                     Menu.class.getMethod("setOptionalIconsVisible", boolean.class);
             setOptionalIconsVisibleMethod.invoke(menu, true);
             return;
-        } catch (NoSuchMethodException | IllegalAccessException
-                 | InvocationTargetException e) { }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) { }
 
         if (!(menu instanceof ContextMenu)) {
-            // this hack only works with ContextMenu
+            // (EW) this hack only works with ContextMenu
             return;
         }
         if (!visible) {
-            // this hack only works to make the icons visible. they are not visible by default, so
-            // not being able to disable it shouldn't be a real problem.
+            // (EW) this hack only works to make the icons visible. they are not visible by default,
+            // so not being able to disable it shouldn't be a real problem.
             return;
         }
 
-        // in Android 14 and 15 if AppGlobals#getIntCoreSetting was true for
+        // (EW) in Android 14 and 15 if AppGlobals#getIntCoreSetting was true for
         // TextFlags.KEY_ENABLE_NEW_CONTEXT_MENU and always starting in Android 16,
         // EditText#onCreateContextMenu eventually calls into Menu#setOptionalIconsVisible(true), so
         // we'll just call into that to get the method called. first we'll need to copy out the
@@ -72,17 +73,15 @@ public class MenuExtension {
         }
 
         DummyEditText editText = new DummyEditText(context);
-        // trigger the Editor to be created
+        // (EW) trigger the Editor to be created
         editText.setText("");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            try {
-                // from testing, this throws a NullPointerException due to not having a parent when
-                // calling into the super method, which probably is actually good since we're only
-                // calling this to call Editor#setContextMenuAnchor to prevent quiting before
-                // calling Menu#setOptionalIconsVisible.
-                editText.showContextMenu(0, 0);
-            } catch (Exception e) { }
-        }
+        try {
+            // (EW) from testing, this throws a NullPointerException due to not having a parent when
+            // calling into the super method, which probably is actually good since we're only
+            // calling this to call Editor#setContextMenuAnchor to prevent quiting before calling
+            // Menu#setOptionalIconsVisible.
+            editText.showContextMenu(0, 0);
+        } catch (Exception e) { }
         editText.onCreateContextMenu((ContextMenu) menu);
 
         for (int i = menu.size() - 1; i >= 0; i--) {
@@ -92,17 +91,22 @@ public class MenuExtension {
         }
     }
 
+    // (EW) custom EditText class to force it to create a context menu (technically add content to a
+    // specified menu) specifically to get it to call Menu#setOptionalIconsVisible(true) on the menu
     @SuppressLint("AppCompatCustomView")
     private static class DummyEditText extends EditText {
         public DummyEditText(Context context) {
             super(context);
         }
 
+        // (EW) overridden to make public to allow calling
         @Override
         public void onCreateContextMenu(ContextMenu menu) {
             super.onCreateContextMenu(menu);
         }
 
+        // (EW) Editor#onCreateContextMenu quits without building the menu if this returns -1, so
+        // force it to never do that
         @Override
         public int getOffsetForPosition(float x, float y) {
             return 0;

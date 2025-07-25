@@ -425,11 +425,10 @@ class Editor {
         mLineSlopRatio = 0.5f;
         // (EW) the AOSP version checked AppGlobals.getIntCoreSetting (added in Android 14) with a
         // default value of TextFlags.ENABLE_NEW_CONTEXT_MENU_DEFAULT (false) to set
-        // mUseNewContextMenu. reflection was blocked, so we just stuck with the default for the
-        // time being. this was removed in Android 16, but the functionality it controlled was
-        // enabled always at this point, so we'll just have this managed by the version check. the
-        // Android 15 emulator and device I've used seem to have this enabled, so we'll just start
-        // enabling it there.
+        // mUseNewContextMenu. reflection was blocked, so we just stuck with the default initially.
+        // this was removed in Android 16, but the functionality it controlled was enabled always at
+        // this point, so we'll just have this managed by the version check. the Android 15 emulator
+        // and device I've used seem to have this enabled, so we'll just start enabling it there.
         mUseNewContextMenu = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
         if (EditText.DEBUG_CURSOR) {
             logCursor("Editor", "Cursor drag from anywhere is %s.",

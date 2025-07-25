@@ -48,7 +48,7 @@ public class BoringLayoutExtension {
             // (EW) the BoringLayout#isBoring overload that takes a Paint.FontMetrics (added in
             // Android 15) is hidden and blocked from reflection. that parameter is just used to
             // adjust the result if fixLineHeightForLocale returns true. we'll just mimic that
-            // check, and then copy in most of the AOSP code, since we can't just modify the result
+            // check and then copy in most of the AOSP code since we can't just modify the result
             // because the minimum needs to be set before some other calculations.
             if (Flags.fixLineHeightForLocale()
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
