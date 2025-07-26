@@ -22,6 +22,7 @@ import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettin
 
 import android.app.ActionBar;
 import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.os.Build;
 import android.os.Bundle;
@@ -29,6 +30,7 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
+import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
@@ -51,6 +53,14 @@ public class SettingsActivity extends PreferenceActivity {
 
     public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
 
+    private boolean mIsBackCallbackRegistered = false;
+    private final OnBackInvokedCallback mOnBackInvokedCallback =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    ? this::onBackInvoked
+                    : null;
+    private final FragmentManager.OnBackStackChangedListener mOnBackStackChangedListener =
+            this::updateBackCallbackRegistrationState;
+
     @Override
     protected void onCreate(final Bundle savedState) {
         setTheme(Settings.getThemeId(this));
@@ -67,12 +77,8 @@ public class SettingsActivity extends PreferenceActivity {
         // navigation bar
         EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
 
-        // the back navigation bar button and gesture stopped calling #onBackPressed by default in
-        // Android 13, so we have to add that back
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::onBackPressed);
-        }
+        updateBackCallbackRegistrationState();
+        getFragmentManager().addOnBackStackChangedListener(mOnBackStackChangedListener);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -114,9 +120,13 @@ public class SettingsActivity extends PreferenceActivity {
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-            return true;
+        // starting in Oreo, the default implementation handles the top back button correctly, but
+        // prior to that, we need to have custom handling
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            if (item.getItemId() == android.R.id.home) {
+                onBackPressed();
+                return true;
+            }
         }
         return super.onOptionsItemSelected(item);
     }
@@ -138,18 +148,43 @@ public class SettingsActivity extends PreferenceActivity {
                 || DisplaySettingsFragment.class.getName().equals(fragmentName);
     }
 
-    @Override
-    public void onBackPressed() {
-        if (getFragmentManager().getBackStackEntryCount() > 0) {
-            super.onBackPressed();
-        } else {
-            finish();
+    private void onBackInvoked() {
+        onBackPressed();
+        updateBackCallbackRegistrationState();
+    }
+
+    private void updateBackCallbackRegistrationState() {
+        // use the new APIs for predictive back handling starting in Android 13. prior to Android,
+        // #onBackPressed gets called and the parent class handles navigation appropriately.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        // without the back callback registered the predictive back animation is shown, but it goes
+        // away when the callback is registered. without the back callback registered, the back
+        // navigation bar button and gesture return to the previous activity rather than traverse up
+        // the back stack. have the back callback registered when there are entries in the back
+        // stack to properly support going to the previous fragment, but once the back stack is
+        // empty, unregister the callback to get the predictive back animation to appear. this
+        // pattern came from PreferenceActivity, but I'm not certain if it did this for the same
+        // reason.
+        //TODO: (EW) figure out how to get predictive back animations between the fragments on the
+        // back stack to work
+        if (getFragmentManager().getBackStackEntryCount() != 0) {
+            if (!mIsBackCallbackRegistered) {
+                getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                        OnBackInvokedDispatcher.PRIORITY_DEFAULT, mOnBackInvokedCallback);
+                mIsBackCallbackRegistered = true;
+            }
+        } else if (mIsBackCallbackRegistered) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mOnBackInvokedCallback);
+            mIsBackCallbackRegistered = false;
         }
     }
 
     @Override
     protected void onDestroy() {
         EdgeToEdgeUtils.removeInsetHandling(this);
+        getFragmentManager().removeOnBackStackChangedListener(mOnBackStackChangedListener);
         super.onDestroy();
     }
 }
