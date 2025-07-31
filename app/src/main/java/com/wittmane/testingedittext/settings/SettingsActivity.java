@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright 2019 The Android Open Source Project
  * Copyright (C) 2007 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -30,9 +31,17 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
+import android.view.ViewGroup;
+import android.view.animation.PathInterpolator;
+import android.window.BackEvent;
+import android.window.OnBackAnimationCallback;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+
+import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
@@ -55,16 +64,23 @@ public class SettingsActivity extends PreferenceActivity {
 
     private boolean mIsBackCallbackRegistered = false;
     private final OnBackInvokedCallback mOnBackInvokedCallback =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                    ? this::onBackInvoked
-                    : null;
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    ? new OnBackCallback14()
+                    : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                            ? new OnBackCallback13()
+                            : null;
     private final FragmentManager.OnBackStackChangedListener mOnBackStackChangedListener =
             this::updateBackCallbackRegistrationState;
+
+    private int predictiveBackMargin;
 
     @Override
     protected void onCreate(final Bundle savedState) {
         setTheme(Settings.getThemeId(this));
         super.onCreate(savedState);
+
+        predictiveBackMargin = getResources().getDimensionPixelSize(R.dimen.predictive_back_margin);
+
         final ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -148,9 +164,75 @@ public class SettingsActivity extends PreferenceActivity {
                 || DisplaySettingsFragment.class.getName().equals(fragmentName);
     }
 
-    private void onBackInvoked() {
-        onBackPressed();
-        updateBackCallbackRegistrationState();
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private class OnBackCallback13 implements OnBackInvokedCallback {
+
+        @Override
+        public void onBackInvoked() {
+            onBackPressed();
+            updateBackCallbackRegistrationState();
+        }
+    }
+
+    // (EW) manually animate the back gesture to match the system animations. based on
+    // https://github.com/android/animation-samples/blob/main/Motion/app/src/main/java/com/example/android/motion/demo/containertransform/CheeseArticleFragment.kt
+    //TODO: (EW) this doesn't show the previous fragment, so it's not really "predictive". the
+    // animation is better than nothing, but making it actually predictive would be better.
+    // https://developer.android.com/guide/navigation/custom-back/support-animations calls out that
+    // this is a known limitation when using callbacks. see if there is some other method to get
+    // this to work or something else clever to do to get the previous fragment to show.
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private class OnBackCallback14 extends OnBackCallback13 implements OnBackAnimationCallback {
+        private final PathInterpolator mGestureInterpolator = new PathInterpolator(0f, 0f, 0f, 0f);
+
+        private float initialTouchY = -1f;
+        private ViewGroup mFragmentContent;
+
+        @Override
+        public void onBackStarted(@NonNull BackEvent backEvent) {
+            mFragmentContent = findViewById(android.R.id.list_container);
+        }
+
+        @Override
+        public void onBackProgressed(@NonNull BackEvent backEvent) {
+            if (mFragmentContent == null) {
+                return;
+            }
+            
+            float progress = mGestureInterpolator.getInterpolation(backEvent.getProgress());
+            if (initialTouchY < 0f) {
+                initialTouchY = backEvent.getTouchY();
+            }
+            float progressY = mGestureInterpolator.getInterpolation(
+                    (backEvent.getTouchY() - initialTouchY) / mFragmentContent.getHeight()
+            );
+
+            // See the motion spec about the calculations below.
+            // https://developer.android.com/design/ui/mobile/guides/patterns/predictive-back#motion-specs
+
+            // Shift horizontally.
+            int maxTranslationX = (mFragmentContent.getWidth() / 20) - predictiveBackMargin;
+            mFragmentContent.setTranslationX(progress * maxTranslationX *
+                    ((backEvent.getSwipeEdge() == BackEvent.EDGE_LEFT) ? 1 : -1));
+
+            // Shift vertically.
+            int maxTranslationY = (mFragmentContent.getHeight() / 20) - predictiveBackMargin;
+            mFragmentContent.setTranslationY(progressY * maxTranslationY);
+
+            // Scale down from 100% to 90%.
+            float scale = 1f - (0.1f * progress);
+            mFragmentContent.setScaleX(scale);
+            mFragmentContent.setScaleY(scale);
+        }
+
+        @Override
+        public void onBackCancelled() {
+            initialTouchY = -1f;
+            mFragmentContent.setTranslationX(0f);
+            mFragmentContent.setTranslationY(0f);
+            mFragmentContent.setScaleX(1f);
+            mFragmentContent.setScaleY(1f);
+        }
     }
 
     private void updateBackCallbackRegistrationState() {
