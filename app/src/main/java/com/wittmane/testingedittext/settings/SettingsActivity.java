@@ -86,8 +86,25 @@ public class SettingsActivity extends PreferenceActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         if (savedState == null) {
+            Bundle extras = getIntent().getExtras();
+            Fragment f = null;
+            if (extras != null) {
+                int fieldId = extras.getInt(FIELD_ID_BUNDLE_KEY, -1);
+                FieldPosition position = fieldId >= 0 ? Settings.getTestFieldPosition(fieldId) : null;
+                if (position != null) {
+                    Bundle targetExtras = new Bundle();
+                    targetExtras.putString(GROUP_INDEX_BUNDLE_KEY, "" + position.groupIndex);
+                    targetExtras.putString(FIELD_INDEX_BUNDLE_KEY, "" + position.fieldIndex);
+                    f = new TestFieldSettingsFragment();
+                    f.setArguments(targetExtras);
+                }
+            }
+            if (f == null) {
+                f = new MainSettingsFragment();
+            }
             getFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new MainSettingsFragment()).commit();
+                    .replace(android.R.id.content, f)
+                    .commit();
         }
         // handle the insets excluding the bottom to support showing the preference list behind the
         // navigation bar
@@ -95,23 +112,6 @@ public class SettingsActivity extends PreferenceActivity {
 
         updateBackCallbackRegistrationState();
         getFragmentManager().addOnBackStackChangedListener(mOnBackStackChangedListener);
-
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            int fieldId = extras.getInt(FIELD_ID_BUNDLE_KEY, -1);
-            FieldPosition position = fieldId >= 0 ? Settings.getTestFieldPosition(fieldId) : null;
-            if (position != null) {
-                Bundle targetExtras = new Bundle();
-                targetExtras.putString(GROUP_INDEX_BUNDLE_KEY, "" + position.groupIndex);
-                targetExtras.putString(FIELD_INDEX_BUNDLE_KEY, "" + position.fieldIndex);
-                Fragment f = new TestFieldSettingsFragment();
-                f.setArguments(targetExtras);
-                FragmentTransaction transaction = getFragmentManager().beginTransaction();
-                transaction.replace(android.R.id.content, f);
-                transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
-                transaction.commitAllowingStateLoss();
-            }
-        }
     }
 
     @Override
@@ -198,7 +198,7 @@ public class SettingsActivity extends PreferenceActivity {
             if (mFragmentContent == null) {
                 return;
             }
-            
+
             float progress = mGestureInterpolator.getInterpolation(backEvent.getProgress());
             if (initialTouchY < 0f) {
                 initialTouchY = backEvent.getTouchY();
