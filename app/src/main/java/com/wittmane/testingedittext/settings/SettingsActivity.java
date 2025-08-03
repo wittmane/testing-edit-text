@@ -25,14 +25,27 @@ import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.res.TypedArray;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
+import android.view.RoundedCorner;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
+import android.view.ViewParent;
+import android.view.WindowInsets;
 import android.view.animation.PathInterpolator;
+import android.widget.LinearLayout;
 import android.window.BackEvent;
 import android.window.OnBackAnimationCallback;
 import android.window.OnBackInvokedCallback;
@@ -57,20 +70,28 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSetting
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 
+import java.util.HashSet;
+
 public class SettingsActivity extends PreferenceActivity {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
     public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
+    private static final String FRAGMENT_TAG_PREFIX = "NavigationStackFragment";
 
     private boolean mIsBackCallbackRegistered = false;
     private final OnBackInvokedCallback mOnBackInvokedCallback =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    ? new OnBackCallback14()
+                    ? new OnBackCallbackAndroid14()
                     : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                            ? new OnBackCallback13()
+                            ? new OnBackCallbackAndroid13()
                             : null;
     private final FragmentManager.OnBackStackChangedListener mOnBackStackChangedListener =
             this::updateBackCallbackRegistrationState;
+    // in order to support predictive back animation between fragments (OnBackAnimationCallback
+    // added in Android 14), we need to manage hiding and unhiding the previous fragment, rather
+    // than replace the fragment and let the framework manage that in a single transaction
+    private static final boolean MANAGE_HIDING_FRAGMENTS =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
 
     private int predictiveBackMargin;
 
@@ -90,7 +111,9 @@ public class SettingsActivity extends PreferenceActivity {
             Fragment f = null;
             if (extras != null) {
                 int fieldId = extras.getInt(FIELD_ID_BUNDLE_KEY, -1);
-                FieldPosition position = fieldId >= 0 ? Settings.getTestFieldPosition(fieldId) : null;
+                FieldPosition position = fieldId >= 0
+                        ? Settings.getTestFieldPosition(fieldId)
+                        : null;
                 if (position != null) {
                     Bundle targetExtras = new Bundle();
                     targetExtras.putString(GROUP_INDEX_BUNDLE_KEY, "" + position.groupIndex);
@@ -102,9 +125,7 @@ public class SettingsActivity extends PreferenceActivity {
             if (f == null) {
                 f = new MainSettingsFragment();
             }
-            getFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, f)
-                    .commit();
+            addFragment(f, null);
         }
         // handle the insets excluding the bottom to support showing the preference list behind the
         // navigation bar
@@ -120,22 +141,71 @@ public class SettingsActivity extends PreferenceActivity {
         // PreferenceActivity#startPreferencePanel
 
         Fragment f = Fragment.instantiate(this, pref.getFragment(), pref.getExtras());
-        FragmentTransaction transaction = getFragmentManager().beginTransaction();
-        transaction.replace(android.R.id.content, f);
-        if (pref.getTitleRes() != 0) {
-            transaction.setBreadCrumbTitle(pref.getTitleRes());
-        } else if (pref.getTitle() != null) {
-            transaction.setBreadCrumbTitle(pref.getTitle());
-        }
-        transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
-        transaction.addToBackStack(null);
-        transaction.commitAllowingStateLoss();
-
+        addFragment(f, pref);
         return true;
+    }
+
+    private void addFragment(Fragment f, Preference pref) {
+        Fragment[] navStack = getFragmentNavStack();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        if (MANAGE_HIDING_FRAGMENTS) {
+            if (navStack.length > 0) {
+                Fragment currentFragment = navStack[navStack.length - 1];
+                if (currentFragment != null) {
+                    // this needs to be part of a separate transaction for some reason or else we
+                    // can't show it behind the soon-to-be current fragment later for predictive
+                    // back
+                    getFragmentManager().beginTransaction().hide(currentFragment).commit();
+                }
+            }
+            transaction.add(android.R.id.content, f, FRAGMENT_TAG_PREFIX + navStack.length);
+        } else {
+            transaction.replace(android.R.id.content, f, FRAGMENT_TAG_PREFIX + navStack.length);
+        }
+        if (pref != null) {
+            if (pref.getTitleRes() != 0) {
+                transaction.setBreadCrumbTitle(pref.getTitleRes());
+            } else if (pref.getTitle() != null) {
+                transaction.setBreadCrumbTitle(pref.getTitle());
+            }
+            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+            transaction.addToBackStack(null);
+        }
+        transaction.commit();
+    }
+
+    private Fragment[] getFragmentNavStack() {
+        FragmentManager fragmentManager = getFragmentManager();
+        int backStackEntryCount = fragmentManager.getBackStackEntryCount();
+        Fragment[] navStack;
+        if (backStackEntryCount == 0) {
+            Fragment fragment = fragmentManager.findFragmentByTag(FRAGMENT_TAG_PREFIX + 0);
+            navStack = fragment == null ? new Fragment[0] : new Fragment[] { fragment };
+        } else {
+            navStack = new Fragment[backStackEntryCount + 1];
+            for (int i = 0; i < navStack.length; i++) {
+                navStack[i] = fragmentManager.findFragmentByTag(FRAGMENT_TAG_PREFIX + i);
+            }
+        }
+        return navStack;
     }
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
+        if (MANAGE_HIDING_FRAGMENTS && item.getItemId() == android.R.id.home) {
+            // due to the fact that fragments are being added instead of replaced and the previous
+            // fragment is getting hidden in a separate transaction, we need to handle unhiding the
+            // previous fragment because the standard back handling is only going to process
+            // undoing adding the current fragment since that is all that was included as part of
+            // the back stack
+            Fragment[] navStack = getFragmentNavStack();
+            if (navStack.length > 1) {
+                Fragment previousFragment = navStack[navStack.length - 2];
+                if (previousFragment != null) {
+                    getFragmentManager().beginTransaction().show(previousFragment).commit();
+                }
+            }
+        }
         // starting in Oreo, the default implementation handles the top back button correctly, but
         // prior to that, we need to have custom handling
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -165,7 +235,7 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    private class OnBackCallback13 implements OnBackInvokedCallback {
+    private class OnBackCallbackAndroid13 implements OnBackInvokedCallback {
 
         @Override
         public void onBackInvoked() {
@@ -176,21 +246,85 @@ public class SettingsActivity extends PreferenceActivity {
 
     // (EW) manually animate the back gesture to match the system animations. based on
     // https://github.com/android/animation-samples/blob/main/Motion/app/src/main/java/com/example/android/motion/demo/containertransform/CheeseArticleFragment.kt
-    //TODO: (EW) this doesn't show the previous fragment, so it's not really "predictive". the
-    // animation is better than nothing, but making it actually predictive would be better.
-    // https://developer.android.com/guide/navigation/custom-back/support-animations calls out that
-    // this is a known limitation when using callbacks. see if there is some other method to get
-    // this to work or something else clever to do to get the previous fragment to show.
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private class OnBackCallback14 extends OnBackCallback13 implements OnBackAnimationCallback {
+    private class OnBackCallbackAndroid14 extends OnBackCallbackAndroid13
+            implements OnBackAnimationCallback {
         private final PathInterpolator mGestureInterpolator = new PathInterpolator(0f, 0f, 0f, 0f);
 
         private float initialTouchY = -1f;
-        private ViewGroup mFragmentContent;
+        private Fragment mPreviousFragment;
+        private View mFragmentContent;
+        private Drawable mOriginalBackground;
+        private boolean mOriginalClipToOutline;
+        private LinearLayout mDarkOverlay;
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
-            mFragmentContent = findViewById(android.R.id.list_container);
+            Fragment[] navStack = getFragmentNavStack();
+            if (navStack.length < 1) {
+                return;
+            }
+            Fragment currentFragment = navStack[navStack.length - 1];
+            if (currentFragment == null) {
+                return;
+            }
+            mFragmentContent = currentFragment.getView();
+            if (mFragmentContent == null) {
+                return;
+            }
+
+            // if the background under the fragment (either its direct background, some ancestor, or
+            // the base activity default) is a simple color (ignoring transparent backgrounds),
+            // create a new background directly under the fragment to prevent overlapping with the
+            // previous fragment when that is unhidden, and create it with rounded corners matching
+            // the device's corners to match behavior from activity predictive back animations
+            mOriginalBackground = mFragmentContent.getBackground();
+            mOriginalClipToOutline = mFragmentContent.getClipToOutline();
+            Drawable background = getNearestBackground(mFragmentContent);
+            int originalBackgroundColor;
+            if (background == null) {
+                final TypedArray a = getTheme().obtainStyledAttributes(new int[]{
+                        android.R.attr.colorBackground
+                });
+                originalBackgroundColor = a.getColor(0, 0);
+                a.recycle();
+            } else if (background instanceof ColorDrawable) {
+                originalBackgroundColor = ((ColorDrawable) background).getColor();
+            } else {
+                originalBackgroundColor = Color.TRANSPARENT;
+            }
+            if (originalBackgroundColor != Color.TRANSPARENT) {
+                setRoundedBackground(mFragmentContent, originalBackgroundColor);
+            }
+            if (originalBackgroundColor == Color.TRANSPARENT && mOriginalBackground == null) {
+                // we can't recreate the background and there isn't an existing background to reuse,
+                // so we won't be able to prevent the previous fragment from overlapping with the
+                // current fragment, so we shouldn't try to unhide the previous fragment. all we'll
+                // show is the animation of the content of the current fragment shifting.
+                return;
+            }
+
+            // add a semi-transparent overlay between the previous fragment and the current fragment
+            // to give a better distinction between the two and match behavior from activity
+            // predictive back animations
+            LinearLayout darkOverlay = new LinearLayout(getApplication());
+            darkOverlay.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+            darkOverlay.setBackgroundColor(Color.argb(0.5f, 0f, 0f, 0f));
+            if (addSiblingBefore(darkOverlay, mFragmentContent)) {
+                mDarkOverlay = darkOverlay;
+            }
+
+            // unhide the previous fragment
+            if (navStack.length > 1) {
+                Fragment previousFragment = navStack[navStack.length - 2];
+                if (previousFragment != null) {
+                    mPreviousFragment = previousFragment;
+                    getFragmentManager().beginTransaction()
+                            .show(mPreviousFragment)
+                            .commit();
+                }
+            }
         }
 
         @Override
@@ -228,10 +362,57 @@ public class SettingsActivity extends PreferenceActivity {
         @Override
         public void onBackCancelled() {
             initialTouchY = -1f;
+            if (mFragmentContent == null) {
+                return;
+            }
             mFragmentContent.setTranslationX(0f);
             mFragmentContent.setTranslationY(0f);
             mFragmentContent.setScaleX(1f);
             mFragmentContent.setScaleY(1f);
+
+            if (mPreviousFragment != null) {
+                getFragmentManager().beginTransaction()
+                        .hide(mPreviousFragment)
+                        .commit();
+            }
+            if (mDarkOverlay != null) {
+                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
+            }
+            if (mFragmentContent != null) {
+                if (mFragmentContent.getBackground() != mOriginalBackground) {
+                    // delay the background from being replaced (likely with nothing) to avoid a
+                    // flash of the previous fragment overlapping since there is a delay in the
+                    // fragment transaction to hide the previous fragment again
+                    View fragmentContent = mFragmentContent;
+                    Drawable originalBackground = mOriginalBackground;
+                    boolean originalClipToOutline = mOriginalClipToOutline;
+                    mFragmentContent.post(() -> {
+                        fragmentContent.setBackground(originalBackground);
+                        fragmentContent.setClipToOutline(originalClipToOutline);
+                    });
+                }
+            }
+            mPreviousFragment = null;
+            mFragmentContent = null;
+            mOriginalBackground = null;
+            mDarkOverlay = null;
+        }
+
+        @Override
+        public void onBackInvoked() {
+            if (mPreviousFragment != null && mPreviousFragment.isHidden()) {
+                getFragmentManager().beginTransaction()
+                        .show(mPreviousFragment)
+                        .commit();
+            }
+            if (mDarkOverlay != null) {
+                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
+            }
+            mPreviousFragment = null;
+            mFragmentContent = null;
+            mOriginalBackground = null;
+            mDarkOverlay = null;
+            super.onBackInvoked();
         }
     }
 
@@ -249,8 +430,6 @@ public class SettingsActivity extends PreferenceActivity {
         // empty, unregister the callback to get the predictive back animation to appear. this
         // pattern came from PreferenceActivity, but I'm not certain if it did this for the same
         // reason.
-        //TODO: (EW) figure out how to get predictive back animations between the fragments on the
-        // back stack to work
         if (getFragmentManager().getBackStackEntryCount() != 0) {
             if (!mIsBackCallbackRegistered) {
                 getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -268,5 +447,73 @@ public class SettingsActivity extends PreferenceActivity {
         EdgeToEdgeUtils.removeInsetHandling(this);
         getFragmentManager().removeOnBackStackChangedListener(mOnBackStackChangedListener);
         super.onDestroy();
+    }
+
+    private static Drawable getNearestBackground(View v) {
+        Drawable background = null;
+        View currentView = v;
+        // track the views traversed to avoid an infinite loop if a view lists itself (or some
+        // descendant) as its parent
+        HashSet<View> traversedViews = new HashSet<>();
+        traversedViews.add(v);
+        while (currentView != null) {
+            background = currentView.getBackground();
+            if (background instanceof ColorDrawable
+                    && ((ColorDrawable) background).getColor() == Color.TRANSPARENT) {
+                // ignore transparent backgrounds
+                background = null;
+            }
+            if (background != null) {
+                break;
+            }
+            ViewParent parent = v.getParent();
+            if (parent instanceof ViewGroup && !traversedViews.contains(parent)) {
+                currentView = (View) parent;
+                traversedViews.add(currentView);
+            } else {
+                currentView = null;
+            }
+        }
+        return background;
+    }
+
+    private static boolean addSiblingBefore(View viewToInsert, View sibling) {
+        ViewParent viewParent = sibling.getParent();
+        if (viewParent instanceof ViewGroup) {
+            ViewGroup parent = (ViewGroup) viewParent;
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                if (parent.getChildAt(i) == sibling) {
+                    parent.addView(viewToInsert, i);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private static void setRoundedBackground(View view, int color) {
+        WindowInsets insets = view.getRootWindowInsets();
+        RoundedCorner topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
+        RoundedCorner topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
+        RoundedCorner bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
+        RoundedCorner bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
+        int topRightRadius = topRight != null ? topRight.getRadius() : 0;
+        int topLeftRadius = topLeft != null ? topLeft.getRadius() : 0;
+        int bottomRightRadius = bottomRight != null ? bottomRight.getRadius() : 0;
+        int bottomLeftRadius = bottomLeft != null ? bottomLeft.getRadius() : 0;
+        RoundRectShape rectShape = new RoundRectShape(new float[] {
+                topLeftRadius, topLeftRadius,
+                topRightRadius, topRightRadius,
+                bottomRightRadius, bottomRightRadius,
+                bottomLeftRadius, bottomLeftRadius
+        }, null, null);
+        ShapeDrawable shapeDrawable = new ShapeDrawable(rectShape);
+        shapeDrawable.getPaint().setColor(color);
+        shapeDrawable.getPaint().setStyle(Paint.Style.FILL);
+        shapeDrawable.getPaint().setAntiAlias(true);
+        shapeDrawable.getPaint().setFlags(Paint.ANTI_ALIAS_FLAG);
+        view.setBackground(shapeDrawable);
+        view.setClipToOutline(true);
     }
 }
