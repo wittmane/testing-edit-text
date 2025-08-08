@@ -21,6 +21,7 @@ package com.wittmane.testingedittext.settings;
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
 import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettingsFragment.GROUP_INDEX_BUNDLE_KEY;
 
+import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -37,6 +38,8 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.RoundedCorner;
 import android.view.View;
@@ -77,6 +80,8 @@ public class SettingsActivity extends PreferenceActivity {
 
     public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
     private static final String FRAGMENT_TAG_PREFIX = "NavigationStackFragment";
+    private static final char FRAGMENT_TAG_DIVIDER = '-';
+    private static final String STATE_CURRENT_FRAGMENT_TAG = "STATE_CURRENT_FRAGMENT_TAG";
 
     private boolean mIsBackCallbackRegistered = false;
     private final OnBackInvokedCallback mOnBackInvokedCallback =
@@ -92,6 +97,8 @@ public class SettingsActivity extends PreferenceActivity {
     // than replace the fragment and let the framework manage that in a single transaction
     private static final boolean MANAGE_HIDING_FRAGMENTS =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
+
+    private String mCurrentFragmentTag;
 
     private int predictiveBackMargin;
 
@@ -136,6 +143,19 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putString(STATE_CURRENT_FRAGMENT_TAG, mCurrentFragmentTag);
+
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mCurrentFragmentTag = savedInstanceState.getString(STATE_CURRENT_FRAGMENT_TAG);
+    }
+
+    @Override
     public boolean onPreferenceStartFragment(PreferenceFragment caller, Preference pref) {
         // (EW) based on PreferenceActivity#onPreferenceStartFragment and
         // PreferenceActivity#startPreferencePanel
@@ -146,21 +166,19 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     private void addFragment(Fragment f, Preference pref) {
-        Fragment[] navStack = getFragmentNavStack();
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        Fragment currentFragment = getCurrentFragment();
+        mCurrentFragmentTag = createFragmentTag(currentFragment);
         if (MANAGE_HIDING_FRAGMENTS) {
-            if (navStack.length > 0) {
-                Fragment currentFragment = navStack[navStack.length - 1];
-                if (currentFragment != null) {
-                    // this needs to be part of a separate transaction for some reason or else we
-                    // can't show it behind the soon-to-be current fragment later for predictive
-                    // back
-                    getFragmentManager().beginTransaction().hide(currentFragment).commit();
-                }
+            if (currentFragment != null) {
+                // this needs to be part of a separate transaction for some reason or else we
+                // can't show it behind the soon-to-be current fragment later for predictive
+                // back
+                getFragmentManager().beginTransaction().hide(currentFragment).commit();
             }
-            transaction.add(android.R.id.content, f, FRAGMENT_TAG_PREFIX + navStack.length);
+            transaction.add(android.R.id.content, f, mCurrentFragmentTag);
         } else {
-            transaction.replace(android.R.id.content, f, FRAGMENT_TAG_PREFIX + navStack.length);
+            transaction.replace(android.R.id.content, f, mCurrentFragmentTag);
         }
         if (pref != null) {
             if (pref.getTitleRes() != 0) {
@@ -174,20 +192,62 @@ public class SettingsActivity extends PreferenceActivity {
         transaction.commit();
     }
 
-    private Fragment[] getFragmentNavStack() {
-        FragmentManager fragmentManager = getFragmentManager();
-        int backStackEntryCount = fragmentManager.getBackStackEntryCount();
-        Fragment[] navStack;
-        if (backStackEntryCount == 0) {
-            Fragment fragment = fragmentManager.findFragmentByTag(FRAGMENT_TAG_PREFIX + 0);
-            navStack = fragment == null ? new Fragment[0] : new Fragment[] { fragment };
+    private String createFragmentTag(Fragment parent) {
+        String prefix;
+        if (parent == null || TextUtils.isEmpty(parent.getTag())) {
+            prefix = FRAGMENT_TAG_PREFIX;
         } else {
-            navStack = new Fragment[backStackEntryCount + 1];
-            for (int i = 0; i < navStack.length; i++) {
-                navStack[i] = fragmentManager.findFragmentByTag(FRAGMENT_TAG_PREFIX + i);
-            }
+            prefix = parent.getTag() + FRAGMENT_TAG_DIVIDER;
         }
-        return navStack;
+        FragmentManager fragmentManager = getFragmentManager();
+        // make sure to create a unique tag
+        int childNum = 0;
+        while (fragmentManager.findFragmentByTag(prefix + childNum) != null) {
+            childNum++;
+        }
+        return prefix + childNum;
+    }
+
+    public Fragment getCurrentFragment() {
+        if (mCurrentFragmentTag == null) {
+            return null;
+        }
+        return getFragmentManager().findFragmentByTag(mCurrentFragmentTag);
+    }
+
+    public Fragment getPreviousFragment() {
+        Fragment currentFragment = getCurrentFragment();
+        if (currentFragment == null) {
+            return null;
+        }
+        return getPreviousFragment(currentFragment);
+    }
+
+    public Fragment getPreviousFragment(Fragment currentFragment) {
+        if (currentFragment == null) {
+            Log.e(TAG, "current fragment is null");
+            return null;
+        }
+        String currentFragmentTag = currentFragment.getTag();
+        String previousFragmentTag = getPreviousFragmentTag(currentFragmentTag);
+        Fragment previousFragment = getFragmentManager().findFragmentByTag(previousFragmentTag);
+        if (previousFragment == null) {
+            Log.e(TAG, "couldn't find previous fragment with tag: " + previousFragmentTag);
+        }
+        return previousFragment;
+    }
+
+    private String getPreviousFragmentTag(String currentFragmentTag) {
+        if (currentFragmentTag == null || !currentFragmentTag.startsWith(FRAGMENT_TAG_PREFIX)) {
+            Log.e(TAG, "unexpected settings fragment tag: " + currentFragmentTag);
+            return null;
+        }
+        int lastDivider = currentFragmentTag.lastIndexOf(FRAGMENT_TAG_DIVIDER);
+        if (lastDivider < 0) {
+            // no previous fragment
+            return null;
+        }
+        return currentFragmentTag.substring(0, lastDivider);
     }
 
     @Override
@@ -198,12 +258,9 @@ public class SettingsActivity extends PreferenceActivity {
             // previous fragment because the standard back handling is only going to process
             // undoing adding the current fragment since that is all that was included as part of
             // the back stack
-            Fragment[] navStack = getFragmentNavStack();
-            if (navStack.length > 1) {
-                Fragment previousFragment = navStack[navStack.length - 2];
-                if (previousFragment != null) {
-                    getFragmentManager().beginTransaction().show(previousFragment).commit();
-                }
+            Fragment previousFragment = getPreviousFragment();
+            if (previousFragment != null) {
+                getFragmentManager().beginTransaction().show(previousFragment).commit();
             }
         }
         // starting in Oreo, the default implementation handles the top back button correctly, but
@@ -234,6 +291,13 @@ public class SettingsActivity extends PreferenceActivity {
                 || DisplaySettingsFragment.class.getName().equals(fragmentName);
     }
 
+    @SuppressLint("GestureBackNavigation")
+    @Override
+    public void onBackPressed() {
+        mCurrentFragmentTag = getPreviousFragmentTag(mCurrentFragmentTag);
+        super.onBackPressed();
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private class OnBackCallbackAndroid13 implements OnBackInvokedCallback {
 
@@ -241,6 +305,7 @@ public class SettingsActivity extends PreferenceActivity {
         public void onBackInvoked() {
             onBackPressed();
             updateBackCallbackRegistrationState();
+            invalidateOptionsMenu();
         }
     }
 
@@ -260,11 +325,7 @@ public class SettingsActivity extends PreferenceActivity {
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
-            Fragment[] navStack = getFragmentNavStack();
-            if (navStack.length < 1) {
-                return;
-            }
-            Fragment currentFragment = navStack[navStack.length - 1];
+            Fragment currentFragment = getCurrentFragment();
             if (currentFragment == null) {
                 return;
             }
@@ -316,14 +377,12 @@ public class SettingsActivity extends PreferenceActivity {
             }
 
             // unhide the previous fragment
-            if (navStack.length > 1) {
-                Fragment previousFragment = navStack[navStack.length - 2];
-                if (previousFragment != null) {
-                    mPreviousFragment = previousFragment;
-                    getFragmentManager().beginTransaction()
-                            .show(mPreviousFragment)
-                            .commit();
-                }
+            Fragment previousFragment = getPreviousFragment(currentFragment);
+            if (previousFragment != null) {
+                mPreviousFragment = previousFragment;
+                getFragmentManager().beginTransaction()
+                        .show(mPreviousFragment)
+                        .commit();
             }
         }
 

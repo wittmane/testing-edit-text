@@ -86,15 +86,12 @@ public class MainSettingsFragment extends SettingsFragment {
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.settings, menu);
-
-        ActionBar actionBar = getActivity().getActionBar();
-        IconUtils.matchMenuIconColor(mView, menu, actionBar);
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_import_settings) {
             ImportExportSourceDialog.promptImport(getActivity(), rawJsonString -> {
@@ -112,7 +109,7 @@ public class MainSettingsFragment extends SettingsFragment {
         } else if (itemId == R.id.action_export_settings) {
             promptExportSettings();
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 
     @Override

@@ -16,15 +16,22 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.preference.PreferenceFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
+import com.wittmane.testingedittext.settings.SettingsActivity;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
+import com.wittmane.testingedittext.util.IconUtils;
 
 public abstract class SettingsFragment extends PreferenceFragment {
     private static final String TAG = SettingsFragment.class.getSimpleName();
@@ -44,6 +51,38 @@ public abstract class SettingsFragment extends PreferenceFragment {
         // on the activity level to allow showing content behind the navigation bar
         EdgeToEdgeUtils.addInsetHandling(getActivity(), mView.findViewById(android.R.id.list),
                 false, false, false, true);
+    }
+
+    @Override
+    public final void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+        if (!isCurrentFragment()) {
+            return;
+        }
+        onCreateOptionsMenuInternal(menu, inflater);
+
+        IconUtils.matchMenuIconColor(mView, menu, getActivity().getActionBar());
+    }
+
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) { }
+
+    @Override
+    public final boolean onOptionsItemSelected(final MenuItem item) {
+        if (!isCurrentFragment()) {
+            return super.onOptionsItemSelected(item);
+        }
+        return onOptionsItemSelectedInternal(item);
+    }
+
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
+        return super.onOptionsItemSelected(item);
+    }
+
+    protected boolean isCurrentFragment() {
+        Activity activity = getActivity();
+        if (activity instanceof SettingsActivity) {
+            return ((SettingsActivity) getActivity()).getCurrentFragment() == this;
+        }
+        return false;
     }
 
     @Override

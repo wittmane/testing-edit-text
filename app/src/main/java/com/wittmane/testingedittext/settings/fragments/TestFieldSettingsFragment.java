@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -67,14 +67,12 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field, menu);
-
-        IconUtils.matchMenuIconColor(mView, menu, getActivity().getActionBar());
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_remove_field) {
             showWarningConfirmationDialog(R.string.delete_field, R.string.delete_field_confirmation,
@@ -84,6 +82,6 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
                         getFragmentManager().popBackStackImmediate();
                     }, getActivity());
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 }

@@ -44,7 +44,6 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
-import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter;
 
@@ -117,11 +116,8 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field_group_list, menu);
-
-        ActionBar actionBar = getActivity().getActionBar();
-        IconUtils.matchMenuIconColor(mView, menu, actionBar);
 
         if (Settings.getTestFieldGroupCount() < 2) {
             menu.removeItem(R.id.action_reorder_groups);
@@ -141,7 +137,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_add_group) {
             // add a preference for a new group
@@ -151,7 +147,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         } else if (itemId == R.id.action_reorder_groups) {
             showReorderGroupsDialog();
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 
     private void showReorderGroupsDialog() {

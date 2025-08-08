@@ -21,7 +21,6 @@ import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
-import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
@@ -88,11 +87,8 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field_list, menu);
-
-        ActionBar actionBar = getActivity().getActionBar();
-        IconUtils.matchMenuIconColor(mView, menu, actionBar);
 
         if (mAreGroupsUsed) {
             menu.removeItem(R.id.action_add_group);
@@ -106,7 +102,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_add_group) {
             // add a preference for a new group
@@ -137,7 +133,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                     }, getActivity());
 
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 
     private void showReorderFieldsDialog() {
