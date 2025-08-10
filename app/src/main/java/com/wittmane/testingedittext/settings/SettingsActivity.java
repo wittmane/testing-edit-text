@@ -39,7 +39,11 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.text.TextUtils;
+import android.transition.Fade;
+import android.transition.Slide;
+import android.transition.Transition;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.RoundedCorner;
 import android.view.View;
@@ -47,6 +51,9 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewParent;
 import android.view.WindowInsets;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.Animation.AnimationListener;
 import android.view.animation.PathInterpolator;
 import android.widget.LinearLayout;
 import android.window.BackEvent;
@@ -78,6 +85,8 @@ import java.util.HashSet;
 public class SettingsActivity extends PreferenceActivity {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
+    private static final int TRANSITION_DURATION = -1;
+
     public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
     private static final String FRAGMENT_TAG_PREFIX = "NavigationStackFragment";
     private static final char FRAGMENT_TAG_DIVIDER = '-';
@@ -95,8 +104,10 @@ public class SettingsActivity extends PreferenceActivity {
     // in order to support predictive back animation between fragments (OnBackAnimationCallback
     // added in Android 14), we need to manage hiding and unhiding the previous fragment, rather
     // than replace the fragment and let the framework manage that in a single transaction
-    private static final boolean MANAGE_HIDING_FRAGMENTS =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
+    private boolean shouldManageHidingFragments() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackAndroid14;
+    }
 
     private String mCurrentFragmentTag;
 
@@ -169,8 +180,13 @@ public class SettingsActivity extends PreferenceActivity {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         mCurrentFragmentTag = createFragmentTag(currentFragment);
-        if (MANAGE_HIDING_FRAGMENTS) {
+        if (shouldManageHidingFragments()) {
             if (currentFragment != null) {
+                Transition transition = new Fade(Fade.MODE_OUT);
+                if (TRANSITION_DURATION >= 0) {
+                    transition.setDuration(TRANSITION_DURATION);
+                }
+                currentFragment.setExitTransition(transition);
                 // this needs to be part of a separate transaction for some reason or else we
                 // can't show it behind the soon-to-be current fragment later for predictive
                 // back
@@ -187,6 +203,15 @@ public class SettingsActivity extends PreferenceActivity {
                 transaction.setBreadCrumbTitle(pref.getTitle());
             }
             transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    && mOnBackInvokedCallback instanceof OnBackCallbackAndroid14) {
+                // add a transition to pair with the predictive back animation
+                Transition transition = new Slide(Gravity.END);
+                if (TRANSITION_DURATION >= 0) {
+                    transition.setDuration(TRANSITION_DURATION);
+                }
+                f.setEnterTransition(transition);
+            }
             transaction.addToBackStack(null);
         }
         transaction.commit();
@@ -252,16 +277,18 @@ public class SettingsActivity extends PreferenceActivity {
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        if (MANAGE_HIDING_FRAGMENTS && item.getItemId() == android.R.id.home) {
+        if (shouldManageHidingFragments() && item.getItemId() == android.R.id.home) {
             // due to the fact that fragments are being added instead of replaced and the previous
             // fragment is getting hidden in a separate transaction, we need to handle unhiding the
             // previous fragment because the standard back handling is only going to process
             // undoing adding the current fragment since that is all that was included as part of
-            // the back stack
-            Fragment previousFragment = getPreviousFragment();
-            if (previousFragment != null) {
-                getFragmentManager().beginTransaction().show(previousFragment).commit();
-            }
+            // the back stack. artificially trigger handling for the start of the animation (unhides
+            // the previous fragment behind the current one expecting to be used for predictive
+            // back) and immediately trigger the back invoked handling (remove the current
+            // fragment). this also keeps transitions the same from other back triggers.
+            ((OnBackCallbackAndroid14) mOnBackInvokedCallback).onBackStarted();
+            mOnBackInvokedCallback.onBackInvoked();
+            return true;
         }
         // starting in Oreo, the default implementation handles the top back button correctly, but
         // prior to that, we need to have custom handling
@@ -325,10 +352,21 @@ public class SettingsActivity extends PreferenceActivity {
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
+            onBackStarted();
+        }
+
+        public void onBackStarted() {
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment == null) {
                 return;
             }
+
+            Transition transition = new Slide(Gravity.END);
+            if (TRANSITION_DURATION >= 0) {
+                transition.setDuration(TRANSITION_DURATION);
+            }
+            currentFragment.setReturnTransition(transition);
+
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
                 return;
@@ -465,7 +503,31 @@ public class SettingsActivity extends PreferenceActivity {
                         .commit();
             }
             if (mDarkOverlay != null) {
-                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
+                // have the dark overlay fade out before removing it (basically fading in the
+                // previous fragment as it becomes the current again while the current slides out to
+                // be removed)
+                Animation animation = new AlphaAnimation(1f, 0f);
+                if (TRANSITION_DURATION >= 0) {
+                    animation.setDuration(TRANSITION_DURATION);
+                }
+                final View darkOverlay = mDarkOverlay;
+                animation.setAnimationListener(new AnimationListener() {
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+
+                    }
+                });
+                mDarkOverlay.setAnimation(animation);
             }
             mPreviousFragment = null;
             mFragmentContent = null;
