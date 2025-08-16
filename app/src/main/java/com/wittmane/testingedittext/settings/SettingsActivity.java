@@ -95,9 +95,9 @@ public class SettingsActivity extends PreferenceActivity {
     private boolean mIsBackCallbackRegistered = false;
     private final OnBackInvokedCallback mOnBackInvokedCallback =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    ? new OnBackCallbackAndroid14()
+                    ? new OnBackCallbackWithAnimation()
                     : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                            ? new OnBackCallbackAndroid13()
+                            ? new OnBackCallback()
                             : null;
     private final FragmentManager.OnBackStackChangedListener mOnBackStackChangedListener =
             this::updateBackCallbackRegistrationState;
@@ -106,7 +106,7 @@ public class SettingsActivity extends PreferenceActivity {
     // than replace the fragment and let the framework manage that in a single transaction
     private boolean shouldManageHidingFragments() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackAndroid14;
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation;
     }
 
     private String mCurrentFragmentTag;
@@ -204,7 +204,7 @@ public class SettingsActivity extends PreferenceActivity {
             }
             transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    && mOnBackInvokedCallback instanceof OnBackCallbackAndroid14) {
+                    && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
                 // add a transition to pair with the predictive back animation
                 Transition transition = new Slide(Gravity.END);
                 if (TRANSITION_DURATION >= 0) {
@@ -286,7 +286,7 @@ public class SettingsActivity extends PreferenceActivity {
             // the previous fragment behind the current one expecting to be used for predictive
             // back) and immediately trigger the back invoked handling (remove the current
             // fragment). this also keeps transitions the same from other back triggers.
-            ((OnBackCallbackAndroid14) mOnBackInvokedCallback).onBackStarted();
+            ((OnBackCallbackWithAnimation) mOnBackInvokedCallback).onBackStarted();
             mOnBackInvokedCallback.onBackInvoked();
             return true;
         }
@@ -326,7 +326,7 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    private class OnBackCallbackAndroid13 implements OnBackInvokedCallback {
+    private class OnBackCallback implements OnBackInvokedCallback {
 
         @Override
         public void onBackInvoked() {
@@ -339,7 +339,7 @@ public class SettingsActivity extends PreferenceActivity {
     // (EW) manually animate the back gesture to match the system animations. based on
     // https://github.com/android/animation-samples/blob/main/Motion/app/src/main/java/com/example/android/motion/demo/containertransform/CheeseArticleFragment.kt
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private class OnBackCallbackAndroid14 extends OnBackCallbackAndroid13
+    private class OnBackCallbackWithAnimation extends OnBackCallback
             implements OnBackAnimationCallback {
         private final PathInterpolator mGestureInterpolator = new PathInterpolator(0f, 0f, 0f, 0f);
 
