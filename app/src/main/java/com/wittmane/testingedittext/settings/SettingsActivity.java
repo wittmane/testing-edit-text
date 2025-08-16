@@ -42,6 +42,7 @@ import android.text.TextUtils;
 import android.transition.Fade;
 import android.transition.Slide;
 import android.transition.Transition;
+import android.transition.Transition.TransitionListener;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -468,26 +469,49 @@ public class SettingsActivity extends PreferenceActivity {
             mFragmentContent.setScaleY(1f);
 
             if (mPreviousFragment != null) {
-                getFragmentManager().beginTransaction()
-                        .hide(mPreviousFragment)
-                        .commit();
-            }
-            if (mDarkOverlay != null) {
-                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
-            }
-            if (mFragmentContent != null) {
-                if (mFragmentContent.getBackground() != mOriginalBackground) {
-                    // delay the background from being replaced (likely with nothing) to avoid a
-                    // flash of the previous fragment overlapping since there is a delay in the
-                    // fragment transaction to hide the previous fragment again
+                if (mFragmentContent != null) {
+                    Transition transition = new Fade(Fade.MODE_OUT);
+                    // wait until the fragment finishes visibly getting removed to replace the
+                    // background (likely with nothing) to avoid a flash of the previous fragment
+                    // overlapping since
                     View fragmentContent = mFragmentContent;
                     Drawable originalBackground = mOriginalBackground;
                     boolean originalClipToOutline = mOriginalClipToOutline;
-                    mFragmentContent.post(() -> {
-                        fragmentContent.setBackground(originalBackground);
-                        fragmentContent.setClipToOutline(originalClipToOutline);
+                    transition.addListener(new TransitionListener() {
+                        @Override
+                        public void onTransitionCancel(Transition transition) { }
+
+                        @Override
+                        public void onTransitionEnd(Transition transition) {
+                            fragmentContent.setBackground(originalBackground);
+                            fragmentContent.setClipToOutline(originalClipToOutline);
+                        }
+
+                        @Override
+                        public void onTransitionPause(Transition transition) { }
+
+                        @Override
+                        public void onTransitionResume(Transition transition) { }
+
+                        @Override
+                        public void onTransitionStart(Transition transition) { }
                     });
+                    mPreviousFragment.setExitTransition(transition);
                 }
+
+                getFragmentManager().beginTransaction()
+                        .hide(mPreviousFragment)
+                        .commit();
+            } else {
+                if (mFragmentContent != null) {
+                    if (mFragmentContent.getBackground() != mOriginalBackground) {
+                        mFragmentContent.setBackground(mOriginalBackground);
+                        mFragmentContent.setClipToOutline(mOriginalClipToOutline);
+                    }
+                }
+            }
+            if (mDarkOverlay != null) {
+                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
             }
             mPreviousFragment = null;
             mFragmentContent = null;
