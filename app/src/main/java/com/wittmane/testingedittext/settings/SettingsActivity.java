@@ -26,6 +26,7 @@ import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -448,9 +449,21 @@ public class SettingsActivity extends PreferenceActivity {
             // https://developer.android.com/design/ui/mobile/guides/patterns/predictive-back#motion-specs
 
             // Shift horizontally.
-            int maxTranslationX = (mFragmentContent.getWidth() / 20) - predictiveBackMargin;
-            mFragmentContent.setTranslationX(progress * maxTranslationX *
-                    ((backEvent.getSwipeEdge() == BackEvent.EDGE_LEFT) ? 1 : -1));
+            Configuration config = getResources().getConfiguration();
+            boolean isSwipingWithTransition = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
+                            && backEvent.getSwipeEdge() == BackEvent.EDGE_NONE)
+                    || (config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
+                            ? backEvent.getSwipeEdge() == BackEvent.EDGE_RIGHT
+                            : backEvent.getSwipeEdge() == BackEvent.EDGE_LEFT);
+            // only shift if the swipe matches the direction the fragment is going to slide away (or
+            // if the back button is held). otherwise, this will the fragment will just be scaled
+            // and centered (similar to the animation for switching activities when swiping from the
+            // other side).
+            if (isSwipingWithTransition) {
+                int maxTranslationX = (mFragmentContent.getWidth() / 20) - predictiveBackMargin;
+                mFragmentContent.setTranslationX(progress * maxTranslationX *
+                        ((config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) ? -1 : 1));
+            }
 
             // Shift vertically.
             int maxTranslationY = (mFragmentContent.getHeight() / 20) - predictiveBackMargin;
