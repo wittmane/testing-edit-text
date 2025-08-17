@@ -29,6 +29,7 @@ import android.app.FragmentTransaction;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
@@ -385,22 +386,22 @@ public class SettingsActivity extends PreferenceActivity {
             mOriginalBackground = mFragmentContent.getBackground();
             mOriginalClipToOutline = mFragmentContent.getClipToOutline();
             Drawable background = getNearestBackground(mFragmentContent);
-            int originalBackgroundColor;
+            int originalNearestBackgroundColor;
             if (background == null) {
                 final TypedArray a = getTheme().obtainStyledAttributes(new int[]{
                         android.R.attr.colorBackground
                 });
-                originalBackgroundColor = a.getColor(0, 0);
+                originalNearestBackgroundColor = a.getColor(0, Color.TRANSPARENT);
                 a.recycle();
             } else if (background instanceof ColorDrawable) {
-                originalBackgroundColor = ((ColorDrawable) background).getColor();
+                originalNearestBackgroundColor = ((ColorDrawable) background).getColor();
             } else {
-                originalBackgroundColor = Color.TRANSPARENT;
+                originalNearestBackgroundColor = Color.TRANSPARENT;
             }
-            if (originalBackgroundColor != Color.TRANSPARENT) {
-                setRoundedBackground(mFragmentContent, originalBackgroundColor);
+            if (originalNearestBackgroundColor != Color.TRANSPARENT) {
+                setRoundedBackground(mFragmentContent, originalNearestBackgroundColor, true);
             }
-            if (originalBackgroundColor == Color.TRANSPARENT && mOriginalBackground == null) {
+            if (originalNearestBackgroundColor == Color.TRANSPARENT && mOriginalBackground == null) {
                 // we can't recreate the background and there isn't an existing background to reuse,
                 // so we won't be able to prevent the previous fragment from overlapping with the
                 // current fragment, so we shouldn't try to unhide the previous fragment. all we'll
@@ -641,10 +642,14 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
-    private static void setRoundedBackground(View view, int color) {
+    private static void setRoundedBackground(View view, int color, boolean clipToContentTop) {
         WindowInsets insets = view.getRootWindowInsets();
-        RoundedCorner topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
-        RoundedCorner topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
+        RoundedCorner topLeft = clipToContentTop
+                ? null
+                : insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
+        RoundedCorner topRight = clipToContentTop
+                ? null
+                : insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
         RoundedCorner bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
         RoundedCorner bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
         int topRightRadius = topRight != null ? topRight.getRadius() : 0;
@@ -662,7 +667,16 @@ public class SettingsActivity extends PreferenceActivity {
         shapeDrawable.getPaint().setStyle(Paint.Style.FILL);
         shapeDrawable.getPaint().setAntiAlias(true);
         shapeDrawable.getPaint().setFlags(Paint.ANTI_ALIAS_FLAG);
-        view.setBackground(shapeDrawable);
+        if (clipToContentTop) {
+            // clip to exclude the portion of the view that is under the action bar
+            ClipDrawable clipDrawable =
+                    new ClipDrawable(shapeDrawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
+            int viewHeight = view.getHeight();
+            clipDrawable.setLevel(10000 * (viewHeight - view.getPaddingTop()) / viewHeight);
+            view.setBackground(clipDrawable);
+        } else {
+            view.setBackground(shapeDrawable);
+        }
         view.setClipToOutline(true);
     }
 }
