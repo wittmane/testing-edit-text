@@ -86,7 +86,11 @@ import java.util.HashSet;
 public class SettingsActivity extends PreferenceActivity {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
-    private static final int TRANSITION_DURATION = -1;
+    // use a consistent transition duration to keep all of the simultaneous transitions in sync.
+    // this value was determined by measuring the default duration of the transitions (both fragment
+    // transitions with default values and the activity back transition) measuring wasn't super
+    // precise, so a nice round number that was close was picked.
+    private static final int TRANSITION_DURATION = 300;
 
     public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
     private static final String FRAGMENT_TAG_PREFIX = "NavigationStackFragment";
