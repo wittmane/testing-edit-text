@@ -45,6 +45,7 @@ import android.transition.Fade;
 import android.transition.Slide;
 import android.transition.Transition;
 import android.transition.Transition.TransitionListener;
+import android.transition.TransitionManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -356,6 +357,7 @@ public class SettingsActivity extends PreferenceActivity {
         private Drawable mOriginalBackground;
         private boolean mOriginalClipToOutline;
         private LinearLayout mDarkOverlay;
+        private ViewGroup mTransitioningOutSceneRoot;
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
@@ -377,6 +379,15 @@ public class SettingsActivity extends PreferenceActivity {
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
                 return;
+            }
+
+            synchronized (OnBackCallbackWithAnimation.this) {
+                if (mTransitioningOutSceneRoot != null) {
+                    // the cleanup from the previous canceled back didn't finish yet, so force the
+                    // transition to end immediately so we can redo the things it's in the process
+                    // of undoing
+                    TransitionManager.endTransitions(mTransitioningOutSceneRoot);
+                }
             }
 
             // if the background under the fragment (either its direct background, some ancestor, or
@@ -488,10 +499,23 @@ public class SettingsActivity extends PreferenceActivity {
 
             if (mPreviousFragment != null) {
                 if (mFragmentContent != null) {
-                    Transition transition = new Fade(Fade.MODE_OUT);
                     // wait until the fragment finishes visibly getting removed to replace the
                     // background (likely with nothing) to avoid a flash of the previous fragment
-                    // overlapping since
+                    // overlapping. since this transition is behind the current fragment, just
+                    // transition immediately. this transition is only really needed for the
+                    // callback to know when it's safe to replace the background of the current
+                    // fragment. setting duration to 1, rather than 0 in case anything handles 0
+                    // differently. 1 ms is effectively instantly, and depending on how it's
+                    // actually implemented 0 ms still may have some delay for asynchronous handling
+                    // and effectively be the same.
+                    Transition transition = new Fade(Fade.MODE_OUT);
+                    transition.setDuration(1);
+                    synchronized (OnBackCallbackWithAnimation.this) {
+                        ViewParent parent = mFragmentContent.getParent();
+                        if (parent instanceof ViewGroup) {
+                            mTransitioningOutSceneRoot = (ViewGroup) parent;
+                        }
+                    }
                     View fragmentContent = mFragmentContent;
                     Drawable originalBackground = mOriginalBackground;
                     boolean originalClipToOutline = mOriginalClipToOutline;
@@ -503,6 +527,9 @@ public class SettingsActivity extends PreferenceActivity {
                         public void onTransitionEnd(Transition transition) {
                             fragmentContent.setBackground(originalBackground);
                             fragmentContent.setClipToOutline(originalClipToOutline);
+                            synchronized (OnBackCallbackWithAnimation.this) {
+                                mTransitioningOutSceneRoot = null;
+                            }
                         }
 
                         @Override
