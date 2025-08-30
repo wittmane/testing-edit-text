@@ -86,8 +86,8 @@ public abstract class EntryListPreference<TRowData, TFullData,
 
     @Override
     protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
-        super.onAttachedToHierarchy(preferenceManager);
         mDataManager = createDataManager(getPrefs(), getKey());
+        super.onAttachedToHierarchy(preferenceManager);
     }
 
     @Override

@@ -77,12 +77,12 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
         mView = super.onCreateView(inflater, container, savedInstanceState);
+        buildContent();
         return mView;
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    protected void onRedisplay() {
         buildContent();
     }
 

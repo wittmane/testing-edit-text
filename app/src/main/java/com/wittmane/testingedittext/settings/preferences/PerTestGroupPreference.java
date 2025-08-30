@@ -23,6 +23,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,6 +84,14 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
             extras.putString(GROUP_INDEX_BUNDLE_KEY, "" + getGroupIndex());
         }
         return extras;
+    }
+
+    @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        if (getGroupIndex() >= 0) {
+            updateDisplayText();
+        }
     }
 
     protected abstract void updateDisplayText();

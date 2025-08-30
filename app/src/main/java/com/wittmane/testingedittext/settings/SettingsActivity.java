@@ -109,12 +109,22 @@ public class SettingsActivity extends PreferenceActivity {
                             : null;
     private final FragmentManager.OnBackStackChangedListener mOnBackStackChangedListener =
             this::updateBackCallbackRegistrationState;
-    // in order to support predictive back animation between fragments (OnBackAnimationCallback
-    // added in Android 14), we need to manage hiding and unhiding the previous fragment, rather
-    // than replace the fragment and let the framework manage that in a single transaction
+
+    /**
+     * determine if fragments should be hidden (rather than replaced) as new fragments are added.
+     * in order to support predictive back animation between fragments (OnBackAnimationCallback
+     * added in Android 14), we need to manage hiding and unhiding the previous fragment, rather
+     * than replace the fragment and let the framework manage that in a single transaction. we could
+     * just do this for Android 14+ (and given that hiding seems atypical that may theoretically be
+     * preferred), but due to the fact that hiding a fragment leaves it in the resumed state, this
+     * will cause a mismatch of lifecycle events, which seems likely to result in bugs from
+     * overlooking this difference in the versions, so we'll just hide it on all versions. I'm
+     * leaving as a method at least for now, rather than just hard-coding the logic, to easily swap
+     * functionality back if this ends up causing problems.
+     * @return whether fragments should be hid in instead of replaced
+     */
     private boolean shouldManageHidingFragments() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation;
+        return true;
     }
 
     private String mCurrentFragmentTag;
@@ -188,13 +198,21 @@ public class SettingsActivity extends PreferenceActivity {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         mCurrentFragmentTag = createFragmentTag(currentFragment);
+        if (currentFragment != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+                // have the current fragment fade out as the new fragment slides in. this is meant
+                // to be similar to the inverse dark overlay/shadow over the previous
+                // activity/fragment disappearing when completing a predictive back animation.
+                Transition exitTransition = new Fade(Fade.MODE_OUT);
+                if (TRANSITION_DURATION >= 0) {
+                    exitTransition.setDuration(TRANSITION_DURATION);
+                }
+                currentFragment.setExitTransition(exitTransition);
+            }
+        }
         if (shouldManageHidingFragments()) {
             if (currentFragment != null) {
-                Transition transition = new Fade(Fade.MODE_OUT);
-                if (TRANSITION_DURATION >= 0) {
-                    transition.setDuration(TRANSITION_DURATION);
-                }
-                currentFragment.setExitTransition(transition);
                 // this needs to be part of a separate transaction for some reason or else we
                 // can't show it behind the soon-to-be current fragment later for predictive
                 // back
@@ -213,12 +231,13 @@ public class SettingsActivity extends PreferenceActivity {
             transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                     && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-                // add a transition to pair with the predictive back animation
-                Transition transition = new Slide(Gravity.END);
+                // add a transition (slide in) to pair with the predictive back animation (slide
+                // out)
+                Transition enterTransition = new Slide(Gravity.END);
                 if (TRANSITION_DURATION >= 0) {
-                    transition.setDuration(TRANSITION_DURATION);
+                    enterTransition.setDuration(TRANSITION_DURATION);
                 }
-                f.setEnterTransition(transition);
+                f.setEnterTransition(enterTransition);
             }
             transaction.addToBackStack(null);
         }
@@ -285,15 +304,15 @@ public class SettingsActivity extends PreferenceActivity {
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        if (shouldManageHidingFragments() && item.getItemId() == android.R.id.home) {
-            // due to the fact that fragments are being added instead of replaced and the previous
-            // fragment is getting hidden in a separate transaction, we need to handle unhiding the
-            // previous fragment because the standard back handling is only going to process
-            // undoing adding the current fragment since that is all that was included as part of
-            // the back stack. artificially trigger handling for the start of the animation (unhides
-            // the previous fragment behind the current one expecting to be used for predictive
-            // back) and immediately trigger the back invoked handling (remove the current
-            // fragment). this also keeps transitions the same from other back triggers.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation
+                && item.getItemId() == android.R.id.home) {
+            // artificially trigger handling for the start of the back animation to set up the the
+            // transition to match the swipe/long press (except for the scaling since there won't be
+            // any progress). also, this will handle unhiding the previous fragment because the
+            // standard back handling is only going to process undoing adding the current fragment
+            // since that is all that was included as part of the back stack. then immediately
+            // trigger the back invoked handling (remove the current fragment).
             ((OnBackCallbackWithAnimation) mOnBackInvokedCallback).onBackStarted();
             mOnBackInvokedCallback.onBackInvoked();
             return true;
@@ -329,6 +348,18 @@ public class SettingsActivity extends PreferenceActivity {
     @SuppressLint("GestureBackNavigation")
     @Override
     public void onBackPressed() {
+        if (shouldManageHidingFragments()
+                && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                        || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
+            // unhide the previous fragment (not necessary for the animated callback since that is
+            // already done as part of the animation)
+            Fragment previousFragment = getPreviousFragment(getCurrentFragment());
+            if (previousFragment != null) {
+                getFragmentManager().beginTransaction()
+                        .show(previousFragment)
+                        .commit();
+            }
+        }
         mCurrentFragmentTag = getPreviousFragmentTag(mCurrentFragmentTag);
         super.onBackPressed();
     }
@@ -370,11 +401,11 @@ public class SettingsActivity extends PreferenceActivity {
                 return;
             }
 
-            Transition transition = new Slide(Gravity.END);
+            Transition returnTransition = new Slide(Gravity.END);
             if (TRANSITION_DURATION >= 0) {
-                transition.setDuration(TRANSITION_DURATION);
+                returnTransition.setDuration(TRANSITION_DURATION);
             }
-            currentFragment.setReturnTransition(transition);
+            currentFragment.setReturnTransition(returnTransition);
 
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
@@ -436,6 +467,13 @@ public class SettingsActivity extends PreferenceActivity {
             Fragment previousFragment = getPreviousFragment(currentFragment);
             if (previousFragment != null) {
                 mPreviousFragment = previousFragment;
+                // clear the previous enter transition (slide in) so the current fragment can just
+                // slide out to reveal this fragment behind it. ideally, a separate reenter
+                // transition would be used, but since the hiding/unhiding has to be managed
+                // separate from the back stack, the framework will just reuse the enter transition
+                // that isn't appropriate here.
+                mPreviousFragment.setEnterTransition(null);
+
                 getFragmentManager().beginTransaction()
                         .show(mPreviousFragment)
                         .commit();
@@ -508,8 +546,8 @@ public class SettingsActivity extends PreferenceActivity {
                     // differently. 1 ms is effectively instantly, and depending on how it's
                     // actually implemented 0 ms still may have some delay for asynchronous handling
                     // and effectively be the same.
-                    Transition transition = new Fade(Fade.MODE_OUT);
-                    transition.setDuration(1);
+                    Transition exitTransition = new Fade(Fade.MODE_OUT);
+                    exitTransition.setDuration(1);
                     synchronized (OnBackCallbackWithAnimation.this) {
                         ViewParent parent = mFragmentContent.getParent();
                         if (parent instanceof ViewGroup) {
@@ -519,7 +557,7 @@ public class SettingsActivity extends PreferenceActivity {
                     View fragmentContent = mFragmentContent;
                     Drawable originalBackground = mOriginalBackground;
                     boolean originalClipToOutline = mOriginalClipToOutline;
-                    transition.addListener(new TransitionListener() {
+                    exitTransition.addListener(new TransitionListener() {
                         @Override
                         public void onTransitionCancel(Transition transition) { }
 
@@ -541,7 +579,7 @@ public class SettingsActivity extends PreferenceActivity {
                         @Override
                         public void onTransitionStart(Transition transition) { }
                     });
-                    mPreviousFragment.setExitTransition(transition);
+                    mPreviousFragment.setExitTransition(exitTransition);
                 }
 
                 getFragmentManager().beginTransaction()

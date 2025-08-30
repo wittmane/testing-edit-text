@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.DialogPreference;
+import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -96,10 +97,14 @@ public abstract class DialogPreferenceBase extends DialogPreference {
     }
 
     @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        updateValueSummary();
+    }
+
+    @Override
     protected void onBindView(View view) {
         super.onBindView(view);
-
-        updateValueSummary();
 
         mSummaryManager.onBindView(view);
     }

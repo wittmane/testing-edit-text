@@ -18,7 +18,9 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.preference.PreferenceGroup;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -37,6 +39,7 @@ public abstract class SettingsFragment extends PreferenceFragment {
     private static final String TAG = SettingsFragment.class.getSimpleName();
 
     protected View mView;
+    private boolean mLifecycleHasReachedResume = false;
 
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
@@ -83,6 +86,58 @@ public abstract class SettingsFragment extends PreferenceFragment {
             return ((SettingsActivity) getActivity()).getCurrentFragment() == this;
         }
         return false;
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden && mLifecycleHasReachedResume) {
+            onRedisplay();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mLifecycleHasReachedResume && !isHidden()) {
+            onRedisplay();
+        }
+        mLifecycleHasReachedResume = true;
+    }
+
+    /**
+     * Pseudo lifecycle event to manage updating the display after returning. This is called after
+     * resuming (excluding the first resume after create since the initial content should still be
+     * relevant) and unhiding (since the state is still resumed when the fragment is hidden).
+     */
+    protected void onRedisplay() {
+        refreshPreferences(getPreferenceScreen());
+    }
+
+    private static void refreshPreferences(PreferenceGroup group) {
+        // there doesn't seem to a way to directly tell a Preference to refresh based on saved
+        // preference data, so we'll just rip everything off the screen and immediately add it back
+        // to trigger it to refresh. this seems inefficient, and ideally we could just refresh
+        // everything in place. some of our custom classes have methods that allow them to refresh
+        // (PerTestGroupPreference#updateDisplayText, DialogPreferenceBase#updateValueSummary), but
+        // we'd still need some other generic handling or specific handling for all of the known
+        // Preference subclasses. we could manually check the preference and set the Preference
+        // object to that value, but since we can't access the default set on the Preference, we
+        // don't have a way to handle the case where the preference has no saved data.
+        Preference[] prefs = new Preference[group.getPreferenceCount()];
+        int index = 0;
+        while (group.getPreferenceCount() > 0) {
+            Preference pref = group.getPreference(0);
+            prefs[index++] = pref;
+            group.removePreference(pref);
+        }
+        for (int i = 0; i < prefs.length; i++) {
+            Preference pref = prefs[i];
+            if (pref instanceof PreferenceGroup) {
+                refreshPreferences((PreferenceGroup) pref);
+            }
+            group.addPreference(pref);
+        }
     }
 
     @Override

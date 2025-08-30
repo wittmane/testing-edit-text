@@ -21,7 +21,6 @@ import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
 
-import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
@@ -96,16 +95,16 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
                 mUseGroups = true;
             }
         }
+        if (mUseGroups) {
+            buildContent();
+        }
 
         return mView;
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        if (mUseGroups) {
-            buildContent();
-        }
+    protected void onRedisplay() {
+        buildContent();
     }
 
     @Override
