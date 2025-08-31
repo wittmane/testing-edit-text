@@ -110,7 +110,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
             // exit this group before opening the new group so backing out of the new group goes to
             // the group list, rather than this other group
-            getFragmentManager().popBackStackImmediate();
+            navigateBack();
 
             openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
         } else if (itemId == R.id.action_add_field) {
@@ -129,7 +129,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                     () -> {
                         // remove the group and go back to the field list
                         Settings.removeTestFieldGroup(getGroupIndex());
-                        getFragmentManager().popBackStackImmediate();
+                        navigateBack();
                     }, getActivity());
 
         }

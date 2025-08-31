@@ -31,7 +31,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.wittmane.testingedittext.R;
-import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 
@@ -79,7 +78,7 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
                     () -> {
                         // remove the field and go back to the field list
                         Settings.removeTestField(getGroupIndex(), getFieldIndex());
-                        getFragmentManager().popBackStackImmediate();
+                        navigateBack();
                     }, getActivity());
         }
         return super.onOptionsItemSelectedInternal(item);

@@ -304,9 +304,16 @@ public class SettingsActivity extends PreferenceActivity {
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            navigateBack();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void navigateBack() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation
-                && item.getItemId() == android.R.id.home) {
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
             // artificially trigger handling for the start of the back animation to set up the the
             // transition to match the swipe/long press (except for the scaling since there won't be
             // any progress). also, this will handle unhiding the previous fragment because the
@@ -315,17 +322,9 @@ public class SettingsActivity extends PreferenceActivity {
             // trigger the back invoked handling (remove the current fragment).
             ((OnBackCallbackWithAnimation) mOnBackInvokedCallback).onBackStarted();
             mOnBackInvokedCallback.onBackInvoked();
-            return true;
+        } else {
+            onBackPressed();
         }
-        // starting in Oreo, the default implementation handles the top back button correctly, but
-        // prior to that, we need to have custom handling
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            if (item.getItemId() == android.R.id.home) {
-                onBackPressed();
-                return true;
-            }
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     @Override

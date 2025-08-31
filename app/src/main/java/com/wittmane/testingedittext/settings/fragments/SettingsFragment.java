@@ -140,6 +140,16 @@ public abstract class SettingsFragment extends PreferenceFragment {
         }
     }
 
+    protected void navigateBack() {
+        Activity activity = getActivity();
+        if (activity instanceof SettingsActivity) {
+            ((SettingsActivity) activity).navigateBack();
+        } else {
+            // this shouldn't ever happen
+            getFragmentManager().popBackStackImmediate();
+        }
+    }
+
     @Override
     public void onDetach() {
         if (mView != null) {
