@@ -18,9 +18,9 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
 import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -28,14 +28,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.preference.PreferenceFragment;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.wittmane.testingedittext.R;
@@ -83,6 +81,31 @@ public class MainSettingsFragment extends SettingsFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_main);
         setHasOptionsMenu(true);
+
+        refreshTestFieldsPref();
+    }
+
+    @Override
+    protected void onRedisplay() {
+        refreshTestFieldsPref();
+        super.onRedisplay();
+    }
+
+    private void refreshTestFieldsPref() {
+        Preference pref = findPreference("pref_screen_test_field_group_list");
+        if (Settings.getTestFieldGroupCount() == 1) {
+            pref.setFragment(null);
+            pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    openGroupPreference(MainSettingsFragment.this, 0);
+                    return true;
+                }
+            });
+        } else {
+            pref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
+            pref.setOnPreferenceClickListener(null);
+        }
     }
 
     @Override

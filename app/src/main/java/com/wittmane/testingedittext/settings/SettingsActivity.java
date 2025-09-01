@@ -86,9 +86,11 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment
 
 import java.util.HashSet;
 
-public class SettingsActivity extends PreferenceActivity {
+public class SettingsActivity extends PreferenceActivity
+        implements FragmentManager.OnBackStackChangedListener {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
+    private static final boolean LOG_FRAGMENT_CHANGES = true;
     // use a consistent transition duration to keep all of the simultaneous transitions in sync.
     // this value was determined by measuring the default duration of the transitions (both fragment
     // transitions with default values and the activity back transition) measuring wasn't super
@@ -107,8 +109,6 @@ public class SettingsActivity extends PreferenceActivity {
                     : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                             ? new OnBackCallback()
                             : null;
-    private final FragmentManager.OnBackStackChangedListener mOnBackStackChangedListener =
-            this::updateBackCallbackRegistrationState;
 
     /**
      * determine if fragments should be hidden (rather than replaced) as new fragments are added.
@@ -168,7 +168,7 @@ public class SettingsActivity extends PreferenceActivity {
         EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
 
         updateBackCallbackRegistrationState();
-        getFragmentManager().addOnBackStackChangedListener(mOnBackStackChangedListener);
+        getFragmentManager().addOnBackStackChangedListener(this);
     }
 
     @Override
@@ -194,34 +194,48 @@ public class SettingsActivity extends PreferenceActivity {
         return true;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private static Transition fragmentReplacedTransitionOut() {
+        // have the current fragment fade out as the new fragment slides in. this is meant to be
+        // similar to the inverse dark overlay/shadow over the previous activity/fragment
+        // disappearing when completing a predictive back animation.
+        Transition exitTransition = new Fade(Fade.MODE_OUT);
+        if (TRANSITION_DURATION >= 0) {
+            exitTransition.setDuration(TRANSITION_DURATION);
+        }
+        return exitTransition;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private static Transition fragmentAddedTransitionIn() {
+        // have the new fragment slide in to pair with the predictive back animation (slide out)
+        Transition enterTransition = new Slide(Gravity.END);
+        if (TRANSITION_DURATION >= 0) {
+            enterTransition.setDuration(TRANSITION_DURATION);
+        }
+        return enterTransition;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private static Transition fragmentRemovedTransitionOut() {
+        Transition returnTransition = new Slide(Gravity.END);
+        if (TRANSITION_DURATION >= 0) {
+            returnTransition.setDuration(TRANSITION_DURATION);
+        }
+        return returnTransition;
+    }
+
     private void addFragment(Fragment f, Preference pref) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
-        mCurrentFragmentTag = createFragmentTag(currentFragment);
+        mCurrentFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                     && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-                // have the current fragment fade out as the new fragment slides in. this is meant
-                // to be similar to the inverse dark overlay/shadow over the previous
-                // activity/fragment disappearing when completing a predictive back animation.
-                Transition exitTransition = new Fade(Fade.MODE_OUT);
-                if (TRANSITION_DURATION >= 0) {
-                    exitTransition.setDuration(TRANSITION_DURATION);
-                }
-                currentFragment.setExitTransition(exitTransition);
+                currentFragment.setExitTransition(fragmentReplacedTransitionOut());
             }
         }
-        if (shouldManageHidingFragments()) {
-            if (currentFragment != null) {
-                // this needs to be part of a separate transaction for some reason or else we
-                // can't show it behind the soon-to-be current fragment later for predictive
-                // back
-                getFragmentManager().beginTransaction().hide(currentFragment).commit();
-            }
-            transaction.add(android.R.id.content, f, mCurrentFragmentTag);
-        } else {
-            transaction.replace(android.R.id.content, f, mCurrentFragmentTag);
-        }
+        boolean addToBackStack = false;
         if (pref != null) {
             if (pref.getTitleRes() != 0) {
                 transaction.setBreadCrumbTitle(pref.getTitleRes());
@@ -233,23 +247,51 @@ public class SettingsActivity extends PreferenceActivity {
                     && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
                 // add a transition (slide in) to pair with the predictive back animation (slide
                 // out)
-                Transition enterTransition = new Slide(Gravity.END);
-                if (TRANSITION_DURATION >= 0) {
-                    enterTransition.setDuration(TRANSITION_DURATION);
-                }
-                f.setEnterTransition(enterTransition);
+                f.setEnterTransition(fragmentAddedTransitionIn());
             }
             transaction.addToBackStack(null);
+            addToBackStack = true;
+        }
+        if (shouldManageHidingFragments()) {
+            if (currentFragment != null && !currentFragment.isHidden()) {
+                // this needs to be part of a separate transaction for some reason or else we
+                // can't show it behind the soon-to-be current fragment later for predictive
+                // back
+                if (LOG_FRAGMENT_CHANGES) {
+                    Log.d(TAG, "Fragment change: hide " + currentFragment
+                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                    ? (", transition=" + currentFragment.getExitTransition())
+                                    : ""));
+                }
+                getFragmentManager().beginTransaction().hide(currentFragment).commit();
+            }
+            if (LOG_FRAGMENT_CHANGES) {
+                Log.d(TAG, "Fragment change: add " + f
+                        + (addToBackStack ? ", adding to back stack" : "")
+                        + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                ? (", transition=" + f.getEnterTransition())
+                                : ""));
+            }
+            transaction.add(android.R.id.content, f, mCurrentFragmentTag);
+        } else {
+            if (LOG_FRAGMENT_CHANGES) {
+                Log.d(TAG, "Fragment change: replace with " + f
+                        + (addToBackStack ? ", adding to back stack" : "")
+                        + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                ? (", transition=" + f.getEnterTransition())
+                                : ""));
+            }
+            transaction.replace(android.R.id.content, f, mCurrentFragmentTag);
         }
         transaction.commit();
     }
 
-    private String createFragmentTag(Fragment parent) {
+    private String createChildFragmentTag() {
         String prefix;
-        if (parent == null || TextUtils.isEmpty(parent.getTag())) {
+        if (TextUtils.isEmpty(mCurrentFragmentTag)) {
             prefix = FRAGMENT_TAG_PREFIX;
         } else {
-            prefix = parent.getTag() + FRAGMENT_TAG_DIVIDER;
+            prefix = mCurrentFragmentTag + FRAGMENT_TAG_DIVIDER;
         }
         FragmentManager fragmentManager = getFragmentManager();
         // make sure to create a unique tag
@@ -264,7 +306,11 @@ public class SettingsActivity extends PreferenceActivity {
         if (mCurrentFragmentTag == null) {
             return null;
         }
-        return getFragmentManager().findFragmentByTag(mCurrentFragmentTag);
+        Fragment currentFragment = getFragmentManager().findFragmentByTag(mCurrentFragmentTag);
+        if (currentFragment == null) {
+            Log.w(TAG, "Failed to find current fragment (tag: " + mCurrentFragmentTag + ")");
+        }
+        return currentFragment;
     }
 
     public Fragment getPreviousFragment() {
@@ -281,7 +327,15 @@ public class SettingsActivity extends PreferenceActivity {
             return null;
         }
         String currentFragmentTag = currentFragment.getTag();
+        if (currentFragmentTag == null) {
+            Log.e(TAG, "fragment is missing tag: " + currentFragment);
+            return null;
+        }
         String previousFragmentTag = getPreviousFragmentTag(currentFragmentTag);
+        if (previousFragmentTag == null) {
+            // there isn't a previous fragment
+            return null;
+        }
         Fragment previousFragment = getFragmentManager().findFragmentByTag(previousFragmentTag);
         if (previousFragment == null) {
             Log.e(TAG, "couldn't find previous fragment with tag: " + previousFragmentTag);
@@ -305,23 +359,25 @@ public class SettingsActivity extends PreferenceActivity {
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            navigateBack();
+            navigateBack(false);
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    public void navigateBack() {
+    public void navigateBack(boolean isImmediatelyAddingNewFragment) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            OnBackCallbackWithAnimation onBackCallback =
+                    (OnBackCallbackWithAnimation) mOnBackInvokedCallback;
             // artificially trigger handling for the start of the back animation to set up the the
             // transition to match the swipe/long press (except for the scaling since there won't be
             // any progress). also, this will handle unhiding the previous fragment because the
             // standard back handling is only going to process undoing adding the current fragment
             // since that is all that was included as part of the back stack. then immediately
             // trigger the back invoked handling (remove the current fragment).
-            ((OnBackCallbackWithAnimation) mOnBackInvokedCallback).onBackStarted();
-            mOnBackInvokedCallback.onBackInvoked();
+            onBackCallback.onBackStarted(isImmediatelyAddingNewFragment);
+            onBackCallback.onBackInvoked(isImmediatelyAddingNewFragment);
         } else {
             onBackPressed();
         }
@@ -353,11 +409,25 @@ public class SettingsActivity extends PreferenceActivity {
             // unhide the previous fragment (not necessary for the animated callback since that is
             // already done as part of the animation)
             Fragment previousFragment = getPreviousFragment(getCurrentFragment());
-            if (previousFragment != null) {
+            if (previousFragment != null && previousFragment.isHidden()) {
+                if (LOG_FRAGMENT_CHANGES) {
+                    Log.d(TAG, "Fragment change: show " + previousFragment
+                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                    ? (", transition=" + previousFragment.getEnterTransition())
+                                    : ""));
+                }
                 getFragmentManager().beginTransaction()
                         .show(previousFragment)
                         .commit();
             }
+        }
+        if (LOG_FRAGMENT_CHANGES) {
+            Fragment currentFragment = getCurrentFragment();
+            Log.d(TAG, "Fragment change: pop from back stack " + currentFragment
+                    + ((currentFragment != null
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                                    ? (", transition=" + currentFragment.getReturnTransition())
+                                    : ""));
         }
         mCurrentFragmentTag = getPreviousFragmentTag(mCurrentFragmentTag);
         super.onBackPressed();
@@ -369,6 +439,7 @@ public class SettingsActivity extends PreferenceActivity {
         @Override
         public void onBackInvoked() {
             onBackPressed();
+            Log.d(TAG, "onBackInvoked: updateBackCallbackRegistrationState");
             updateBackCallbackRegistrationState();
             invalidateOptionsMenu();
         }
@@ -391,20 +462,16 @@ public class SettingsActivity extends PreferenceActivity {
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
-            onBackStarted();
+            onBackStarted(false);
         }
 
-        public void onBackStarted() {
+        public void onBackStarted(boolean skipShowingPrevious) {
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment == null) {
                 return;
             }
 
-            Transition returnTransition = new Slide(Gravity.END);
-            if (TRANSITION_DURATION >= 0) {
-                returnTransition.setDuration(TRANSITION_DURATION);
-            }
-            currentFragment.setReturnTransition(returnTransition);
+            currentFragment.setReturnTransition(fragmentRemovedTransitionOut());
 
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
@@ -464,7 +531,7 @@ public class SettingsActivity extends PreferenceActivity {
 
             // unhide the previous fragment
             Fragment previousFragment = getPreviousFragment(currentFragment);
-            if (previousFragment != null) {
+            if (previousFragment != null && previousFragment.isHidden() && !skipShowingPrevious) {
                 mPreviousFragment = previousFragment;
                 // clear the previous enter transition (slide in) so the current fragment can just
                 // slide out to reveal this fragment behind it. ideally, a separate reenter
@@ -473,6 +540,10 @@ public class SettingsActivity extends PreferenceActivity {
                 // that isn't appropriate here.
                 mPreviousFragment.setEnterTransition(null);
 
+                if (LOG_FRAGMENT_CHANGES) {
+                    Log.d(TAG, "Fragment change: show " + mPreviousFragment
+                            + ", transition=" + mPreviousFragment.getEnterTransition());
+                }
                 getFragmentManager().beginTransaction()
                         .show(mPreviousFragment)
                         .commit();
@@ -581,9 +652,16 @@ public class SettingsActivity extends PreferenceActivity {
                     mPreviousFragment.setExitTransition(exitTransition);
                 }
 
-                getFragmentManager().beginTransaction()
-                        .hide(mPreviousFragment)
-                        .commit();
+                if (!mPreviousFragment.isHidden()) {
+                    if (LOG_FRAGMENT_CHANGES) {
+                        Log.d(TAG, "Fragment change: hide " + mPreviousFragment
+                                + ", transition=" + mPreviousFragment.getExitTransition());
+                    }
+                    getFragmentManager().beginTransaction()
+                            .hide(mPreviousFragment)
+                            .commit();
+                }
+
             } else {
                 if (mFragmentContent != null) {
                     if (mFragmentContent.getBackground() != mOriginalBackground) {
@@ -603,44 +681,101 @@ public class SettingsActivity extends PreferenceActivity {
 
         @Override
         public void onBackInvoked() {
-            if (mPreviousFragment != null && mPreviousFragment.isHidden()) {
+            onBackInvoked(false);
+        }
+
+        public void onBackInvoked(boolean isImmediatelyAddingNewFragment) {
+            if (mPreviousFragment != null && mPreviousFragment.isHidden()
+                    && !isImmediatelyAddingNewFragment) {
+                if (LOG_FRAGMENT_CHANGES) {
+                    Log.d(TAG, "Fragment change: show " + mPreviousFragment
+                            + ", transition=" + mPreviousFragment.getEnterTransition());
+                }
                 getFragmentManager().beginTransaction()
                         .show(mPreviousFragment)
                         .commit();
             }
             if (mDarkOverlay != null) {
-                // have the dark overlay fade out before removing it (basically fading in the
-                // previous fragment as it becomes the current again while the current slides out to
-                // be removed)
-                Animation animation = new AlphaAnimation(1f, 0f);
-                if (TRANSITION_DURATION >= 0) {
-                    animation.setDuration(TRANSITION_DURATION);
+                if (isImmediatelyAddingNewFragment) {
+                    // since this back is only a transient state (ideally not visible to the user),
+                    // we're not showing the previous fragment, so just hide the dark overlay
+                    // immediately (fade in effect not useful here)
+                    ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
+                } else {
+                    // have the dark overlay fade out before removing it (basically fading in the
+                    // previous fragment as it becomes the current again while the current slides
+                    // out to be removed)
+                    Animation animation = new AlphaAnimation(1f, 0f);
+                    if (TRANSITION_DURATION >= 0) {
+                        animation.setDuration(TRANSITION_DURATION);
+                    }
+                    final View darkOverlay = mDarkOverlay;
+                    animation.setAnimationListener(new AnimationListener() {
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
+                        }
+
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {
+
+                        }
+
+                        @Override
+                        public void onAnimationStart(Animation animation) {
+
+                        }
+                    });
+                    mDarkOverlay.setAnimation(animation);
                 }
-                final View darkOverlay = mDarkOverlay;
-                animation.setAnimationListener(new AnimationListener() {
-                    @Override
-                    public void onAnimationEnd(Animation animation) {
-                        ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
-                    }
-
-                    @Override
-                    public void onAnimationRepeat(Animation animation) {
-
-                    }
-
-                    @Override
-                    public void onAnimationStart(Animation animation) {
-
-                    }
-                });
-                mDarkOverlay.setAnimation(animation);
             }
             mPreviousFragment = null;
             mFragmentContent = null;
             mOriginalBackground = null;
             mDarkOverlay = null;
+            if (isImmediatelyAddingNewFragment) {
+                Fragment currentFragment = getCurrentFragment();
+                if (currentFragment != null) {
+                    // since this back is only a transient state (ideally not visible to the user),
+                    // just use the fade out transition as the new fragment slides in over it
+                    // (instead of this fragment sliding out from a normal back action)
+                    currentFragment.setReturnTransition(fragmentReplacedTransitionOut());
+                }
+            }
             super.onBackInvoked();
         }
+
+        public boolean isInProgress() {
+            return mFragmentContent != null;
+        }
+    }
+
+    @Override
+    public void onBackStackChanged() {
+        // clean up any old fragments that somehow aren't hidden
+        String fragmentTag = mCurrentFragmentTag;
+        int index = 0;
+        while (!TextUtils.isEmpty(fragmentTag)) {
+            Fragment fragment = getFragmentManager().findFragmentByTag(fragmentTag);
+            if (index > 1 || (index == 1
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation
+                    && !((OnBackCallbackWithAnimation) mOnBackInvokedCallback).isInProgress())) {
+                if (fragment != null && !fragment.isHidden()) {
+                    if (LOG_FRAGMENT_CHANGES) {
+                        Log.d(TAG, "Fragment change: hide (cleanup) " + fragment
+                                + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                        ? (", transition=" + fragment.getExitTransition())
+                                        : ""));
+                    }
+                    getFragmentManager().beginTransaction().hide(fragment).commit();
+                }
+            }
+            fragmentTag = getPreviousFragmentTag(fragmentTag);
+            index++;
+        }
+
+        updateBackCallbackRegistrationState();
     }
 
     private void updateBackCallbackRegistrationState() {
@@ -672,7 +807,7 @@ public class SettingsActivity extends PreferenceActivity {
     @Override
     protected void onDestroy() {
         EdgeToEdgeUtils.removeInsetHandling(this);
-        getFragmentManager().removeOnBackStackChangedListener(mOnBackStackChangedListener);
+        getFragmentManager().removeOnBackStackChangedListener(this);
         super.onDestroy();
     }
 

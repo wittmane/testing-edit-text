@@ -18,7 +18,6 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
 import android.app.AlertDialog;
@@ -108,9 +107,13 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             // add a preference for a new group
             Settings.addTestFieldGroup();
 
-            // exit this group before opening the new group so backing out of the new group goes to
-            // the group list, rather than this other group
-            navigateBack();
+            // exit this group and add the group list to the back stack (since that was skipped due
+            // to having a single group) before opening the new group so backing out of the new
+            // group goes to the group list, rather than this other group
+            navigateBack(true);
+            Preference groupListPref = new Preference(getActivity());
+            groupListPref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
+            launchPrefFragment(groupListPref);
 
             openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
         } else if (itemId == R.id.action_add_field) {
@@ -121,7 +124,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             Preference newPref = new IndividualTestFieldPreference(getActivity(),
                     groupIndex, Settings.getTestFieldCount(groupIndex) - 1);
             // launch sub setting screen for the new field preference
-            launchPrefFragment(this, newPref);
+            launchPrefFragment(newPref);
         } else if (itemId == R.id.action_reorder_fields) {
             showReorderFieldsDialog();
         } else if (itemId == R.id.action_remove_group) {

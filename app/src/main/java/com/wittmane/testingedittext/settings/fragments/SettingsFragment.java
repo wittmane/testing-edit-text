@@ -141,13 +141,22 @@ public abstract class SettingsFragment extends PreferenceFragment {
     }
 
     protected void navigateBack() {
+        navigateBack(false);
+    }
+
+    protected void navigateBack(boolean isImmediatelyAddingNewFragment) {
         Activity activity = getActivity();
         if (activity instanceof SettingsActivity) {
-            ((SettingsActivity) activity).navigateBack();
+            ((SettingsActivity) activity).navigateBack(isImmediatelyAddingNewFragment);
         } else {
             // this shouldn't ever happen
             getFragmentManager().popBackStackImmediate();
         }
+    }
+
+    protected void launchPrefFragment(Preference pref) {
+        ((OnPreferenceStartFragmentCallback) getActivity())
+                .onPreferenceStartFragment(this, pref);
     }
 
     @Override

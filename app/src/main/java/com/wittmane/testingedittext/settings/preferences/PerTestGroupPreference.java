@@ -28,6 +28,8 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.wittmane.testingedittext.settings.Settings;
+
 /**
  * Preference to link to a test field group specific settings screen.
  */
@@ -62,7 +64,11 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
-        updateDisplayText();
+        // skip trying to update the display text if the group hasn't been set yet or if the group
+        // doesn't exist anymore (probably from some stale pended call)
+        if (mGroupIndex >= 0 && mGroupIndex < Settings.getTestFieldGroupCount()) {
+            updateDisplayText();
+        }
         return view;
     }
 

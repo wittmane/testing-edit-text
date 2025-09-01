@@ -24,8 +24,6 @@ import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSett
 import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -72,33 +70,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
         mView = super.onCreateView(inflater, container, savedInstanceState);
-
-        if (!mUseGroups) {
-            if (Settings.getTestFieldGroupCount() == 1) {
-                // since there is only a single group and the user hasn't interacted with any groups
-                // since first opening this fragment, there isn't much value in showing a preference
-                // screen to show the single group
-                if (mAutoLaunchedOnlyGroup) {
-                    // we just backed out of the group preference that we auto-launched, so we go to
-                    // the previous fragment to continue skipping the unnecessary groups setting
-                    getFragmentManager().popBackStack();
-                } else {
-                    // jump directly into the only group
-                    mAutoLaunchedOnlyGroup = true;
-                    IndividualTestFieldGroupPreference pref =
-                            new IndividualTestFieldGroupPreference(getActivity(), 0);
-                    pref.setAreGroupsUsed(false);
-                    ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
-                            this, pref);
-                }
-            } else {
-                mUseGroups = true;
-            }
-        }
-        if (mUseGroups) {
-            buildContent();
-        }
-
+        buildContent();
         return mView;
     }
 
@@ -123,17 +95,17 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         }
     }
 
-    static void openGroupPreference(PreferenceFragment currentFragment, int groupIndex) {
-        Preference newPref = new IndividualTestFieldGroupPreference(currentFragment.getActivity(),
-                groupIndex);
+    static void openGroupPreference(SettingsFragment currentFragment, int groupIndex) {
+        IndividualTestFieldGroupPreference pref =
+                new IndividualTestFieldGroupPreference(currentFragment.getActivity(), groupIndex);
+        if (!(currentFragment instanceof TestFieldGroupListSettingsFragment)
+                && groupIndex == 0 && Settings.getTestFieldGroupCount() == 1) {
+            pref.setAreGroupsUsed(false);
+        }
         // launch sub setting screen for the new field group preference
-        launchPrefFragment(currentFragment, newPref);
+        currentFragment.launchPrefFragment(pref);
     }
 
-    static void launchPrefFragment(PreferenceFragment currentFragment, Preference pref) {
-        ((OnPreferenceStartFragmentCallback)currentFragment.getActivity())
-                .onPreferenceStartFragment(currentFragment, pref);
-    }
 
     @Override
     protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
