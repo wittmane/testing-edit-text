@@ -150,7 +150,7 @@ public abstract class SettingsFragment extends PreferenceFragment {
             ((SettingsActivity) activity).navigateBack(isImmediatelyAddingNewFragment);
         } else {
             // this shouldn't ever happen
-            getFragmentManager().popBackStackImmediate();
+            getFragmentManager().popBackStack();
         }
     }
 

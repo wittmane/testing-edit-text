@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2025 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -57,7 +57,7 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
                         && (fieldIndex < 0
                                 || fieldIndex >= Settings.getTestFieldCount(groupIndex)))) {
             Log.e(TAG, "Invalid index: group=" + groupIndex + ", field=" + fieldIndex);
-            getFragmentManager().popBackStack();
+            navigateBack();
         }
 
         // in case there are any preferences with a key matching the prefix specified in the
