@@ -458,7 +458,6 @@ public class SettingsActivity extends PreferenceActivity
         private Drawable mOriginalBackground;
         private boolean mOriginalClipToOutline;
         private LinearLayout mDarkOverlay;
-        private ViewGroup mTransitioningOutSceneRoot;
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
@@ -478,13 +477,12 @@ public class SettingsActivity extends PreferenceActivity
                 return;
             }
 
-            synchronized (OnBackCallbackWithAnimation.this) {
-                if (mTransitioningOutSceneRoot != null) {
-                    // the cleanup from the previous canceled back didn't finish yet, so force the
-                    // transition to end immediately so we can redo the things it's in the process
-                    // of undoing
-                    TransitionManager.endTransitions(mTransitioningOutSceneRoot);
-                }
+            // end any active transitions to make this predictive back animation show correctly
+            // immediately and avoid potentially leaving a fragment hidden when going back to it due
+            // to mixed up transition state tracking
+            ViewParent parent = mFragmentContent.getParent();
+            if (parent instanceof ViewGroup) {
+                TransitionManager.endTransitions((ViewGroup) parent);
             }
 
             // if the background under the fragment (either its direct background, some ancestor, or
@@ -618,12 +616,6 @@ public class SettingsActivity extends PreferenceActivity
                     // and effectively be the same.
                     Transition exitTransition = new Fade(Fade.MODE_OUT);
                     exitTransition.setDuration(1);
-                    synchronized (OnBackCallbackWithAnimation.this) {
-                        ViewParent parent = mFragmentContent.getParent();
-                        if (parent instanceof ViewGroup) {
-                            mTransitioningOutSceneRoot = (ViewGroup) parent;
-                        }
-                    }
                     View fragmentContent = mFragmentContent;
                     Drawable originalBackground = mOriginalBackground;
                     boolean originalClipToOutline = mOriginalClipToOutline;
@@ -635,9 +627,6 @@ public class SettingsActivity extends PreferenceActivity
                         public void onTransitionEnd(Transition transition) {
                             fragmentContent.setBackground(originalBackground);
                             fragmentContent.setClipToOutline(originalClipToOutline);
-                            synchronized (OnBackCallbackWithAnimation.this) {
-                                mTransitioningOutSceneRoot = null;
-                            }
                         }
 
                         @Override
