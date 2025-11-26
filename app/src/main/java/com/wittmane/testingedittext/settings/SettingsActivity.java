@@ -37,6 +37,7 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
@@ -69,6 +70,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.animation.ActivityAnimationTransition;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
@@ -90,7 +92,7 @@ public class SettingsActivity extends PreferenceActivity
         implements FragmentManager.OnBackStackChangedListener {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
-    private static final boolean LOG_FRAGMENT_CHANGES = true;
+    private static final boolean LOG_FRAGMENT_CHANGES = true;//TODO: (EW) disable
     // use a consistent transition duration to keep all of the simultaneous transitions in sync.
     // this value was determined by measuring the default duration of the transitions (both fragment
     // transitions with default values and the activity back transition) measuring wasn't super
@@ -125,6 +127,18 @@ public class SettingsActivity extends PreferenceActivity
      */
     private boolean shouldManageHidingFragments() {
         return true;
+    }
+
+    private boolean useDefaultTransitions() {
+        // custom transitions are available starting in Lollipop, but due to a bug in Lollipop (see
+        // #fragmentReplacedTransitionOut and #fragmentRemovedTransitionOut) we can't show a custom
+        // transition when only hiding a fragment (not also adding something). this is particularly
+        // bad when navigating back and the current fragment can't animate leaving, so we'll still
+        // just use the framework transitions on Lollipop if we're manually hiding fragments
+        // since we have to manage separate transactions for hiding the current fragment and showing
+        // the new fragment.
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
+                || (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments());
     }
 
     private String mCurrentFragmentTag;
@@ -194,32 +208,85 @@ public class SettingsActivity extends PreferenceActivity
         return true;
     }
 
+    //TODO: (EW) consider renaming these
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private static Transition fragmentReplacedTransitionOut() {
-        // have the current fragment fade out as the new fragment slides in. this is meant to be
-        // similar to the inverse dark overlay/shadow over the previous activity/fragment
-        // disappearing when completing a predictive back animation.
-        Transition exitTransition = new Fade(Fade.MODE_OUT);
-        if (TRANSITION_DURATION >= 0) {
+    private Transition fragmentReplacedTransitionOut() {
+        Transition exitTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            // have the current fragment fade out as the new fragment slides in. this is meant to be
+            // similar to the inverse dark overlay/shadow over the previous activity/fragment
+            // disappearing when completing a predictive back animation.
+            exitTransition = new Fade(Fade.MODE_OUT);
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
+            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
+            // transition, there must be an incoming fragment (ie it doesn't do a null check), so
+            // it crashes, so we'll have to skip the exit transition on Lollipop if we're manually
+            // hiding the fragment separate from adding the new fragment
+            exitTransition = null;
+        } else {
+            // have the new fragment transition match the system transition for exiting an activity
+            exitTransition = new ActivityAnimationTransition(this, false);
+        }
+        if (exitTransition != null && TRANSITION_DURATION >= 0) {
             exitTransition.setDuration(TRANSITION_DURATION);
         }
         return exitTransition;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private static Transition fragmentAddedTransitionIn() {
-        // have the new fragment slide in to pair with the predictive back animation (slide out)
-        Transition enterTransition = new Slide(Gravity.END);
-        if (TRANSITION_DURATION >= 0) {
+    private Transition fragmentResumedTransitionIn() {
+        Transition enterTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            // fade in behind the current fragment sliding out, vaguely similar to the predictive
+            // back dark overlay fading out
+            enterTransition = new Fade(Fade.MODE_IN);
+        } else {
+            // have the new fragment transition match the system transition for returning to the
+            // previous activity
+            enterTransition = new ActivityAnimationTransition(this, false);
+        }
+        if (enterTransition != null && TRANSITION_DURATION >= 0) {
             enterTransition.setDuration(TRANSITION_DURATION);
         }
         return enterTransition;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private static Transition fragmentRemovedTransitionOut() {
-        Transition returnTransition = new Slide(Gravity.END);
-        if (TRANSITION_DURATION >= 0) {
+    private Transition fragmentAddedTransitionIn() {
+        Transition enterTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // have the new fragment slide in to pair with the predictive back animation (slide out)
+            enterTransition = new Slide(Gravity.END);
+        } else {
+            // have the new fragment transition match the system transition for navigating to a new
+            // activity
+            enterTransition = new ActivityAnimationTransition(this, true);
+        }
+        if (enterTransition != null && TRANSITION_DURATION >= 0) {
+            enterTransition.setDuration(TRANSITION_DURATION);
+        }
+        return enterTransition;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Transition fragmentRemovedTransitionOut() {
+        Transition returnTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            returnTransition = new Slide(Gravity.END);
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
+            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
+            // transition, there must be an incoming fragment (ie doesn't do a null check), so
+            // it crashes, so we'll have to skip the return transition on Lollipop if we're
+            // manually hiding the fragment separate from adding the new fragment
+            returnTransition = null;
+        } else {
+            // have the new fragment transition match the system transition for navigating away from
+            // the current activity
+            returnTransition = new ActivityAnimationTransition(this, true);
+        }
+        if (returnTransition != null && TRANSITION_DURATION >= 0) {
             returnTransition.setDuration(TRANSITION_DURATION);
         }
         return returnTransition;
@@ -230,8 +297,9 @@ public class SettingsActivity extends PreferenceActivity
         Fragment currentFragment = getCurrentFragment();
         mCurrentFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
+                //TODO: (EW) due to the transparency of the fragments, this looks weird lingering in
+                // the background and suddenly disappearing
                 currentFragment.setExitTransition(fragmentReplacedTransitionOut());
             }
         }
@@ -242,16 +310,19 @@ public class SettingsActivity extends PreferenceActivity
             } else if (pref.getTitle() != null) {
                 transaction.setBreadCrumbTitle(pref.getTitle());
             }
-            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-                // add a transition (slide in) to pair with the predictive back animation (slide
-                // out)
+            // when we're managing custom transitions, we don't want a default transition, but
+            // TRANSIT_NONE causes some weird flashing, so we'll use the fade option, which is very
+            // subtle
+            transaction.setTransition(useDefaultTransitions()
+                    ? FragmentTransaction.TRANSIT_FRAGMENT_OPEN
+                    : FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
                 f.setEnterTransition(fragmentAddedTransitionIn());
             }
             transaction.addToBackStack(null);
             addToBackStack = true;
         }
+        FragmentTransaction hideCurrent = null;
         if (shouldManageHidingFragments()) {
             if (currentFragment != null && !currentFragment.isHidden()) {
                 // this needs to be part of a separate transaction for some reason or else we
@@ -263,7 +334,7 @@ public class SettingsActivity extends PreferenceActivity
                                     ? (", transition=" + currentFragment.getExitTransition())
                                     : ""));
                 }
-                getFragmentManager().beginTransaction().hide(currentFragment).commit();
+                hideCurrent = getFragmentManager().beginTransaction().hide(currentFragment);
             }
             if (LOG_FRAGMENT_CHANGES) {
                 Log.d(TAG, "Fragment change: add " + f
@@ -283,7 +354,52 @@ public class SettingsActivity extends PreferenceActivity
             }
             transaction.replace(android.R.id.content, f, mCurrentFragmentTag);
         }
-        transaction.commit();
+        if (hideCurrent != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                && currentFragment.getExitTransition() != null) {
+            // the framework doesn't seem to handle committing concurrent fragments well. the
+            // transition on the second doesn't always run. to resolve this, we'll run the first
+            // immediately and wait for it to start the transition, at which point it should be safe
+            // to commit the next transaction. the transitions might be out of sync by a few
+            // milliseconds, but they shouldn't be intrinsically tied to each other, so that should
+            // be fine. they'll still mostly be running at the same time, so it probably won't be
+            // very noticeable.
+            //TODO: (EW) add some handling in case the transition never starts
+            currentFragment.getExitTransition().addListener(new TransitionListener() {
+                @Override
+                public void onTransitionStart(Transition transition) {
+                    // remove the listener to make sure we don't try to commit this multiple times
+                    transition.removeListener(this);
+                    //TODO: (EW) add some handling to make sure this is still a valid action
+                    transaction.commit();
+                }
+
+                @Override
+                public void onTransitionPause(Transition transition) { }
+
+                @Override
+                public void onTransitionResume(Transition transition) { }
+
+                @Override
+                public void onTransitionCancel(Transition transition) { }
+
+                @Override
+                public void onTransitionEnd(Transition transition) { }
+            });
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                hideCurrent.commitNow();
+            } else {
+                hideCurrent.commit();
+                // theoretically this has the side effect of committing all currently pending
+                // transactions, but I don't think there should be any others at this time, so
+                // it should be fine
+                getFragmentManager().executePendingTransactions();
+            }
+        } else {
+            if (hideCurrent != null) {
+                hideCurrent.commit();
+            }
+            transaction.commit();
+        }
     }
 
     private String createChildFragmentTag() {
@@ -406,19 +522,48 @@ public class SettingsActivity extends PreferenceActivity
         if (shouldManageHidingFragments()
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                         || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
+            Fragment currentFragment = getCurrentFragment();
+            if (currentFragment != null && !useDefaultTransitions()) {
+                currentFragment.setReturnTransition(fragmentRemovedTransitionOut());
+            }
             // unhide the previous fragment (not necessary for the animated callback since that is
             // already done as part of the animation)
-            Fragment previousFragment = getPreviousFragment(getCurrentFragment());
+            Fragment previousFragment = currentFragment != null
+                    ? getPreviousFragment(currentFragment)
+                    : null;
             if (previousFragment != null && previousFragment.isHidden()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        && !useDefaultTransitions()) {
+                    previousFragment.setEnterTransition(fragmentResumedTransitionIn());
+                }
                 if (LOG_FRAGMENT_CHANGES) {
                     Log.d(TAG, "Fragment change: show " + previousFragment
                             + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                                     ? (", transition=" + previousFragment.getEnterTransition())
                                     : ""));
                 }
-                getFragmentManager().beginTransaction()
-                        .show(previousFragment)
-                        .commit();
+                // note that for some reason on Nougat only, showing the fragment doesn't trigger
+                // the enter transition. the transition based on the stock emulator is basically
+                // just to appear, so most, if not all, devices probably won't look significantly
+                // different from having it without a transition even if we could figure out a
+                // workaround. also, this is behind the current fragment, so that makes it even less
+                // visible. this seems to just be a framework bug in a single old version of
+                // android, so it's probably not worth putting in more time to trying to find the
+                // core issue and seeing if there is any workaround we can do (which there very well
+                // may not be).
+                FragmentTransaction transaction = getFragmentManager().beginTransaction()
+                        .show(previousFragment);
+                // run the transaction immediately to prevent it from this is blocking the current
+                // fragment's exit transition
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    transaction.commitNow();
+                } else {
+                    transaction.commit();
+                    // theoretically this has the side effect of committing all currently pending
+                    // transactions, but I don't think there should be any others at this time, so
+                    // it should be fine
+                    getFragmentManager().executePendingTransactions();
+                }
             }
         }
         if (LOG_FRAGMENT_CHANGES) {
@@ -430,7 +575,19 @@ public class SettingsActivity extends PreferenceActivity
                                     : ""));
         }
         mCurrentFragmentTag = getPreviousFragmentTag(mCurrentFragmentTag);
-        super.onBackPressed();
+        // triggering both transactions at the same time ends up losing the exit transition, so add
+        // this to the queue separately
+        //TODO: (EW) I haven't seen issues with this on any version, but I'm not certain if this is
+        // entirely safe (maybe timing issues just haven't been seen but could happen). consider
+        // adding a specific listener for when it is safe to run, such as the transition listener as
+        // we do in #addFragment
+        Handler handler = new Handler();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                SettingsActivity.super.onBackPressed();
+            }
+        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
@@ -519,7 +676,7 @@ public class SettingsActivity extends PreferenceActivity
             // add a semi-transparent overlay between the previous fragment and the current fragment
             // to give a better distinction between the two and match behavior from activity
             // predictive back animations
-            LinearLayout darkOverlay = new LinearLayout(getApplication());
+            LinearLayout darkOverlay = new LinearLayout(SettingsActivity.this);
             darkOverlay.setLayoutParams(new LinearLayout.LayoutParams(
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
             darkOverlay.setBackgroundColor(Color.argb(0.5f, 0f, 0f, 0f));
@@ -750,7 +907,7 @@ public class SettingsActivity extends PreferenceActivity
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                     && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation
                     && !((OnBackCallbackWithAnimation) mOnBackInvokedCallback).isInProgress())) {
-                if (fragment != null && !fragment.isHidden()) {
+                if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: hide (cleanup) " + fragment
                                 + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
