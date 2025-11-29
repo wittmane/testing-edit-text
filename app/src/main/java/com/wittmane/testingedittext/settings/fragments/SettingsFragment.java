@@ -17,6 +17,9 @@
 package com.wittmane.testingedittext.settings.fragments;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
@@ -32,6 +35,7 @@ import android.view.ViewGroup;
 import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.settings.SettingsActivity;
+import com.wittmane.testingedittext.util.DrawableUtils;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.util.IconUtils;
 
@@ -45,6 +49,22 @@ public abstract class SettingsFragment extends PreferenceFragment {
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
         mView = super.onCreateView(inflater, container, savedInstanceState);
+        if (mView == null) {
+            return null;
+        }
+        Drawable background = mView.getBackground();
+        if (background == null
+                || (background instanceof ColorDrawable
+                        && ((ColorDrawable) background).getColor() == Color.TRANSPARENT)) {
+            // replicate any background directly in this fragment so transitions look better as
+            // screens enter over other screens or leave, revealing other screens. without the
+            // background, the 2 screens' content overlap during the transition and looks bad.
+            background = DrawableUtils.copyDrawable(
+                    DrawableUtils.getNearestBackground(container));
+            if (background != null) {
+                mView.setBackground(background);
+            }
+        }
         return mView;
     }
 

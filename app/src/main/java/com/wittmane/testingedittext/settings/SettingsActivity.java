@@ -72,6 +72,7 @@ import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.animation.ActivityAnimationTransition;
+import com.wittmane.testingedittext.util.DrawableUtils;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
@@ -299,8 +300,6 @@ public class SettingsActivity extends PreferenceActivity
         mCurrentFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                //TODO: (EW) due to the transparency of the fragments, this looks weird lingering in
-                // the background and suddenly disappearing
                 currentFragment.setExitTransition(fragmentReplacedTransitionOut());
             }
         }
@@ -650,7 +649,7 @@ public class SettingsActivity extends PreferenceActivity
             // the device's corners to match behavior from activity predictive back animations
             mOriginalBackground = mFragmentContent.getBackground();
             mOriginalClipToOutline = mFragmentContent.getClipToOutline();
-            Drawable background = getNearestBackground(mFragmentContent);
+            Drawable background = DrawableUtils.getNearestBackground(mFragmentContent);
             int originalNearestBackgroundColor;
             if (background == null) {
                 final TypedArray a = getTheme().obtainStyledAttributes(new int[]{
@@ -669,7 +668,7 @@ public class SettingsActivity extends PreferenceActivity
             } else {
                 // ideally we would round the corners on this too, but I'm not sure that there is a
                 // good way to do that on any random drawable
-                drawable = copyDrawable(background);
+                drawable = DrawableUtils.copyDrawable(background);
                 if (drawable == null && mOriginalBackground == null) {
                     // we can't recreate the background and there isn't an existing background to
                     // reuse, so we won't be able to prevent the previous fragment from overlapping
@@ -975,34 +974,6 @@ public class SettingsActivity extends PreferenceActivity
         super.onDestroy();
     }
 
-    private static Drawable getNearestBackground(View v) {
-        Drawable background = null;
-        View currentView = v;
-        // track the views traversed to avoid an infinite loop if a view lists itself (or some
-        // descendant) as its parent
-        HashSet<View> traversedViews = new HashSet<>();
-        traversedViews.add(v);
-        while (currentView != null) {
-            background = currentView.getBackground();
-            if (background instanceof ColorDrawable
-                    && ((ColorDrawable) background).getColor() == Color.TRANSPARENT) {
-                // ignore transparent backgrounds
-                background = null;
-            }
-            if (background != null) {
-                break;
-            }
-            ViewParent parent = currentView.getParent();
-            if (parent instanceof ViewGroup && !traversedViews.contains(parent)) {
-                currentView = (View) parent;
-                traversedViews.add(currentView);
-            } else {
-                currentView = null;
-            }
-        }
-        return background;
-    }
-
     private static boolean addSiblingBefore(View viewToInsert, View sibling) {
         ViewParent viewParent = sibling.getParent();
         if (viewParent instanceof ViewGroup) {
@@ -1040,16 +1011,5 @@ public class SettingsActivity extends PreferenceActivity
         shapeDrawable.getPaint().setAntiAlias(true);
         shapeDrawable.getPaint().setFlags(Paint.ANTI_ALIAS_FLAG);
         return shapeDrawable;
-    }
-
-    private static Drawable copyDrawable(Drawable drawable) {
-        if (drawable == null) {
-            return null;
-        }
-        ConstantState constantState = drawable.getConstantState();
-        if (constantState == null) {
-            return null;
-        }
-        return constantState.newDrawable().mutate();
     }
 }

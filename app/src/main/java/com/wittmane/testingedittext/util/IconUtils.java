@@ -236,7 +236,7 @@ public class IconUtils {
      * @return The button that was created.
      */
     public static Button createButton(Context context, int imageResId, int textResId) {
-        Drawable drawable = getDrawable(context, imageResId).mutate();
+        Drawable drawable = DrawableUtils.getDrawable(context, imageResId).mutate();
 
         Button button = new EnabledStateListenerButton(context, (buttonView, isEnabled) -> {
             // update the icon color when the enabled state changes
@@ -321,22 +321,5 @@ public class IconUtils {
 
     private interface OnEnabledChangeListener<T extends View> {
         void onEnabledChanged(T view, boolean isEnabled);
-    }
-
-    /**
-     * Return a drawable object associated with a particular resource ID.
-     *
-     * This is a wrapper function to get a drawable on any version.
-     * @param context The current context.
-     * @param res The drawable resource ID.
-     * @return An object that can be used to draw this resource.
-     */
-    @SuppressLint("UseCompatLoadingForDrawables")
-    public static Drawable getDrawable(Context context, int res) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return context.getDrawable(res);
-        } else {
-            return context.getResources().getDrawable(res);
-        }
     }
 }
