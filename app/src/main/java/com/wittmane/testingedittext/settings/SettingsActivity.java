@@ -87,6 +87,7 @@ import com.wittmane.testingedittext.settings.fragments.InputTypeSettingsFragment
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
+import com.wittmane.testingedittext.util.ResourceUtils;
 
 import java.util.HashSet;
 
@@ -652,11 +653,8 @@ public class SettingsActivity extends PreferenceActivity
             Drawable background = DrawableUtils.getNearestBackground(mFragmentContent);
             int originalNearestBackgroundColor;
             if (background == null) {
-                final TypedArray a = getTheme().obtainStyledAttributes(new int[]{
-                        android.R.attr.colorBackground
-                });
-                originalNearestBackgroundColor = a.getColor(0, Color.TRANSPARENT);
-                a.recycle();
+                originalNearestBackgroundColor = ResourceUtils.getColor(
+                        android.R.attr.colorBackground, SettingsActivity.this);
             } else if (background instanceof ColorDrawable) {
                 originalNearestBackgroundColor = ((ColorDrawable) background).getColor();
             } else {
