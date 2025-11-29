@@ -23,6 +23,9 @@ import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.util.Log;
+import android.view.View;
+
+import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
@@ -82,10 +85,14 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
     }
 
     @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        registerPreferencesChangedListener(getFieldId());
+    }
+
+    @Override
     public void onActivityCreated(final Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
-        registerPreferencesChangedListener(getFieldId());
     }
 
     private void updatePrefsForSpecificTestField(PreferenceGroup prefGroup, int fieldId) {
