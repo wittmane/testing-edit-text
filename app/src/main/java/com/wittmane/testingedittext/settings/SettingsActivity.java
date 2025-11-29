@@ -33,6 +33,7 @@ import android.graphics.Paint;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.Drawable.ConstantState;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
@@ -662,15 +663,32 @@ public class SettingsActivity extends PreferenceActivity
             } else {
                 originalNearestBackgroundColor = Color.TRANSPARENT;
             }
+            Drawable drawable;
             if (originalNearestBackgroundColor != Color.TRANSPARENT) {
-                setRoundedBackground(mFragmentContent, originalNearestBackgroundColor, true);
+                drawable = createRoundedDrawable(mFragmentContent, originalNearestBackgroundColor);
+            } else {
+                // ideally we would round the corners on this too, but I'm not sure that there is a
+                // good way to do that on any random drawable
+                drawable = copyDrawable(background);
+                if (drawable == null && mOriginalBackground == null) {
+                    // we can't recreate the background and there isn't an existing background to
+                    // reuse, so we won't be able to prevent the previous fragment from overlapping
+                    // with the current fragment, so we shouldn't try to unhide the previous
+                    // fragment. all we'll show is the animation of the content of the current
+                    // fragment shifting.
+                    return;
+                }
             }
-            if (originalNearestBackgroundColor == Color.TRANSPARENT && mOriginalBackground == null) {
-                // we can't recreate the background and there isn't an existing background to reuse,
-                // so we won't be able to prevent the previous fragment from overlapping with the
-                // current fragment, so we shouldn't try to unhide the previous fragment. all we'll
-                // show is the animation of the content of the current fragment shifting.
-                return;
+            if (drawable != null) {
+                // clip to exclude the portion of the view that is under the action bar
+                ClipDrawable clipDrawable =
+                        new ClipDrawable(drawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
+                int viewHeight = mFragmentContent.getHeight();
+                clipDrawable.setLevel(
+                        10000 * (viewHeight - mFragmentContent.getPaddingTop()) / viewHeight);
+                mFragmentContent.setBackground(clipDrawable);
+
+                mFragmentContent.setClipToOutline(true);
             }
 
             // add a semi-transparent overlay between the previous fragment and the current fragment
@@ -974,7 +992,7 @@ public class SettingsActivity extends PreferenceActivity
             if (background != null) {
                 break;
             }
-            ViewParent parent = v.getParent();
+            ViewParent parent = currentView.getParent();
             if (parent instanceof ViewGroup && !traversedViews.contains(parent)) {
                 currentView = (View) parent;
                 traversedViews.add(currentView);
@@ -1000,14 +1018,10 @@ public class SettingsActivity extends PreferenceActivity
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
-    private static void setRoundedBackground(View view, int color, boolean clipToContentTop) {
+    private static ShapeDrawable createRoundedDrawable(View view, int color) {
         WindowInsets insets = view.getRootWindowInsets();
-        RoundedCorner topLeft = clipToContentTop
-                ? null
-                : insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
-        RoundedCorner topRight = clipToContentTop
-                ? null
-                : insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
+        RoundedCorner topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
+        RoundedCorner topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
         RoundedCorner bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
         RoundedCorner bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
         int topRightRadius = topRight != null ? topRight.getRadius() : 0;
@@ -1025,16 +1039,17 @@ public class SettingsActivity extends PreferenceActivity
         shapeDrawable.getPaint().setStyle(Paint.Style.FILL);
         shapeDrawable.getPaint().setAntiAlias(true);
         shapeDrawable.getPaint().setFlags(Paint.ANTI_ALIAS_FLAG);
-        if (clipToContentTop) {
-            // clip to exclude the portion of the view that is under the action bar
-            ClipDrawable clipDrawable =
-                    new ClipDrawable(shapeDrawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
-            int viewHeight = view.getHeight();
-            clipDrawable.setLevel(10000 * (viewHeight - view.getPaddingTop()) / viewHeight);
-            view.setBackground(clipDrawable);
-        } else {
-            view.setBackground(shapeDrawable);
+        return shapeDrawable;
+    }
+
+    private static Drawable copyDrawable(Drawable drawable) {
+        if (drawable == null) {
+            return null;
         }
-        view.setClipToOutline(true);
+        ConstantState constantState = drawable.getConstantState();
+        if (constantState == null) {
+            return null;
+        }
+        return constantState.newDrawable().mutate();
     }
 }
