@@ -87,6 +87,9 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFra
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 import com.wittmane.testingedittext.util.ResourceUtils;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class SettingsActivity extends PreferenceActivity
         implements FragmentManager.OnBackStackChangedListener {
     private static final String TAG = SettingsActivity.class.getSimpleName();
@@ -97,6 +100,8 @@ public class SettingsActivity extends PreferenceActivity
     // transitions with default values and the activity back transition) measuring wasn't super
     // precise, so a nice round number that was close was picked.
     private static final int TRANSITION_DURATION = 300;
+    private static final int FRAGMENT_CLEANUP_TIMER_DELAY = 500;
+    private static final int RUN_ON_TRANSITION_START_FALLBACK_DELAY = 250;
 
     public static final String FIELD_ID_BUNDLE_KEY = "FIELD_ID";
     private static final String FRAGMENT_TAG_PREFIX = "NavigationStackFragment";
@@ -139,6 +144,8 @@ public class SettingsActivity extends PreferenceActivity
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
                 || (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments());
     }
+
+    private Timer mFragmentCleanupTimer;
 
     private String mCurrentFragmentTag;
 
@@ -194,7 +201,7 @@ public class SettingsActivity extends PreferenceActivity
     @Override
     protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        mCurrentFragmentTag = savedInstanceState.getString(STATE_CURRENT_FRAGMENT_TAG);
+        setCurrentFragmentTag(savedInstanceState.getString(STATE_CURRENT_FRAGMENT_TAG));
     }
 
     @Override
@@ -313,7 +320,8 @@ public class SettingsActivity extends PreferenceActivity
     private void addFragment(Fragment f, Preference pref) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
-        mCurrentFragmentTag = createChildFragmentTag();
+        String currentFragmentTag = mCurrentFragmentTag;
+        String nextFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
                 currentFragment.setExitTransition(fragmentOpenExitTransition());
@@ -359,7 +367,7 @@ public class SettingsActivity extends PreferenceActivity
                                 ? (", transition=" + f.getEnterTransition())
                                 : ""));
             }
-            transaction.add(android.R.id.content, f, mCurrentFragmentTag);
+            transaction.add(android.R.id.content, f, nextFragmentTag);
         } else {
             if (LOG_FRAGMENT_CHANGES) {
                 Log.d(TAG, "Fragment change: replace with " + f
@@ -368,7 +376,7 @@ public class SettingsActivity extends PreferenceActivity
                                 ? (", transition=" + f.getEnterTransition())
                                 : ""));
             }
-            transaction.replace(android.R.id.content, f, mCurrentFragmentTag);
+            transaction.replace(android.R.id.content, f, nextFragmentTag);
         }
         if (hideCurrent != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                 && currentFragment.getExitTransition() != null) {
@@ -379,27 +387,18 @@ public class SettingsActivity extends PreferenceActivity
             // milliseconds, but they shouldn't be intrinsically tied to each other, so that should
             // be fine. they'll still mostly be running at the same time, so it probably won't be
             // very noticeable.
-            //TODO: (EW) add some handling in case the transition never starts
-            currentFragment.getExitTransition().addListener(new TransitionListener() {
-                @Override
-                public void onTransitionStart(Transition transition) {
-                    // remove the listener to make sure we don't try to commit this multiple times
-                    transition.removeListener(this);
-                    //TODO: (EW) add some handling to make sure this is still a valid action
-                    transaction.commit();
+            runOnTransitionStart(currentFragment.getExitTransition(), () -> {
+                if (SettingsActivity.this.isDestroyed()) {
+                    return;
                 }
-
-                @Override
-                public void onTransitionPause(Transition transition) { }
-
-                @Override
-                public void onTransitionResume(Transition transition) { }
-
-                @Override
-                public void onTransitionCancel(Transition transition) { }
-
-                @Override
-                public void onTransitionEnd(Transition transition) { }
+                if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
+                    // we're not at the same position that we were when trying to add the new
+                    // fragment (the user probably navigate back), so abandon navigating to the
+                    // specified fragment
+                    return;
+                }
+                setCurrentFragmentTag(nextFragmentTag);
+                transaction.commit();
             });
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 hideCurrent.commitNow();
@@ -414,8 +413,52 @@ public class SettingsActivity extends PreferenceActivity
             if (hideCurrent != null) {
                 hideCurrent.commit();
             }
+            setCurrentFragmentTag(nextFragmentTag);
             transaction.commit();
         }
+    }
+
+    private void runOnTransitionStart(Transition transition, Runnable runnable) {
+        if (runnable == null) {
+            return;
+        }
+        final TransitionListener listener = new TransitionListener() {
+            private boolean mCalledRunnable;
+
+            @Override
+            public void onTransitionStart(Transition transition) {
+                // remove the listener to make sure we don't try to commit this multiple times
+                transition.removeListener(this);
+                synchronized (this) {
+                    if (mCalledRunnable) {
+                        return;
+                    }
+                    mCalledRunnable = true;
+                }
+                runnable.run();
+            }
+
+            @Override
+            public void onTransitionPause(Transition transition) {
+            }
+
+            @Override
+            public void onTransitionResume(Transition transition) {
+            }
+
+            @Override
+            public void onTransitionCancel(Transition transition) {
+            }
+
+            @Override
+            public void onTransitionEnd(Transition transition) {
+            }
+        };
+        transition.addListener(listener);
+        // add a brief delay to force calling the transition start handler in case it somehow never
+        // gets called
+        new Handler().postDelayed(() -> listener.onTransitionStart(transition),
+                RUN_ON_TRANSITION_START_FALLBACK_DELAY);
     }
 
     private String createChildFragmentTag() {
@@ -590,7 +633,6 @@ public class SettingsActivity extends PreferenceActivity
                                     ? (", transition=" + currentFragment.getReturnTransition())
                                     : ""));
         }
-        mCurrentFragmentTag = getPreviousFragmentTag(mCurrentFragmentTag);
         // triggering both transactions at the same time ends up losing the exit transition, so add
         // this to the queue separately
         //TODO: (EW) I haven't seen issues with this on any version, but I'm not certain if this is
@@ -601,6 +643,7 @@ public class SettingsActivity extends PreferenceActivity
         handler.post(new Runnable() {
             @Override
             public void run() {
+                setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
                 SettingsActivity.super.onBackPressed();
             }
         });
@@ -928,15 +971,58 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public void onBackStackChanged() {
-        // clean up any old fragments that somehow aren't hidden
+        updateBackCallbackRegistrationState();
+    }
+
+    private synchronized void setCurrentFragmentTag(String tag) {
+        if (TextUtils.equals(mCurrentFragmentTag, tag)) {
+            return;
+        }
+        mCurrentFragmentTag = tag;
+        if (!shouldManageHidingFragments()) {
+            // since we're not managing showing/hiding fragments manually, we don't need safety
+            // checks cleaning up any potentially incorrect state
+            return;
+        }
+        if (mFragmentCleanupTimer != null) {
+            // reset the timer since the current fragment changed, so we need to wait until changes
+            // from this settle before we need to check if the state is correct
+            mFragmentCleanupTimer.cancel();
+            mFragmentCleanupTimer = null;
+        }
+        // schedule a timer to trigger after all of the UI changes from the fragment change should
+        // have settled where we'll check if all of the fragment state is correct and fix anything
+        // that may be messed up
+        Timer timer = new Timer();
+        mFragmentCleanupTimer = timer;
+        mFragmentCleanupTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                synchronized (SettingsActivity.this) {
+                    if (timer != mFragmentCleanupTimer) {
+                        // this is an old timer
+                        return;
+                    }
+                    if (SettingsActivity.this.isDestroyed()) {
+                        return;
+                    }
+                    cleanUpFragmentState();
+                }
+            }
+        }, FRAGMENT_CLEANUP_TIMER_DELAY);
+    }
+
+    private void cleanUpFragmentState() {
         String fragmentTag = mCurrentFragmentTag;
         int index = 0;
         while (!TextUtils.isEmpty(fragmentTag)) {
             Fragment fragment = getFragmentManager().findFragmentByTag(fragmentTag);
+            // clean up any old fragments that somehow aren't hidden (don't hide the previous
+            // fragment if the predictive back animation is active)
             if (index > 1 || (index == 1
-                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation
-                    && !((OnBackCallbackWithAnimation) mOnBackInvokedCallback).isInProgress())) {
+                    && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                            || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation)
+                            || !((OnBackCallbackWithAnimation) mOnBackInvokedCallback).isInProgress()))) {
                 if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: hide (cleanup) " + fragment
@@ -947,11 +1033,19 @@ public class SettingsActivity extends PreferenceActivity
                     getFragmentManager().beginTransaction().hide(fragment).commit();
                 }
             }
+            // clean up any current fragment that somehow isn't shown
+            if (index == 0 && fragment != null && fragment.isAdded() && fragment.isHidden()) {
+                if (LOG_FRAGMENT_CHANGES) {
+                    Log.d(TAG, "Fragment change: show (cleanup) " + fragment
+                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                            ? (", transition=" + fragment.getEnterTransition())
+                            : ""));
+                }
+                getFragmentManager().beginTransaction().show(fragment).commit();
+            }
             fragmentTag = getPreviousFragmentTag(fragmentTag);
             index++;
         }
-
-        updateBackCallbackRegistrationState();
     }
 
     private void updateBackCallbackRegistrationState() {
