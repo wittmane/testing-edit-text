@@ -27,13 +27,11 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.res.Configuration;
-import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.Drawable.ConstantState;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
@@ -88,8 +86,6 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSetting
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 import com.wittmane.testingedittext.util.ResourceUtils;
-
-import java.util.HashSet;
 
 public class SettingsActivity extends PreferenceActivity
         implements FragmentManager.OnBackStackChangedListener {
@@ -211,9 +207,35 @@ public class SettingsActivity extends PreferenceActivity
         return true;
     }
 
-    //TODO: (EW) consider renaming these
+    /**
+     * Create a transition to run on the new fragment that is entering the screen when it is being
+     * opened.
+     * @return An enter transition.
+     */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentReplacedTransitionOut() {
+    private Transition fragmentOpenEnterTransition() {
+        Transition enterTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // have the new fragment slide in to pair with the predictive back animation (slide out)
+            enterTransition = new Slide(Gravity.END);
+        } else {
+            // have the new fragment transition match the system transition for navigating to a new
+            // activity
+            enterTransition = new ActivityAnimationTransition(this, true);
+        }
+        if (enterTransition != null && TRANSITION_DURATION >= 0) {
+            enterTransition.setDuration(TRANSITION_DURATION);
+        }
+        return enterTransition;
+    }
+
+    /**
+     * Create a transition to run on the previous fragment that is exiting the screen when a new
+     * fragment is being opened.
+     * @return An exit transition.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Transition fragmentOpenExitTransition() {
         Transition exitTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
@@ -237,8 +259,13 @@ public class SettingsActivity extends PreferenceActivity
         return exitTransition;
     }
 
+    /**
+     * Create a transition to run on the previous fragment that is reentering the screen when the
+     * current fragment is being closed.
+     * @return An enter transition.
+     */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentResumedTransitionIn() {
+    private Transition fragmentCloseEnterTransition() {
         Transition enterTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
@@ -256,25 +283,13 @@ public class SettingsActivity extends PreferenceActivity
         return enterTransition;
     }
 
+    /**
+     * Create a transition to run on the current fragment that is exiting the screen when it is
+     * being closed.
+     * @return An exit transition.
+     */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentAddedTransitionIn() {
-        Transition enterTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // have the new fragment slide in to pair with the predictive back animation (slide out)
-            enterTransition = new Slide(Gravity.END);
-        } else {
-            // have the new fragment transition match the system transition for navigating to a new
-            // activity
-            enterTransition = new ActivityAnimationTransition(this, true);
-        }
-        if (enterTransition != null && TRANSITION_DURATION >= 0) {
-            enterTransition.setDuration(TRANSITION_DURATION);
-        }
-        return enterTransition;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentRemovedTransitionOut() {
+    private Transition fragmentCloseExitTransition() {
         Transition returnTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             returnTransition = new Slide(Gravity.END);
@@ -301,7 +316,7 @@ public class SettingsActivity extends PreferenceActivity
         mCurrentFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                currentFragment.setExitTransition(fragmentReplacedTransitionOut());
+                currentFragment.setExitTransition(fragmentOpenExitTransition());
             }
         }
         boolean addToBackStack = false;
@@ -318,7 +333,7 @@ public class SettingsActivity extends PreferenceActivity
                     ? FragmentTransaction.TRANSIT_FRAGMENT_OPEN
                     : FragmentTransaction.TRANSIT_FRAGMENT_FADE);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                f.setEnterTransition(fragmentAddedTransitionIn());
+                f.setEnterTransition(fragmentOpenEnterTransition());
             }
             transaction.addToBackStack(null);
             addToBackStack = true;
@@ -525,7 +540,7 @@ public class SettingsActivity extends PreferenceActivity
                         || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment != null && !useDefaultTransitions()) {
-                currentFragment.setReturnTransition(fragmentRemovedTransitionOut());
+                currentFragment.setReturnTransition(fragmentCloseExitTransition());
             }
             // unhide the previous fragment (not necessary for the animated callback since that is
             // already done as part of the animation)
@@ -535,7 +550,7 @@ public class SettingsActivity extends PreferenceActivity
             if (previousFragment != null && previousFragment.isHidden()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         && !useDefaultTransitions()) {
-                    previousFragment.setEnterTransition(fragmentResumedTransitionIn());
+                    previousFragment.setEnterTransition(fragmentCloseEnterTransition());
                 }
                 if (LOG_FRAGMENT_CHANGES) {
                     Log.d(TAG, "Fragment change: show " + previousFragment
@@ -628,7 +643,7 @@ public class SettingsActivity extends PreferenceActivity
                 return;
             }
 
-            currentFragment.setReturnTransition(fragmentRemovedTransitionOut());
+            currentFragment.setReturnTransition(fragmentCloseExitTransition());
 
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
@@ -900,7 +915,7 @@ public class SettingsActivity extends PreferenceActivity
                     // since this back is only a transient state (ideally not visible to the user),
                     // just use the fade out transition as the new fragment slides in over it
                     // (instead of this fragment sliding out from a normal back action)
-                    currentFragment.setReturnTransition(fragmentReplacedTransitionOut());
+                    currentFragment.setReturnTransition(fragmentOpenExitTransition());
                 }
             }
             super.onBackInvoked();
