@@ -971,6 +971,11 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public void onBackStackChanged() {
+        // start the fragment cleanup timer in case the back stack somehow changes unrelated to
+        // setting the fragment tag as that could indicate or cause messed up state that needs
+        // fixing
+        startFragmentCleanupTimer();
+
         updateBackCallbackRegistrationState();
     }
 
@@ -979,6 +984,11 @@ public class SettingsActivity extends PreferenceActivity
             return;
         }
         mCurrentFragmentTag = tag;
+
+        startFragmentCleanupTimer();
+    }
+
+    private synchronized void startFragmentCleanupTimer() {
         if (!shouldManageHidingFragments()) {
             // since we're not managing showing/hiding fragments manually, we don't need safety
             // checks cleaning up any potentially incorrect state
