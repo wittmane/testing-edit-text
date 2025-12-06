@@ -321,7 +321,6 @@ public class SettingsActivity extends PreferenceActivity
     private void addFragment(Fragment fragmentToAdd, Preference pref) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
-        String currentFragmentTag = mCurrentFragmentTag;
         String nextFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
@@ -364,41 +363,10 @@ public class SettingsActivity extends PreferenceActivity
                     }
                     FragmentTransaction hideCurrentTransaction =
                             getFragmentManager().beginTransaction().hide(currentFragment);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        hideCurrentTransaction.commitNow();
-                    } else {
-                        hideCurrentTransaction.commit();
-                        // theoretically this has the side effect of committing all currently
-                        // pending transactions, but I don't think there should be any others at
-                        // this time, so it should be fine
-                        getFragmentManager().executePendingTransactions();
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                            && currentFragment.getExitTransition() != null) {
-                        // the framework doesn't seem to handle committing concurrent fragments
-                        // well. the transition on the second doesn't always run. to resolve this,
-                        // we'll run the first immediately and wait for it to start the transition,
-                        // at which point it should be safe to commit the next transaction. the
-                        // transitions might be out of sync by a few milliseconds, but they
-                        // shouldn't be intrinsically tied to each other, so that should be fine.
-                        // they'll still mostly be running at the same time, so it probably won't be
-                        // very noticeable.
-                        runOnTransitionStart(currentFragment.getExitTransition(), () -> {
-                            if (SettingsActivity.this.isDestroyed()) {
-                                return;
-                            }
-                            if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
-                                // we're not at the same position that we were when trying to add
-                                // the new fragment (the user probably navigate back), so abandon
-                                // navigating to the specified fragment
-                                return;
-                            }
-                            onTransactionStarted.run();
-                        });
-                    } else {
-                        //TODO: (EW) should this use a handler to post at the end of the queue?
-                        onTransactionStarted.run();
-                    }
+                    chainRunTransactions(hideCurrentTransaction,
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                    ? currentFragment.getExitTransition()
+                                    : null, onTransactionStarted);
                 };
             }
             navigateForward = () -> {
@@ -431,6 +399,43 @@ public class SettingsActivity extends PreferenceActivity
             hideCurrent.accept(navigateForward);
         } else {
             navigateForward.run();
+        }
+    }
+
+    private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
+                                      Runnable chainedAction) {
+        String currentFragmentTag = mCurrentFragmentTag;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            transaction.commitNow();
+        } else {
+            transaction.commit();
+            // theoretically this has the side effect of committing all currently pending
+            // transactions, but I don't think there should be any others at this time, so it should
+            // be fine
+            getFragmentManager().executePendingTransactions();
+        }
+        if (transition != null) {
+            // the framework doesn't seem to handle committing concurrent fragments well. the
+            // transition on the second doesn't always run. to resolve this, we'll run the first
+            // immediately and wait for it to start the transition, at which point it should be safe
+            // to commit the next transaction. the transitions might be out of sync by a few
+            // milliseconds, but they shouldn't be intrinsically tied to each other, so that should
+            // be fine. they'll still mostly be running at the same time, so it probably won't be
+            // very noticeable.
+            runOnTransitionStart(transition, () -> {
+                if (SettingsActivity.this.isDestroyed()) {
+                    return;
+                }
+                if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
+                    // we're not at the same position that we were when trying to add the new
+                    // fragment (the user probably navigate back), so abandon navigating to the
+                    // specified fragment
+                    return;
+                }
+                chainedAction.run();
+            });
+        } else {
+            chainedAction.run();
         }
     }
 
@@ -599,7 +604,6 @@ public class SettingsActivity extends PreferenceActivity
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                         || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
             Fragment currentFragment = getCurrentFragment();
-            String currentFragmentTag = mCurrentFragmentTag;
             if (currentFragment != null && !useDefaultTransitions()) {
                 currentFragment.setReturnTransition(fragmentCloseExitTransition());
             }
@@ -632,38 +636,10 @@ public class SettingsActivity extends PreferenceActivity
                     // (which there very well may not be).
                     FragmentTransaction transaction = getFragmentManager().beginTransaction()
                             .show(previousFragment);
-                    // run the transaction immediately to prevent it from this is blocking the
-                    // current fragment's exit transition
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        transaction.commitNow();
-                    } else {
-                        transaction.commit();
-                        // theoretically this has the side effect of committing all currently
-                        // pending transactions, but I don't think there should be any others at
-                        // this time, so it should be fine
-                        getFragmentManager().executePendingTransactions();
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                            && previousFragment.getEnterTransition() != null) {
-                        // triggering both transactions at the same time ends up losing the exit
-                        // transition, so we need to trigger the second transaction to after the
-                        // first starts
-                        runOnTransitionStart(previousFragment.getEnterTransition(), () -> {
-                            if (SettingsActivity.this.isDestroyed()) {
-                                return;
-                            }
-                            if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
-                                // we're not at the same position that we were when trying to add
-                                // the new fragment (the user probably navigate back), so abandon
-                                // navigating to the specified fragment
-                                return;
-                            }
-                            onTransactionStarted.run();
-                        });
-                    } else {
-                        //TODO: (EW) should this use a handler to post at the end of the queue?
-                        onTransactionStarted.run();
-                    }
+                    chainRunTransactions(transaction,
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                    ? previousFragment.getEnterTransition()
+                                    : null, onTransactionStarted);
                 };
             }
         }
