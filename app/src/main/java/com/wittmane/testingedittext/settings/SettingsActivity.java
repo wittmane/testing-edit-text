@@ -70,6 +70,7 @@ import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.animation.ActivityAnimationTransition;
+import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.util.DrawableUtils;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
@@ -317,7 +318,7 @@ public class SettingsActivity extends PreferenceActivity
         return returnTransition;
     }
 
-    private void addFragment(Fragment f, Preference pref) {
+    private void addFragment(Fragment fragmentToAdd, Preference pref) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         String currentFragmentTag = mCurrentFragmentTag;
@@ -327,7 +328,7 @@ public class SettingsActivity extends PreferenceActivity
                 currentFragment.setExitTransition(fragmentOpenExitTransition());
             }
         }
-        boolean addToBackStack = false;
+        boolean addToBackStack;
         if (pref != null) {
             if (pref.getTitleRes() != 0) {
                 transaction.setBreadCrumbTitle(pref.getTitleRes());
@@ -341,80 +342,95 @@ public class SettingsActivity extends PreferenceActivity
                     ? FragmentTransaction.TRANSIT_FRAGMENT_OPEN
                     : FragmentTransaction.TRANSIT_FRAGMENT_FADE);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                f.setEnterTransition(fragmentOpenEnterTransition());
+                fragmentToAdd.setEnterTransition(fragmentOpenEnterTransition());
             }
             transaction.addToBackStack(null);
             addToBackStack = true;
+        } else {
+            addToBackStack = false;
         }
-        FragmentTransaction hideCurrent = null;
+        Consumer<Runnable> hideCurrent = null;
+        Runnable navigateForward;
         if (shouldManageHidingFragments()) {
             if (currentFragment != null && !currentFragment.isHidden()) {
-                // this needs to be part of a separate transaction for some reason or else we
-                // can't show it behind the soon-to-be current fragment later for predictive
-                // back
+                // this needs to be part of a separate transaction for some reason or else we can't
+                // show it behind the soon-to-be current fragment later for predictive back
+                hideCurrent = (onTransactionStarted) -> {
+                    if (LOG_FRAGMENT_CHANGES) {
+                        Log.d(TAG, "Fragment change: hide " + currentFragment
+                                + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                ? (", transition=" + currentFragment.getExitTransition())
+                                : ""));
+                    }
+                    FragmentTransaction hideCurrentTransaction =
+                            getFragmentManager().beginTransaction().hide(currentFragment);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        hideCurrentTransaction.commitNow();
+                    } else {
+                        hideCurrentTransaction.commit();
+                        // theoretically this has the side effect of committing all currently
+                        // pending transactions, but I don't think there should be any others at
+                        // this time, so it should be fine
+                        getFragmentManager().executePendingTransactions();
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                            && currentFragment.getExitTransition() != null) {
+                        // the framework doesn't seem to handle committing concurrent fragments
+                        // well. the transition on the second doesn't always run. to resolve this,
+                        // we'll run the first immediately and wait for it to start the transition,
+                        // at which point it should be safe to commit the next transaction. the
+                        // transitions might be out of sync by a few milliseconds, but they
+                        // shouldn't be intrinsically tied to each other, so that should be fine.
+                        // they'll still mostly be running at the same time, so it probably won't be
+                        // very noticeable.
+                        runOnTransitionStart(currentFragment.getExitTransition(), () -> {
+                            if (SettingsActivity.this.isDestroyed()) {
+                                return;
+                            }
+                            if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
+                                // we're not at the same position that we were when trying to add
+                                // the new fragment (the user probably navigate back), so abandon
+                                // navigating to the specified fragment
+                                return;
+                            }
+                            onTransactionStarted.run();
+                        });
+                    } else {
+                        //TODO: (EW) should this use a handler to post at the end of the queue?
+                        onTransactionStarted.run();
+                    }
+                };
+            }
+            navigateForward = () -> {
                 if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: hide " + currentFragment
+                    Log.d(TAG, "Fragment change: add " + fragmentToAdd
+                            + (addToBackStack ? ", adding to back stack" : "")
                             + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                    ? (", transition=" + currentFragment.getExitTransition())
-                                    : ""));
-                }
-                hideCurrent = getFragmentManager().beginTransaction().hide(currentFragment);
-            }
-            if (LOG_FRAGMENT_CHANGES) {
-                Log.d(TAG, "Fragment change: add " + f
-                        + (addToBackStack ? ", adding to back stack" : "")
-                        + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                ? (", transition=" + f.getEnterTransition())
-                                : ""));
-            }
-            transaction.add(android.R.id.content, f, nextFragmentTag);
-        } else {
-            if (LOG_FRAGMENT_CHANGES) {
-                Log.d(TAG, "Fragment change: replace with " + f
-                        + (addToBackStack ? ", adding to back stack" : "")
-                        + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                ? (", transition=" + f.getEnterTransition())
-                                : ""));
-            }
-            transaction.replace(android.R.id.content, f, nextFragmentTag);
-        }
-        if (hideCurrent != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                && currentFragment.getExitTransition() != null) {
-            // the framework doesn't seem to handle committing concurrent fragments well. the
-            // transition on the second doesn't always run. to resolve this, we'll run the first
-            // immediately and wait for it to start the transition, at which point it should be safe
-            // to commit the next transaction. the transitions might be out of sync by a few
-            // milliseconds, but they shouldn't be intrinsically tied to each other, so that should
-            // be fine. they'll still mostly be running at the same time, so it probably won't be
-            // very noticeable.
-            runOnTransitionStart(currentFragment.getExitTransition(), () -> {
-                if (SettingsActivity.this.isDestroyed()) {
-                    return;
-                }
-                if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
-                    // we're not at the same position that we were when trying to add the new
-                    // fragment (the user probably navigate back), so abandon navigating to the
-                    // specified fragment
-                    return;
+                            ? (", transition=" + fragmentToAdd.getEnterTransition())
+                            : ""));
                 }
                 setCurrentFragmentTag(nextFragmentTag);
+                transaction.add(android.R.id.content, fragmentToAdd, nextFragmentTag);
                 transaction.commit();
-            });
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                hideCurrent.commitNow();
-            } else {
-                hideCurrent.commit();
-                // theoretically this has the side effect of committing all currently pending
-                // transactions, but I don't think there should be any others at this time, so
-                // it should be fine
-                getFragmentManager().executePendingTransactions();
-            }
+            };
         } else {
-            if (hideCurrent != null) {
-                hideCurrent.commit();
-            }
-            setCurrentFragmentTag(nextFragmentTag);
-            transaction.commit();
+            navigateForward = () -> {
+                if (LOG_FRAGMENT_CHANGES) {
+                    Log.d(TAG, "Fragment change: replace with " + fragmentToAdd
+                            + (addToBackStack ? ", adding to back stack" : "")
+                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                            ? (", transition=" + fragmentToAdd.getEnterTransition())
+                            : ""));
+                }
+                setCurrentFragmentTag(nextFragmentTag);
+                transaction.replace(android.R.id.content, fragmentToAdd, nextFragmentTag);
+                transaction.commit();
+            };
+        }
+        if (hideCurrent != null) {
+            hideCurrent.accept(navigateForward);
+        } else {
+            navigateForward.run();
         }
     }
 
@@ -578,10 +594,12 @@ public class SettingsActivity extends PreferenceActivity
     @SuppressLint("GestureBackNavigation")
     @Override
     public void onBackPressed() {
+        Consumer<Runnable> showPrevious = null;
         if (shouldManageHidingFragments()
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                         || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
             Fragment currentFragment = getCurrentFragment();
+            String currentFragmentTag = mCurrentFragmentTag;
             if (currentFragment != null && !useDefaultTransitions()) {
                 currentFragment.setReturnTransition(fragmentCloseExitTransition());
             }
@@ -595,58 +613,77 @@ public class SettingsActivity extends PreferenceActivity
                         && !useDefaultTransitions()) {
                     previousFragment.setEnterTransition(fragmentCloseEnterTransition());
                 }
-                if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: show " + previousFragment
-                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                    ? (", transition=" + previousFragment.getEnterTransition())
-                                    : ""));
-                }
-                // note that for some reason on Nougat only, showing the fragment doesn't trigger
-                // the enter transition. the transition based on the stock emulator is basically
-                // just to appear, so most, if not all, devices probably won't look significantly
-                // different from having it without a transition even if we could figure out a
-                // workaround. also, this is behind the current fragment, so that makes it even less
-                // visible. this seems to just be a framework bug in a single old version of
-                // android, so it's probably not worth putting in more time to trying to find the
-                // core issue and seeing if there is any workaround we can do (which there very well
-                // may not be).
-                FragmentTransaction transaction = getFragmentManager().beginTransaction()
-                        .show(previousFragment);
-                // run the transaction immediately to prevent it from this is blocking the current
-                // fragment's exit transition
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    transaction.commitNow();
-                } else {
-                    transaction.commit();
-                    // theoretically this has the side effect of committing all currently pending
-                    // transactions, but I don't think there should be any others at this time, so
-                    // it should be fine
-                    getFragmentManager().executePendingTransactions();
-                }
+
+                showPrevious = (onTransactionStarted) -> {
+                    if (LOG_FRAGMENT_CHANGES) {
+                        Log.d(TAG, "Fragment change: show " + previousFragment
+                                + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                ? (", transition=" + previousFragment.getEnterTransition())
+                                : ""));
+                    }
+                    // note that for some reason on Nougat only, showing the fragment doesn't
+                    // trigger the enter transition. the transition based on the stock emulator is
+                    // basically just to appear, so most, if not all, devices probably won't look
+                    // significantly different from having it without a transition even if we could
+                    // figure out a workaround. also, this is behind the current fragment, so that
+                    // makes it even less visible. this seems to just be a framework bug in a single
+                    // old version of android, so it's probably not worth putting in more time to
+                    // trying to find the core issue and seeing if there is any workaround we can do
+                    // (which there very well may not be).
+                    FragmentTransaction transaction = getFragmentManager().beginTransaction()
+                            .show(previousFragment);
+                    // run the transaction immediately to prevent it from this is blocking the
+                    // current fragment's exit transition
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        transaction.commitNow();
+                    } else {
+                        transaction.commit();
+                        // theoretically this has the side effect of committing all currently
+                        // pending transactions, but I don't think there should be any others at
+                        // this time, so it should be fine
+                        getFragmentManager().executePendingTransactions();
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                            && previousFragment.getEnterTransition() != null) {
+                        // triggering both transactions at the same time ends up losing the exit
+                        // transition, so we need to trigger the second transaction to after the
+                        // first starts
+                        runOnTransitionStart(previousFragment.getEnterTransition(), () -> {
+                            if (SettingsActivity.this.isDestroyed()) {
+                                return;
+                            }
+                            if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
+                                // we're not at the same position that we were when trying to add
+                                // the new fragment (the user probably navigate back), so abandon
+                                // navigating to the specified fragment
+                                return;
+                            }
+                            onTransactionStarted.run();
+                        });
+                    } else {
+                        //TODO: (EW) should this use a handler to post at the end of the queue?
+                        onTransactionStarted.run();
+                    }
+                };
             }
         }
-        if (LOG_FRAGMENT_CHANGES) {
-            Fragment currentFragment = getCurrentFragment();
-            Log.d(TAG, "Fragment change: pop from back stack " + currentFragment
-                    + ((currentFragment != null
-                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                                    ? (", transition=" + currentFragment.getReturnTransition())
-                                    : ""));
-        }
-        // triggering both transactions at the same time ends up losing the exit transition, so add
-        // this to the queue separately
-        //TODO: (EW) I haven't seen issues with this on any version, but I'm not certain if this is
-        // entirely safe (maybe timing issues just haven't been seen but could happen). consider
-        // adding a specific listener for when it is safe to run, such as the transition listener as
-        // we do in #addFragment
-        Handler handler = new Handler();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
-                SettingsActivity.super.onBackPressed();
+        Runnable navigateBack = () -> {
+            if (LOG_FRAGMENT_CHANGES) {
+                Fragment currentFragment = getCurrentFragment();
+                Log.d(TAG, "Fragment change: pop from back stack " + currentFragment
+                        + ((currentFragment != null
+                        && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                        ? (", transition=" + currentFragment.getReturnTransition())
+                        : ""));
             }
-        });
+            setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
+            SettingsActivity.super.onBackPressed();
+        };
+        if (showPrevious != null) {
+            showPrevious.accept(navigateBack);
+        } else {
+            navigateBack.run();
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
