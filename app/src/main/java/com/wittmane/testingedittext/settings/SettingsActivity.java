@@ -223,7 +223,8 @@ public class SettingsActivity extends PreferenceActivity
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Transition fragmentOpenEnterTransition() {
         Transition enterTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
             // have the new fragment slide in to pair with the predictive back animation (slide out)
             enterTransition = new Slide(Gravity.END);
         } else {
@@ -299,7 +300,8 @@ public class SettingsActivity extends PreferenceActivity
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Transition fragmentCloseExitTransition() {
         Transition returnTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
             returnTransition = new Slide(Gravity.END);
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
             // in Lollipop BackStackRecord makes an incorrect assumption that if there is any

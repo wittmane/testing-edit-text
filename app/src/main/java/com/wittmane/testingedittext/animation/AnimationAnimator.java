@@ -22,6 +22,7 @@ import android.animation.Animator;
 import android.animation.TimeInterpolator;
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
@@ -152,7 +153,26 @@ public class AnimationAnimator extends Animator {
                         return;
                     }
                     resetState();
-                    notifyListener(AnimatorListener::onAnimationEnd);
+                    // at least in some cases when there are multiple animations running at the same
+                    // time, the animations are placed on some OverlayViewGroup, and this gets called
+                    // from within that group's draw loop for its children. calling onAnimationEnd
+                    // will remove this view from the group, so if this view isn't the last child,
+                    // the loop won't find a child in the last index (since the other views will
+                    // shift indices), and the framework doesn't handle that gracefully, so it would
+                    // result in null pointer exception. to avoid the removal breaking things, queue
+                    // up onAnimationEnd to get called after we're out of that loop.
+                    Handler handler = mView.getHandler();
+                    if (handler != null) {
+                        handler.post(() -> {
+                            notifyListener(AnimatorListener::onAnimationEnd);
+                        });
+                    } else {
+                        // the view probably is orphaned at this point, so the listener probably
+                        // doesn't matter, but this probably also means we're not in the problematic
+                        // loop, so calling the listener is probably fine, so just do that for
+                        // completeness
+                        notifyListener(AnimatorListener::onAnimationEnd);
+                    }
                 }
             }
 
@@ -219,7 +239,7 @@ public class AnimationAnimator extends Animator {
 
     @Override
     public synchronized void cancel() {
-        if (!isStarted()) {
+        if (!isStarted() || mAnimationSet == null) {
             return;
         }
         if (!mIsRunning) {
