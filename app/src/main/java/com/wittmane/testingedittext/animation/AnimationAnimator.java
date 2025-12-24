@@ -78,6 +78,7 @@ public class AnimationAnimator extends Animator {
 
     private final View mView;
     private final Supplier<Animation> mAnimationCreator;
+    private final boolean mEndAnimationOnPause;
     private Interpolator mInterpolator;
     private EnhancedAnimationSet mAnimationSet;
 
@@ -88,13 +89,17 @@ public class AnimationAnimator extends Animator {
     private boolean mIsStarted = false;
     private boolean mIsRunning = false;
 
-    public AnimationAnimator(View view, Context context, int animationResId) {
-        this(view, () -> AnimationUtils.loadAnimation(context, animationResId));
+    public AnimationAnimator(View view, Context context, int animationResId,
+                             boolean endAnimationOnPause) {
+        this(view, () -> AnimationUtils.loadAnimation(context, animationResId),
+                endAnimationOnPause);
     }
 
-    public AnimationAnimator(View view, Supplier<Animation> animationCreator) {
-        this.mView = view;
-        this.mAnimationCreator = animationCreator;
+    public AnimationAnimator(View view, Supplier<Animation> animationCreator,
+                             boolean endAnimationOnPause) {
+        mView = view;
+        mAnimationCreator = animationCreator;
+        mEndAnimationOnPause = endAnimationOnPause;
 
         // load default duration from the animation
         Animation animation = mAnimationCreator.get();
@@ -150,6 +155,10 @@ public class AnimationAnimator extends Animator {
                     if (!isStarted()) {
                         // this shouldn't happen. if we haven't even started or already canceled or
                         // finished, there shouldn't be anything to end.
+                        return;
+                    }
+                    if (mEndAnimationOnPause && mAnimationSet.isTempEnded()) {
+                        // ignore the internal animation ending since it ended for a pause
                         return;
                     }
                     resetState();
@@ -224,7 +233,12 @@ public class AnimationAnimator extends Animator {
         if (!isStarted() || isPaused() || mAnimationSet == null) {
             return;
         }
-        mAnimationSet.pause();
+        if (mEndAnimationOnPause) {
+            mAnimationSet.tempEnd();
+            mView.clearAnimation();
+        } else {
+            mAnimationSet.pause();
+        }
         super.pause();
     }
 
@@ -233,7 +247,12 @@ public class AnimationAnimator extends Animator {
         if (!isStarted() || !isPaused() || mAnimationSet == null) {
             return;
         }
-        mAnimationSet.resume();
+        if (mEndAnimationOnPause) {
+            mView.startAnimation(mAnimationSet);
+            mAnimationSet.resumeFromTempEnd();
+        } else {
+            mAnimationSet.resume();
+        }
         super.resume();
     }
 

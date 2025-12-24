@@ -48,13 +48,28 @@ public class EnhancedAnimationSet extends AnimationSet {
     private long mStartDelay;
     private long mClippedDuration = -1;
     private AnimationUpdateListener mAnimationUpdateListener;
+    private boolean mIsTempEnded;
 
     public EnhancedAnimationSet() {
         super(false);
     }
 
     @Override
+    public void setStartTime(long startTimeMillis) {
+        if (mIsTempEnded) {
+            // ignore updates to the start time to retain previous state for when this gets
+            // restarted
+            return;
+        }
+        super.setStartTime(startTimeMillis);
+    }
+
+    @Override
     public void reset() {
+        if (mIsTempEnded) {
+            // ignore to retain previous state for when this gets restarted
+            return;
+        }
         super.reset();
         mAnimationSetStartTime = Animation.START_ON_FIRST_FRAME;
         mMaxPrevChildTime = 0;
@@ -87,14 +102,10 @@ public class EnhancedAnimationSet extends AnimationSet {
         if (mMostRecentActiveTime == 0 || !isPaused()) {
             mMostRecentActiveTime = currentTime;
         }
-        long elapsedTime = Math.min(
-                mMostRecentActiveTime - mAnimationSetStartTime - mPreviousPausedTime,
-                mClippedDuration >= 0
-                        ? mClippedDuration
-                        : Long.MAX_VALUE);
+        long elapsedTime = getElapsedTime();
         long childElapsedTime = Math.max(0, elapsedTime - mStartDelay);
         boolean isAnimationStillRunning;
-        if (mIsCancelingInPlace) {
+        if (mIsCancelingInPlace || mIsTempEnded) {
             // just use the last transform since the canceled children will try to move the state to
             // the end of the animation
             outTransformation.set(mLastTransformation);
@@ -148,6 +159,14 @@ public class EnhancedAnimationSet extends AnimationSet {
         return isAnimationStillRunning;
     }
 
+    public long getElapsedTime() {
+        return Math.max(0, Math.min(
+                mMostRecentActiveTime - mAnimationSetStartTime - mPreviousPausedTime,
+                mClippedDuration >= 0
+                        ? mClippedDuration
+                        : Long.MAX_VALUE));
+    }
+
     public void pause() {
         if (isPaused()) {
             return;
@@ -165,6 +184,26 @@ public class EnhancedAnimationSet extends AnimationSet {
 
     public boolean isPaused() {
         return mPauseStartTime > 0;
+    }
+
+    /* package */ void tempEnd() {
+        if (mIsTempEnded) {
+            return;
+        }
+        mIsTempEnded = true;
+        pause();
+    }
+
+    /* package */ void resumeFromTempEnd() {
+        if (!mIsTempEnded) {
+            return;
+        }
+        mIsTempEnded = false;
+        resume();
+    }
+
+    /* package */ boolean isTempEnded() {
+        return mIsTempEnded;
     }
 
     public void cancelInPlace() {
