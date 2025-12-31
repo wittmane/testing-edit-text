@@ -207,6 +207,17 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public boolean onPreferenceStartFragment(PreferenceFragment caller, Preference pref) {
+        if (caller != getCurrentFragment()) {
+            // this is probably from a user clicking on a preference to navigate into a child screen
+            // after already clicking to navigate away from the current screen, so we shouldn't
+            // process this or else the preference screen navigation stack will be messed up
+            // (navigating back will result in returning to the same screen, a sibling screen, or
+            // the grandparent screen).
+            Log.w(TAG, "Skipping " + pref + " click from " + caller
+                    + " since it isn't the current fragment anymore");
+            return false;
+        }
+
         // (EW) based on PreferenceActivity#onPreferenceStartFragment and
         // PreferenceActivity#startPreferencePanel
 
