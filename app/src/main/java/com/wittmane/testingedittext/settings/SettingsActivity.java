@@ -445,9 +445,11 @@ public class SettingsActivity extends PreferenceActivity
                     // specified fragment
                     return;
                 }
-                chainedAction.run();
+                if (chainedAction != null) {
+                    chainedAction.run();
+                }
             });
-        } else {
+        } else if (chainedAction != null) {
             chainedAction.run();
         }
     }
@@ -585,8 +587,8 @@ public class SettingsActivity extends PreferenceActivity
             // standard back handling is only going to process undoing adding the current fragment
             // since that is all that was included as part of the back stack. then immediately
             // trigger the back invoked handling (remove the current fragment).
-            onBackCallback.onBackStarted(isImmediatelyAddingNewFragment);
-            onBackCallback.onBackInvoked(isImmediatelyAddingNewFragment);
+            onBackCallback.onBackStarted(isImmediatelyAddingNewFragment,
+                    () -> onBackCallback.onBackInvoked(isImmediatelyAddingNewFragment));
         } else {
             onBackPressed();
         }
@@ -667,6 +669,7 @@ public class SettingsActivity extends PreferenceActivity
             }
             setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
             SettingsActivity.super.onBackPressed();
+            invalidateOptionsMenu();
         };
         if (showPrevious != null) {
             showPrevious.accept(navigateBack);
@@ -681,7 +684,6 @@ public class SettingsActivity extends PreferenceActivity
         @Override
         public void onBackInvoked() {
             onBackPressed();
-            Log.d(TAG, "onBackInvoked: updateBackCallbackRegistrationState");
             updateBackCallbackRegistrationState();
             invalidateOptionsMenu();
         }
@@ -703,10 +705,10 @@ public class SettingsActivity extends PreferenceActivity
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
-            onBackStarted(false);
+            onBackStarted(false, null);
         }
 
-        public void onBackStarted(boolean skipShowingPrevious) {
+        public void onBackStarted(boolean skipShowingPrevious, Runnable afterBackStarted) {
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment == null) {
                 return;
@@ -784,23 +786,27 @@ public class SettingsActivity extends PreferenceActivity
             }
 
             // unhide the previous fragment
+            Consumer<Runnable> showPrevious = null;
             Fragment previousFragment = getPreviousFragment(currentFragment);
             if (previousFragment != null && previousFragment.isHidden() && !skipShowingPrevious) {
                 mPreviousFragment = previousFragment;
-                // clear the previous enter transition (slide in) so the current fragment can just
-                // slide out to reveal this fragment behind it. ideally, a separate reenter
-                // transition would be used, but since the hiding/unhiding has to be managed
-                // separate from the back stack, the framework will just reuse the enter transition
-                // that isn't appropriate here.
-                mPreviousFragment.setEnterTransition(null);
+                showPrevious = (onTransactionStarted) -> {
+                    mPreviousFragment.setEnterTransition(fragmentCloseEnterTransition());
 
-                if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: show " + mPreviousFragment
-                            + ", transition=" + mPreviousFragment.getEnterTransition());
-                }
-                getFragmentManager().beginTransaction()
-                        .show(mPreviousFragment)
-                        .commit();
+                    if (LOG_FRAGMENT_CHANGES) {
+                        Log.d(TAG, "Fragment change: show " + mPreviousFragment
+                                + ", transition=" + mPreviousFragment.getEnterTransition());
+                    }
+                    FragmentTransaction transaction = getFragmentManager().beginTransaction()
+                            .show(mPreviousFragment);
+                    chainRunTransactions(transaction,
+                            previousFragment.getEnterTransition(), onTransactionStarted);
+                };
+            }
+            if (showPrevious != null) {
+                showPrevious.accept(afterBackStarted);
+            } else if (afterBackStarted != null) {
+                afterBackStarted.run();
             }
         }
 
