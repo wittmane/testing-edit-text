@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  * Copyright 2019 The Android Open Source Project
  * Copyright (C) 2007 The Android Open Source Project
  *
@@ -418,15 +418,6 @@ public class SettingsActivity extends PreferenceActivity
     private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
                                       Runnable chainedAction) {
         String currentFragmentTag = mCurrentFragmentTag;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            transaction.commitNow();
-        } else {
-            transaction.commit();
-            // theoretically this has the side effect of committing all currently pending
-            // transactions, but I don't think there should be any others at this time, so it should
-            // be fine
-            getFragmentManager().executePendingTransactions();
-        }
         if (transition != null) {
             // the framework doesn't seem to handle committing concurrent fragments well. the
             // transition on the second doesn't always run. to resolve this, we'll run the first
@@ -435,6 +426,11 @@ public class SettingsActivity extends PreferenceActivity
             // milliseconds, but they shouldn't be intrinsically tied to each other, so that should
             // be fine. they'll still mostly be running at the same time, so it probably won't be
             // very noticeable.
+            // for some reason the transition listener needs to be added before running committing
+            // the transaction. it's not that the listener would get called before we have time.
+            // simply adding a dummy listener here and adding the real one after committing the
+            // transaction works fine. the framework must be doing something weird with the list of
+            // listeners.
             runOnTransitionStart(transition, () -> {
                 if (SettingsActivity.this.isDestroyed()) {
                     return;
@@ -449,7 +445,17 @@ public class SettingsActivity extends PreferenceActivity
                     chainedAction.run();
                 }
             });
-        } else if (chainedAction != null) {
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            transaction.commitNow();
+        } else {
+            transaction.commit();
+            // theoretically this has the side effect of committing all currently pending
+            // transactions, but I don't think there should be any others at this time, so it should
+            // be fine
+            getFragmentManager().executePendingTransactions();
+        }
+        if (transition == null && chainedAction != null) {
             chainedAction.run();
         }
     }
