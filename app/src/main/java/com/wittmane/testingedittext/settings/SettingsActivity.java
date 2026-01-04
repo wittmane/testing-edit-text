@@ -101,6 +101,7 @@ public class SettingsActivity extends PreferenceActivity
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
     private static final boolean LOG_FRAGMENT_CHANGES = true;//TODO: (EW) disable
+    private static final boolean LOG_TRANSITION_EVENTS = false;
     // this value was determined by measuring the default duration of the transitions (both fragment
     // transitions with default values and the activity back transition) measuring wasn't super
     // precise, so a nice round number that was close was picked.
@@ -468,13 +469,50 @@ public class SettingsActivity extends PreferenceActivity
         return -1;
     }
 
+    private void addTransitionLoggingListener(Transition transition, String transitionIdentifier) {
+        if (transition == null) {
+            return;
+        }
+        transition.addListener(new TransitionListener() {
+            @Override
+            public void onTransitionCancel(Transition transition) {
+                Log.d(TAG, "onTransitionCancel: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionEnd(Transition transition) {
+                Log.d(TAG, "onTransitionEnd: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionPause(Transition transition) {
+                Log.d(TAG, "onTransitionPause: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionResume(Transition transition) {
+                Log.d(TAG, "onTransitionResume: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionStart(Transition transition) {
+                Log.d(TAG, "onTransitionStart: " + transitionIdentifier);
+            }
+        });
+    }
+
     private void addFragment(Fragment fragmentToAdd, Preference pref) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         String nextFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                currentFragment.setExitTransition(fragmentOpenExitTransition());
+                Transition openExitTransition = fragmentOpenExitTransition();
+                currentFragment.setExitTransition(openExitTransition);
+                if (LOG_TRANSITION_EVENTS) {
+                    addTransitionLoggingListener(openExitTransition,
+                            mCurrentFragmentTag + " exit (openExit)");
+                }
             }
         }
         boolean addToBackStack;
@@ -491,7 +529,12 @@ public class SettingsActivity extends PreferenceActivity
                     ? FragmentTransaction.TRANSIT_FRAGMENT_OPEN
                     : FragmentTransaction.TRANSIT_FRAGMENT_FADE);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                fragmentToAdd.setEnterTransition(fragmentOpenEnterTransition());
+                Transition openEnterTransition = fragmentOpenEnterTransition();
+                fragmentToAdd.setEnterTransition(openEnterTransition);
+                if (LOG_TRANSITION_EVENTS) {
+                    addTransitionLoggingListener(openEnterTransition,
+                            nextFragmentTag + " enter (openEnter)");
+                }
             }
             transaction.addToBackStack(null);
             addToBackStack = true;
@@ -763,7 +806,12 @@ public class SettingsActivity extends PreferenceActivity
                         || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment != null && !useDefaultTransitions()) {
-                currentFragment.setReturnTransition(fragmentCloseExitTransition());
+                Transition closeExitTransition = fragmentCloseExitTransition();
+                currentFragment.setReturnTransition(closeExitTransition);
+                if (LOG_TRANSITION_EVENTS) {
+                    addTransitionLoggingListener(closeExitTransition,
+                            currentFragment.getTag() + " return (closeExit)");
+                }
             }
             // unhide the previous fragment (not necessary for the animated callback since that is
             // already done as part of the animation)
@@ -773,7 +821,12 @@ public class SettingsActivity extends PreferenceActivity
             if (previousFragment != null && previousFragment.isHidden()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         && !useDefaultTransitions()) {
-                    previousFragment.setEnterTransition(fragmentCloseEnterTransition());
+                    Transition closeEnterTransition = fragmentCloseEnterTransition();
+                    previousFragment.setEnterTransition(closeEnterTransition);
+                    if (LOG_TRANSITION_EVENTS) {
+                        addTransitionLoggingListener(closeEnterTransition,
+                                previousFragment.getTag() + " enter (closeEnter)");
+                    }
                 }
 
                 showPrevious = (onTransactionStarted) -> {
@@ -857,7 +910,12 @@ public class SettingsActivity extends PreferenceActivity
                 return;
             }
 
-            currentFragment.setReturnTransition(fragmentCloseExitTransition());
+            Transition closeExitTransition = fragmentCloseExitTransition();
+            currentFragment.setReturnTransition(closeExitTransition);
+            if (LOG_TRANSITION_EVENTS) {
+                addTransitionLoggingListener(closeExitTransition,
+                        currentFragment.getTag() + " return (closeExit)");
+            }
 
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
@@ -936,9 +994,14 @@ public class SettingsActivity extends PreferenceActivity
                 showPrevious = (onTransactionStarted) -> {
                     // skip animating unhiding the previous fragment if we're only starting the back
                     // animation to immediately trigger completing the back action
-                    mPreviousFragment.setEnterTransition(afterBackStarted == null
+                    Transition closeEnterTransition = afterBackStarted == null
                             ? null
-                            : fragmentCloseEnterTransition());
+                            : fragmentCloseEnterTransition();
+                    mPreviousFragment.setEnterTransition(closeEnterTransition);
+                    if (LOG_TRANSITION_EVENTS) {
+                        addTransitionLoggingListener(closeEnterTransition,
+                                mPreviousFragment.getTag() + " enter (closeEnter)");
+                    }
 
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: show " + mPreviousFragment
