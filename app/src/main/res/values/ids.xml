@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2024 Eli Wittman
+<!-- Copyright (C) 2022-2026 Eli Wittman
      Copyright 2007, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,4 +30,6 @@
     <item type="id" name="action_popup_window_replace" />
     <item type="id" name="action_popup_window_paste_as_plain_text" />
     <item type="id" name="action_popup_window_share" />
+
+    <item type="id" name="transition_position" />
 </resources>

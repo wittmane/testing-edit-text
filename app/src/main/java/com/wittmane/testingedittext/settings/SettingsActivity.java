@@ -29,6 +29,7 @@ import android.app.FragmentTransaction;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -42,10 +43,11 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.text.TextUtils;
 import android.transition.Fade;
-import android.transition.Slide;
 import android.transition.Transition;
 import android.transition.Transition.TransitionListener;
 import android.transition.TransitionManager;
+import android.transition.TransitionSet;
+import android.transition.Visibility;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -58,6 +60,8 @@ import android.view.WindowInsets;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.Animation.AnimationListener;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
 import android.widget.LinearLayout;
 import android.window.BackEvent;
@@ -70,6 +74,7 @@ import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.animation.ActivityAnimationTransition;
+import com.wittmane.testingedittext.animation.PartialSlide;
 import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.util.DrawableUtils;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
@@ -96,11 +101,15 @@ public class SettingsActivity extends PreferenceActivity
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
     private static final boolean LOG_FRAGMENT_CHANGES = true;//TODO: (EW) disable
-    // use a consistent transition duration to keep all of the simultaneous transitions in sync.
     // this value was determined by measuring the default duration of the transitions (both fragment
     // transitions with default values and the activity back transition) measuring wasn't super
     // precise, so a nice round number that was close was picked.
-    private static final int TRANSITION_DURATION = 300;
+    private static final int DEFAULT_TRANSITION_DURATION = 300;
+    // this could be used to have a consistent transition duration to keep all of the simultaneous
+    // transitions in sync. since all of the transitions have a specific duration set or came from a
+    // resource to match activity transitions, this isn't really needed anymore and now just serves
+    // a good way to easily slow down all transitions for debugging purposes.
+    private static final int TRANSITION_DURATION = -1;
     private static final int FRAGMENT_CLEANUP_TIMER_DELAY = 500;
     private static final int RUN_ON_TRANSITION_START_FALLBACK_DELAY = 250;
 
@@ -236,15 +245,31 @@ public class SettingsActivity extends PreferenceActivity
         Transition enterTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // have the new fragment slide in to pair with the predictive back animation (slide out)
-            enterTransition = new Slide(Gravity.END);
+            // have the new fragment slide in to pair with the predictive back animation (slide
+            // out). based on AOSP anim/activity_open_enter.xml (Android 16).
+            TransitionSet transitionSet = new TransitionSet();
+
+            Fade alpha = new Fade(Visibility.MODE_IN);
+            alpha.setInterpolator(new LinearInterpolator());
+            alpha.setStartDelay(50);
+            alpha.setDuration(83);
+            transitionSet.addTransition(alpha);
+
+            // Android 15 and 16 use 96dp, but Android 14 used 10%. that's similar enough, so we'll
+            // just go with the most recent version
+            PartialSlide translate = new PartialSlide(Gravity.END, 96, PartialSlide.DP);
+            translate.setDuration(450);
+            translate.setInterpolator(fastOutExtraSlowInInterpolator());
+            transitionSet.addTransition(translate);
+
+            enterTransition = transitionSet;
         } else {
             // have the new fragment transition match the system transition for navigating to a new
             // activity
             enterTransition = new ActivityAnimationTransition(this, true);
         }
         if (enterTransition != null && TRANSITION_DURATION >= 0) {
-            enterTransition.setDuration(TRANSITION_DURATION);
+            setTotalDuration(enterTransition, TRANSITION_DURATION);
         }
         return enterTransition;
     }
@@ -259,10 +284,12 @@ public class SettingsActivity extends PreferenceActivity
         Transition exitTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // have the current fragment fade out as the new fragment slides in. this is meant to be
-            // similar to the inverse dark overlay/shadow over the previous activity/fragment
-            // disappearing when completing a predictive back animation.
-            exitTransition = new Fade(Fade.MODE_OUT);
+            // based on AOSP anim/activity_open_exit.xml (Android 16). Android 15 and 16 use -96dp,
+            // but Android 14 used -10%. that's similar enough, so we'll just go with the most
+            // recent version.
+            exitTransition = new PartialSlide(Gravity.START, 96, PartialSlide.DP);
+            exitTransition.setDuration(450);
+            exitTransition.setInterpolator(fastOutExtraSlowInInterpolator());
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
             // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
             // transition, there must be an incoming fragment (ie it doesn't do a null check), so
@@ -274,7 +301,7 @@ public class SettingsActivity extends PreferenceActivity
             exitTransition = new ActivityAnimationTransition(this, false);
         }
         if (exitTransition != null && TRANSITION_DURATION >= 0) {
-            exitTransition.setDuration(TRANSITION_DURATION);
+            setTotalDuration(exitTransition, TRANSITION_DURATION);
         }
         return exitTransition;
     }
@@ -289,16 +316,19 @@ public class SettingsActivity extends PreferenceActivity
         Transition enterTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // fade in behind the current fragment sliding out, vaguely similar to the predictive
-            // back dark overlay fading out
-            enterTransition = new Fade(Fade.MODE_IN);
+            // based on AOSP anim/activity_close_enter.xml (Android 16). Android 15 and 16 use
+            // -96dp but Android 14 used -10%. that's similar enough, so we'll just go with the most
+            // recent version.
+            enterTransition = new PartialSlide(Gravity.START, 96, PartialSlide.DP);
+            enterTransition.setDuration(450);
+            enterTransition.setInterpolator(fastOutExtraSlowInInterpolator());
         } else {
             // have the new fragment transition match the system transition for returning to the
             // previous activity
             enterTransition = new ActivityAnimationTransition(this, false);
         }
         if (enterTransition != null && TRANSITION_DURATION >= 0) {
-            enterTransition.setDuration(TRANSITION_DURATION);
+            setTotalDuration(enterTransition, TRANSITION_DURATION);
         }
         return enterTransition;
     }
@@ -313,7 +343,23 @@ public class SettingsActivity extends PreferenceActivity
         Transition returnTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            returnTransition = new Slide(Gravity.END);
+            // based on AOSP anim/activity_close_exit.xml (Android 16)
+            TransitionSet transitionSet = new TransitionSet();
+
+            Fade alpha = new Fade(Visibility.MODE_OUT);
+            alpha.setInterpolator(new LinearInterpolator());
+            alpha.setStartDelay(35);
+            alpha.setDuration(83);
+            transitionSet.addTransition(alpha);
+
+            // Android 15 and 16 use 96dp but Android 14 used 10%. that's similar enough, so we'll
+            // just go with the most recent version
+            PartialSlide translate = new PartialSlide(Gravity.END, 96, PartialSlide.DP);
+            translate.setDuration(450);
+            translate.setInterpolator(fastOutExtraSlowInInterpolator());
+            transitionSet.addTransition(translate);
+
+            returnTransition = transitionSet;
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
             // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
             // transition, there must be an incoming fragment (ie doesn't do a null check), so
@@ -326,9 +372,100 @@ public class SettingsActivity extends PreferenceActivity
             returnTransition = new ActivityAnimationTransition(this, true);
         }
         if (returnTransition != null && TRANSITION_DURATION >= 0) {
-            returnTransition.setDuration(TRANSITION_DURATION);
+            setTotalDuration(returnTransition, TRANSITION_DURATION);
         }
         return returnTransition;
+    }
+
+    private static Interpolator fastOutExtraSlowInInterpolator() {
+        Path path = new Path();
+        path.cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f);
+        path.cubicTo(0.208333f, 0.82f, 0.25f, 1f, 1f, 1f);
+        return new PathInterpolator(path);
+    }
+
+    private static void setTotalDuration(Transition transition, long totalDuration) {
+        long originalTotalDuration = getTotalDuration(transition, true);
+        if (originalTotalDuration < 0) {
+            // we can't tell the exact duration, so assume no start delay and set the duration, even
+            // if that inappropriately evenly distributes to all children
+            Log.w(TAG, "Can't determine total duration for " + transition
+                    + ", so it can't be scaled properly");
+            transition.setStartDelay(0);
+            transition.setDuration(totalDuration);
+            return;
+        }
+
+        long startDelay = transition.getStartDelay();
+        long duration = transition.getDuration();
+        if (duration >= 0) {
+            if (startDelay < 0) {
+                // assume there should be no start delay and explicitly set that
+                Log.w(TAG, "Explicitly setting no start delay for " + transition);
+                transition.setStartDelay(0);
+            }
+            if (originalTotalDuration > 0) {
+                // scale the start delay and duration
+                transition.setDuration(totalDuration * duration / originalTotalDuration);
+                transition.setStartDelay(totalDuration - transition.getDuration());
+            } else {
+                // start delay and duration are both 0, so just set the duration and leave no start
+                // delay
+                transition.setDuration(totalDuration);
+            }
+        } else if (transition instanceof TransitionSet) {
+            long newDuration;
+            if (startDelay > 0) {
+                // scale the start delay and duration
+                newDuration = totalDuration * (originalTotalDuration - startDelay)
+                        / originalTotalDuration;
+            } else {
+                // start delay and duration are both 0, so just set the duration and leave no start
+                // delay
+                newDuration = totalDuration;
+            }
+            transition.setStartDelay(totalDuration - newDuration);
+            TransitionSet transitionSet = (TransitionSet) transition;
+            long originalMaxChildTotalDuration =
+                    originalTotalDuration - (startDelay >= 0 ? startDelay : 0);
+            for (int i = 0; i < transitionSet.getTransitionCount(); i++) {
+                Transition childTransition = transitionSet.getTransitionAt(i);
+                long childTotalDuration = getTotalDuration(childTransition, true);
+                setTotalDuration(childTransition,
+                        newDuration * childTotalDuration
+                                / originalMaxChildTotalDuration);
+            }
+        }
+    }
+
+    private static long getTotalDuration(Transition transition, boolean assumeZeroStartOffsets) {
+        long startDelay = transition.getStartDelay();
+        long duration = transition.getDuration();
+        if (duration >= 0) {
+            if (startDelay >= 0) {
+                return startDelay + duration;
+            }
+            if (assumeZeroStartOffsets) {
+                return duration;
+            }
+        }
+        if (transition instanceof TransitionSet) {
+            TransitionSet transitionSet = (TransitionSet) transition;
+            long maxTotalDuration = 0;
+            for (int i = 0; i < transitionSet.getTransitionCount(); i++) {
+                Transition childTransition = transitionSet.getTransitionAt(i);
+                long totalDuration = getTotalDuration(childTransition, assumeZeroStartOffsets);
+                if (totalDuration < 0) {
+                    return -1;
+                }
+                if (totalDuration > maxTotalDuration) {
+                    maxTotalDuration = totalDuration;
+                }
+            }
+            return (startDelay >= 0 ? startDelay : 0) + maxTotalDuration;
+        }
+        // duration comes from animator, so we can't cleanly get that
+        return -1;
     }
 
     private void addFragment(Fragment fragmentToAdd, Preference pref) {
@@ -797,7 +934,11 @@ public class SettingsActivity extends PreferenceActivity
             if (previousFragment != null && previousFragment.isHidden() && !skipShowingPrevious) {
                 mPreviousFragment = previousFragment;
                 showPrevious = (onTransactionStarted) -> {
-                    mPreviousFragment.setEnterTransition(fragmentCloseEnterTransition());
+                    // skip animating unhiding the previous fragment if we're only starting the back
+                    // animation to immediately trigger completing the back action
+                    mPreviousFragment.setEnterTransition(afterBackStarted == null
+                            ? null
+                            : fragmentCloseEnterTransition());
 
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: show " + mPreviousFragment
@@ -961,10 +1102,20 @@ public class SettingsActivity extends PreferenceActivity
                 } else {
                     // have the dark overlay fade out before removing it (basically fading in the
                     // previous fragment as it becomes the current again while the current slides
-                    // out to be removed)
+                    // out to be removed). since the current fades as it slides out, the overlay
+                    // should disappear a bit before the current fragment's transition completes.
                     Animation animation = new AlphaAnimation(1f, 0f);
-                    if (TRANSITION_DURATION >= 0) {
-                        animation.setDuration(TRANSITION_DURATION);
+                    Fragment currentFragment = getCurrentFragment();
+                    Transition currentFragmentTransition = currentFragment != null
+                            ? currentFragment.getReturnTransition()
+                            : null;
+                    long duration = currentFragmentTransition != null
+                            ? getTotalDuration(currentFragmentTransition, true)
+                            : 0;
+                    if (duration >= 0) {
+                        animation.setDuration(duration / 2);
+                    } else {
+                        animation.setDuration(DEFAULT_TRANSITION_DURATION / 2);
                     }
                     final View darkOverlay = mDarkOverlay;
                     animation.setAnimationListener(new AnimationListener() {
@@ -994,9 +1145,9 @@ public class SettingsActivity extends PreferenceActivity
                 Fragment currentFragment = getCurrentFragment();
                 if (currentFragment != null) {
                     // since this back is only a transient state (ideally not visible to the user),
-                    // just use the fade out transition as the new fragment slides in over it
-                    // (instead of this fragment sliding out from a normal back action)
-                    currentFragment.setReturnTransition(fragmentOpenExitTransition());
+                    // just skip the transition as the new fragment slides in over it (instead of
+                    // this fragment sliding out from a normal back action)
+                    currentFragment.setReturnTransition(null);
                 }
             }
             super.onBackInvoked();
