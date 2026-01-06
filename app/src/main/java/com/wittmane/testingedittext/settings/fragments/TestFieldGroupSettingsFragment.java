@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -95,7 +95,8 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             menu.removeItem(R.id.action_remove_group);
         }
 
-        if (Settings.getTestFieldCount(getGroupIndex()) < 2) {
+        if (getGroupIndex() >= Settings.getTestFieldGroupCount()
+                || Settings.getTestFieldCount(getGroupIndex()) < 2) {
             menu.removeItem(R.id.action_reorder_fields);
         }
     }
