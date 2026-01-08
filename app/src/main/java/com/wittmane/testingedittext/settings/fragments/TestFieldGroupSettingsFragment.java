@@ -111,12 +111,13 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             // exit this group and add the group list to the back stack (since that was skipped due
             // to having a single group) before opening the new group so backing out of the new
             // group goes to the group list, rather than this other group
-            navigateBack(true);
-            Preference groupListPref = new Preference(getActivity());
-            groupListPref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
-            launchPrefFragment(groupListPref);
-
-            openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
+            navigateBack(true, () -> {
+                Preference groupListPref = new Preference(getActivity());
+                groupListPref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
+                launchPrefFragment(groupListPref, () -> {
+                    openGroupPreference(this, Settings.getTestFieldGroupCount() - 1, true);
+                }, true);
+            });
         } else if (itemId == R.id.action_add_field) {
             int groupIndex = getGroupIndex();
             // add a preference for a new field

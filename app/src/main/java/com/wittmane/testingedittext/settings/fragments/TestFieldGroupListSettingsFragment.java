@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -96,14 +96,19 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     }
 
     static void openGroupPreference(SettingsFragment currentFragment, int groupIndex) {
-        IndividualTestFieldGroupPreference pref =
-                new IndividualTestFieldGroupPreference(currentFragment.getActivity(), groupIndex);
+        openGroupPreference(currentFragment, groupIndex, false);
+    }
+
+    static void openGroupPreference(SettingsFragment currentFragment, int groupIndex,
+                                    boolean allowPendedAction) {
+        IndividualTestFieldGroupPreference pref = new IndividualTestFieldGroupPreference(
+                currentFragment.getLatestActivity(), groupIndex);
         if (!(currentFragment instanceof TestFieldGroupListSettingsFragment)
                 && groupIndex == 0 && Settings.getTestFieldGroupCount() == 1) {
             pref.setAreGroupsUsed(false);
         }
         // launch sub setting screen for the new field group preference
-        currentFragment.launchPrefFragment(pref);
+        currentFragment.launchPrefFragment(pref, null, allowPendedAction);
     }
 
 

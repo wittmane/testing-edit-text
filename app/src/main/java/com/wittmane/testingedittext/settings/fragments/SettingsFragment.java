@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ public abstract class SettingsFragment extends PreferenceFragment {
 
     protected View mView;
     private boolean mLifecycleHasReachedResume = false;
+    private Activity mLatestActivity;
 
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
@@ -161,22 +162,57 @@ public abstract class SettingsFragment extends PreferenceFragment {
     }
 
     protected void navigateBack() {
-        navigateBack(false);
+        navigateBack(false, null);
     }
 
-    protected void navigateBack(boolean isImmediatelyAddingNewFragment) {
+    protected void navigateBack(boolean isImmediatelyAddingNewFragment, Runnable onNavigateBack) {
         Activity activity = getActivity();
         if (activity instanceof SettingsActivity) {
-            ((SettingsActivity) activity).navigateBack(isImmediatelyAddingNewFragment);
+            ((SettingsActivity) activity).navigateBack(isImmediatelyAddingNewFragment,
+                    onNavigateBack);
         } else {
             // this shouldn't ever happen
             getFragmentManager().popBackStack();
+            if (onNavigateBack != null) {
+                onNavigateBack.run();
+            }
         }
     }
 
     protected void launchPrefFragment(Preference pref) {
-        ((OnPreferenceStartFragmentCallback) getActivity())
-                .onPreferenceStartFragment(this, pref);
+        launchPrefFragment(pref, null, false);
+    }
+
+    protected void launchPrefFragment(Preference pref, Runnable onNavigateForward,
+                                      boolean allowPendedAction) {
+        Activity activity = getLatestActivity();
+        if (activity instanceof SettingsActivity) {
+            ((SettingsActivity) activity).onPreferenceStartFragment(this, pref, onNavigateForward,
+                    allowPendedAction);
+        } else if (activity instanceof OnPreferenceStartFragmentCallback) {
+            // this shouldn't ever happen
+            ((OnPreferenceStartFragmentCallback) activity).onPreferenceStartFragment(this, pref);
+            if (onNavigateForward != null) {
+                onNavigateForward.run();
+            }
+        } else {
+            // this shouldn't ever happen
+            Log.e(TAG, "Unexpected activity for launching a preference fragment: " + activity);
+        }
+    }
+
+    protected Activity getLatestActivity() {
+        Activity currentActivity = getActivity();
+        if (currentActivity != null) {
+            return currentActivity;
+        }
+        return mLatestActivity;
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mLatestActivity = activity;
     }
 
     @Override

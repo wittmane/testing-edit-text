@@ -192,7 +192,7 @@ public class SettingsActivity extends PreferenceActivity
             if (f == null) {
                 f = new MainSettingsFragment();
             }
-            addFragment(f, null);
+            addFragment(f, null, null, false);
         }
         // handle the insets excluding the bottom to support showing the preference list behind the
         // navigation bar
@@ -217,7 +217,13 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public boolean onPreferenceStartFragment(PreferenceFragment caller, Preference pref) {
-        if (caller != getCurrentFragment()) {
+        return onPreferenceStartFragment(caller, pref, null, false);
+    }
+
+    public boolean onPreferenceStartFragment(PreferenceFragment caller, Preference pref,
+                                             Runnable onNavigateForward,
+                                             boolean allowPendedAction) {
+        if (!allowPendedAction && caller != getCurrentFragment()) {
             // this is probably from a user clicking on a preference to navigate into a child screen
             // after already clicking to navigate away from the current screen, so we shouldn't
             // process this or else the preference screen navigation stack will be messed up
@@ -232,7 +238,7 @@ public class SettingsActivity extends PreferenceActivity
         // PreferenceActivity#startPreferencePanel
 
         Fragment f = Fragment.instantiate(this, pref.getFragment(), pref.getExtras());
-        addFragment(f, pref);
+        addFragment(f, pref, onNavigateForward, allowPendedAction);
         return true;
     }
 
@@ -501,7 +507,8 @@ public class SettingsActivity extends PreferenceActivity
         });
     }
 
-    private void addFragment(Fragment fragmentToAdd, Preference pref) {
+    private void addFragment(Fragment fragmentToAdd, Preference pref, Runnable onNavigateForward,
+                             boolean allowPendedAction) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         String nextFragmentTag = createChildFragmentTag();
@@ -559,7 +566,8 @@ public class SettingsActivity extends PreferenceActivity
                     chainRunTransactions(hideCurrentTransaction,
                             Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                                     ? currentFragment.getExitTransition()
-                                    : null, onTransactionStarted);
+                                    : null, onTransactionStarted,
+                            allowPendedAction);
                 };
             }
             navigateForward = () -> {
@@ -573,6 +581,9 @@ public class SettingsActivity extends PreferenceActivity
                 setCurrentFragmentTag(nextFragmentTag);
                 transaction.add(android.R.id.content, fragmentToAdd, nextFragmentTag);
                 transaction.commit();
+                if (onNavigateForward != null) {
+                    onNavigateForward.run();
+                }
             };
         } else {
             navigateForward = () -> {
@@ -586,6 +597,9 @@ public class SettingsActivity extends PreferenceActivity
                 setCurrentFragmentTag(nextFragmentTag);
                 transaction.replace(android.R.id.content, fragmentToAdd, nextFragmentTag);
                 transaction.commit();
+                if (onNavigateForward != null) {
+                    onNavigateForward.run();
+                }
             };
         }
         if (hideCurrent != null) {
@@ -597,6 +611,11 @@ public class SettingsActivity extends PreferenceActivity
 
     private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
                                       Runnable chainedAction) {
+        chainRunTransactions(transaction, transition, chainedAction, false);
+    }
+
+    private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
+                                      Runnable chainedAction, boolean allowPendedAction) {
         String currentFragmentTag = mCurrentFragmentTag;
         if (transition != null) {
             // the framework doesn't seem to handle committing concurrent fragments well. the
@@ -615,9 +634,10 @@ public class SettingsActivity extends PreferenceActivity
                 if (SettingsActivity.this.isDestroyed()) {
                     return;
                 }
-                if (!TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
+                if (!allowPendedAction
+                        && !TextUtils.equals(mCurrentFragmentTag, currentFragmentTag)) {
                     // we're not at the same position that we were when trying to add the new
-                    // fragment (the user probably navigate back), so abandon navigating to the
+                    // fragment (the user probably navigated back), so abandon navigating to the
                     // specified fragment
                     return;
                 }
@@ -763,6 +783,10 @@ public class SettingsActivity extends PreferenceActivity
     }
 
     public void navigateBack(boolean isImmediatelyAddingNewFragment) {
+        navigateBack(isImmediatelyAddingNewFragment, null);
+    }
+
+    public void navigateBack(boolean isImmediatelyAddingNewFragment, Runnable onNavigateBack) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
             OnBackCallbackWithAnimation onBackCallback =
@@ -774,9 +798,14 @@ public class SettingsActivity extends PreferenceActivity
             // since that is all that was included as part of the back stack. then immediately
             // trigger the back invoked handling (remove the current fragment).
             onBackCallback.onBackStarted(isImmediatelyAddingNewFragment,
-                    () -> onBackCallback.onBackInvoked(isImmediatelyAddingNewFragment));
+                    () -> {
+                onBackCallback.onBackInvoked(isImmediatelyAddingNewFragment);
+                if (onNavigateBack != null) {
+                    onNavigateBack.run();
+                }
+            });
         } else {
-            onBackPressed();
+            onBackPressed(onNavigateBack);
         }
     }
 
@@ -800,6 +829,10 @@ public class SettingsActivity extends PreferenceActivity
     @SuppressLint("GestureBackNavigation")
     @Override
     public void onBackPressed() {
+        onBackPressed(null);
+    }
+
+    private void onBackPressed(Runnable onNavigateBack) {
         Consumer<Runnable> showPrevious = null;
         if (shouldManageHidingFragments()
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
@@ -866,6 +899,9 @@ public class SettingsActivity extends PreferenceActivity
             setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
             SettingsActivity.super.onBackPressed();
             invalidateOptionsMenu();
+            if (onNavigateBack != null) {
+                onNavigateBack.run();
+            }
         };
         if (showPrevious != null) {
             showPrevious.accept(navigateBack);
