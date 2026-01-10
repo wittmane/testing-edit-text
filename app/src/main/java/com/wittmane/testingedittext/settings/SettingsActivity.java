@@ -100,7 +100,7 @@ public class SettingsActivity extends PreferenceActivity
         implements FragmentManager.OnBackStackChangedListener {
     private static final String TAG = SettingsActivity.class.getSimpleName();
 
-    private static final boolean LOG_FRAGMENT_CHANGES = true;//TODO: (EW) disable
+    private static final boolean LOG_FRAGMENT_CHANGES = false;
     private static final boolean LOG_TRANSITION_EVENTS = false;
     // this value was determined by measuring the default duration of the transitions (both fragment
     // transitions with default values and the activity back transition) measuring wasn't super
@@ -384,6 +384,7 @@ public class SettingsActivity extends PreferenceActivity
         return returnTransition;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private static Interpolator fastOutExtraSlowInInterpolator() {
         Path path = new Path();
         path.cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f);
@@ -391,6 +392,7 @@ public class SettingsActivity extends PreferenceActivity
         return new PathInterpolator(path);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private static void setTotalDuration(Transition transition, long totalDuration) {
         long originalTotalDuration = getTotalDuration(transition, true);
         if (originalTotalDuration < 0) {
@@ -445,6 +447,7 @@ public class SettingsActivity extends PreferenceActivity
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private static long getTotalDuration(Transition transition, boolean assumeZeroStartOffsets) {
         long startDelay = transition.getStartDelay();
         long duration = transition.getDuration();
@@ -507,6 +510,26 @@ public class SettingsActivity extends PreferenceActivity
         });
     }
 
+    private String fragmentDisplayInfo(Fragment fragment) {
+        return fragmentDisplayInfo(fragment, null);
+    }
+
+    private String fragmentDisplayInfo(Fragment fragment, String fragmentTag) {
+        if (fragment == null)  {
+            if (fragmentTag != null) {
+                fragment = getFragmentManager().findFragmentByTag(fragmentTag);
+            }
+        }
+        if (fragment != null && (fragmentTag == null || fragmentTag.equals(fragment.getTag()))) {
+            // this includes the tag, so the tag doesn't need to be added beyond that
+            return fragment.toString();
+        }
+        if (fragment == null) {
+            return fragmentTag;
+        }
+        return fragment + " (" + fragmentTag + ")";
+    }
+
     private void addFragment(Fragment fragmentToAdd, Preference pref, Runnable onNavigateForward,
                              boolean allowPendedAction) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
@@ -518,7 +541,7 @@ public class SettingsActivity extends PreferenceActivity
                 currentFragment.setExitTransition(openExitTransition);
                 if (LOG_TRANSITION_EVENTS) {
                     addTransitionLoggingListener(openExitTransition,
-                            mCurrentFragmentTag + " exit (openExit)");
+                            fragmentDisplayInfo(currentFragment) + " exit (openExit)");
                 }
             }
         }
@@ -540,7 +563,8 @@ public class SettingsActivity extends PreferenceActivity
                 fragmentToAdd.setEnterTransition(openEnterTransition);
                 if (LOG_TRANSITION_EVENTS) {
                     addTransitionLoggingListener(openEnterTransition,
-                            nextFragmentTag + " enter (openEnter)");
+                            fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
+                                    + " enter (openEnter)");
                 }
             }
             transaction.addToBackStack(null);
@@ -572,7 +596,8 @@ public class SettingsActivity extends PreferenceActivity
             }
             navigateForward = () -> {
                 if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: add " + fragmentToAdd
+                    Log.d(TAG, "Fragment change: add "
+                            + fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
                             + (addToBackStack ? ", adding to back stack" : "")
                             + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                             ? (", transition=" + fragmentToAdd.getEnterTransition())
@@ -843,7 +868,7 @@ public class SettingsActivity extends PreferenceActivity
                 currentFragment.setReturnTransition(closeExitTransition);
                 if (LOG_TRANSITION_EVENTS) {
                     addTransitionLoggingListener(closeExitTransition,
-                            currentFragment.getTag() + " return (closeExit)");
+                            fragmentDisplayInfo(currentFragment) + " return (closeExit)");
                 }
             }
             // unhide the previous fragment (not necessary for the animated callback since that is
@@ -858,7 +883,7 @@ public class SettingsActivity extends PreferenceActivity
                     previousFragment.setEnterTransition(closeEnterTransition);
                     if (LOG_TRANSITION_EVENTS) {
                         addTransitionLoggingListener(closeEnterTransition,
-                                previousFragment.getTag() + " enter (closeEnter)");
+                                fragmentDisplayInfo(previousFragment) + " enter (closeEnter)");
                     }
                 }
 
@@ -950,7 +975,7 @@ public class SettingsActivity extends PreferenceActivity
             currentFragment.setReturnTransition(closeExitTransition);
             if (LOG_TRANSITION_EVENTS) {
                 addTransitionLoggingListener(closeExitTransition,
-                        currentFragment.getTag() + " return (closeExit)");
+                        fragmentDisplayInfo(currentFragment) + " return (closeExit)");
             }
 
             mFragmentContent = currentFragment.getView();
@@ -1036,7 +1061,7 @@ public class SettingsActivity extends PreferenceActivity
                     mPreviousFragment.setEnterTransition(closeEnterTransition);
                     if (LOG_TRANSITION_EVENTS) {
                         addTransitionLoggingListener(closeEnterTransition,
-                                mPreviousFragment.getTag() + " enter (closeEnter)");
+                                fragmentDisplayInfo(mPreviousFragment) + " enter (closeEnter)");
                     }
 
                     if (LOG_FRAGMENT_CHANGES) {
