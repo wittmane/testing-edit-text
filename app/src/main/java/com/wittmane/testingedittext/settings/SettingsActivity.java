@@ -530,6 +530,34 @@ public class SettingsActivity extends PreferenceActivity
         return fragment + " (" + fragmentTag + ")";
     }
 
+    private static String getEnterTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getEnterTransition();
+    }
+
+    private static String getExitTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getExitTransition();
+    }
+
+    private static String getReenterTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getReenterTransition();
+    }
+
+    private static String getReturnTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getReturnTransition();
+    }
+
     private void addFragment(Fragment fragmentToAdd, Preference pref, Runnable onNavigateForward,
                              boolean allowPendedAction) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
@@ -537,7 +565,20 @@ public class SettingsActivity extends PreferenceActivity
         String nextFragmentTag = createChildFragmentTag();
         if (currentFragment != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                Transition openExitTransition = fragmentOpenExitTransition();
+                // the framework draws disappearing views' animation on top of other things and
+                // doesn't have any z-order control. when transitioning in a new fragment and
+                // removing the old one in the same action, the exiting fragment (meant to be behind
+                // the new one that is entering) is drawn on top of the fragment that is entering,
+                // which messes up how our transitions are designed to look. this is a known issue
+                // that isn't going to be fixed (https://issuetracker.google.com/issues/142056487).
+                // we'll just skip the exit transition in this case. this isn't an issue navigating
+                // back because the exiting view is intended to be on top. this also isn't an issue
+                // when separately managing hiding the fragments. I'm not entirely sure why, but
+                // it's probably related to how the enter transition starts after the exit
+                // transition starts.
+                Transition openExitTransition = shouldManageHidingFragments()
+                        ? fragmentOpenExitTransition()
+                        : null;
                 currentFragment.setExitTransition(openExitTransition);
                 if (LOG_TRANSITION_EVENTS) {
                     addTransitionLoggingListener(openExitTransition,
@@ -581,9 +622,7 @@ public class SettingsActivity extends PreferenceActivity
                 hideCurrent = (onTransactionStarted) -> {
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: hide " + currentFragment
-                                + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                ? (", transition=" + currentFragment.getExitTransition())
-                                : ""));
+                                + getExitTransitionLogInfo(currentFragment));
                     }
                     FragmentTransaction hideCurrentTransaction =
                             getFragmentManager().beginTransaction().hide(currentFragment);
@@ -599,9 +638,7 @@ public class SettingsActivity extends PreferenceActivity
                     Log.d(TAG, "Fragment change: add "
                             + fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
                             + (addToBackStack ? ", adding to back stack" : "")
-                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                            ? (", transition=" + fragmentToAdd.getEnterTransition())
-                            : ""));
+                            + getEnterTransitionLogInfo(fragmentToAdd));
                 }
                 setCurrentFragmentTag(nextFragmentTag);
                 transaction.add(android.R.id.content, fragmentToAdd, nextFragmentTag);
@@ -615,9 +652,9 @@ public class SettingsActivity extends PreferenceActivity
                 if (LOG_FRAGMENT_CHANGES) {
                     Log.d(TAG, "Fragment change: replace with " + fragmentToAdd
                             + (addToBackStack ? ", adding to back stack" : "")
-                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                            ? (", transition=" + fragmentToAdd.getEnterTransition())
-                            : ""));
+                            + getEnterTransitionLogInfo(fragmentToAdd)
+                            + "\ncurrent: " + currentFragment
+                            + getExitTransitionLogInfo(currentFragment));
                 }
                 setCurrentFragmentTag(nextFragmentTag);
                 transaction.replace(android.R.id.content, fragmentToAdd, nextFragmentTag);
@@ -859,9 +896,8 @@ public class SettingsActivity extends PreferenceActivity
 
     private void onBackPressed(Runnable onNavigateBack) {
         Consumer<Runnable> showPrevious = null;
-        if (shouldManageHidingFragments()
-                && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                        || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation))) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation)) {
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment != null && !useDefaultTransitions()) {
                 Transition closeExitTransition = fragmentCloseExitTransition();
@@ -876,50 +912,57 @@ public class SettingsActivity extends PreferenceActivity
             Fragment previousFragment = currentFragment != null
                     ? getPreviousFragment(currentFragment)
                     : null;
-            if (previousFragment != null && previousFragment.isHidden()) {
+            if (previousFragment != null
+                    && (previousFragment.isHidden() || !shouldManageHidingFragments())) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         && !useDefaultTransitions()) {
                     Transition closeEnterTransition = fragmentCloseEnterTransition();
-                    previousFragment.setEnterTransition(closeEnterTransition);
+                    if (shouldManageHidingFragments()) {
+                        previousFragment.setEnterTransition(closeEnterTransition);
+                    } else {
+                        previousFragment.setReenterTransition(closeEnterTransition);
+                    }
                     if (LOG_TRANSITION_EVENTS) {
                         addTransitionLoggingListener(closeEnterTransition,
                                 fragmentDisplayInfo(previousFragment) + " enter (closeEnter)");
                     }
                 }
 
-                showPrevious = (onTransactionStarted) -> {
-                    if (LOG_FRAGMENT_CHANGES) {
-                        Log.d(TAG, "Fragment change: show " + previousFragment
-                                + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                ? (", transition=" + previousFragment.getEnterTransition())
-                                : ""));
-                    }
-                    // note that for some reason on Nougat only, showing the fragment doesn't
-                    // trigger the enter transition. the transition based on the stock emulator is
-                    // basically just to appear, so most, if not all, devices probably won't look
-                    // significantly different from having it without a transition even if we could
-                    // figure out a workaround. also, this is behind the current fragment, so that
-                    // makes it even less visible. this seems to just be a framework bug in a single
-                    // old version of android, so it's probably not worth putting in more time to
-                    // trying to find the core issue and seeing if there is any workaround we can do
-                    // (which there very well may not be).
-                    FragmentTransaction transaction = getFragmentManager().beginTransaction()
-                            .show(previousFragment);
-                    chainRunTransactions(transaction,
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                    ? previousFragment.getEnterTransition()
-                                    : null, onTransactionStarted);
-                };
+                if (shouldManageHidingFragments()) {
+                    showPrevious = (onTransactionStarted) -> {
+                        if (LOG_FRAGMENT_CHANGES) {
+                            Log.d(TAG, "Fragment change: show " + previousFragment
+                                    + getEnterTransitionLogInfo(previousFragment));
+                        }
+                        // note that for some reason on Nougat only, showing the fragment doesn't
+                        // trigger the enter transition. the transition based on the stock emulator
+                        // is basically just to appear, so most, if not all, devices probably won't
+                        // look significantly different from having it without a transition even if
+                        // we could figure out a workaround. also, this is behind the current
+                        // fragment, so that makes it even less visible. this seems to just be a
+                        // framework bug in a single old version of android, so it's probably not
+                        // worth putting in more time to trying to find the core issue and seeing if
+                        // there is any workaround we can do (which there very well may not be).
+                        FragmentTransaction transaction = getFragmentManager().beginTransaction()
+                                .show(previousFragment);
+                        chainRunTransactions(transaction,
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                                        ? previousFragment.getEnterTransition()
+                                        : null, onTransactionStarted);
+                    };
+                }
             }
         }
         Runnable navigateBack = () -> {
             if (LOG_FRAGMENT_CHANGES) {
                 Fragment currentFragment = getCurrentFragment();
                 Log.d(TAG, "Fragment change: pop from back stack " + currentFragment
-                        + ((currentFragment != null
-                        && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                        ? (", transition=" + currentFragment.getReturnTransition())
-                        : ""));
+                        + getReturnTransitionLogInfo(currentFragment)
+                        + (!shouldManageHidingFragments()
+                                ? "\nprevious: " + getPreviousFragment(currentFragment)
+                                        + getReenterTransitionLogInfo(
+                                                getPreviousFragment(currentFragment))
+                                : ""));
             }
             setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
             SettingsActivity.super.onBackPressed();
@@ -1066,7 +1109,7 @@ public class SettingsActivity extends PreferenceActivity
 
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: show " + mPreviousFragment
-                                + ", transition=" + mPreviousFragment.getEnterTransition());
+                                + getEnterTransitionLogInfo(mPreviousFragment));
                     }
                     FragmentTransaction transaction = getFragmentManager().beginTransaction()
                             .show(mPreviousFragment);
@@ -1177,7 +1220,7 @@ public class SettingsActivity extends PreferenceActivity
                 if (!mPreviousFragment.isHidden()) {
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: hide " + mPreviousFragment
-                                + ", transition=" + mPreviousFragment.getExitTransition());
+                                + getExitTransitionLogInfo(mPreviousFragment));
                     }
                     getFragmentManager().beginTransaction()
                             .hide(mPreviousFragment)
@@ -1211,7 +1254,7 @@ public class SettingsActivity extends PreferenceActivity
                     && !isImmediatelyAddingNewFragment) {
                 if (LOG_FRAGMENT_CHANGES) {
                     Log.d(TAG, "Fragment change: show " + mPreviousFragment
-                            + ", transition=" + mPreviousFragment.getEnterTransition());
+                            + getEnterTransitionLogInfo(mPreviousFragment));
                 }
                 getFragmentManager().beginTransaction()
                         .show(mPreviousFragment)
@@ -1349,9 +1392,7 @@ public class SettingsActivity extends PreferenceActivity
                 if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: hide (cleanup) " + fragment
-                                + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                        ? (", transition=" + fragment.getExitTransition())
-                                        : ""));
+                                + getExitTransitionLogInfo(fragment));
                     }
                     getFragmentManager().beginTransaction().hide(fragment).commit();
                 }
@@ -1360,9 +1401,7 @@ public class SettingsActivity extends PreferenceActivity
             if (index == 0 && fragment != null && fragment.isAdded() && fragment.isHidden()) {
                 if (LOG_FRAGMENT_CHANGES) {
                     Log.d(TAG, "Fragment change: show (cleanup) " + fragment
-                            + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                            ? (", transition=" + fragment.getEnterTransition())
-                            : ""));
+                            + getEnterTransitionLogInfo(fragment));
                 }
                 getFragmentManager().beginTransaction().show(fragment).commit();
             }
