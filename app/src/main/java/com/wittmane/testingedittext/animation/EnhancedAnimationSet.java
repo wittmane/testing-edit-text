@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.wittmane.testingedittext.animation;
 
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.Transformation;
@@ -171,14 +171,14 @@ public class EnhancedAnimationSet extends AnimationSet {
         if (isPaused()) {
             return;
         }
-        mPauseStartTime = SystemClock.elapsedRealtime();
+        mPauseStartTime = AnimationUtils.currentAnimationTimeMillis();
     }
 
     public void resume() {
         if (!isPaused()) {
             return;
         }
-        mPreviousPausedTime += SystemClock.elapsedRealtime() - mPauseStartTime;
+        mPreviousPausedTime += AnimationUtils.currentAnimationTimeMillis() - mPauseStartTime;
         mPauseStartTime = 0;
     }
 
