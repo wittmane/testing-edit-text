@@ -29,6 +29,9 @@ import android.view.animation.Transformation;
 import com.wittmane.testingedittext.aosp.android.util.MathUtils;
 import com.wittmane.testingedittext.function.Consumer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * An {@link AnimationSet} that supports pausing, canceling in place, and extra functionality to
  * avoid skewing child animations when setting a start delay or limiting the duration.
@@ -57,8 +60,26 @@ public class EnhancedAnimationSet extends AnimationSet {
     @Override
     public void setStartTime(long startTimeMillis) {
         if (mIsTempEnded) {
-            // ignore updates to the start time to retain previous state for when this gets
-            // restarted
+            // ideally we would just ignore updates to the start time to retain previous state for
+            // when this gets restarted, but we don't have a way to reset AnimationSet's internal
+            // ended state other than calling setStartTime, and if that's not reset, we'll trigger
+            // the animation end handler shortly after starting in AnimationSet#getTransformation.
+            // since #getAnimations directly exposes the list of animations, we'll remove them
+            // temporarily to call #setStartTime to the same value it already had to simply reset
+            // this animation to not be ended while avoiding resetting the child animation, and then
+            // we'll add all of the animations back without the parent class realizing.
+            List<Animation> animationList = getAnimations();
+            List<Animation> animationListCopy = new ArrayList<>(animationList);
+            animationList.clear();
+            if (!getAnimations().isEmpty()) {
+                // safety check in case something changes in a new version to not expose the real
+                // list of child animations. resetting all of the child animations is probably worse
+                // than sending an early animation end event, so just do nothing.
+                Log.e(TAG, "Can't reset the ended state for resuming from temporary ending");
+                return;
+            }
+            super.setStartTime(mAnimationSetStartTime);
+            animationList.addAll(animationListCopy);
             return;
         }
         super.setStartTime(startTimeMillis);

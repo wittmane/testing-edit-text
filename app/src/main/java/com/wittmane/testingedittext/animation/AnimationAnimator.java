@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,13 +163,14 @@ public class AnimationAnimator extends Animator {
                     }
                     resetState();
                     // at least in some cases when there are multiple animations running at the same
-                    // time, the animations are placed on some OverlayViewGroup, and this gets called
-                    // from within that group's draw loop for its children. calling onAnimationEnd
-                    // will remove this view from the group, so if this view isn't the last child,
-                    // the loop won't find a child in the last index (since the other views will
-                    // shift indices), and the framework doesn't handle that gracefully, so it would
-                    // result in null pointer exception. to avoid the removal breaking things, queue
-                    // up onAnimationEnd to get called after we're out of that loop.
+                    // time, the animations are placed on some OverlayViewGroup, and this gets
+                    // called from within that group's draw loop for its children. calling
+                    // onAnimationEnd will remove this view from the group, so if this view isn't
+                    // the last child, the loop won't find a child in the last index (since the
+                    // other views will shift indices), and the framework doesn't handle that
+                    // gracefully, so it would result in null pointer exception. to avoid the
+                    // removal breaking things, queue up onAnimationEnd to get called after we're
+                    // out of that loop.
                     Handler handler = mView.getHandler();
                     if (handler != null) {
                         handler.post(() -> {
