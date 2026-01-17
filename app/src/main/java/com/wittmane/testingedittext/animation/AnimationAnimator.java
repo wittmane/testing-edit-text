@@ -236,6 +236,18 @@ public class AnimationAnimator extends Animator {
         }
         if (mEndAnimationOnPause) {
             mAnimationSet.tempEnd();
+            // remove the animation from the view so that ViewGroup#removeViewInternal won't call
+            // ViewGroup#addDisappearingView, which is only called if the view has an animation. see
+            // ActivityAnimationTransition#createAnimator for more details about the issue.
+            // unfortunately, this means that the view will reset to its original position, rather
+            // than staying in place while paused. this end on pause functionality is only intended
+            // as a workaround for the framework bug when being used in a Visibility Transition, so
+            // the scope of this is small, and the transition only gets paused momentarily, so at
+            // most, there may be a brief flash on the screen where the view suddenly shifts
+            // positions, but I haven't ever noticed that happening. not that this end on pause
+            // functionality is necessary for anything else, but ideally we could just skip this
+            // call to leave the animation in its existing state (relying on getFillAfter, which
+            // is used to prevent calling View#clearAnimation in ViewGroup#finishAnimatingView).
             mView.clearAnimation();
         } else {
             mAnimationSet.pause();

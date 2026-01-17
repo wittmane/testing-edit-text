@@ -302,7 +302,7 @@ public class EnhancedAnimationSet extends AnimationSet {
 
     @Override
     public boolean getFillAfter() {
-        if (mIsCancelingInPlace) {
+        if (mIsCancelingInPlace || mIsTempEnded) {
             return true;
         }
         return super.getFillAfter();

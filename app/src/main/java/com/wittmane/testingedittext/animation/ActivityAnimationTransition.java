@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ public class ActivityAnimationTransition extends Visibility {
         // already using the overlay view, there is no benefit in adding it to the list of
         // disappearing views. a single instance of the view in the list of disappearing views
         // doesn't seem to necessary, but it also doesn't really seem to hurt. the only difference
-        //I've noticed is the z-order when there are multiple transitions running at the same time.
+        // I've noticed is the z-order when there are multiple transitions running at the same time.
         // since there is no duplicate checking, a view can be added multiple times, such as when
         // the transition pauses multiple times from having multiple additional transitions running
         // at the same time, and since a view is only removed at the moment that the animation
