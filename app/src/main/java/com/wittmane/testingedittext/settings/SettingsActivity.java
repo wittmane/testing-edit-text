@@ -92,6 +92,7 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSetting
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 import com.wittmane.testingedittext.util.ResourceUtils;
+import com.wittmane.testingedittext.util.TransitionUtils;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -140,11 +141,11 @@ public class SettingsActivity extends PreferenceActivity
      * functionality back if this ends up causing problems.
      * @return whether fragments should be hid in instead of replaced
      */
-    private boolean shouldManageHidingFragments() {
+    private static boolean shouldManageHidingFragments() {
         return true;
     }
 
-    private boolean useDefaultTransitions() {
+    private static boolean useDefaultTransitions() {
         // custom transitions are available starting in Lollipop, but due to a bug in Lollipop (see
         // #fragmentReplacedTransitionOut and #fragmentRemovedTransitionOut) we can't show a custom
         // transition when only hiding a fragment (not also adding something). this is particularly
@@ -242,350 +243,12 @@ public class SettingsActivity extends PreferenceActivity
         return true;
     }
 
-    /**
-     * Create a transition to run on the new fragment that is entering the screen when it is being
-     * opened.
-     * @return An enter transition.
-     */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentOpenEnterTransition() {
-        Transition enterTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // have the new fragment slide in to pair with the predictive back animation (slide
-            // out). based on AOSP anim/activity_open_enter.xml (Android 16).
-            TransitionSet transitionSet = new TransitionSet();
-
-            Fade alpha = new Fade(Visibility.MODE_IN);
-            alpha.setInterpolator(new LinearInterpolator());
-            alpha.setStartDelay(50);
-            alpha.setDuration(83);
-            transitionSet.addTransition(alpha);
-
-            // Android 15 and 16 use 96dp, but Android 14 used 10%. that's similar enough, so we'll
-            // just go with the most recent version
-            PartialSlide translate = new PartialSlide(Gravity.END, 96, PartialSlide.DP);
-            translate.setDuration(450);
-            translate.setInterpolator(fastOutExtraSlowInInterpolator());
-            transitionSet.addTransition(translate);
-
-            enterTransition = transitionSet;
-        } else {
-            // have the new fragment transition match the system transition for navigating to a new
-            // activity
-            enterTransition = new ActivityAnimationTransition(this, true);
-        }
-        if (enterTransition != null && TRANSITION_DURATION >= 0) {
-            setTotalDuration(enterTransition, TRANSITION_DURATION);
-        }
-        return enterTransition;
-    }
-
-    /**
-     * Create a transition to run on the previous fragment that is exiting the screen when a new
-     * fragment is being opened.
-     * @return An exit transition.
-     */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentOpenExitTransition() {
-        Transition exitTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // based on AOSP anim/activity_open_exit.xml (Android 16). Android 15 and 16 use -96dp,
-            // but Android 14 used -10%. that's similar enough, so we'll just go with the most
-            // recent version.
-            exitTransition = new PartialSlide(Gravity.START, 96, PartialSlide.DP);
-            exitTransition.setDuration(450);
-            exitTransition.setInterpolator(fastOutExtraSlowInInterpolator());
-        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
-            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
-            // transition, there must be an incoming fragment (ie it doesn't do a null check), so
-            // it crashes, so we'll have to skip the exit transition on Lollipop if we're manually
-            // hiding the fragment separate from adding the new fragment
-            exitTransition = null;
-        } else {
-            // have the new fragment transition match the system transition for exiting an activity
-            exitTransition = new ActivityAnimationTransition(this, false);
-        }
-        if (exitTransition != null && TRANSITION_DURATION >= 0) {
-            setTotalDuration(exitTransition, TRANSITION_DURATION);
-        }
-        return exitTransition;
-    }
-
-    /**
-     * Create a transition to run on the previous fragment that is reentering the screen when the
-     * current fragment is being closed.
-     * @return An enter transition.
-     */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentCloseEnterTransition() {
-        Transition enterTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // based on AOSP anim/activity_close_enter.xml (Android 16). Android 15 and 16 use
-            // -96dp but Android 14 used -10%. that's similar enough, so we'll just go with the most
-            // recent version.
-            enterTransition = new PartialSlide(Gravity.START, 96, PartialSlide.DP);
-            enterTransition.setDuration(450);
-            enterTransition.setInterpolator(fastOutExtraSlowInInterpolator());
-        } else {
-            // have the new fragment transition match the system transition for returning to the
-            // previous activity
-            enterTransition = new ActivityAnimationTransition(this, false);
-        }
-        if (enterTransition != null && TRANSITION_DURATION >= 0) {
-            setTotalDuration(enterTransition, TRANSITION_DURATION);
-        }
-        return enterTransition;
-    }
-
-    /**
-     * Create a transition to run on the current fragment that is exiting the screen when it is
-     * being closed.
-     * @return An exit transition.
-     */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private Transition fragmentCloseExitTransition() {
-        Transition returnTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            // based on AOSP anim/activity_close_exit.xml (Android 16)
-            TransitionSet transitionSet = new TransitionSet();
-
-            Fade alpha = new Fade(Visibility.MODE_OUT);
-            alpha.setInterpolator(new LinearInterpolator());
-            alpha.setStartDelay(35);
-            alpha.setDuration(83);
-            transitionSet.addTransition(alpha);
-
-            // Android 15 and 16 use 96dp but Android 14 used 10%. that's similar enough, so we'll
-            // just go with the most recent version
-            PartialSlide translate = new PartialSlide(Gravity.END, 96, PartialSlide.DP);
-            translate.setDuration(450);
-            translate.setInterpolator(fastOutExtraSlowInInterpolator());
-            transitionSet.addTransition(translate);
-
-            returnTransition = transitionSet;
-        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
-            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
-            // transition, there must be an incoming fragment (ie doesn't do a null check), so
-            // it crashes, so we'll have to skip the return transition on Lollipop if we're
-            // manually hiding the fragment separate from adding the new fragment
-            returnTransition = null;
-        } else {
-            // have the new fragment transition match the system transition for navigating away from
-            // the current activity
-            returnTransition = new ActivityAnimationTransition(this, true);
-        }
-        if (returnTransition != null && TRANSITION_DURATION >= 0) {
-            setTotalDuration(returnTransition, TRANSITION_DURATION);
-        }
-        return returnTransition;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private static Interpolator fastOutExtraSlowInInterpolator() {
-        Path path = new Path();
-        path.cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f);
-        path.cubicTo(0.208333f, 0.82f, 0.25f, 1f, 1f, 1f);
-        return new PathInterpolator(path);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private static void setTotalDuration(Transition transition, long totalDuration) {
-        long originalTotalDuration = getTotalDuration(transition, true);
-        if (originalTotalDuration < 0) {
-            // we can't tell the exact duration, so assume no start delay and set the duration, even
-            // if that inappropriately evenly distributes to all children
-            Log.w(TAG, "Can't determine total duration for " + transition
-                    + ", so it can't be scaled properly");
-            transition.setStartDelay(0);
-            transition.setDuration(totalDuration);
-            return;
-        }
-
-        long startDelay = transition.getStartDelay();
-        long duration = transition.getDuration();
-        if (duration >= 0) {
-            if (startDelay < 0) {
-                // assume there should be no start delay and explicitly set that
-                Log.w(TAG, "Explicitly setting no start delay for " + transition);
-                transition.setStartDelay(0);
-            }
-            if (originalTotalDuration > 0) {
-                // scale the start delay and duration
-                transition.setDuration(totalDuration * duration / originalTotalDuration);
-                transition.setStartDelay(totalDuration - transition.getDuration());
-            } else {
-                // start delay and duration are both 0, so just set the duration and leave no start
-                // delay
-                transition.setDuration(totalDuration);
-            }
-        } else if (transition instanceof TransitionSet) {
-            long newDuration;
-            if (startDelay > 0) {
-                // scale the start delay and duration
-                newDuration = totalDuration * (originalTotalDuration - startDelay)
-                        / originalTotalDuration;
-            } else {
-                // start delay and duration are both 0, so just set the duration and leave no start
-                // delay
-                newDuration = totalDuration;
-            }
-            transition.setStartDelay(totalDuration - newDuration);
-            TransitionSet transitionSet = (TransitionSet) transition;
-            long originalMaxChildTotalDuration =
-                    originalTotalDuration - (startDelay >= 0 ? startDelay : 0);
-            for (int i = 0; i < transitionSet.getTransitionCount(); i++) {
-                Transition childTransition = transitionSet.getTransitionAt(i);
-                long childTotalDuration = getTotalDuration(childTransition, true);
-                setTotalDuration(childTransition,
-                        newDuration * childTotalDuration
-                                / originalMaxChildTotalDuration);
-            }
-        }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private static long getTotalDuration(Transition transition, boolean assumeZeroStartOffsets) {
-        long startDelay = transition.getStartDelay();
-        long duration = transition.getDuration();
-        if (duration >= 0) {
-            if (startDelay >= 0) {
-                return startDelay + duration;
-            }
-            if (assumeZeroStartOffsets) {
-                return duration;
-            }
-        }
-        if (transition instanceof TransitionSet) {
-            TransitionSet transitionSet = (TransitionSet) transition;
-            long maxTotalDuration = 0;
-            for (int i = 0; i < transitionSet.getTransitionCount(); i++) {
-                Transition childTransition = transitionSet.getTransitionAt(i);
-                long totalDuration = getTotalDuration(childTransition, assumeZeroStartOffsets);
-                if (totalDuration < 0) {
-                    return -1;
-                }
-                if (totalDuration > maxTotalDuration) {
-                    maxTotalDuration = totalDuration;
-                }
-            }
-            return (startDelay >= 0 ? startDelay : 0) + maxTotalDuration;
-        }
-        // duration comes from animator, so we can't cleanly get that
-        return -1;
-    }
-
-    private void addTransitionLoggingListener(Transition transition, String transitionIdentifier) {
-        if (transition == null) {
-            return;
-        }
-        transition.addListener(new TransitionListener() {
-            @Override
-            public void onTransitionCancel(Transition transition) {
-                Log.d(TAG, "onTransitionCancel: " + transitionIdentifier);
-            }
-
-            @Override
-            public void onTransitionEnd(Transition transition) {
-                Log.d(TAG, "onTransitionEnd: " + transitionIdentifier);
-            }
-
-            @Override
-            public void onTransitionPause(Transition transition) {
-                Log.d(TAG, "onTransitionPause: " + transitionIdentifier);
-            }
-
-            @Override
-            public void onTransitionResume(Transition transition) {
-                Log.d(TAG, "onTransitionResume: " + transitionIdentifier);
-            }
-
-            @Override
-            public void onTransitionStart(Transition transition) {
-                Log.d(TAG, "onTransitionStart: " + transitionIdentifier);
-            }
-        });
-    }
-
-    private String fragmentDisplayInfo(Fragment fragment) {
-        return fragmentDisplayInfo(fragment, null);
-    }
-
-    private String fragmentDisplayInfo(Fragment fragment, String fragmentTag) {
-        if (fragment == null)  {
-            if (fragmentTag != null) {
-                fragment = getFragmentManager().findFragmentByTag(fragmentTag);
-            }
-        }
-        if (fragment != null && (fragmentTag == null || fragmentTag.equals(fragment.getTag()))) {
-            // this includes the tag, so the tag doesn't need to be added beyond that
-            return fragment.toString();
-        }
-        if (fragment == null) {
-            return fragmentTag;
-        }
-        return fragment + " (" + fragmentTag + ")";
-    }
-
-    private static String getEnterTransitionLogInfo(Fragment fragment) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
-            return "";
-        }
-        return ", transition=" + fragment.getEnterTransition();
-    }
-
-    private static String getExitTransitionLogInfo(Fragment fragment) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
-            return "";
-        }
-        return ", transition=" + fragment.getExitTransition();
-    }
-
-    private static String getReenterTransitionLogInfo(Fragment fragment) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
-            return "";
-        }
-        return ", transition=" + fragment.getReenterTransition();
-    }
-
-    private static String getReturnTransitionLogInfo(Fragment fragment) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
-            return "";
-        }
-        return ", transition=" + fragment.getReturnTransition();
-    }
-
     private void addFragment(Fragment fragmentToAdd, Preference pref, Runnable onNavigateForward,
                              boolean allowPendedAction) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         String nextFragmentTag = createChildFragmentTag();
-        if (currentFragment != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                // the framework draws disappearing views' animation on top of other things and
-                // doesn't have any z-order control. when transitioning in a new fragment and
-                // removing the old one in the same action, the exiting fragment (meant to be behind
-                // the new one that is entering) is drawn on top of the fragment that is entering,
-                // which messes up how our transitions are designed to look. this is a known issue
-                // that isn't going to be fixed (https://issuetracker.google.com/issues/142056487).
-                // we'll just skip the exit transition in this case. this isn't an issue navigating
-                // back because the exiting view is intended to be on top. this also isn't an issue
-                // when separately managing hiding the fragments. I'm not entirely sure why, but
-                // it's probably related to how the enter transition starts after the exit
-                // transition starts.
-                Transition openExitTransition = shouldManageHidingFragments()
-                        ? fragmentOpenExitTransition()
-                        : null;
-                currentFragment.setExitTransition(openExitTransition);
-                if (LOG_TRANSITION_EVENTS) {
-                    addTransitionLoggingListener(openExitTransition,
-                            fragmentDisplayInfo(currentFragment) + " exit (openExit)");
-                }
-            }
-        }
+        setOpenExitTransition(currentFragment);
         boolean addToBackStack;
         if (pref != null) {
             if (pref.getTitleRes() != 0) {
@@ -593,21 +256,7 @@ public class SettingsActivity extends PreferenceActivity
             } else if (pref.getTitle() != null) {
                 transaction.setBreadCrumbTitle(pref.getTitle());
             }
-            // when we're managing custom transitions, we don't want a default transition, but
-            // TRANSIT_NONE causes some weird flashing, so we'll use the fade option, which is very
-            // subtle
-            transaction.setTransition(useDefaultTransitions()
-                    ? FragmentTransaction.TRANSIT_FRAGMENT_OPEN
-                    : FragmentTransaction.TRANSIT_FRAGMENT_FADE);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
-                Transition openEnterTransition = fragmentOpenEnterTransition();
-                fragmentToAdd.setEnterTransition(openEnterTransition);
-                if (LOG_TRANSITION_EVENTS) {
-                    addTransitionLoggingListener(openEnterTransition,
-                            fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
-                                    + " enter (openEnter)");
-                }
-            }
+            setOpenEnterTransition(transaction, fragmentToAdd, nextFragmentTag);
             transaction.addToBackStack(null);
             addToBackStack = true;
         } else {
@@ -899,14 +548,7 @@ public class SettingsActivity extends PreferenceActivity
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation)) {
             Fragment currentFragment = getCurrentFragment();
-            if (currentFragment != null && !useDefaultTransitions()) {
-                Transition closeExitTransition = fragmentCloseExitTransition();
-                currentFragment.setReturnTransition(closeExitTransition);
-                if (LOG_TRANSITION_EVENTS) {
-                    addTransitionLoggingListener(closeExitTransition,
-                            fragmentDisplayInfo(currentFragment) + " return (closeExit)");
-                }
-            }
+            setCloseExitTransition(currentFragment);
             // unhide the previous fragment (not necessary for the animated callback since that is
             // already done as part of the animation)
             Fragment previousFragment = currentFragment != null
@@ -914,19 +556,7 @@ public class SettingsActivity extends PreferenceActivity
                     : null;
             if (previousFragment != null
                     && (previousFragment.isHidden() || !shouldManageHidingFragments())) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                        && !useDefaultTransitions()) {
-                    Transition closeEnterTransition = fragmentCloseEnterTransition();
-                    if (shouldManageHidingFragments()) {
-                        previousFragment.setEnterTransition(closeEnterTransition);
-                    } else {
-                        previousFragment.setReenterTransition(closeEnterTransition);
-                    }
-                    if (LOG_TRANSITION_EVENTS) {
-                        addTransitionLoggingListener(closeEnterTransition,
-                                fragmentDisplayInfo(previousFragment) + " enter (closeEnter)");
-                    }
-                }
+                setCloseEnterTransition(previousFragment, false);
 
                 if (shouldManageHidingFragments()) {
                     showPrevious = (onTransactionStarted) -> {
@@ -1014,12 +644,7 @@ public class SettingsActivity extends PreferenceActivity
                 return;
             }
 
-            Transition closeExitTransition = fragmentCloseExitTransition();
-            currentFragment.setReturnTransition(closeExitTransition);
-            if (LOG_TRANSITION_EVENTS) {
-                addTransitionLoggingListener(closeExitTransition,
-                        fragmentDisplayInfo(currentFragment) + " return (closeExit)");
-            }
+            setCloseExitTransition(currentFragment);
 
             mFragmentContent = currentFragment.getView();
             if (mFragmentContent == null) {
@@ -1096,16 +721,7 @@ public class SettingsActivity extends PreferenceActivity
             if (previousFragment != null && previousFragment.isHidden() && !skipShowingPrevious) {
                 mPreviousFragment = previousFragment;
                 showPrevious = (onTransactionStarted) -> {
-                    // skip animating unhiding the previous fragment if we're only starting the back
-                    // animation to immediately trigger completing the back action
-                    Transition closeEnterTransition = afterBackStarted == null
-                            ? null
-                            : fragmentCloseEnterTransition();
-                    mPreviousFragment.setEnterTransition(closeEnterTransition);
-                    if (LOG_TRANSITION_EVENTS) {
-                        addTransitionLoggingListener(closeEnterTransition,
-                                fragmentDisplayInfo(mPreviousFragment) + " enter (closeEnter)");
-                    }
+                    setCloseEnterTransition(mPreviousFragment, afterBackStarted == null);
 
                     if (LOG_FRAGMENT_CHANGES) {
                         Log.d(TAG, "Fragment change: show " + mPreviousFragment
@@ -1250,6 +866,12 @@ public class SettingsActivity extends PreferenceActivity
         }
 
         public void onBackInvoked(boolean isImmediatelyAddingNewFragment) {
+            if (!shouldManageHidingFragments()) {
+                // mPreviousFragment is null because it was never retrieved to unhide, so get the
+                // previous fragment now
+                Fragment previousFragment = getPreviousFragment(getCurrentFragment());
+                setCloseEnterTransition(previousFragment, false);
+            }
             if (mPreviousFragment != null && mPreviousFragment.isHidden()
                     && !isImmediatelyAddingNewFragment) {
                 if (LOG_FRAGMENT_CHANGES) {
@@ -1277,7 +899,7 @@ public class SettingsActivity extends PreferenceActivity
                             ? currentFragment.getReturnTransition()
                             : null;
                     long duration = currentFragmentTransition != null
-                            ? getTotalDuration(currentFragmentTransition, true)
+                            ? TransitionUtils.getTotalDuration(currentFragmentTransition, true)
                             : 0;
                     if (duration >= 0) {
                         animation.setDuration(duration / 2);
@@ -1441,6 +1063,345 @@ public class SettingsActivity extends PreferenceActivity
         EdgeToEdgeUtils.removeInsetHandling(this);
         getFragmentManager().removeOnBackStackChangedListener(this);
         super.onDestroy();
+    }
+
+    /**
+     * Set the transition to run on the new fragment that is entering the screen when it is being
+     * opened.
+     * @param transaction The transaction that is opening the fragment.
+     * @param fragmentToAdd The fragment that is being added.
+     * @param nextFragmentTag The tag that will be used for the new fragment.
+     */
+    private void setOpenEnterTransition(@NonNull FragmentTransaction transaction,
+                                        @NonNull Fragment fragmentToAdd, String nextFragmentTag) {
+        // when we're managing custom transitions, we don't want a default transition, but
+        // TRANSIT_NONE causes some weird flashing, so we'll use the fade option, which is very
+        // subtle
+        transaction.setTransition(useDefaultTransitions()
+                ? FragmentTransaction.TRANSIT_FRAGMENT_OPEN
+                : FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !useDefaultTransitions()) {
+            Transition openEnterTransition = fragmentOpenEnterTransition();
+            fragmentToAdd.setEnterTransition(openEnterTransition);
+            if (LOG_TRANSITION_EVENTS) {
+                addTransitionLoggingListener(openEnterTransition,
+                        fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
+                                + " enter (openEnter)");
+            }
+        }
+    }
+
+    /**
+     * Set the transition to run on the previous fragment that is exiting the screen when a new
+     * fragment is being opened.
+     * @param fragment The fragment to attach the transition.
+     */
+    private void setOpenExitTransition(Fragment fragment) {
+        if (fragment == null) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || useDefaultTransitions()) {
+            return;
+        }
+        // the framework draws disappearing views' animation on top of other things and doesn't have
+        // any z-order control. when transitioning in a new fragment and removing the old one in the
+        // same action, the exiting fragment (meant to be behind the new one that is entering) is
+        // drawn on top of the fragment that is entering, which messes up how our transitions are
+        // designed to look. this is a known issue that isn't going to be fixed
+        // (https://issuetracker.google.com/issues/142056487). we'll just skip the exit transition
+        // in this case. this isn't an issue navigating back because the exiting view is intended to
+        // be on top. this also isn't an issue when separately managing hiding the fragments. I'm
+        // not entirely sure why, but it's probably related to how the enter transition starts after
+        // the exit transition starts.
+        Transition openExitTransition = shouldManageHidingFragments()
+                ? fragmentOpenExitTransition()
+                : null;
+        fragment.setExitTransition(openExitTransition);
+        if (LOG_TRANSITION_EVENTS) {
+            addTransitionLoggingListener(openExitTransition,
+                    fragmentDisplayInfo(fragment) + " exit (openExit)");
+        }
+    }
+
+    /**
+     * Set the transition to run on the previous fragment that is reentering the screen when the
+     * current fragment is being closed.
+     * @param fragment The fragment to attach the transition.
+     * @param isShowingForPredictiveBack Whether the transition is being triggered as part of
+     *                                   showing the fragment for the predictive back animation.
+     */
+    private void setCloseEnterTransition(Fragment fragment, boolean isShowingForPredictiveBack) {
+        if (fragment == null) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || useDefaultTransitions()) {
+            return;
+        }
+        // skip animating unhiding the previous fragment if we're showing it for the predictive back
+        // animation since we just want a preview of what we're going back to, so animating that
+        // could look weird
+        Transition closeEnterTransition = isShowingForPredictiveBack
+                ? null
+                : fragmentCloseEnterTransition();
+        if (shouldManageHidingFragments()) {
+            fragment.setEnterTransition(closeEnterTransition);
+        } else {
+            fragment.setReenterTransition(closeEnterTransition);
+        }
+        if (LOG_TRANSITION_EVENTS) {
+            addTransitionLoggingListener(closeEnterTransition,
+                    fragmentDisplayInfo(fragment)
+                            + (shouldManageHidingFragments()
+                                    ? " enter (closeEnter)"
+                                    : " reenter (closeEnter)"));
+        }
+    }
+
+    /**
+     * Create a transition to run on the current fragment that is exiting the screen when it is
+     * being closed.
+     * @param fragment The fragment to attach the transition.
+     */
+    private void setCloseExitTransition(Fragment fragment) {
+        if (fragment == null || useDefaultTransitions()) {
+            return;
+        }
+        Transition closeExitTransition = fragmentCloseExitTransition();
+        fragment.setReturnTransition(closeExitTransition);
+        if (LOG_TRANSITION_EVENTS) {
+            addTransitionLoggingListener(closeExitTransition,
+                    fragmentDisplayInfo(fragment) + " return (closeExit)");
+        }
+    }
+
+    /**
+     * Create a transition to run on the new fragment that is entering the screen when it is being
+     * opened.
+     * @return An enter transition.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Transition fragmentOpenEnterTransition() {
+        Transition enterTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            // have the new fragment slide in to pair with the predictive back animation (slide
+            // out). based on AOSP anim/activity_open_enter.xml (Android 16).
+            TransitionSet transitionSet = new TransitionSet();
+
+            Fade alpha = new Fade(Visibility.MODE_IN);
+            alpha.setInterpolator(new LinearInterpolator());
+            alpha.setStartDelay(50);
+            alpha.setDuration(83);
+            transitionSet.addTransition(alpha);
+
+            // Android 15 and 16 use 96dp, but Android 14 used 10%. that's similar enough, so we'll
+            // just go with the most recent version
+            PartialSlide translate = new PartialSlide(Gravity.END, 96, PartialSlide.DP);
+            translate.setDuration(450);
+            translate.setInterpolator(fastOutExtraSlowInInterpolator());
+            transitionSet.addTransition(translate);
+
+            enterTransition = transitionSet;
+        } else {
+            // have the new fragment transition match the system transition for navigating to a new
+            // activity
+            enterTransition = new ActivityAnimationTransition(this, true);
+        }
+        if (enterTransition != null && TRANSITION_DURATION >= 0) {
+            TransitionUtils.setTotalDuration(enterTransition, TRANSITION_DURATION);
+        }
+        return enterTransition;
+    }
+
+    /**
+     * Create a transition to run on the previous fragment that is exiting the screen when a new
+     * fragment is being opened.
+     * @return An exit transition.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Transition fragmentOpenExitTransition() {
+        Transition exitTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            // based on AOSP anim/activity_open_exit.xml (Android 16). Android 15 and 16 use -96dp,
+            // but Android 14 used -10%. that's similar enough, so we'll just go with the most
+            // recent version.
+            exitTransition = new PartialSlide(Gravity.START, 96, PartialSlide.DP);
+            exitTransition.setDuration(450);
+            exitTransition.setInterpolator(fastOutExtraSlowInInterpolator());
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
+            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
+            // transition, there must be an incoming fragment (ie it doesn't do a null check), so
+            // it crashes, so we'll have to skip the exit transition on Lollipop if we're manually
+            // hiding the fragment separate from adding the new fragment
+            exitTransition = null;
+        } else {
+            // have the new fragment transition match the system transition for exiting an activity
+            exitTransition = new ActivityAnimationTransition(this, false);
+        }
+        if (exitTransition != null && TRANSITION_DURATION >= 0) {
+            TransitionUtils.setTotalDuration(exitTransition, TRANSITION_DURATION);
+        }
+        return exitTransition;
+    }
+
+    /**
+     * Create a transition to run on the previous fragment that is reentering the screen when the
+     * current fragment is being closed.
+     * @return An enter transition.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Transition fragmentCloseEnterTransition() {
+        Transition enterTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            // based on AOSP anim/activity_close_enter.xml (Android 16). Android 15 and 16 use
+            // -96dp but Android 14 used -10%. that's similar enough, so we'll just go with the most
+            // recent version.
+            enterTransition = new PartialSlide(Gravity.START, 96, PartialSlide.DP);
+            enterTransition.setDuration(450);
+            enterTransition.setInterpolator(fastOutExtraSlowInInterpolator());
+        } else {
+            // have the new fragment transition match the system transition for returning to the
+            // previous activity
+            enterTransition = new ActivityAnimationTransition(this, false);
+        }
+        if (enterTransition != null && TRANSITION_DURATION >= 0) {
+            TransitionUtils.setTotalDuration(enterTransition, TRANSITION_DURATION);
+        }
+        return enterTransition;
+    }
+
+    /**
+     * Create a transition to run on the current fragment that is exiting the screen when it is
+     * being closed.
+     * @return An exit transition.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Transition fragmentCloseExitTransition() {
+        Transition returnTransition;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+            // based on AOSP anim/activity_close_exit.xml (Android 16)
+            TransitionSet transitionSet = new TransitionSet();
+
+            Fade alpha = new Fade(Visibility.MODE_OUT);
+            alpha.setInterpolator(new LinearInterpolator());
+            alpha.setStartDelay(35);
+            alpha.setDuration(83);
+            transitionSet.addTransition(alpha);
+
+            // Android 15 and 16 use 96dp but Android 14 used 10%. that's similar enough, so we'll
+            // just go with the most recent version
+            PartialSlide translate = new PartialSlide(Gravity.END, 96, PartialSlide.DP);
+            translate.setDuration(450);
+            translate.setInterpolator(fastOutExtraSlowInInterpolator());
+            transitionSet.addTransition(translate);
+
+            returnTransition = transitionSet;
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
+            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
+            // transition, there must be an incoming fragment (ie doesn't do a null check), so
+            // it crashes, so we'll have to skip the return transition on Lollipop if we're
+            // manually hiding the fragment separate from adding the new fragment
+            returnTransition = null;
+        } else {
+            // have the new fragment transition match the system transition for navigating away from
+            // the current activity
+            returnTransition = new ActivityAnimationTransition(this, true);
+        }
+        if (returnTransition != null && TRANSITION_DURATION >= 0) {
+            TransitionUtils.setTotalDuration(returnTransition, TRANSITION_DURATION);
+        }
+        return returnTransition;
+    }
+
+    private void addTransitionLoggingListener(Transition transition, String transitionIdentifier) {
+        if (transition == null) {
+            return;
+        }
+        transition.addListener(new TransitionListener() {
+            @Override
+            public void onTransitionCancel(Transition transition) {
+                Log.d(TAG, "onTransitionCancel: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionEnd(Transition transition) {
+                Log.d(TAG, "onTransitionEnd: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionPause(Transition transition) {
+                Log.d(TAG, "onTransitionPause: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionResume(Transition transition) {
+                Log.d(TAG, "onTransitionResume: " + transitionIdentifier);
+            }
+
+            @Override
+            public void onTransitionStart(Transition transition) {
+                Log.d(TAG, "onTransitionStart: " + transitionIdentifier);
+            }
+        });
+    }
+
+    private String fragmentDisplayInfo(Fragment fragment) {
+        return fragmentDisplayInfo(fragment, null);
+    }
+
+    private String fragmentDisplayInfo(Fragment fragment, String fragmentTag) {
+        if (fragment == null)  {
+            if (fragmentTag != null) {
+                fragment = getFragmentManager().findFragmentByTag(fragmentTag);
+            }
+        }
+        if (fragment != null && (fragmentTag == null || fragmentTag.equals(fragment.getTag()))) {
+            // this includes the tag, so the tag doesn't need to be added beyond that
+            return fragment.toString();
+        }
+        if (fragment == null) {
+            return fragmentTag;
+        }
+        return fragment + " (" + fragmentTag + ")";
+    }
+
+    private static String getEnterTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getEnterTransition();
+    }
+
+    private static String getExitTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getExitTransition();
+    }
+
+    private static String getReenterTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getReenterTransition();
+    }
+
+    private static String getReturnTransitionLogInfo(Fragment fragment) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || fragment == null) {
+            return "";
+        }
+        return ", transition=" + fragment.getReturnTransition();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private static Interpolator fastOutExtraSlowInInterpolator() {
+        Path path = new Path();
+        path.cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f);
+        path.cubicTo(0.208333f, 0.82f, 0.25f, 1f, 1f, 1f);
+        return new PathInterpolator(path);
     }
 
     private static boolean addSiblingBefore(View viewToInsert, View sibling) {
