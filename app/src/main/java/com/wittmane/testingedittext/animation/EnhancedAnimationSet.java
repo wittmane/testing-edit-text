@@ -220,6 +220,15 @@ public class EnhancedAnimationSet extends AnimationSet {
             return;
         }
         mIsTempEnded = false;
+        if (mLastTransformation != null) {
+            // call into Animation#getTransformation to get it to set mStarted to true in case we
+            // cancel before the framework calls it because without this, we wouldn't send the
+            // animation end event (since super manages that for us and relies on mStarted)
+            getTransformation(mMostRecentActiveTime > 0
+                    ? mMostRecentActiveTime
+                    : mAnimationSetStartTime,
+                    new Transformation());
+        }
         resume();
     }
 
@@ -241,6 +250,10 @@ public class EnhancedAnimationSet extends AnimationSet {
             callAllAnimations(childAnimation, Animation::cancel, true);
         }
         super.cancel();
+    }
+
+    public boolean isCanceled() {
+        return mIsCanceled;
     }
 
     /**

@@ -231,7 +231,7 @@ public class AnimationAnimator extends Animator {
 
     @Override
     public synchronized void pause() {
-        if (!isStarted() || isPaused() || mAnimationSet == null) {
+        if (!isStarted() || isPaused() || mAnimationSet == null || mAnimationSet.isCanceled()) {
             return;
         }
         if (mEndAnimationOnPause) {
@@ -257,7 +257,7 @@ public class AnimationAnimator extends Animator {
 
     @Override
     public synchronized void resume() {
-        if (!isStarted() || !isPaused() || mAnimationSet == null) {
+        if (!isStarted() || !isPaused() || mAnimationSet == null || mAnimationSet.isCanceled()) {
             return;
         }
         if (mEndAnimationOnPause) {
