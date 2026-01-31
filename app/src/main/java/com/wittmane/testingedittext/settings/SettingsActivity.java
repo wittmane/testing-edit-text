@@ -193,7 +193,7 @@ public class SettingsActivity extends PreferenceActivity
             if (f == null) {
                 f = new MainSettingsFragment();
             }
-            addFragment(f, null, null, false);
+            startFragment(f, null, null, false);
         }
         // handle the insets excluding the bottom to support showing the preference list behind the
         // navigation bar
@@ -239,12 +239,12 @@ public class SettingsActivity extends PreferenceActivity
         // PreferenceActivity#startPreferencePanel
 
         Fragment f = Fragment.instantiate(this, pref.getFragment(), pref.getExtras());
-        addFragment(f, pref, onNavigateForward, allowPendedAction);
+        startFragment(f, pref, onNavigateForward, allowPendedAction);
         return true;
     }
 
-    private void addFragment(Fragment fragmentToAdd, Preference pref, Runnable onNavigateForward,
-                             boolean allowPendedAction) {
+    private void startFragment(Fragment fragmentToAdd, Preference pref, Runnable onNavigateForward,
+                               boolean allowPendedAction) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment currentFragment = getCurrentFragment();
         String nextFragmentTag = createChildFragmentTag();
@@ -268,56 +268,95 @@ public class SettingsActivity extends PreferenceActivity
             if (currentFragment != null && !currentFragment.isHidden()) {
                 // this needs to be part of a separate transaction for some reason or else we can't
                 // show it behind the soon-to-be current fragment later for predictive back
-                hideCurrent = (onTransactionStarted) -> {
-                    if (LOG_FRAGMENT_CHANGES) {
-                        Log.d(TAG, "Fragment change: hide " + currentFragment
-                                + getExitTransitionLogInfo(currentFragment));
-                    }
-                    FragmentTransaction hideCurrentTransaction =
-                            getFragmentManager().beginTransaction().hide(currentFragment);
-                    chainRunTransactions(hideCurrentTransaction,
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                    ? currentFragment.getExitTransition()
-                                    : null, onTransactionStarted,
-                            allowPendedAction);
-                };
+                hideCurrent = (chainedAction) ->
+                        hideFragment(currentFragment, chainedAction, allowPendedAction);
             }
-            navigateForward = () -> {
-                if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: add "
-                            + fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
-                            + (addToBackStack ? ", adding to back stack" : "")
-                            + getEnterTransitionLogInfo(fragmentToAdd));
-                }
-                setCurrentFragmentTag(nextFragmentTag);
-                transaction.add(android.R.id.content, fragmentToAdd, nextFragmentTag);
-                transaction.commit();
-                if (onNavigateForward != null) {
-                    onNavigateForward.run();
-                }
-            };
+            navigateForward = () ->
+                    addFragment(fragmentToAdd, nextFragmentTag, transaction, addToBackStack,
+                            onNavigateForward);
         } else {
-            navigateForward = () -> {
-                if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: replace with " + fragmentToAdd
-                            + (addToBackStack ? ", adding to back stack" : "")
-                            + getEnterTransitionLogInfo(fragmentToAdd)
-                            + "\ncurrent: " + currentFragment
-                            + getExitTransitionLogInfo(currentFragment));
-                }
-                setCurrentFragmentTag(nextFragmentTag);
-                transaction.replace(android.R.id.content, fragmentToAdd, nextFragmentTag);
-                transaction.commit();
-                if (onNavigateForward != null) {
-                    onNavigateForward.run();
-                }
-            };
+            navigateForward = () ->
+                    replaceFragment(currentFragment, fragmentToAdd, nextFragmentTag, transaction,
+                            addToBackStack, onNavigateForward);
         }
         if (hideCurrent != null) {
             hideCurrent.accept(navigateForward);
         } else {
             navigateForward.run();
         }
+    }
+
+    private void addFragment(Fragment fragmentToAdd, String nextFragmentTag,
+                             FragmentTransaction transaction, boolean addToBackStack,
+                             Runnable onNavigateForward) {
+        if (LOG_FRAGMENT_CHANGES) {
+            Log.d(TAG, "Fragment change: add "
+                    + fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
+                    + (addToBackStack ? ", adding to back stack" : "")
+                    + getEnterTransitionLogInfo(fragmentToAdd));
+        }
+        setCurrentFragmentTag(nextFragmentTag);
+        transaction.add(android.R.id.content, fragmentToAdd, nextFragmentTag);
+        transaction.commit();
+        if (onNavigateForward != null) {
+            onNavigateForward.run();
+        }
+    }
+
+    private void replaceFragment(Fragment currentFragment, Fragment fragmentToAdd,
+                                 String nextFragmentTag, FragmentTransaction transaction,
+                                 boolean addToBackStack, Runnable onNavigateForward) {
+        if (LOG_FRAGMENT_CHANGES) {
+            Log.d(TAG, "Fragment change: replace with " + fragmentToAdd
+                    + (addToBackStack ? ", adding to back stack" : "")
+                    + getEnterTransitionLogInfo(fragmentToAdd)
+                    + "\ncurrent: " + currentFragment
+                    + getExitTransitionLogInfo(currentFragment));
+        }
+        setCurrentFragmentTag(nextFragmentTag);
+        transaction.replace(android.R.id.content, fragmentToAdd, nextFragmentTag);
+        transaction.commit();
+        if (onNavigateForward != null) {
+            onNavigateForward.run();
+        }
+    }
+
+    private void showFragment(Fragment fragment, Runnable chainedAction) {
+        if (!fragment.isHidden()) {
+            if (chainedAction != null) {
+                chainedAction.run();
+            }
+            return;
+        }
+        if (LOG_FRAGMENT_CHANGES) {
+            Log.d(TAG, "Fragment change: show " + fragment + getEnterTransitionLogInfo(fragment));
+        }
+        FragmentTransaction transaction = getFragmentManager().beginTransaction().show(fragment);
+        chainRunTransactions(transaction,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        ? fragment.getEnterTransition()
+                        : null,
+                chainedAction);
+    }
+
+    private void hideFragment(Fragment fragment, Runnable chainedAction,
+                              boolean allowPendedAction) {
+        if (fragment.isHidden()) {
+            if (chainedAction != null) {
+                chainedAction.run();
+            }
+            return;
+        }
+        if (LOG_FRAGMENT_CHANGES) {
+            Log.d(TAG, "Fragment change: hide " + fragment + getExitTransitionLogInfo(fragment));
+        }
+        FragmentTransaction transaction = getFragmentManager().beginTransaction().hide(fragment);
+        chainRunTransactions(transaction,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        ? fragment.getExitTransition()
+                        : null,
+                chainedAction,
+                allowPendedAction);
     }
 
     private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
@@ -328,7 +367,7 @@ public class SettingsActivity extends PreferenceActivity
     private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
                                       Runnable chainedAction, boolean allowPendedAction) {
         String currentFragmentTag = mCurrentFragmentTag;
-        if (transition != null) {
+        if (transition != null && chainedAction != null) {
             // the framework doesn't seem to handle committing concurrent fragments well. the
             // transition on the second doesn't always run. to resolve this, we'll run the first
             // immediately and wait for it to start the transition, at which point it should be safe
@@ -352,9 +391,7 @@ public class SettingsActivity extends PreferenceActivity
                     // specified fragment
                     return;
                 }
-                if (chainedAction != null) {
-                    chainedAction.run();
-                }
+                chainedAction.run();
             });
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -559,11 +596,7 @@ public class SettingsActivity extends PreferenceActivity
                 setCloseEnterTransition(previousFragment, false);
 
                 if (shouldManageHidingFragments()) {
-                    showPrevious = (onTransactionStarted) -> {
-                        if (LOG_FRAGMENT_CHANGES) {
-                            Log.d(TAG, "Fragment change: show " + previousFragment
-                                    + getEnterTransitionLogInfo(previousFragment));
-                        }
+                    showPrevious = (chainedAction) -> {
                         // note that for some reason on Nougat only, showing the fragment doesn't
                         // trigger the enter transition. the transition based on the stock emulator
                         // is basically just to appear, so most, if not all, devices probably won't
@@ -573,12 +606,7 @@ public class SettingsActivity extends PreferenceActivity
                         // framework bug in a single old version of android, so it's probably not
                         // worth putting in more time to trying to find the core issue and seeing if
                         // there is any workaround we can do (which there very well may not be).
-                        FragmentTransaction transaction = getFragmentManager().beginTransaction()
-                                .show(previousFragment);
-                        chainRunTransactions(transaction,
-                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                                        ? previousFragment.getEnterTransition()
-                                        : null, onTransactionStarted);
+                        showFragment(previousFragment, chainedAction);
                     };
                 }
             }
@@ -659,85 +687,23 @@ public class SettingsActivity extends PreferenceActivity
                 TransitionManager.endTransitions((ViewGroup) parent);
             }
 
-            // if the background under the fragment (either its direct background, some ancestor, or
-            // the base activity default) is a simple color (ignoring transparent backgrounds),
-            // create a new background directly under the fragment to prevent overlapping with the
-            // previous fragment when that is unhidden, and create it with rounded corners matching
-            // the device's corners to match behavior from activity predictive back animations
-            mOriginalBackground = mFragmentContent.getBackground();
-            mOriginalClipToOutline = mFragmentContent.getClipToOutline();
-            Drawable background = DrawableUtils.getNearestBackground(mFragmentContent);
-            int originalNearestBackgroundColor;
-            if (background == null) {
-                originalNearestBackgroundColor = ResourceUtils.getColor(
-                        android.R.attr.colorBackground, SettingsActivity.this);
-            } else if (background instanceof ColorDrawable) {
-                originalNearestBackgroundColor = ((ColorDrawable) background).getColor();
-            } else {
-                originalNearestBackgroundColor = Color.TRANSPARENT;
+            if (!ensureBackground()) {
+                // we won't be able to prevent the previous fragment from overlapping with the
+                // current fragment, so we shouldn't try to unhide the previous fragment. all we'll
+                // show is the animation of the content of the current fragment shifting.
+                skipShowingPrevious = true;
             }
-            Drawable drawable;
-            if (originalNearestBackgroundColor != Color.TRANSPARENT) {
-                drawable = createRoundedDrawable(mFragmentContent, originalNearestBackgroundColor);
-            } else {
-                // ideally we would round the corners on this too, but I'm not sure that there is a
-                // good way to do that on any random drawable
-                drawable = DrawableUtils.copyDrawable(background);
-                if (drawable == null && mOriginalBackground == null) {
-                    // we can't recreate the background and there isn't an existing background to
-                    // reuse, so we won't be able to prevent the previous fragment from overlapping
-                    // with the current fragment, so we shouldn't try to unhide the previous
-                    // fragment. all we'll show is the animation of the content of the current
-                    // fragment shifting.
-                    return;
+
+            if (skipShowingPrevious) {
+                if (afterBackStarted != null) {
+                    afterBackStarted.run();
                 }
-            }
-            if (drawable != null) {
-                // clip to exclude the portion of the view that is under the action bar
-                ClipDrawable clipDrawable =
-                        new ClipDrawable(drawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
-                int viewHeight = mFragmentContent.getHeight();
-                clipDrawable.setLevel(
-                        10000 * (viewHeight - mFragmentContent.getPaddingTop()) / viewHeight);
-                mFragmentContent.setBackground(clipDrawable);
-
-                mFragmentContent.setClipToOutline(true);
+                return;
             }
 
-            // add a semi-transparent overlay between the previous fragment and the current fragment
-            // to give a better distinction between the two and match behavior from activity
-            // predictive back animations
-            LinearLayout darkOverlay = new LinearLayout(SettingsActivity.this);
-            darkOverlay.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-            darkOverlay.setBackgroundColor(Color.argb(0.5f, 0f, 0f, 0f));
-            if (addSiblingBefore(darkOverlay, mFragmentContent)) {
-                mDarkOverlay = darkOverlay;
-            }
+            addDarkOverlay();
 
-            // unhide the previous fragment
-            Consumer<Runnable> showPrevious = null;
-            Fragment previousFragment = getPreviousFragment(currentFragment);
-            if (previousFragment != null && previousFragment.isHidden() && !skipShowingPrevious) {
-                mPreviousFragment = previousFragment;
-                showPrevious = (onTransactionStarted) -> {
-                    setCloseEnterTransition(mPreviousFragment, afterBackStarted == null);
-
-                    if (LOG_FRAGMENT_CHANGES) {
-                        Log.d(TAG, "Fragment change: show " + mPreviousFragment
-                                + getEnterTransitionLogInfo(mPreviousFragment));
-                    }
-                    FragmentTransaction transaction = getFragmentManager().beginTransaction()
-                            .show(mPreviousFragment);
-                    chainRunTransactions(transaction,
-                            previousFragment.getEnterTransition(), onTransactionStarted);
-                };
-            }
-            if (showPrevious != null) {
-                showPrevious.accept(afterBackStarted);
-            } else if (afterBackStarted != null) {
-                afterBackStarted.run();
-            }
+            showPreviousFragment(currentFragment, afterBackStarted == null, afterBackStarted);
         }
 
         @Override
@@ -795,69 +761,28 @@ public class SettingsActivity extends PreferenceActivity
             mFragmentContent.setScaleX(1f);
             mFragmentContent.setScaleY(1f);
 
+            View fragmentContent = mFragmentContent;
+            Drawable originalBackground = mOriginalBackground;
+            boolean originalClipToOutline = mOriginalClipToOutline;
+            Runnable resetBackground = () -> {
+                if (fragmentContent.getBackground() != originalBackground) {
+                    fragmentContent.setBackground(originalBackground);
+                }
+                if (fragmentContent.getClipToOutline() != originalClipToOutline) {
+                    fragmentContent.setClipToOutline(originalClipToOutline);
+                }
+            };
             if (mPreviousFragment != null) {
-                if (mFragmentContent != null) {
-                    // wait until the fragment finishes visibly getting removed to replace the
-                    // background (likely with nothing) to avoid a flash of the previous fragment
-                    // overlapping. since this transition is behind the current fragment, just
-                    // transition immediately. this transition is only really needed for the
-                    // callback to know when it's safe to replace the background of the current
-                    // fragment. setting duration to 1, rather than 0 in case anything handles 0
-                    // differently. 1 ms is effectively instantly, and depending on how it's
-                    // actually implemented 0 ms still may have some delay for asynchronous handling
-                    // and effectively be the same.
-                    Transition exitTransition = new Fade(Fade.MODE_OUT);
-                    exitTransition.setDuration(1);
-                    View fragmentContent = mFragmentContent;
-                    Drawable originalBackground = mOriginalBackground;
-                    boolean originalClipToOutline = mOriginalClipToOutline;
-                    exitTransition.addListener(new TransitionListener() {
-                        @Override
-                        public void onTransitionCancel(Transition transition) { }
-
-                        @Override
-                        public void onTransitionEnd(Transition transition) {
-                            fragmentContent.setBackground(originalBackground);
-                            fragmentContent.setClipToOutline(originalClipToOutline);
-                        }
-
-                        @Override
-                        public void onTransitionPause(Transition transition) { }
-
-                        @Override
-                        public void onTransitionResume(Transition transition) { }
-
-                        @Override
-                        public void onTransitionStart(Transition transition) { }
-                    });
-                    mPreviousFragment.setExitTransition(exitTransition);
-                }
-
-                if (!mPreviousFragment.isHidden()) {
-                    if (LOG_FRAGMENT_CHANGES) {
-                        Log.d(TAG, "Fragment change: hide " + mPreviousFragment
-                                + getExitTransitionLogInfo(mPreviousFragment));
-                    }
-                    getFragmentManager().beginTransaction()
-                            .hide(mPreviousFragment)
-                            .commit();
-                }
-
+                removePreviousFragment(resetBackground);
             } else {
-                if (mFragmentContent != null) {
-                    if (mFragmentContent.getBackground() != mOriginalBackground) {
-                        mFragmentContent.setBackground(mOriginalBackground);
-                        mFragmentContent.setClipToOutline(mOriginalClipToOutline);
-                    }
-                }
+                resetBackground.run();
             }
-            if (mDarkOverlay != null) {
-                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
-            }
+
+            removeDarkOverlay(true);
+
             mPreviousFragment = null;
             mFragmentContent = null;
             mOriginalBackground = null;
-            mDarkOverlay = null;
         }
 
         @Override
@@ -866,84 +791,204 @@ public class SettingsActivity extends PreferenceActivity
         }
 
         public void onBackInvoked(boolean isImmediatelyAddingNewFragment) {
-            if (!shouldManageHidingFragments()) {
-                // mPreviousFragment is null because it was never retrieved to unhide, so get the
-                // previous fragment now
-                Fragment previousFragment = getPreviousFragment(getCurrentFragment());
-                setCloseEnterTransition(previousFragment, false);
-            }
-            if (mPreviousFragment != null && mPreviousFragment.isHidden()
-                    && !isImmediatelyAddingNewFragment) {
-                if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: show " + mPreviousFragment
-                            + getEnterTransitionLogInfo(mPreviousFragment));
-                }
-                getFragmentManager().beginTransaction()
-                        .show(mPreviousFragment)
-                        .commit();
-            }
-            if (mDarkOverlay != null) {
+            Runnable navigateBack = () -> {
+                removeDarkOverlay(isImmediatelyAddingNewFragment);
+                mPreviousFragment = null;
+                mFragmentContent = null;
+                mOriginalBackground = null;
                 if (isImmediatelyAddingNewFragment) {
-                    // since this back is only a transient state (ideally not visible to the user),
-                    // we're not showing the previous fragment, so just hide the dark overlay
-                    // immediately (fade in effect not useful here)
-                    ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
-                } else {
-                    // have the dark overlay fade out before removing it (basically fading in the
-                    // previous fragment as it becomes the current again while the current slides
-                    // out to be removed). since the current fades as it slides out, the overlay
-                    // should disappear a bit before the current fragment's transition completes.
-                    Animation animation = new AlphaAnimation(1f, 0f);
                     Fragment currentFragment = getCurrentFragment();
-                    Transition currentFragmentTransition = currentFragment != null
-                            ? currentFragment.getReturnTransition()
-                            : null;
-                    long duration = currentFragmentTransition != null
-                            ? TransitionUtils.getTotalDuration(currentFragmentTransition, true)
-                            : 0;
-                    if (duration >= 0) {
-                        animation.setDuration(duration / 2);
-                    } else {
-                        animation.setDuration(DEFAULT_TRANSITION_DURATION / 2);
+                    if (currentFragment != null) {
+                        // since this back is only a transient state (ideally not visible to the
+                        // user), just skip the transition as the new fragment slides in over it
+                        // (instead of this fragment sliding out from a normal back action)
+                        currentFragment.setReturnTransition(null);
                     }
-                    final View darkOverlay = mDarkOverlay;
-                    animation.setAnimationListener(new AnimationListener() {
-                        @Override
-                        public void onAnimationEnd(Animation animation) {
-                            ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
-                        }
-
-                        @Override
-                        public void onAnimationRepeat(Animation animation) {
-
-                        }
-
-                        @Override
-                        public void onAnimationStart(Animation animation) {
-
-                        }
-                    });
-                    mDarkOverlay.setAnimation(animation);
                 }
+                super.onBackInvoked();
+            };
+
+            if (!isImmediatelyAddingNewFragment) {
+                // unhide if it isn't already
+                showPreviousFragment(getCurrentFragment(), false, navigateBack);
+            } else {
+                navigateBack.run();
             }
-            mPreviousFragment = null;
-            mFragmentContent = null;
-            mOriginalBackground = null;
-            mDarkOverlay = null;
-            if (isImmediatelyAddingNewFragment) {
-                Fragment currentFragment = getCurrentFragment();
-                if (currentFragment != null) {
-                    // since this back is only a transient state (ideally not visible to the user),
-                    // just skip the transition as the new fragment slides in over it (instead of
-                    // this fragment sliding out from a normal back action)
-                    currentFragment.setReturnTransition(null);
-                }
-            }
-            super.onBackInvoked();
         }
 
         public boolean isInProgress() {
             return mFragmentContent != null;
+        }
+
+        private void showPreviousFragment(Fragment currentFragment,
+                                          boolean isShowingForPredictiveBack,
+                                          Runnable afterBackStarted) {
+            Fragment previousFragment = mPreviousFragment != null
+                    ? mPreviousFragment
+                    : getPreviousFragment(currentFragment);
+            setCloseEnterTransition(previousFragment, isShowingForPredictiveBack);
+            Consumer<Runnable> showPrevious = null;
+            if (previousFragment != null && previousFragment.isHidden()) {
+                mPreviousFragment = previousFragment;
+                showPrevious = (chainedAction) -> {
+                    showFragment(previousFragment, chainedAction);
+                };
+            }
+            if (showPrevious != null) {
+                showPrevious.accept(afterBackStarted);
+            } else if (afterBackStarted != null) {
+                afterBackStarted.run();
+            }
+        }
+
+        private void removePreviousFragment(Runnable resetBackground) {
+            // wait until the fragment finishes visibly getting removed to replace the current
+            // fragment's background (likely with nothing) to avoid a flash of the previous fragment
+            // overlapping. since this transition is behind the current fragment, just transition
+            // immediately. this transition is only really needed for the callback to know when it's
+            // safe to replace the background of the current fragment. setting duration to 1, rather
+            // than 0 in case anything handles 0 differently. 1 ms is effectively instantly, and
+            // depending on how it's actually implemented 0 ms still may have some delay for
+            // asynchronous handling and effectively be the same.
+            Transition exitTransition = new Fade(Fade.MODE_OUT);
+            exitTransition.setDuration(1);
+            exitTransition.addListener(new TransitionListener() {
+                @Override
+                public void onTransitionCancel(Transition transition) {
+                }
+
+                @Override
+                public void onTransitionEnd(Transition transition) {
+                    if (resetBackground != null) {
+                        resetBackground.run();
+                    }
+                }
+
+                @Override
+                public void onTransitionPause(Transition transition) {
+                }
+
+                @Override
+                public void onTransitionResume(Transition transition) {
+                }
+
+                @Override
+                public void onTransitionStart(Transition transition) {
+                }
+            });
+            mPreviousFragment.setExitTransition(exitTransition);
+
+            hideFragment(mPreviousFragment, null, false);
+        }
+
+        /**
+         * Ensure the current fragment directly has a background to prevent overlapping with the
+         * previous fragment when that is unhidden. If the background under the fragment (either its
+         * direct background, some ancestor, or the base activity default) is a simple color
+         * (ignoring transparent backgrounds), this will create a new background matching that.
+         * Alternatively, this will copy any more complex drawable background. Additionally, if
+         * possible, this will create the new background with rounded corners matching the device's
+         * corners to match behavior from activity predictive back animations (card matching the
+         * screen shape slides away).
+         * @return Whether the current fragment has a background now.
+         */
+        private boolean ensureBackground() {
+            mOriginalBackground = mFragmentContent.getBackground();
+            mOriginalClipToOutline = mFragmentContent.getClipToOutline();
+            Drawable background = DrawableUtils.getNearestBackground(mFragmentContent);
+            int originalNearestBackgroundColor;
+            if (background == null) {
+                originalNearestBackgroundColor = ResourceUtils.getColor(
+                        android.R.attr.colorBackground, SettingsActivity.this);
+            } else if (background instanceof ColorDrawable) {
+                originalNearestBackgroundColor = ((ColorDrawable) background).getColor();
+            } else {
+                originalNearestBackgroundColor = Color.TRANSPARENT;
+            }
+            Drawable drawable;
+            if (originalNearestBackgroundColor != Color.TRANSPARENT) {
+                drawable = createRoundedDrawable(mFragmentContent, originalNearestBackgroundColor);
+            } else {
+                // ideally we would round the corners on this too, but I'm not sure that there is a
+                // good way to do that on any random drawable
+                drawable = DrawableUtils.copyDrawable(background);
+                if (drawable == null && mOriginalBackground == null) {
+                    // we can't recreate the background and there isn't an existing background to
+                    // reuse
+                    return false;
+                }
+            }
+            if (drawable != null) {
+                // clip to exclude the portion of the view that is under the action bar
+                ClipDrawable clipDrawable =
+                        new ClipDrawable(drawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
+                int viewHeight = mFragmentContent.getHeight();
+                clipDrawable.setLevel(
+                        10000 * (viewHeight - mFragmentContent.getPaddingTop()) / viewHeight);
+                mFragmentContent.setBackground(clipDrawable);
+
+                mFragmentContent.setClipToOutline(true);
+            }
+            return true;
+        }
+
+        private void addDarkOverlay() {
+            // add a semi-transparent overlay between the previous fragment and the current fragment
+            // to give a better distinction between the two and match behavior from activity
+            // predictive back animations
+            LinearLayout darkOverlay = new LinearLayout(SettingsActivity.this);
+            darkOverlay.setLayoutParams(new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+            darkOverlay.setBackgroundColor(Color.argb(0.5f, 0f, 0f, 0f));
+            if (addSiblingBefore(darkOverlay, mFragmentContent)) {
+                mDarkOverlay = darkOverlay;
+            }
+        }
+
+        private void removeDarkOverlay(boolean immediate) {
+            if (mDarkOverlay == null) {
+                return;
+            }
+            if (immediate) {
+                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
+            } else {
+                // have the dark overlay fade out before removing it (basically fading in the
+                // previous fragment as it becomes the current again while the current slides out to
+                // be removed). since the current fades as it slides out, the overlay should
+                // disappear a bit before the current fragment's transition completes.
+                Animation animation = new AlphaAnimation(1f, 0f);
+                Fragment currentFragment = getCurrentFragment();
+                Transition currentFragmentTransition = currentFragment != null
+                        ? currentFragment.getReturnTransition()
+                        : null;
+                long duration = currentFragmentTransition != null
+                        ? TransitionUtils.getTotalDuration(currentFragmentTransition, true)
+                        : 0;
+                if (duration >= 0) {
+                    animation.setDuration(duration / 2);
+                } else {
+                    animation.setDuration(DEFAULT_TRANSITION_DURATION / 2);
+                }
+                final View darkOverlay = mDarkOverlay;
+                animation.setAnimationListener(new AnimationListener() {
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+
+                    }
+                });
+                mDarkOverlay.setAnimation(animation);
+            }
+            mDarkOverlay = null;
         }
     }
 
