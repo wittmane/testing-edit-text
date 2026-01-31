@@ -1057,19 +1057,23 @@ public class SettingsActivity extends PreferenceActivity
                             || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation)
                             || !((OnBackCallbackWithAnimation) mOnBackInvokedCallback).isInProgress()))) {
                 if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
-                    if (LOG_FRAGMENT_CHANGES) {
-                        Log.d(TAG, "Fragment change: hide (cleanup) " + fragment
-                                + getExitTransitionLogInfo(fragment));
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        // clear any transition so it disappears immediately
+                        fragment.setExitTransition(null);
                     }
+                    Log.w(TAG, "Fragment change: hide (cleanup) " + fragment
+                            + getExitTransitionLogInfo(fragment));
                     getFragmentManager().beginTransaction().hide(fragment).commit();
                 }
             }
             // clean up any current fragment that somehow isn't shown
             if (index == 0 && fragment != null && fragment.isAdded() && fragment.isHidden()) {
-                if (LOG_FRAGMENT_CHANGES) {
-                    Log.d(TAG, "Fragment change: show (cleanup) " + fragment
-                            + getEnterTransitionLogInfo(fragment));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    // clear any transition so it appears immediately
+                    fragment.setEnterTransition(null);
                 }
+                Log.w(TAG, "Fragment change: show (cleanup) " + fragment
+                        + getEnterTransitionLogInfo(fragment));
                 getFragmentManager().beginTransaction().show(fragment).commit();
             }
             fragmentTag = getPreviousFragmentTag(fragmentTag);
