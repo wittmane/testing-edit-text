@@ -121,12 +121,12 @@ public class SettingsActivity extends PreferenceActivity
     private static final String STATE_CURRENT_FRAGMENT_TAG = "STATE_CURRENT_FRAGMENT_TAG";
 
     private boolean mIsBackCallbackRegistered = false;
-    private final OnBackInvokedCallback mOnBackInvokedCallback =
+    private final BackHandler mBackHandler =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                     ? new OnBackCallbackWithAnimation()
                     : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                             ? new OnBackCallback()
-                            : null;
+                            : new BackHandler();
 
     /**
      * determine if fragments should be hidden (rather than replaced) as new fragments are added.
@@ -297,17 +297,21 @@ public class SettingsActivity extends PreferenceActivity
         }
         setCurrentFragmentTag(nextFragmentTag);
         transaction.add(android.R.id.content, fragmentToAdd, nextFragmentTag);
-        transaction.commit();
-        if (onNavigateForward != null) {
-            onNavigateForward.run();
-        }
+        chainRunTransactions(transaction,
+                false,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        ? fragmentToAdd.getEnterTransition()
+                        : null,
+                onNavigateForward,
+                false);
     }
 
     private void replaceFragment(Fragment currentFragment, Fragment fragmentToAdd,
                                  String nextFragmentTag, FragmentTransaction transaction,
                                  boolean addToBackStack, Runnable onNavigateForward) {
         if (LOG_FRAGMENT_CHANGES) {
-            Log.d(TAG, "Fragment change: replace with " + fragmentToAdd
+            Log.d(TAG, "Fragment change: replace with "
+                    + fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
                     + (addToBackStack ? ", adding to back stack" : "")
                     + getEnterTransitionLogInfo(fragmentToAdd)
                     + "\ncurrent: " + currentFragment
@@ -315,10 +319,13 @@ public class SettingsActivity extends PreferenceActivity
         }
         setCurrentFragmentTag(nextFragmentTag);
         transaction.replace(android.R.id.content, fragmentToAdd, nextFragmentTag);
-        transaction.commit();
-        if (onNavigateForward != null) {
-            onNavigateForward.run();
-        }
+        chainRunTransactions(transaction,
+                false,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                        ? fragmentToAdd.getEnterTransition()
+                        : null,
+                onNavigateForward,
+                false);
     }
 
     private void showFragment(Fragment fragment, Runnable chainedAction) {
@@ -333,10 +340,12 @@ public class SettingsActivity extends PreferenceActivity
         }
         FragmentTransaction transaction = getFragmentManager().beginTransaction().show(fragment);
         chainRunTransactions(transaction,
+                true,
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         ? fragment.getEnterTransition()
                         : null,
-                chainedAction);
+                chainedAction,
+                false);
     }
 
     private void hideFragment(Fragment fragment, Runnable chainedAction,
@@ -352,6 +361,7 @@ public class SettingsActivity extends PreferenceActivity
         }
         FragmentTransaction transaction = getFragmentManager().beginTransaction().hide(fragment);
         chainRunTransactions(transaction,
+                true,
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                         ? fragment.getExitTransition()
                         : null,
@@ -359,13 +369,9 @@ public class SettingsActivity extends PreferenceActivity
                 allowPendedAction);
     }
 
-    private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
-                                      Runnable chainedAction) {
-        chainRunTransactions(transaction, transition, chainedAction, false);
-    }
-
-    private void chainRunTransactions(FragmentTransaction transaction, Transition transition,
-                                      Runnable chainedAction, boolean allowPendedAction) {
+    private void chainRunTransactions(FragmentTransaction transaction, boolean commitNow,
+                                      Transition transition, Runnable chainedAction,
+                                      boolean allowPendedAction) {
         String currentFragmentTag = mCurrentFragmentTag;
         if (transition != null && chainedAction != null) {
             // the framework doesn't seem to handle committing concurrent fragments well. the
@@ -394,14 +400,18 @@ public class SettingsActivity extends PreferenceActivity
                 chainedAction.run();
             });
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            transaction.commitNow();
+        if (commitNow) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                transaction.commitNow();
+            } else {
+                transaction.commit();
+                // theoretically this has the side effect of committing all currently pending
+                // transactions, but I don't think there should be any others at this time, so it
+                // should be fine
+                getFragmentManager().executePendingTransactions();
+            }
         } else {
             transaction.commit();
-            // theoretically this has the side effect of committing all currently pending
-            // transactions, but I don't think there should be any others at this time, so it should
-            // be fine
-            getFragmentManager().executePendingTransactions();
         }
         if (transition == null && chainedAction != null) {
             chainedAction.run();
@@ -530,33 +540,6 @@ public class SettingsActivity extends PreferenceActivity
         return super.onOptionsItemSelected(item);
     }
 
-    public void navigateBack(boolean isImmediatelyAddingNewFragment) {
-        navigateBack(isImmediatelyAddingNewFragment, null);
-    }
-
-    public void navigateBack(boolean isImmediatelyAddingNewFragment, Runnable onNavigateBack) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
-            OnBackCallbackWithAnimation onBackCallback =
-                    (OnBackCallbackWithAnimation) mOnBackInvokedCallback;
-            // artificially trigger handling for the start of the back animation to set up the the
-            // transition to match the swipe/long press (except for the scaling since there won't be
-            // any progress). also, this will handle unhiding the previous fragment because the
-            // standard back handling is only going to process undoing adding the current fragment
-            // since that is all that was included as part of the back stack. then immediately
-            // trigger the back invoked handling (remove the current fragment).
-            onBackCallback.onBackStarted(isImmediatelyAddingNewFragment,
-                    () -> {
-                onBackCallback.onBackInvoked(isImmediatelyAddingNewFragment);
-                if (onNavigateBack != null) {
-                    onNavigateBack.run();
-                }
-            });
-        } else {
-            onBackPressed(onNavigateBack);
-        }
-    }
-
     @Override
     public boolean isValidFragment(final String fragmentName) {
         return MainSettingsFragment.class.getName().equals(fragmentName)
@@ -574,46 +557,50 @@ public class SettingsActivity extends PreferenceActivity
                 || DisplaySettingsFragment.class.getName().equals(fragmentName);
     }
 
+    public void navigateBack(boolean isImmediatelyAddingNewFragment) {
+        navigateBack(isImmediatelyAddingNewFragment, null);
+    }
+
+    public void navigateBack(boolean isImmediatelyAddingNewFragment, Runnable onNavigateBack) {
+        mBackHandler.navigateBack(isImmediatelyAddingNewFragment, onNavigateBack);
+    }
+
     @SuppressLint("GestureBackNavigation")
     @Override
     public void onBackPressed() {
-        onBackPressed(null);
+        mBackHandler.navigateBack(false, null);
     }
 
-    private void onBackPressed(Runnable onNavigateBack) {
-        Consumer<Runnable> showPrevious = null;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation)) {
-            Fragment currentFragment = getCurrentFragment();
-            setCloseExitTransition(currentFragment);
-            // unhide the previous fragment (not necessary for the animated callback since that is
-            // already done as part of the animation)
-            Fragment previousFragment = currentFragment != null
-                    ? getPreviousFragment(currentFragment)
-                    : null;
-            if (previousFragment != null
-                    && (previousFragment.isHidden() || !shouldManageHidingFragments())) {
-                setCloseEnterTransition(previousFragment, false);
+    private class BackHandler {
 
-                if (shouldManageHidingFragments()) {
-                    showPrevious = (chainedAction) -> {
-                        // note that for some reason on Nougat only, showing the fragment doesn't
-                        // trigger the enter transition. the transition based on the stock emulator
-                        // is basically just to appear, so most, if not all, devices probably won't
-                        // look significantly different from having it without a transition even if
-                        // we could figure out a workaround. also, this is behind the current
-                        // fragment, so that makes it even less visible. this seems to just be a
-                        // framework bug in a single old version of android, so it's probably not
-                        // worth putting in more time to trying to find the core issue and seeing if
-                        // there is any workaround we can do (which there very well may not be).
-                        showFragment(previousFragment, chainedAction);
-                    };
-                }
-            }
+        protected Fragment mPreviousFragment;
+
+        public void navigateBack(boolean skipShowingPrevious, Runnable onNavigateBack) {
+            // handle any setup for the back action/animation (such as unhiding the previous
+            // fragment). then immediately trigger the back invoked handling (remove the current
+            // fragment).
+            prepBack(skipShowingPrevious,
+                    () -> invokeBack(skipShowingPrevious, onNavigateBack));
+
         }
-        Runnable navigateBack = () -> {
+
+        protected void prepBack(boolean skipShowingPrevious, Runnable onReady) {
+            if (skipShowingPrevious) {
+                if (onReady != null) {
+                    onReady.run();
+                }
+                return;
+            }
+            showPreviousFragment(getCurrentFragment(), false, onReady);
+        }
+
+        protected void invokeBack(boolean isTransientAction, Runnable onNavigateBack) {
+            mPreviousFragment = null;
+
+            Fragment currentFragment = getCurrentFragment();
+            setCloseExitTransition(currentFragment, isTransientAction);
+
             if (LOG_FRAGMENT_CHANGES) {
-                Fragment currentFragment = getCurrentFragment();
                 Log.d(TAG, "Fragment change: pop from back stack " + currentFragment
                         + getReturnTransitionLogInfo(currentFragment)
                         + (!shouldManageHidingFragments()
@@ -624,26 +611,52 @@ public class SettingsActivity extends PreferenceActivity
             }
             setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
             SettingsActivity.super.onBackPressed();
+            updateBackCallbackRegistrationState();
             invalidateOptionsMenu();
             if (onNavigateBack != null) {
                 onNavigateBack.run();
             }
-        };
-        if (showPrevious != null) {
-            showPrevious.accept(navigateBack);
-        } else {
-            navigateBack.run();
+        }
+
+        protected void showPreviousFragment(Fragment currentFragment,
+                                            boolean isShowingForPredictiveBack,
+                                            Runnable onReady) {
+            Fragment previousFragment = mPreviousFragment != null
+                    ? mPreviousFragment
+                    : currentFragment != null
+                            ? getPreviousFragment(currentFragment)
+                            : null;
+            setCloseEnterTransition(previousFragment, isShowingForPredictiveBack);
+            Consumer<Runnable> showPrevious = null;
+            if (previousFragment != null && previousFragment.isHidden()) {
+                mPreviousFragment = previousFragment;
+                showPrevious = (chainedAction) -> {
+                    // note that for some reason on Nougat only, showing the fragment doesn't
+                    // trigger the enter transition. the transition based on the stock emulator is
+                    // basically just to appear, so most, if not all, devices probably won't look
+                    // significantly different from having it without a transition even if we could
+                    // figure out a workaround. also, this is behind the current fragment, so that
+                    // makes it even less visible. this seems to just be a framework bug in a single
+                    // old version of android, so it's probably not worth putting in more time to
+                    // trying to find the core issue and seeing if there is any workaround we can do
+                    // (which there very well may not be).
+                    showFragment(previousFragment, chainedAction);
+                };
+            }
+            if (showPrevious != null) {
+                showPrevious.accept(onReady);
+            } else if (onReady != null) {
+                onReady.run();
+            }
         }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    private class OnBackCallback implements OnBackInvokedCallback {
+    private class OnBackCallback extends BackHandler implements OnBackInvokedCallback {
 
         @Override
         public void onBackInvoked() {
-            onBackPressed();
-            updateBackCallbackRegistrationState();
-            invalidateOptionsMenu();
+            navigateBack(false, null);
         }
     }
 
@@ -663,19 +676,17 @@ public class SettingsActivity extends PreferenceActivity
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
-            onBackStarted(false, null);
+            prepBack(false, null);
         }
 
-        public void onBackStarted(boolean skipShowingPrevious, Runnable afterBackStarted) {
+        @Override
+        protected void prepBack(boolean skipShowingPrevious, Runnable onReady) {
             Fragment currentFragment = getCurrentFragment();
-            if (currentFragment == null) {
-                return;
-            }
-
-            setCloseExitTransition(currentFragment);
-
-            mFragmentContent = currentFragment.getView();
+            mFragmentContent = currentFragment != null ? currentFragment.getView() : null;
             if (mFragmentContent == null) {
+                if (onReady != null) {
+                    onReady.run();
+                }
                 return;
             }
 
@@ -695,15 +706,15 @@ public class SettingsActivity extends PreferenceActivity
             }
 
             if (skipShowingPrevious) {
-                if (afterBackStarted != null) {
-                    afterBackStarted.run();
+                if (onReady != null) {
+                    onReady.run();
                 }
                 return;
             }
 
             addDarkOverlay();
 
-            showPreviousFragment(currentFragment, afterBackStarted == null, afterBackStarted);
+            showPreviousFragment(currentFragment, onReady == null, onReady);
         }
 
         @Override
@@ -787,28 +798,19 @@ public class SettingsActivity extends PreferenceActivity
 
         @Override
         public void onBackInvoked() {
-            onBackInvoked(false);
+            invokeBack(false, null);
         }
 
-        public void onBackInvoked(boolean isImmediatelyAddingNewFragment) {
+        @Override
+        protected void invokeBack(boolean isTransientAction, Runnable onNavigateBack) {
             Runnable navigateBack = () -> {
-                removeDarkOverlay(isImmediatelyAddingNewFragment);
-                mPreviousFragment = null;
+                removeDarkOverlay(isTransientAction);
                 mFragmentContent = null;
                 mOriginalBackground = null;
-                if (isImmediatelyAddingNewFragment) {
-                    Fragment currentFragment = getCurrentFragment();
-                    if (currentFragment != null) {
-                        // since this back is only a transient state (ideally not visible to the
-                        // user), just skip the transition as the new fragment slides in over it
-                        // (instead of this fragment sliding out from a normal back action)
-                        currentFragment.setReturnTransition(null);
-                    }
-                }
-                super.onBackInvoked();
+                super.invokeBack(isTransientAction, onNavigateBack);
             };
 
-            if (!isImmediatelyAddingNewFragment) {
+            if (!isTransientAction) {
                 // unhide if it isn't already
                 showPreviousFragment(getCurrentFragment(), false, navigateBack);
             } else {
@@ -818,27 +820,6 @@ public class SettingsActivity extends PreferenceActivity
 
         public boolean isInProgress() {
             return mFragmentContent != null;
-        }
-
-        private void showPreviousFragment(Fragment currentFragment,
-                                          boolean isShowingForPredictiveBack,
-                                          Runnable afterBackStarted) {
-            Fragment previousFragment = mPreviousFragment != null
-                    ? mPreviousFragment
-                    : getPreviousFragment(currentFragment);
-            setCloseEnterTransition(previousFragment, isShowingForPredictiveBack);
-            Consumer<Runnable> showPrevious = null;
-            if (previousFragment != null && previousFragment.isHidden()) {
-                mPreviousFragment = previousFragment;
-                showPrevious = (chainedAction) -> {
-                    showFragment(previousFragment, chainedAction);
-                };
-            }
-            if (showPrevious != null) {
-                showPrevious.accept(afterBackStarted);
-            } else if (afterBackStarted != null) {
-                afterBackStarted.run();
-            }
         }
 
         private void removePreviousFragment(Runnable resetBackground) {
@@ -1054,8 +1035,8 @@ public class SettingsActivity extends PreferenceActivity
             // fragment if the predictive back animation is active)
             if (index > 1 || (index == 1
                     && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                            || !(mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation)
-                            || !((OnBackCallbackWithAnimation) mOnBackInvokedCallback).isInProgress()))) {
+                            || !(mBackHandler instanceof OnBackCallbackWithAnimation)
+                            || !((OnBackCallbackWithAnimation) mBackHandler).isInProgress()))) {
                 if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         // clear any transition so it disappears immediately
@@ -1087,6 +1068,10 @@ public class SettingsActivity extends PreferenceActivity
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return;
         }
+        if (!(mBackHandler instanceof OnBackInvokedCallback)) {
+            Log.e(TAG, "unable to register back callback");
+            return;
+        }
         // without the back callback registered the predictive back animation is shown, but it goes
         // away when the callback is registered. without the back callback registered, the back
         // navigation bar button and gesture return to the previous activity rather than traverse up
@@ -1098,11 +1083,13 @@ public class SettingsActivity extends PreferenceActivity
         if (getFragmentManager().getBackStackEntryCount() != 0) {
             if (!mIsBackCallbackRegistered) {
                 getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                        OnBackInvokedDispatcher.PRIORITY_DEFAULT, mOnBackInvokedCallback);
+                        OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                        (OnBackInvokedCallback) mBackHandler);
                 mIsBackCallbackRegistered = true;
             }
         } else if (mIsBackCallbackRegistered) {
-            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mOnBackInvokedCallback);
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(
+                    (OnBackInvokedCallback) mBackHandler);
             mIsBackCallbackRegistered = false;
         }
     }
@@ -1210,12 +1197,17 @@ public class SettingsActivity extends PreferenceActivity
      * Create a transition to run on the current fragment that is exiting the screen when it is
      * being closed.
      * @param fragment The fragment to attach the transition.
+     * @param isTransientAction Whether the action to close is transient (something else will
+     *                          immediately launch).
      */
-    private void setCloseExitTransition(Fragment fragment) {
+    private void setCloseExitTransition(Fragment fragment, boolean isTransientAction) {
         if (fragment == null || useDefaultTransitions()) {
             return;
         }
-        Transition closeExitTransition = fragmentCloseExitTransition();
+        // if this back is only a transient state (ideally not visible to the user), just skip the
+        // transition as the new fragment slides in over it (instead of this fragment sliding out
+        // from a normal back action)
+        Transition closeExitTransition = isTransientAction ? null : fragmentCloseExitTransition();
         fragment.setReturnTransition(closeExitTransition);
         if (LOG_TRANSITION_EVENTS) {
             addTransitionLoggingListener(closeExitTransition,
@@ -1232,7 +1224,7 @@ public class SettingsActivity extends PreferenceActivity
     private Transition fragmentOpenEnterTransition() {
         Transition enterTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+                && mBackHandler instanceof OnBackCallbackWithAnimation) {
             // have the new fragment slide in to pair with the predictive back animation (slide
             // out). based on AOSP anim/activity_open_enter.xml (Android 16).
             TransitionSet transitionSet = new TransitionSet();
@@ -1271,7 +1263,7 @@ public class SettingsActivity extends PreferenceActivity
     private Transition fragmentOpenExitTransition() {
         Transition exitTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+                && mBackHandler instanceof OnBackCallbackWithAnimation) {
             // based on AOSP anim/activity_open_exit.xml (Android 16). Android 15 and 16 use -96dp,
             // but Android 14 used -10%. that's similar enough, so we'll just go with the most
             // recent version.
@@ -1303,7 +1295,7 @@ public class SettingsActivity extends PreferenceActivity
     private Transition fragmentCloseEnterTransition() {
         Transition enterTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+                && mBackHandler instanceof OnBackCallbackWithAnimation) {
             // based on AOSP anim/activity_close_enter.xml (Android 16). Android 15 and 16 use
             // -96dp but Android 14 used -10%. that's similar enough, so we'll just go with the most
             // recent version.
@@ -1330,7 +1322,7 @@ public class SettingsActivity extends PreferenceActivity
     private Transition fragmentCloseExitTransition() {
         Transition returnTransition;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mOnBackInvokedCallback instanceof OnBackCallbackWithAnimation) {
+                && mBackHandler instanceof OnBackCallbackWithAnimation) {
             // based on AOSP anim/activity_close_exit.xml (Android 16)
             TransitionSet transitionSet = new TransitionSet();
 
