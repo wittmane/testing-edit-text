@@ -59,7 +59,8 @@ public class ActivityAnimationTransition extends Visibility {
                              TransitionValues startValues, TransitionValues endValues) {
         return createAnimator(view, mIsActivityStackTop
                 ? android.R.attr.activityOpenEnterAnimation
-                : android.R.attr.activityCloseEnterAnimation, true);
+                : android.R.attr.activityCloseEnterAnimation,
+                true);
     }
 
     @Override
@@ -67,7 +68,8 @@ public class ActivityAnimationTransition extends Visibility {
                                 TransitionValues startValues, TransitionValues endValues) {
         return createAnimator(view, mIsActivityStackTop
                 ? android.R.attr.activityCloseExitAnimation
-                : android.R.attr.activityOpenExitAnimation, false);
+                : android.R.attr.activityOpenExitAnimation,
+                false);
     }
 
     private Animator createAnimator(View view, int attr, boolean isAppear) {
@@ -87,7 +89,7 @@ public class ActivityAnimationTransition extends Visibility {
         // an animation, and that just adds the view to a list without any duplicate checking. this
         // disappearing view gets removed in ViewGroup#finishAnimatingView, which is called from
         // View#draw when the view has an animation that is no longer running. as far as I can tell,
-        // the overlay view and disappearing view serve the same general function, but seem to be
+        // the overlay view and disappearing view serve the same general function but seem to be
         // built for the different Transition/Animator vs Animation frameworks, and since we're
         // already using the overlay view, there is no benefit in adding it to the list of
         // disappearing views. a single instance of the view in the list of disappearing views

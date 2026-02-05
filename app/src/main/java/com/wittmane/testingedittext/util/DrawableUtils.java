@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import android.view.ViewParent;
 import java.util.HashSet;
 
 public class DrawableUtils {
+    public static int DRAWABLE_LEVEL_MAX = 10000;
+
     /**
      * Return a drawable object associated with a particular resource ID.
      *

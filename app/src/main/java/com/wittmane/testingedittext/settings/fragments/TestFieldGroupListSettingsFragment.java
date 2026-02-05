@@ -95,12 +95,13 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         }
     }
 
-    static void openGroupPreference(SettingsFragment currentFragment, int groupIndex) {
+    /* package */ static void openGroupPreference(SettingsFragment currentFragment,
+                                                  int groupIndex) {
         openGroupPreference(currentFragment, groupIndex, false);
     }
 
-    static void openGroupPreference(SettingsFragment currentFragment, int groupIndex,
-                                    boolean allowPendedAction) {
+    /* package */ static void openGroupPreference(SettingsFragment currentFragment, int groupIndex,
+                                                  boolean allowPendedAction) {
         IndividualTestFieldGroupPreference pref = new IndividualTestFieldGroupPreference(
                 currentFragment.getLatestActivity(), groupIndex);
         if (!(currentFragment instanceof TestFieldGroupListSettingsFragment)
@@ -212,7 +213,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         }
     }
 
-    static class FieldEntry {
+    /* package */ static class FieldEntry {
         private final int mFieldId;
         private final String mDisplayName;
 

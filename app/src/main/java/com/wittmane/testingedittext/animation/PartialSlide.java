@@ -249,8 +249,8 @@ public class PartialSlide extends Visibility {
     }
 
     /**
-     * Returns the unit for the distance that the view will slide. See {@link #getDistanceValue} to get
-     * the value for this distance.
+     * Returns the unit for the distance that the view will slide. See {@link #getDistanceValue} to
+     * get the value for this distance.
      *
      * @return unit for the distance that the view will slide.
      */

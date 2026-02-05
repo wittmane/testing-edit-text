@@ -129,7 +129,7 @@ public abstract class SettingsFragment extends PreferenceFragment {
     /**
      * Pseudo lifecycle event to manage updating the display after returning. This is called after
      * resuming (excluding the first resume after create since the initial content should still be
-     * relevant) and unhiding (since the state is still resumed when the fragment is hidden).
+     * relevant) and unhiding (since the state is still in resumed while the fragment is hidden).
      */
     protected void onRedisplay() {
         refreshPreferences(getPreferenceScreen());
@@ -201,6 +201,11 @@ public abstract class SettingsFragment extends PreferenceFragment {
         }
     }
 
+    /**
+     * Get the current Activity this fragment is associated or the previous Activity if this
+     * fragment is no longer associated with one.
+     * @return The current or most recent Activity this fragment is associated with.
+     */
     protected Activity getLatestActivity() {
         Activity currentActivity = getActivity();
         if (currentActivity != null) {

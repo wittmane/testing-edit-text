@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,8 @@ public class ResourceUtils {
     }
 
     public static int getResourceId(int styleable, int attr, Context context) {
-        TypedArray typedArray = context.getTheme().obtainStyledAttributes(styleable, new int[] { attr });
+        TypedArray typedArray =
+                context.getTheme().obtainStyledAttributes(styleable, new int[] { attr });
         int resId = typedArray.getResourceId(0, RESOURCES_ID_NULL);
         typedArray.recycle();
         return resId;

@@ -20,6 +20,7 @@ package com.wittmane.testingedittext.settings;
 
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
 import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettingsFragment.GROUP_INDEX_BUNDLE_KEY;
+import static com.wittmane.testingedittext.util.DrawableUtils.DRAWABLE_LEVEL_MAX;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
@@ -59,7 +60,6 @@ import android.view.ViewParent;
 import android.view.WindowInsets;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
-import android.view.animation.Animation.AnimationListener;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
@@ -74,6 +74,8 @@ import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.animation.ActivityAnimationTransition;
+import com.wittmane.testingedittext.animation.PartialAnimationListener;
+import com.wittmane.testingedittext.animation.PartialTransitionListener;
 import com.wittmane.testingedittext.animation.PartialSlide;
 import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.util.DrawableUtils;
@@ -127,6 +129,9 @@ public class SettingsActivity extends PreferenceActivity
                     : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                             ? new OnBackCallback()
                             : new BackHandler();
+    private String mCurrentFragmentTag;
+    private Timer mFragmentCleanupTimer;
+    private int mPredictiveBackMargin;
 
     /**
      * determine if fragments should be hidden (rather than replaced) as new fragments are added.
@@ -137,9 +142,9 @@ public class SettingsActivity extends PreferenceActivity
      * preferred), but due to the fact that hiding a fragment leaves it in the resumed state, this
      * will cause a mismatch of lifecycle events, which seems likely to result in bugs from
      * overlooking this difference in the versions, so we'll just hide it on all versions. I'm
-     * leaving as a method at least for now, rather than just hard-coding the logic, to easily swap
-     * functionality back if this ends up causing problems.
-     * @return whether fragments should be hid in instead of replaced
+     * leaving this as a method at least for now, rather than just hard-coding the logic, to easily
+     * swap functionality back if this ends up causing problems.
+     * @return whether fragments should be hidden in instead of replaced
      */
     private static boolean shouldManageHidingFragments() {
         return true;
@@ -147,7 +152,7 @@ public class SettingsActivity extends PreferenceActivity
 
     private static boolean useDefaultTransitions() {
         // custom transitions are available starting in Lollipop, but due to a bug in Lollipop (see
-        // #fragmentReplacedTransitionOut and #fragmentRemovedTransitionOut) we can't show a custom
+        // #fragmentOpenExitTransition and #fragmentCloseExitTransition) we can't show a custom
         // transition when only hiding a fragment (not also adding something). this is particularly
         // bad when navigating back and the current fragment can't animate leaving, so we'll still
         // just use the framework transitions on Lollipop if we're manually hiding fragments
@@ -157,18 +162,13 @@ public class SettingsActivity extends PreferenceActivity
                 || (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments());
     }
 
-    private Timer mFragmentCleanupTimer;
-
-    private String mCurrentFragmentTag;
-
-    private int predictiveBackMargin;
-
     @Override
     protected void onCreate(final Bundle savedState) {
         setTheme(Settings.getThemeId(this));
         super.onCreate(savedState);
 
-        predictiveBackMargin = getResources().getDimensionPixelSize(R.dimen.predictive_back_margin);
+        mPredictiveBackMargin =
+                getResources().getDimensionPixelSize(R.dimen.predictive_back_margin);
 
         final ActionBar actionBar = getActionBar();
         if (actionBar != null) {
@@ -235,11 +235,11 @@ public class SettingsActivity extends PreferenceActivity
             return false;
         }
 
-        // (EW) based on PreferenceActivity#onPreferenceStartFragment and
+        // originally based on PreferenceActivity#onPreferenceStartFragment and
         // PreferenceActivity#startPreferencePanel
-
         Fragment f = Fragment.instantiate(this, pref.getFragment(), pref.getExtras());
         startFragment(f, pref, onNavigateForward, allowPendedAction);
+
         return true;
     }
 
@@ -378,9 +378,8 @@ public class SettingsActivity extends PreferenceActivity
             // transition on the second doesn't always run. to resolve this, we'll run the first
             // immediately and wait for it to start the transition, at which point it should be safe
             // to commit the next transaction. the transitions might be out of sync by a few
-            // milliseconds, but they shouldn't be intrinsically tied to each other, so that should
-            // be fine. they'll still mostly be running at the same time, so it probably won't be
-            // very noticeable.
+            // milliseconds, but they'll still mostly be running at the same time, so it probably
+            // won't be very noticeable.
             // for some reason the transition listener needs to be added before running committing
             // the transaction. it's not that the listener would get called before we have time.
             // simply adding a dummy listener here and adding the real one after committing the
@@ -422,7 +421,7 @@ public class SettingsActivity extends PreferenceActivity
         if (runnable == null) {
             return;
         }
-        final TransitionListener listener = new TransitionListener() {
+        final TransitionListener listener = new PartialTransitionListener() {
             private boolean mCalledRunnable;
 
             @Override
@@ -436,22 +435,6 @@ public class SettingsActivity extends PreferenceActivity
                     mCalledRunnable = true;
                 }
                 runnable.run();
-            }
-
-            @Override
-            public void onTransitionPause(Transition transition) {
-            }
-
-            @Override
-            public void onTransitionResume(Transition transition) {
-            }
-
-            @Override
-            public void onTransitionCancel(Transition transition) {
-            }
-
-            @Override
-            public void onTransitionEnd(Transition transition) {
             }
         };
         transition.addListener(listener);
@@ -486,14 +469,6 @@ public class SettingsActivity extends PreferenceActivity
             Log.w(TAG, "Failed to find current fragment (tag: " + mCurrentFragmentTag + ")");
         }
         return currentFragment;
-    }
-
-    public Fragment getPreviousFragment() {
-        Fragment currentFragment = getCurrentFragment();
-        if (currentFragment == null) {
-            return null;
-        }
-        return getPreviousFragment(currentFragment);
     }
 
     public Fragment getPreviousFragment(Fragment currentFragment) {
@@ -534,7 +509,7 @@ public class SettingsActivity extends PreferenceActivity
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            navigateBack(false);
+            mBackHandler.navigateBack(false, null);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -555,10 +530,6 @@ public class SettingsActivity extends PreferenceActivity
                 || ImeOptionsSettingsFragment.class.getName().equals(fragmentName)
                 || ImeActionSettingsFragment.class.getName().equals(fragmentName)
                 || DisplaySettingsFragment.class.getName().equals(fragmentName);
-    }
-
-    public void navigateBack(boolean isImmediatelyAddingNewFragment) {
-        navigateBack(isImmediatelyAddingNewFragment, null);
     }
 
     public void navigateBack(boolean isImmediatelyAddingNewFragment, Runnable onNavigateBack) {
@@ -660,15 +631,14 @@ public class SettingsActivity extends PreferenceActivity
         }
     }
 
-    // (EW) manually animate the back gesture to match the system animations. based on
+    // manually animate the back gesture to match the system animations. based on
     // https://github.com/android/animation-samples/blob/main/Motion/app/src/main/java/com/example/android/motion/demo/containertransform/CheeseArticleFragment.kt
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private class OnBackCallbackWithAnimation extends OnBackCallback
             implements OnBackAnimationCallback {
         private final PathInterpolator mGestureInterpolator = new PathInterpolator(0f, 0f, 0f, 0f);
 
-        private float initialTouchY = -1f;
-        private Fragment mPreviousFragment;
+        private float mInitialTouchY = -1f;
         private View mFragmentContent;
         private Drawable mOriginalBackground;
         private boolean mOriginalClipToOutline;
@@ -724,11 +694,11 @@ public class SettingsActivity extends PreferenceActivity
             }
 
             float progress = mGestureInterpolator.getInterpolation(backEvent.getProgress());
-            if (initialTouchY < 0f) {
-                initialTouchY = backEvent.getTouchY();
+            if (mInitialTouchY < 0f) {
+                mInitialTouchY = backEvent.getTouchY();
             }
             float progressY = mGestureInterpolator.getInterpolation(
-                    (backEvent.getTouchY() - initialTouchY) / mFragmentContent.getHeight()
+                    (backEvent.getTouchY() - mInitialTouchY) / mFragmentContent.getHeight()
             );
 
             // See the motion spec about the calculations below.
@@ -742,17 +712,16 @@ public class SettingsActivity extends PreferenceActivity
                             ? backEvent.getSwipeEdge() == BackEvent.EDGE_RIGHT
                             : backEvent.getSwipeEdge() == BackEvent.EDGE_LEFT);
             // only shift if the swipe matches the direction the fragment is going to slide away (or
-            // if the back button is held). otherwise, this will the fragment will just be scaled
-            // and centered (similar to the animation for switching activities when swiping from the
-            // other side).
+            // if the back button is held). otherwise, the fragment will just be scaled and centered
+            // (similar to the animation for switching activities when swiping from the other side).
             if (isSwipingWithTransition) {
-                int maxTranslationX = (mFragmentContent.getWidth() / 20) - predictiveBackMargin;
-                mFragmentContent.setTranslationX(progress * maxTranslationX *
-                        ((config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) ? -1 : 1));
+                int maxTranslationX = (mFragmentContent.getWidth() / 20) - mPredictiveBackMargin;
+                int sign = ((config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) ? -1 : 1);
+                mFragmentContent.setTranslationX(progress * maxTranslationX * sign);
             }
 
             // Shift vertically.
-            int maxTranslationY = (mFragmentContent.getHeight() / 20) - predictiveBackMargin;
+            int maxTranslationY = (mFragmentContent.getHeight() / 20) - mPredictiveBackMargin;
             mFragmentContent.setTranslationY(progressY * maxTranslationY);
 
             // Scale down from 100% to 90%.
@@ -763,7 +732,7 @@ public class SettingsActivity extends PreferenceActivity
 
         @Override
         public void onBackCancelled() {
-            initialTouchY = -1f;
+            mInitialTouchY = -1f;
             if (mFragmentContent == null) {
                 return;
             }
@@ -805,8 +774,6 @@ public class SettingsActivity extends PreferenceActivity
         protected void invokeBack(boolean isTransientAction, Runnable onNavigateBack) {
             Runnable navigateBack = () -> {
                 removeDarkOverlay(isTransientAction);
-                mFragmentContent = null;
-                mOriginalBackground = null;
                 super.invokeBack(isTransientAction, onNavigateBack);
             };
 
@@ -816,6 +783,8 @@ public class SettingsActivity extends PreferenceActivity
             } else {
                 navigateBack.run();
             }
+            mFragmentContent = null;
+            mOriginalBackground = null;
         }
 
         public boolean isInProgress() {
@@ -833,28 +802,12 @@ public class SettingsActivity extends PreferenceActivity
             // asynchronous handling and effectively be the same.
             Transition exitTransition = new Fade(Fade.MODE_OUT);
             exitTransition.setDuration(1);
-            exitTransition.addListener(new TransitionListener() {
-                @Override
-                public void onTransitionCancel(Transition transition) {
-                }
-
+            exitTransition.addListener(new PartialTransitionListener() {
                 @Override
                 public void onTransitionEnd(Transition transition) {
                     if (resetBackground != null) {
                         resetBackground.run();
                     }
-                }
-
-                @Override
-                public void onTransitionPause(Transition transition) {
-                }
-
-                @Override
-                public void onTransitionResume(Transition transition) {
-                }
-
-                @Override
-                public void onTransitionStart(Transition transition) {
                 }
             });
             mPreviousFragment.setExitTransition(exitTransition);
@@ -904,8 +857,9 @@ public class SettingsActivity extends PreferenceActivity
                 ClipDrawable clipDrawable =
                         new ClipDrawable(drawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
                 int viewHeight = mFragmentContent.getHeight();
+                int paddingTop = mFragmentContent.getPaddingTop();
                 clipDrawable.setLevel(
-                        10000 * (viewHeight - mFragmentContent.getPaddingTop()) / viewHeight);
+                        DRAWABLE_LEVEL_MAX * (viewHeight - paddingTop) / viewHeight);
                 mFragmentContent.setBackground(clipDrawable);
 
                 mFragmentContent.setClipToOutline(true);
@@ -951,20 +905,10 @@ public class SettingsActivity extends PreferenceActivity
                     animation.setDuration(DEFAULT_TRANSITION_DURATION / 2);
                 }
                 final View darkOverlay = mDarkOverlay;
-                animation.setAnimationListener(new AnimationListener() {
+                animation.setAnimationListener(new PartialAnimationListener() {
                     @Override
                     public void onAnimationEnd(Animation animation) {
                         ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
-                    }
-
-                    @Override
-                    public void onAnimationRepeat(Animation animation) {
-
-                    }
-
-                    @Override
-                    public void onAnimationStart(Animation animation) {
-
                     }
                 });
                 mDarkOverlay.setAnimation(animation);
@@ -1033,28 +977,29 @@ public class SettingsActivity extends PreferenceActivity
             Fragment fragment = getFragmentManager().findFragmentByTag(fragmentTag);
             // clean up any old fragments that somehow aren't hidden (don't hide the previous
             // fragment if the predictive back animation is active)
-            if (index > 1 || (index == 1
-                    && (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                            || !(mBackHandler instanceof OnBackCallbackWithAnimation)
-                            || !((OnBackCallbackWithAnimation) mBackHandler).isInProgress()))) {
+            boolean isCurrentFragment = index == 0;
+            boolean isPreviousFragment = index == 1;
+            boolean isBackInProgress = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    && mBackHandler instanceof OnBackCallbackWithAnimation
+                    && ((OnBackCallbackWithAnimation) mBackHandler).isInProgress();
+            if (!isCurrentFragment && (!isPreviousFragment || !isBackInProgress)) {
                 if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         // clear any transition so it disappears immediately
                         fragment.setExitTransition(null);
                     }
-                    Log.w(TAG, "Fragment change: hide (cleanup) " + fragment
-                            + getExitTransitionLogInfo(fragment));
+                    Log.w(TAG, "Fragment change: hide (cleanup) " + fragment);
                     getFragmentManager().beginTransaction().hide(fragment).commit();
                 }
             }
             // clean up any current fragment that somehow isn't shown
-            if (index == 0 && fragment != null && fragment.isAdded() && fragment.isHidden()) {
+            if (isCurrentFragment && fragment != null && fragment.isAdded()
+                    && fragment.isHidden()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     // clear any transition so it appears immediately
                     fragment.setEnterTransition(null);
                 }
-                Log.w(TAG, "Fragment change: show (cleanup) " + fragment
-                        + getEnterTransitionLogInfo(fragment));
+                Log.w(TAG, "Fragment change: show (cleanup) " + fragment);
                 getFragmentManager().beginTransaction().show(fragment).commit();
             }
             fragmentTag = getPreviousFragmentTag(fragmentTag);
@@ -1072,14 +1017,14 @@ public class SettingsActivity extends PreferenceActivity
             Log.e(TAG, "unable to register back callback");
             return;
         }
-        // without the back callback registered the predictive back animation is shown, but it goes
+        // without the back callback registered, the predictive back animation is shown, but it goes
         // away when the callback is registered. without the back callback registered, the back
         // navigation bar button and gesture return to the previous activity rather than traverse up
         // the back stack. have the back callback registered when there are entries in the back
         // stack to properly support going to the previous fragment, but once the back stack is
-        // empty, unregister the callback to get the predictive back animation to appear. this
-        // pattern came from PreferenceActivity, but I'm not certain if it did this for the same
-        // reason.
+        // empty, unregister the callback to get the activity-level predictive back animation to
+        // appear. this pattern came from PreferenceActivity, but I'm not certain if it did this for
+        // the same reason.
         if (getFragmentManager().getBackStackEntryCount() != 0) {
             if (!mIsBackCallbackRegistered) {
                 getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -1141,8 +1086,8 @@ public class SettingsActivity extends PreferenceActivity
         }
         // the framework draws disappearing views' animation on top of other things and doesn't have
         // any z-order control. when transitioning in a new fragment and removing the old one in the
-        // same action, the exiting fragment (meant to be behind the new one that is entering) is
-        // drawn on top of the fragment that is entering, which messes up how our transitions are
+        // same transaction, the exiting fragment (meant to be behind the new one that is entering)
+        // is drawn on top of the fragment that is entering, which messes up how our transitions are
         // designed to look. this is a known issue that isn't going to be fixed
         // (https://issuetracker.google.com/issues/142056487). we'll just skip the exit transition
         // in this case. this isn't an issue navigating back because the exiting view is intended to
@@ -1271,7 +1216,7 @@ public class SettingsActivity extends PreferenceActivity
             exitTransition.setDuration(450);
             exitTransition.setInterpolator(fastOutExtraSlowInInterpolator());
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
-            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
+            // in Lollipop, BackStackRecord makes an incorrect assumption that if there is any
             // transition, there must be an incoming fragment (ie it doesn't do a null check), so
             // it crashes, so we'll have to skip the exit transition on Lollipop if we're manually
             // hiding the fragment separate from adding the new fragment
@@ -1341,7 +1286,7 @@ public class SettingsActivity extends PreferenceActivity
 
             returnTransition = transitionSet;
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && shouldManageHidingFragments()) {
-            // in Lollipop BackStackRecord makes an incorrect assumption that if there is any
+            // in Lollipop, BackStackRecord makes an incorrect assumption that if there is any
             // transition, there must be an incoming fragment (ie doesn't do a null check), so
             // it crashes, so we'll have to skip the return transition on Lollipop if we're
             // manually hiding the fragment separate from adding the new fragment
@@ -1439,6 +1384,7 @@ public class SettingsActivity extends PreferenceActivity
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private static Interpolator fastOutExtraSlowInInterpolator() {
+        // based on fast_out_extra_slow_in.xml
         Path path = new Path();
         path.cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f);
         path.cubicTo(0.208333f, 0.82f, 0.25f, 1f, 1f, 1f);

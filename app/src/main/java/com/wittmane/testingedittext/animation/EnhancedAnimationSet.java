@@ -63,7 +63,7 @@ public class EnhancedAnimationSet extends AnimationSet {
             // ideally we would just ignore updates to the start time to retain previous state for
             // when this gets restarted, but we don't have a way to reset AnimationSet's internal
             // ended state other than calling setStartTime, and if that's not reset, we'll trigger
-            // the animation end handler shortly after starting in AnimationSet#getTransformation.
+            // the animation end handler just after starting in AnimationSet#getTransformation.
             // since #getAnimations directly exposes the list of animations, we'll remove them
             // temporarily to call #setStartTime to the same value it already had to simply reset
             // this animation to not be ended while avoiding resetting the child animation, and then
@@ -103,8 +103,7 @@ public class EnhancedAnimationSet extends AnimationSet {
         mChildrenTotalDuration = 0;
     }
 
-    @Override
-    public boolean getTransformation(long currentTime, Transformation outTransformation) {
+    private void handleInitialTransformation(long currentTime, Transformation outTransformation) {
         if (mLastTransformation == null) {
             mLastTransformation = new Transformation();
             mLastTransformation.set(outTransformation);
@@ -120,6 +119,11 @@ public class EnhancedAnimationSet extends AnimationSet {
                 mChildrenTotalDuration -= mStartDelay;
             }
         }
+    }
+
+    @Override
+    public boolean getTransformation(long currentTime, Transformation outTransformation) {
+        handleInitialTransformation(currentTime, outTransformation);
         if (mMostRecentActiveTime == 0 || !isPaused()) {
             mMostRecentActiveTime = currentTime;
         }
@@ -132,40 +136,9 @@ public class EnhancedAnimationSet extends AnimationSet {
             outTransformation.set(mLastTransformation);
             isAnimationStillRunning = false;
         } else {
-            boolean interpolatorHasMore = false;
-            long childTime;
-            // skip the interpolator if the duration is 0 (can't really do anything with that) or
-            // the duration is infinite (can't really treat it as a percent complete to adjust
-            // because it would effectively always be at the start).
-            Interpolator interpolator = getInterpolator();
-            if (mChildrenTotalDuration > 0 && interpolator != null
-                    && childElapsedTime <= mChildrenTotalDuration) {
-                // limit the interpolated time going past the edges of the real time since negative
-                // doesn't make sense and we don't allow going back in time, so going past the end
-                // could cause issues
-                float interpolatedTime = MathUtils.constrain(
-                        interpolator.getInterpolation(
-                                (float) childElapsedTime / mChildrenTotalDuration),
-                        0f, 1f);
-                childTime = Math.round((double) interpolatedTime * mChildrenTotalDuration)
-                        + mAnimationSetStartTime;
-                // flag to prevent quitting the animation early if the interpolator reaches the
-                // "end" of the animation early (repeat, overshoot, etc)
-                interpolatorHasMore = true;
-            } else {
-                childTime = mAnimationSetStartTime + childElapsedTime;
-            }
-            // prevent going back in time as that doesn't work when a child animation repeats (can't
-            // go to the previous instance since it updates its internal start time and repeat
-            // count)
-            if (mMaxPrevChildTime > childTime) {
-                childTime = mMaxPrevChildTime;
-            } else {
-                mMaxPrevChildTime = childTime;
-            }
-            isAnimationStillRunning = super.getTransformation(childTime, outTransformation)
-                    || interpolatorHasMore;
-            if (mAnimationUpdateListener != null && !isPaused() && !mIsCanceled) {
+            isAnimationStillRunning =
+                    getChildAnimationTransformation(childElapsedTime, outTransformation);
+            if (mAnimationUpdateListener != null && !isPaused() && !mIsCanceled && !mIsTempEnded) {
                 // notify listener
                 mAnimationUpdateListener.onAnimationUpdate(this, elapsedTime);
             }
@@ -180,12 +153,49 @@ public class EnhancedAnimationSet extends AnimationSet {
         return isAnimationStillRunning;
     }
 
+    private boolean getChildAnimationTransformation(long childElapsedTime,
+                                                    Transformation outTransformation) {
+        boolean interpolatorHasMore = false;
+        long childTime;
+        // skip the interpolator if the duration is 0 (can't really do anything with that) or the
+        // duration is infinite (can't really treat it as a percent complete to adjust because it
+        // would effectively always be at the start).
+        Interpolator interpolator = getInterpolator();
+        if (mChildrenTotalDuration > 0 && interpolator != null
+                && childElapsedTime <= mChildrenTotalDuration) {
+            // limit the interpolated time going past the edges of the real time since negative
+            // doesn't make sense and we don't allow going back in time, so going past the end could
+            // cause issues
+            float interpolatedTime = MathUtils.constrain(
+                    interpolator.getInterpolation(
+                            (float) childElapsedTime / mChildrenTotalDuration),
+                    0f, 1f);
+            childTime = Math.round((double) interpolatedTime * mChildrenTotalDuration)
+                    + mAnimationSetStartTime;
+            // flag to prevent quitting the animation early if the interpolator reaches the "end" of
+            // the animation early (repeat, overshoot, etc)
+            interpolatorHasMore = true;
+        } else {
+            childTime = mAnimationSetStartTime + childElapsedTime;
+        }
+        // prevent going back in time as that doesn't work when a child animation repeats (can't go
+        // to the previous instance since it updates its internal start time and repeat count)
+        if (mMaxPrevChildTime > childTime) {
+            childTime = mMaxPrevChildTime;
+        } else {
+            mMaxPrevChildTime = childTime;
+        }
+        return super.getTransformation(childTime, outTransformation)
+                || interpolatorHasMore;
+    }
+
     public long getElapsedTime() {
-        return Math.max(0, Math.min(
+        return MathUtils.constrain(
                 mMostRecentActiveTime - mAnimationSetStartTime - mPreviousPausedTime,
+                0,
                 mClippedDuration >= 0
                         ? mClippedDuration
-                        : Long.MAX_VALUE));
+                        : Long.MAX_VALUE);
     }
 
     public void pause() {
@@ -236,6 +246,9 @@ public class EnhancedAnimationSet extends AnimationSet {
         return mIsTempEnded;
     }
 
+    /**
+     * Like {@link #cancel()}, but don't reset the view's state.
+     */
     public void cancelInPlace() {
         mIsCancelingInPlace = true;
         cancel();
@@ -354,7 +367,9 @@ public class EnhancedAnimationSet extends AnimationSet {
 
     /**
      * Calculate the expected total duration for running an animation. This includes any start
-     * delay, start offset, and repetition.
+     * delay, start offset, and repetition. As {@link Animation#computeDurationHint} notes,
+     * animations potentially could be built to run for a different duration than what is reported
+     * for this calculation, so in some cases, this may not be accurate.
      * @param animation The animation to check.
      * @param view The to be animated. This only necessary if the animation isn't already
      *             initialized. If this is null, the animation needs to have already been
