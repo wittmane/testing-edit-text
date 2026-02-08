@@ -24,10 +24,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Drawable.ConstantState;
 import android.os.Build;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-
-import java.util.HashSet;
 
 public class DrawableUtils {
     public static int DRAWABLE_LEVEL_MAX = 10000;
@@ -59,12 +55,7 @@ public class DrawableUtils {
      */
     public static Drawable getNearestBackground(View view) {
         Drawable background = null;
-        View currentView = view;
-        // track the views traversed to avoid an infinite loop if a view lists itself (or some
-        // descendant) as its parent
-        HashSet<View> traversedViews = new HashSet<>();
-        traversedViews.add(view);
-        while (currentView != null) {
+        for (View currentView : ViewUtils.iterateUpHierarchy(view, true)) {
             background = currentView.getBackground();
             if (background instanceof ColorDrawable
                     && ((ColorDrawable) background).getColor() == Color.TRANSPARENT) {
@@ -73,13 +64,6 @@ public class DrawableUtils {
             }
             if (background != null) {
                 break;
-            }
-            ViewParent parent = currentView.getParent();
-            if (parent instanceof ViewGroup && !traversedViews.contains(parent)) {
-                currentView = (View) parent;
-                traversedViews.add(currentView);
-            } else {
-                currentView = null;
             }
         }
         return background;

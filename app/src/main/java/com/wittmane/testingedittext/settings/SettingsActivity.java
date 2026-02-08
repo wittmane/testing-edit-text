@@ -64,6 +64,7 @@ import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.window.BackEvent;
 import android.window.OnBackAnimationCallback;
 import android.window.OnBackInvokedCallback;
@@ -78,6 +79,7 @@ import com.wittmane.testingedittext.animation.PartialAnimationListener;
 import com.wittmane.testingedittext.animation.PartialTransitionListener;
 import com.wittmane.testingedittext.animation.PartialSlide;
 import com.wittmane.testingedittext.function.Consumer;
+import com.wittmane.testingedittext.function.Supplier;
 import com.wittmane.testingedittext.util.DrawableUtils;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
@@ -95,6 +97,7 @@ import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFra
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.util.TransitionUtils;
+import com.wittmane.testingedittext.util.ViewUtils;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -1069,6 +1072,10 @@ public class SettingsActivity extends PreferenceActivity
                         fragmentDisplayInfo(fragmentToAdd, nextFragmentTag)
                                 + " enter (openEnter)");
             }
+            // intentionally not hiding the scroll bar during the transition because the transition
+            // is likely just sliding up (ie the scroll bar will be on the edge of the screen, so it
+            // will look normal) or horizontally sliding in from the screen end (so the scroll bar
+            // will only appear as the transition completes)
         }
     }
 
@@ -1102,6 +1109,9 @@ public class SettingsActivity extends PreferenceActivity
             addTransitionLoggingListener(openExitTransition,
                     fragmentDisplayInfo(fragment) + " exit (openExit)");
         }
+        // hide the scroll bar during the transition because it looks weird sliding to the side (ie
+        // not on the edge of the screen) underneath the new view sliding in
+        hideScrollBarDuringTransition(fragment, openExitTransition);
     }
 
     /**
@@ -1136,6 +1146,9 @@ public class SettingsActivity extends PreferenceActivity
                                     ? " enter (closeEnter)"
                                     : " reenter (closeEnter)"));
         }
+        // hide the scroll bar during the transition because it looks weird sliding to the side (ie
+        // not on the edge of the screen) underneath the old view sliding out
+        hideScrollBarDuringTransition(fragment, closeEnterTransition);
     }
 
     /**
@@ -1158,6 +1171,10 @@ public class SettingsActivity extends PreferenceActivity
             addTransitionLoggingListener(closeExitTransition,
                     fragmentDisplayInfo(fragment) + " return (closeExit)");
         }
+        // intentionally not hiding the scroll bar during the transition because transition is
+        // likely just sliding down (ie the scroll bar will be on the edge of the screen, so it
+        // will look normal) or horizontally sliding out on the screen end (so the scroll bar
+        // will be out of view right away)
     }
 
     /**
@@ -1300,6 +1317,66 @@ public class SettingsActivity extends PreferenceActivity
             TransitionUtils.setTotalDuration(returnTransition, TRANSITION_DURATION);
         }
         return returnTransition;
+    }
+
+    private static void hideScrollBarDuringTransition(Fragment fragment, Transition transition) {
+        if (fragment == null || transition == null) {
+            return;
+        }
+        Supplier<ListView> listViewSupplier = () -> {
+            View fragmentView = fragment.getView();
+            if (fragmentView == null) {
+                return null;
+            }
+            ListView listView = fragmentView.findViewById(android.R.id.list);
+            if (listView == null) {
+                return null;
+            }
+            if (!listView.isVerticalScrollBarEnabled()) {
+                return null;
+            }
+            return listView;
+        };
+        // try to get the list view before starting the transition because in the case that the
+        // transition removes a view, it just takes an image of the view and animates it leaving, so
+        // removing the scroll bar after the transition starts won't actually prevent the scroll bar
+        // from being visible in the transition
+        ListView listView = listViewSupplier.get();
+        if (listView != null) {
+            listView.setVerticalScrollBarEnabled(false);
+            listView.invalidate();
+        }
+        transition.addListener(new PartialTransitionListener() {
+            ListView mListView;
+
+            @Override
+            public void onTransitionStart(Transition transition) {
+                // try to get the list and remove the scroll bar now that the transition started
+                // since the view may have not existed before the transition started if the view is
+                // being added to the screen
+                mListView = listViewSupplier.get();
+                if (mListView == null) {
+                    mListView = listView;
+                    return;
+                }
+                mListView.setVerticalScrollBarEnabled(false);
+            }
+
+            @Override
+            public void onTransitionEnd(Transition transition) {
+                if (mListView == null) {
+                    return;
+                }
+                mListView.setVerticalScrollBarEnabled(true);
+                if (mListView.isScrollbarFadingEnabled()
+                        && ViewUtils.aggregateIsVisible(mListView)) {
+                    // trigger the handling for visibility change to allow it to awaken the scroll
+                    // bars like it normally would when making the view appear (which we essentially
+                    // just delayed while disabling the scroll bar during the transition)
+                    mListView.onVisibilityAggregated(true);
+                }
+            }
+        });
     }
 
     private void addTransitionLoggingListener(Transition transition, String transitionIdentifier) {
