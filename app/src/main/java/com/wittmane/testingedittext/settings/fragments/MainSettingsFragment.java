@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,7 +22,6 @@ import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupList
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -46,7 +45,7 @@ import com.wittmane.testingedittext.settings.JsonManager;
 import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
-import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.AlertDialogBuilder;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -166,12 +165,12 @@ public class MainSettingsFragment extends SettingsFragment {
     }
 
     private void showErrorDialog(int titleId, String message) {
-        IconUtils.matchIconColor(new AlertDialog.Builder(getActivity())
-                .setTitle(titleId)
-                .setMessage(message)
-                .setIcon(R.drawable.ic_warning_white_24)
-                .setPositiveButton(android.R.string.ok, null)
-                .show());
+        new AlertDialogBuilder(getActivity())
+            .setTitle(titleId)
+            .setMessage(message)
+            .setIcon(R.drawable.ic_warning_white_24)
+            .setPositiveButton(android.R.string.ok, null)
+            .show();
     }
 
     private void processSettingsImportFile(Uri uri) {

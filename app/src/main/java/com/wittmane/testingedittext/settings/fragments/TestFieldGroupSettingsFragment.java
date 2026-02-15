@@ -20,7 +20,6 @@ import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -45,7 +44,7 @@ import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
 import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
 import com.wittmane.testingedittext.settings.preferences.TextDialogPreference;
-import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.AlertDialogBuilder;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableListAdapter;
 
@@ -158,7 +157,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         }
         listView.setAdapter(adapter);
 
-        new AlertDialog.Builder(getActivity())
+        new AlertDialogBuilder(getActivity())
                 .setTitle(R.string.reorder_fields)
                 .setView(listView)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
@@ -170,7 +169,6 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                     buildContent();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .create()
                 .show();
     }
 
@@ -181,13 +179,13 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     static void showWarningConfirmationDialog(int titleId, String message, Runnable onConfirm,
                                               Context context) {
-        IconUtils.matchIconColor(new AlertDialog.Builder(context)
-                .setTitle(titleId)
-                .setMessage(message)
-                .setIcon(R.drawable.ic_warning_white_24)
-                .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
-                .setNegativeButton(android.R.string.no, null)
-                .show());
+        new AlertDialogBuilder(context)
+            .setTitle(titleId)
+            .setMessage(message)
+            .setIcon(R.drawable.ic_warning_white_24)
+            .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
+            .setNegativeButton(android.R.string.no, null)
+            .show();
     }
 
     /**

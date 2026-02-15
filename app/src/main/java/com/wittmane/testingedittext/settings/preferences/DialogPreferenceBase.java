@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.DialogPreference;
 import android.preference.PreferenceManager;
@@ -30,6 +31,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 
 import com.wittmane.testingedittext.settings.SharedPreferenceManager;
+import com.wittmane.testingedittext.util.PredictiveBackAnimationManager;
 import com.wittmane.testingedittext.util.PreferenceSummaryManager;
 
 public abstract class DialogPreferenceBase extends DialogPreference {
@@ -54,6 +56,10 @@ public abstract class DialogPreferenceBase extends DialogPreference {
         if (dialog != null) {
             dialog.getWindow().setSoftInputMode(
                     WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                PredictiveBackAnimationManager.setUp(dialog);
+            }
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1044,8 +1044,7 @@ public class PreferenceSummaryManager {
             longClickListener = new OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
-                    // Create the object of AlertDialog Builder class
-                    AlertDialog dialog = new AlertDialog.Builder(mPref.getContext())
+                    new AlertDialogBuilder(mPref.getContext())
                             .setTitle(mPref.getTitle())
                             .setMessage(getFullSummary())
                             .setPositiveButton(android.R.string.ok,
@@ -1054,8 +1053,7 @@ public class PreferenceSummaryManager {
                                         public void onClick(DialogInterface dialog, int which) {
                                         }
                                     })
-                            .create();
-                    dialog.show();
+                            .show();
 
                     return true;
                 }

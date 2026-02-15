@@ -21,7 +21,6 @@ import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.preference.PreferenceGroup;
@@ -41,6 +40,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
+import com.wittmane.testingedittext.util.AlertDialogBuilder;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter;
 
@@ -173,7 +173,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
                 (buttonView, isChecked) -> adapter.expandGroups(isChecked));
         layout.addView(checkBox);
 
-        new AlertDialog.Builder(getActivity())
+        new AlertDialogBuilder(getActivity())
                 .setTitle(R.string.reorder_groups)
                 .setView(layout)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
@@ -191,7 +191,6 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
                     buildContent();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .create()
                 .show();
     }
 
