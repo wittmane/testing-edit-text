@@ -35,7 +35,7 @@ import android.widget.Toast;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.text.NonEditable.NonEditableFactory;
-import com.wittmane.testingedittext.util.PredictiveBackAnimationManager;
+import com.wittmane.testingedittext.util.BackHandler;
 
 public class ImportExportSourceDialog extends AlertDialog {
     private static final String TAG = ImportExportSourceDialog.class.getSimpleName();
@@ -142,9 +142,7 @@ public class ImportExportSourceDialog extends AlertDialog {
             screenSourceContent.setVisibility(View.GONE);
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            PredictiveBackAnimationManager.setUp(this);
-        }
+        BackHandler.setUpPredictiveBack(this);
     }
 
     private ClipboardManager getClipboardManager() {

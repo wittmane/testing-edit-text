@@ -18,7 +18,6 @@ package com.wittmane.testingedittext.util;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.os.Build;
 
 /**
  * A {@link AlertDialog.Builder} that automatically adjusts the dialog icon's color to match the
@@ -33,9 +32,7 @@ public class AlertDialogBuilder extends AlertDialog.Builder {
     public AlertDialog create() {
         AlertDialog dialog = super.create();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            PredictiveBackAnimationManager.setUp(dialog);
-        }
+        BackHandler.setUpPredictiveBack(dialog);
 
         return dialog;
     }

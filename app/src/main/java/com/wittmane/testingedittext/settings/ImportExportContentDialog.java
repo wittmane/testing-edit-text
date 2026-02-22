@@ -19,7 +19,6 @@ package com.wittmane.testingedittext.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,9 +39,9 @@ import com.wittmane.testingedittext.json.JsonObject;
 import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
+import com.wittmane.testingedittext.util.BackHandler;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.IterableUtils;
-import com.wittmane.testingedittext.util.PredictiveBackAnimationManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -320,9 +319,7 @@ public class ImportExportContentDialog extends AlertDialog {
             updateAcceptButtonState();
         });
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            PredictiveBackAnimationManager.setUp(this);
-        }
+        BackHandler.setUpPredictiveBack(this);
     }
 
     private static ArrayAdapter<SpinnerEntry> buildFieldOptions(Context context, boolean isImport) {

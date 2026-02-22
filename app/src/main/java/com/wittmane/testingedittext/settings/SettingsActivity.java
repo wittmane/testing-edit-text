@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2022-2026 Eli Wittman
- * Copyright 2019 The Android Open Source Project
  * Copyright (C) 2007 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -20,20 +19,14 @@ package com.wittmane.testingedittext.settings;
 
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
 import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettingsFragment.GROUP_INDEX_BUNDLE_KEY;
-import static com.wittmane.testingedittext.util.DrawableUtils.DRAWABLE_LEVEL_MAX;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.content.res.Configuration;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.drawable.ClipDrawable;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
@@ -46,7 +39,6 @@ import android.text.TextUtils;
 import android.transition.Fade;
 import android.transition.Transition;
 import android.transition.Transition.TransitionListener;
-import android.transition.TransitionManager;
 import android.transition.TransitionSet;
 import android.transition.Visibility;
 import android.util.Log;
@@ -55,32 +47,23 @@ import android.view.MenuItem;
 import android.view.RoundedCorner;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
 import android.view.ViewParent;
 import android.view.WindowInsets;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
-import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.window.BackEvent;
-import android.window.OnBackAnimationCallback;
-import android.window.OnBackInvokedCallback;
-import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.animation.ActivityAnimationTransition;
-import com.wittmane.testingedittext.animation.PartialAnimationListener;
 import com.wittmane.testingedittext.animation.PartialTransitionListener;
 import com.wittmane.testingedittext.animation.PartialSlide;
 import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.function.Supplier;
-import com.wittmane.testingedittext.util.DrawableUtils;
+import com.wittmane.testingedittext.util.BackHandler;
+import com.wittmane.testingedittext.util.BackHandler.BackNavigationManager;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.settings.fragments.DisplaySettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.MainSettingsFragment;
@@ -95,7 +78,6 @@ import com.wittmane.testingedittext.settings.fragments.InputTypeSettingsFragment
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment;
 import com.wittmane.testingedittext.settings.fragments.TestFieldSettingsFragment;
-import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.util.TransitionUtils;
 import com.wittmane.testingedittext.util.ViewUtils;
 
@@ -125,16 +107,11 @@ public class SettingsActivity extends PreferenceActivity
     private static final char FRAGMENT_TAG_DIVIDER = '-';
     private static final String STATE_CURRENT_FRAGMENT_TAG = "STATE_CURRENT_FRAGMENT_TAG";
 
-    private boolean mIsBackCallbackRegistered = false;
-    private final BackHandler mBackHandler =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    ? new OnBackCallbackWithAnimation()
-                    : Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                            ? new OnBackCallback()
-                            : new BackHandler();
     private String mCurrentFragmentTag;
     private Timer mFragmentCleanupTimer;
-    private int mPredictiveBackMargin;
+    private final BackHandler mBackHandler = new BackHandler(this,
+            new FragmentBackNavigationManager(),
+            BackHandler.ANIMATION_STYLE_ASYMMETRIC_WITH_START);
 
     /**
      * determine if fragments should be hidden (rather than replaced) as new fragments are added.
@@ -170,9 +147,6 @@ public class SettingsActivity extends PreferenceActivity
         setTheme(Settings.getThemeId(this));
         super.onCreate(savedState);
 
-        mPredictiveBackMargin =
-                getResources().getDimensionPixelSize(R.dimen.predictive_back_margin);
-
         final ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -202,7 +176,7 @@ public class SettingsActivity extends PreferenceActivity
         // navigation bar
         EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
 
-        updateBackCallbackRegistrationState();
+        mBackHandler.setUp();
         getFragmentManager().addOnBackStackChangedListener(this);
     }
 
@@ -545,30 +519,11 @@ public class SettingsActivity extends PreferenceActivity
         mBackHandler.navigateBack(false, null);
     }
 
-    private class BackHandler {
+    private class FragmentBackNavigationManager implements BackNavigationManager {
+        private Fragment mPreviousFragment;
 
-        protected Fragment mPreviousFragment;
-
-        public void navigateBack(boolean skipShowingPrevious, Runnable onNavigateBack) {
-            // handle any setup for the back action/animation (such as unhiding the previous
-            // fragment). then immediately trigger the back invoked handling (remove the current
-            // fragment).
-            prepBack(skipShowingPrevious,
-                    () -> invokeBack(skipShowingPrevious, onNavigateBack));
-
-        }
-
-        protected void prepBack(boolean skipShowingPrevious, Runnable onReady) {
-            if (skipShowingPrevious) {
-                if (onReady != null) {
-                    onReady.run();
-                }
-                return;
-            }
-            showPreviousFragment(getCurrentFragment(), false, onReady);
-        }
-
-        protected void invokeBack(boolean isTransientAction, Runnable onNavigateBack) {
+        @Override
+        public void onNavigateBack(boolean isTransientAction) {
             mPreviousFragment = null;
 
             Fragment currentFragment = getCurrentFragment();
@@ -585,16 +540,18 @@ public class SettingsActivity extends PreferenceActivity
             }
             setCurrentFragmentTag(getPreviousFragmentTag(mCurrentFragmentTag));
             SettingsActivity.super.onBackPressed();
-            updateBackCallbackRegistrationState();
             invalidateOptionsMenu();
-            if (onNavigateBack != null) {
-                onNavigateBack.run();
-            }
         }
 
-        protected void showPreviousFragment(Fragment currentFragment,
-                                            boolean isShowingForPredictiveBack,
-                                            Runnable onReady) {
+        @Override
+        public View getAnimatingView() {
+            Fragment currentFragment = getCurrentFragment();
+            return currentFragment != null ? currentFragment.getView() : null;
+        }
+
+        @Override
+        public void showPreviousContent(boolean isShowingForPredictiveBack, Runnable onReady) {
+            Fragment currentFragment = getCurrentFragment();
             Fragment previousFragment = mPreviousFragment != null
                     ? mPreviousFragment
                     : currentFragment != null
@@ -623,193 +580,26 @@ public class SettingsActivity extends PreferenceActivity
                 onReady.run();
             }
         }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    private class OnBackCallback extends BackHandler implements OnBackInvokedCallback {
 
         @Override
-        public void onBackInvoked() {
-            navigateBack(false, null);
-        }
-    }
-
-    // manually animate the back gesture to match the system animations. based on
-    // https://github.com/android/animation-samples/blob/main/Motion/app/src/main/java/com/example/android/motion/demo/containertransform/CheeseArticleFragment.kt
-    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private class OnBackCallbackWithAnimation extends OnBackCallback
-            implements OnBackAnimationCallback {
-        private final PathInterpolator mGestureInterpolator = new PathInterpolator(0f, 0f, 0f, 0f);
-
-        private float mInitialTouchY = -1f;
-        private View mFragmentContent;
-        private Drawable mOriginalBackground;
-        private boolean mOriginalClipToOutline;
-        private LinearLayout mDarkOverlay;
-
-        @Override
-        public void onBackStarted(@NonNull BackEvent backEvent) {
-            prepBack(false, null);
-        }
-
-        @Override
-        protected void prepBack(boolean skipShowingPrevious, Runnable onReady) {
-            Fragment currentFragment = getCurrentFragment();
-            mFragmentContent = currentFragment != null ? currentFragment.getView() : null;
-            if (mFragmentContent == null) {
-                if (onReady != null) {
-                    onReady.run();
-                }
+        public void hidePreviousContent(Runnable onHidden) {
+            if (mPreviousFragment == null) {
+                onHidden.run();
                 return;
             }
-
-            // end any active transitions to make this predictive back animation show correctly
-            // immediately and avoid potentially leaving a fragment hidden when going back to it due
-            // to mixed up transition state tracking
-            ViewParent parent = mFragmentContent.getParent();
-            if (parent instanceof ViewGroup) {
-                TransitionManager.endTransitions((ViewGroup) parent);
-            }
-
-            if (!ensureBackground()) {
-                // we won't be able to prevent the previous fragment from overlapping with the
-                // current fragment, so we shouldn't try to unhide the previous fragment. all we'll
-                // show is the animation of the content of the current fragment shifting.
-                skipShowingPrevious = true;
-            }
-
-            if (skipShowingPrevious) {
-                if (onReady != null) {
-                    onReady.run();
-                }
-                return;
-            }
-
-            addDarkOverlay();
-
-            showPreviousFragment(currentFragment, onReady == null, onReady);
-        }
-
-        @Override
-        public void onBackProgressed(@NonNull BackEvent backEvent) {
-            if (mFragmentContent == null) {
-                return;
-            }
-
-            float progress = mGestureInterpolator.getInterpolation(backEvent.getProgress());
-            if (mInitialTouchY < 0f) {
-                mInitialTouchY = backEvent.getTouchY();
-            }
-            float progressY = mGestureInterpolator.getInterpolation(
-                    (backEvent.getTouchY() - mInitialTouchY) / mFragmentContent.getHeight()
-            );
-
-            // See the motion spec about the calculations below.
-            // https://developer.android.com/design/ui/mobile/guides/patterns/predictive-back#motion-specs
-
-            // Shift horizontally.
-            Configuration config = getResources().getConfiguration();
-            boolean isSwipingWithTransition = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
-                            && backEvent.getSwipeEdge() == BackEvent.EDGE_NONE)
-                    || (config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
-                            ? backEvent.getSwipeEdge() == BackEvent.EDGE_RIGHT
-                            : backEvent.getSwipeEdge() == BackEvent.EDGE_LEFT);
-            // only shift if the swipe matches the direction the fragment is going to slide away (or
-            // if the back button is held). otherwise, the fragment will just be scaled and centered
-            // (similar to the animation for switching activities when swiping from the other side).
-            if (isSwipingWithTransition) {
-                int maxTranslationX = (mFragmentContent.getWidth() / 20) - mPredictiveBackMargin;
-                int sign = ((config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) ? -1 : 1);
-                mFragmentContent.setTranslationX(progress * maxTranslationX * sign);
-            }
-
-            // Shift vertically.
-            int maxTranslationY = (mFragmentContent.getHeight() / 20) - mPredictiveBackMargin;
-            mFragmentContent.setTranslationY(progressY * maxTranslationY);
-
-            // Scale down from 100% to 90%.
-            float scale = 1f - (0.1f * progress);
-            mFragmentContent.setScaleX(scale);
-            mFragmentContent.setScaleY(scale);
-        }
-
-        @Override
-        public void onBackCancelled() {
-            mInitialTouchY = -1f;
-            if (mFragmentContent == null) {
-                return;
-            }
-            mFragmentContent.setTranslationX(0f);
-            mFragmentContent.setTranslationY(0f);
-            mFragmentContent.setScaleX(1f);
-            mFragmentContent.setScaleY(1f);
-
-            View fragmentContent = mFragmentContent;
-            Drawable originalBackground = mOriginalBackground;
-            boolean originalClipToOutline = mOriginalClipToOutline;
-            Runnable resetBackground = () -> {
-                if (fragmentContent.getBackground() != originalBackground) {
-                    fragmentContent.setBackground(originalBackground);
-                }
-                if (fragmentContent.getClipToOutline() != originalClipToOutline) {
-                    fragmentContent.setClipToOutline(originalClipToOutline);
-                }
-            };
-            if (mPreviousFragment != null) {
-                removePreviousFragment(resetBackground);
-            } else {
-                resetBackground.run();
-            }
-
-            removeDarkOverlay(true);
-
-            mPreviousFragment = null;
-            mFragmentContent = null;
-            mOriginalBackground = null;
-        }
-
-        @Override
-        public void onBackInvoked() {
-            invokeBack(false, null);
-        }
-
-        @Override
-        protected void invokeBack(boolean isTransientAction, Runnable onNavigateBack) {
-            Runnable navigateBack = () -> {
-                removeDarkOverlay(isTransientAction);
-                super.invokeBack(isTransientAction, onNavigateBack);
-            };
-
-            if (!isTransientAction) {
-                // unhide if it isn't already
-                showPreviousFragment(getCurrentFragment(), false, navigateBack);
-            } else {
-                navigateBack.run();
-            }
-            mFragmentContent = null;
-            mOriginalBackground = null;
-        }
-
-        public boolean isInProgress() {
-            return mFragmentContent != null;
-        }
-
-        private void removePreviousFragment(Runnable resetBackground) {
-            // wait until the fragment finishes visibly getting removed to replace the current
-            // fragment's background (likely with nothing) to avoid a flash of the previous fragment
-            // overlapping. since this transition is behind the current fragment, just transition
-            // immediately. this transition is only really needed for the callback to know when it's
-            // safe to replace the background of the current fragment. setting duration to 1, rather
-            // than 0 in case anything handles 0 differently. 1 ms is effectively instantly, and
-            // depending on how it's actually implemented 0 ms still may have some delay for
-            // asynchronous handling and effectively be the same.
+            // since this transition is behind the current fragment, just transition immediately.
+            // this transition is only really needed for the callback to know when it's safe to
+            // replace the background of the current fragment. setting duration to 1, rather than 0
+            // in case anything handles 0 differently. 1 ms is effectively instantly, and depending
+            // on how it's actually implemented 0 ms still may have some delay for asynchronous
+            // handling and effectively be the same.
             Transition exitTransition = new Fade(Fade.MODE_OUT);
             exitTransition.setDuration(1);
             exitTransition.addListener(new PartialTransitionListener() {
                 @Override
                 public void onTransitionEnd(Transition transition) {
-                    if (resetBackground != null) {
-                        resetBackground.run();
+                    if (onHidden != null) {
+                        onHidden.run();
                     }
                 }
             });
@@ -818,105 +608,15 @@ public class SettingsActivity extends PreferenceActivity
             hideFragment(mPreviousFragment, null, false);
         }
 
-        /**
-         * Ensure the current fragment directly has a background to prevent overlapping with the
-         * previous fragment when that is unhidden. If the background under the fragment (either its
-         * direct background, some ancestor, or the base activity default) is a simple color
-         * (ignoring transparent backgrounds), this will create a new background matching that.
-         * Alternatively, this will copy any more complex drawable background. Additionally, if
-         * possible, this will create the new background with rounded corners matching the device's
-         * corners to match behavior from activity predictive back animations (card matching the
-         * screen shape slides away).
-         * @return Whether the current fragment has a background now.
-         */
-        private boolean ensureBackground() {
-            mOriginalBackground = mFragmentContent.getBackground();
-            mOriginalClipToOutline = mFragmentContent.getClipToOutline();
-            Drawable background = DrawableUtils.getNearestBackground(mFragmentContent);
-            int originalNearestBackgroundColor;
-            if (background == null) {
-                originalNearestBackgroundColor = ResourceUtils.getColor(
-                        android.R.attr.colorBackground, SettingsActivity.this);
-            } else if (background instanceof ColorDrawable) {
-                originalNearestBackgroundColor = ((ColorDrawable) background).getColor();
-            } else {
-                originalNearestBackgroundColor = Color.TRANSPARENT;
-            }
-            Drawable drawable;
-            if (originalNearestBackgroundColor != Color.TRANSPARENT) {
-                drawable = createRoundedDrawable(mFragmentContent, originalNearestBackgroundColor);
-            } else {
-                // ideally we would round the corners on this too, but I'm not sure that there is a
-                // good way to do that on any random drawable
-                drawable = DrawableUtils.copyDrawable(background);
-                if (drawable == null && mOriginalBackground == null) {
-                    // we can't recreate the background and there isn't an existing background to
-                    // reuse
-                    return false;
-                }
-            }
-            if (drawable != null) {
-                // clip to exclude the portion of the view that is under the action bar
-                ClipDrawable clipDrawable =
-                        new ClipDrawable(drawable, Gravity.BOTTOM, ClipDrawable.VERTICAL);
-                int viewHeight = mFragmentContent.getHeight();
-                int paddingTop = mFragmentContent.getPaddingTop();
-                clipDrawable.setLevel(
-                        DRAWABLE_LEVEL_MAX * (viewHeight - paddingTop) / viewHeight);
-                mFragmentContent.setBackground(clipDrawable);
-
-                mFragmentContent.setClipToOutline(true);
-            }
-            return true;
-        }
-
-        private void addDarkOverlay() {
-            // add a semi-transparent overlay between the previous fragment and the current fragment
-            // to give a better distinction between the two and match behavior from activity
-            // predictive back animations
-            LinearLayout darkOverlay = new LinearLayout(SettingsActivity.this);
-            darkOverlay.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-            darkOverlay.setBackgroundColor(Color.argb(0.5f, 0f, 0f, 0f));
-            if (addSiblingBefore(darkOverlay, mFragmentContent)) {
-                mDarkOverlay = darkOverlay;
-            }
-        }
-
-        private void removeDarkOverlay(boolean immediate) {
-            if (mDarkOverlay == null) {
-                return;
-            }
-            if (immediate) {
-                ((ViewGroup) mDarkOverlay.getParent()).removeView(mDarkOverlay);
-            } else {
-                // have the dark overlay fade out before removing it (basically fading in the
-                // previous fragment as it becomes the current again while the current slides out to
-                // be removed). since the current fades as it slides out, the overlay should
-                // disappear a bit before the current fragment's transition completes.
-                Animation animation = new AlphaAnimation(1f, 0f);
-                Fragment currentFragment = getCurrentFragment();
-                Transition currentFragmentTransition = currentFragment != null
-                        ? currentFragment.getReturnTransition()
-                        : null;
-                long duration = currentFragmentTransition != null
-                        ? TransitionUtils.getTotalDuration(currentFragmentTransition, true)
-                        : 0;
-                if (duration >= 0) {
-                    animation.setDuration(duration / 2);
-                } else {
-                    animation.setDuration(DEFAULT_TRANSITION_DURATION / 2);
-                }
-                final View darkOverlay = mDarkOverlay;
-                animation.setAnimationListener(new PartialAnimationListener() {
-                    @Override
-                    public void onAnimationEnd(Animation animation) {
-                        ((ViewGroup) darkOverlay.getParent()).removeView(darkOverlay);
-                    }
-                });
-                mDarkOverlay.setAnimation(animation);
-            }
-            mDarkOverlay = null;
+        @Override
+        public long getExitTransitionDuration() {
+            Fragment currentFragment = getCurrentFragment();
+            Transition currentFragmentTransition = currentFragment != null
+                    ? currentFragment.getReturnTransition()
+                    : null;
+            return currentFragmentTransition != null
+                    ? TransitionUtils.getTotalDuration(currentFragmentTransition, true)
+                    : 0;
         }
     }
 
@@ -926,8 +626,6 @@ public class SettingsActivity extends PreferenceActivity
         // setting the fragment tag as that could indicate or cause messed up state that needs
         // fixing
         startFragmentCleanupTimer();
-
-        updateBackCallbackRegistrationState();
     }
 
     private synchronized void setCurrentFragmentTag(String tag) {
@@ -982,9 +680,7 @@ public class SettingsActivity extends PreferenceActivity
             // fragment if the predictive back animation is active)
             boolean isCurrentFragment = index == 0;
             boolean isPreviousFragment = index == 1;
-            boolean isBackInProgress = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    && mBackHandler instanceof OnBackCallbackWithAnimation
-                    && ((OnBackCallbackWithAnimation) mBackHandler).isInProgress();
+            boolean isBackInProgress = mBackHandler.isPredictiveBackInProgress();
             if (!isCurrentFragment && (!isPreviousFragment || !isBackInProgress)) {
                 if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -1010,42 +706,11 @@ public class SettingsActivity extends PreferenceActivity
         }
     }
 
-    private void updateBackCallbackRegistrationState() {
-        // use the new APIs for predictive back handling starting in Android 13. prior to Android,
-        // #onBackPressed gets called and the parent class handles navigation appropriately.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            return;
-        }
-        if (!(mBackHandler instanceof OnBackInvokedCallback)) {
-            Log.e(TAG, "unable to register back callback");
-            return;
-        }
-        // without the back callback registered, the predictive back animation is shown, but it goes
-        // away when the callback is registered. without the back callback registered, the back
-        // navigation bar button and gesture return to the previous activity rather than traverse up
-        // the back stack. have the back callback registered when there are entries in the back
-        // stack to properly support going to the previous fragment, but once the back stack is
-        // empty, unregister the callback to get the activity-level predictive back animation to
-        // appear. this pattern came from PreferenceActivity, but I'm not certain if it did this for
-        // the same reason.
-        if (getFragmentManager().getBackStackEntryCount() != 0) {
-            if (!mIsBackCallbackRegistered) {
-                getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                        OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-                        (OnBackInvokedCallback) mBackHandler);
-                mIsBackCallbackRegistered = true;
-            }
-        } else if (mIsBackCallbackRegistered) {
-            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(
-                    (OnBackInvokedCallback) mBackHandler);
-            mIsBackCallbackRegistered = false;
-        }
-    }
-
     @Override
     protected void onDestroy() {
         EdgeToEdgeUtils.removeInsetHandling(this);
         getFragmentManager().removeOnBackStackChangedListener(this);
+        mBackHandler.tearDown();
         super.onDestroy();
     }
 
@@ -1185,8 +850,7 @@ public class SettingsActivity extends PreferenceActivity
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Transition fragmentOpenEnterTransition() {
         Transition enterTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mBackHandler instanceof OnBackCallbackWithAnimation) {
+        if (mBackHandler.isPredictiveBackEnabled()) {
             // have the new fragment slide in to pair with the predictive back animation (slide
             // out). based on AOSP anim/activity_open_enter.xml (Android 16).
             TransitionSet transitionSet = new TransitionSet();
@@ -1224,8 +888,7 @@ public class SettingsActivity extends PreferenceActivity
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Transition fragmentOpenExitTransition() {
         Transition exitTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mBackHandler instanceof OnBackCallbackWithAnimation) {
+        if (mBackHandler.isPredictiveBackEnabled()) {
             // based on AOSP anim/activity_open_exit.xml (Android 16). Android 15 and 16 use -96dp,
             // but Android 14 used -10%. that's similar enough, so we'll just go with the most
             // recent version.
@@ -1256,8 +919,7 @@ public class SettingsActivity extends PreferenceActivity
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Transition fragmentCloseEnterTransition() {
         Transition enterTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mBackHandler instanceof OnBackCallbackWithAnimation) {
+        if (mBackHandler.isPredictiveBackEnabled()) {
             // based on AOSP anim/activity_close_enter.xml (Android 16). Android 15 and 16 use
             // -96dp but Android 14 used -10%. that's similar enough, so we'll just go with the most
             // recent version.
@@ -1283,8 +945,7 @@ public class SettingsActivity extends PreferenceActivity
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Transition fragmentCloseExitTransition() {
         Transition returnTransition;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mBackHandler instanceof OnBackCallbackWithAnimation) {
+        if (mBackHandler.isPredictiveBackEnabled()) {
             // based on AOSP anim/activity_close_exit.xml (Android 16)
             TransitionSet transitionSet = new TransitionSet();
 
