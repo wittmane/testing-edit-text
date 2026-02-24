@@ -1031,10 +1031,19 @@ public class SettingsActivity extends PreferenceActivity
                 mListView.setVerticalScrollBarEnabled(true);
                 if (mListView.isScrollbarFadingEnabled()
                         && ViewUtils.aggregateIsVisible(mListView)) {
-                    // trigger the handling for visibility change to allow it to awaken the scroll
-                    // bars like it normally would when making the view appear (which we essentially
-                    // just delayed while disabling the scroll bar during the transition)
-                    mListView.onVisibilityAggregated(true);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        // trigger the handling for visibility change to allow it to awaken the
+                        // scroll bars like it normally would when making the view appear (which we
+                        // essentially just delayed while disabling the scroll bar during the
+                        // transition)
+                        mListView.onVisibilityAggregated(true);
+                    } else {
+                        // scroll a pixel and then immediately scroll back to trigger the scroll
+                        // bars to show up (still won't be as long as the initial awaken, but it's
+                        // good enough)
+                        mListView.scrollBy(0, 1);
+                        mListView.scrollBy(0, -1);
+                    }
                 }
             }
         });
