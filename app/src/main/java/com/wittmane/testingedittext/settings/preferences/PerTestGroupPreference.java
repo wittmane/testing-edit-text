@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
         View view = super.onCreateView(parent);
         // skip trying to update the display text if the group hasn't been set yet or if the group
         // doesn't exist anymore (probably from some stale pended call)
-        if (mGroupIndex >= 0 && mGroupIndex < Settings.getTestFieldGroupCount()) {
+        if (isIndexValid()) {
             updateDisplayText();
         }
         return view;
@@ -81,6 +81,10 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
 
     public int getGroupIndex() {
         return mGroupIndex;
+    }
+
+    protected boolean isIndexValid() {
+        return mGroupIndex >= 0 && mGroupIndex < Settings.getTestFieldGroupCount();
     }
 
     @Override
