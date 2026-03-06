@@ -128,7 +128,10 @@ public class BackHandler {
     public BackHandler(Activity activity,
                        BackNavigationManager previousContentManager,
                        @AnimationStyle int animationStyle) {
-        this(activity, activity.getFragmentManager(), activity::getOnBackInvokedDispatcher,
+        this(activity, activity.getFragmentManager(),
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        ? activity::getOnBackInvokedDispatcher
+                        : null,
                 previousContentManager, animationStyle);
     }
 
@@ -190,6 +193,7 @@ public class BackHandler {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private void registerOnBackInvokedCallback() {
         if (mIsBackCallbackRegistered) {
             return;
@@ -200,6 +204,7 @@ public class BackHandler {
         mIsBackCallbackRegistered = true;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private void unregisterOnBackInvokedCallback() {
         if (!mIsBackCallbackRegistered) {
             return;

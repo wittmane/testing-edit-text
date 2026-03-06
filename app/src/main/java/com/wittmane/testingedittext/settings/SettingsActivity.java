@@ -25,10 +25,7 @@ import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -44,11 +41,7 @@ import android.transition.Visibility;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
-import android.view.RoundedCorner;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.view.WindowInsets;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
@@ -90,10 +83,6 @@ public class SettingsActivity extends PreferenceActivity
 
     private static final boolean LOG_FRAGMENT_CHANGES = false;
     private static final boolean LOG_TRANSITION_EVENTS = false;
-    // this value was determined by measuring the default duration of the transitions (both fragment
-    // transitions with default values and the activity back transition) measuring wasn't super
-    // precise, so a nice round number that was close was picked.
-    private static final int DEFAULT_TRANSITION_DURATION = 300;
     // this could be used to have a consistent transition duration to keep all of the simultaneous
     // transitions in sync. since all of the transitions have a specific duration set or came from a
     // resource to match activity transitions, this isn't really needed anymore and now just serves
@@ -1158,44 +1147,5 @@ public class SettingsActivity extends PreferenceActivity
         path.cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f);
         path.cubicTo(0.208333f, 0.82f, 0.25f, 1f, 1f, 1f);
         return new PathInterpolator(path);
-    }
-
-    private static boolean addSiblingBefore(View viewToInsert, View sibling) {
-        ViewParent viewParent = sibling.getParent();
-        if (viewParent instanceof ViewGroup) {
-            ViewGroup parent = (ViewGroup) viewParent;
-            for (int i = 0; i < parent.getChildCount(); i++) {
-                if (parent.getChildAt(i) == sibling) {
-                    parent.addView(viewToInsert, i);
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.S)
-    private static ShapeDrawable createRoundedDrawable(View view, int color) {
-        WindowInsets insets = view.getRootWindowInsets();
-        RoundedCorner topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
-        RoundedCorner topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
-        RoundedCorner bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
-        RoundedCorner bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
-        int topRightRadius = topRight != null ? topRight.getRadius() : 0;
-        int topLeftRadius = topLeft != null ? topLeft.getRadius() : 0;
-        int bottomRightRadius = bottomRight != null ? bottomRight.getRadius() : 0;
-        int bottomLeftRadius = bottomLeft != null ? bottomLeft.getRadius() : 0;
-        RoundRectShape rectShape = new RoundRectShape(new float[] {
-                topLeftRadius, topLeftRadius,
-                topRightRadius, topRightRadius,
-                bottomRightRadius, bottomRightRadius,
-                bottomLeftRadius, bottomLeftRadius
-        }, null, null);
-        ShapeDrawable shapeDrawable = new ShapeDrawable(rectShape);
-        shapeDrawable.getPaint().setColor(color);
-        shapeDrawable.getPaint().setStyle(Paint.Style.FILL);
-        shapeDrawable.getPaint().setAntiAlias(true);
-        shapeDrawable.getPaint().setFlags(Paint.ANTI_ALIAS_FLAG);
-        return shapeDrawable;
     }
 }
