@@ -571,6 +571,20 @@ public class SettingsActivity extends PreferenceActivity
                     // old version of android, so it's probably not worth putting in more time to
                     // trying to find the core issue and seeing if there is any workaround we can do
                     // (which there very well may not be).
+                    // possibly related to this, on Nougat if the fragment is getting added before a
+                    // previous exit transition to remove that fragment completes, the fragment will
+                    // stay invisible when the exit transition ends. theoretically, a solution could
+                    // be forcing the transitions to end before trying to re-show the fragment, but
+                    // on Nougat and earlier, TransitionManager#endTransitions simply called
+                    // Transition#end, which doesn't result in Animator#end getting called, so at
+                    // least in the case of AnimationAnimator, the animation will keep running as if
+                    // it wasn't stopped because it wasn't notified. this issue seems to have been
+                    // fixed by TransitionManager#endTransitions changing to call
+                    // Transition#forceToEnd starting in Nougat MR1. again, since the quick
+                    // navigation to cause this issue is an edge case and it only applies to a
+                    // single version, we'll just let this be and rely on #cleanUpFragmentState to
+                    // handle fixing the visibility since a more immediate handling probably would
+                    // be messy.
                     showFragment(previousFragment, chainedAction);
                 };
             }
@@ -681,25 +695,33 @@ public class SettingsActivity extends PreferenceActivity
             boolean isCurrentFragment = index == 0;
             boolean isPreviousFragment = index == 1;
             boolean isBackInProgress = mBackHandler.isPredictiveBackInProgress();
-            if (!isCurrentFragment && (!isPreviousFragment || !isBackInProgress)) {
-                if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        // clear any transition so it disappears immediately
-                        fragment.setExitTransition(null);
-                    }
-                    Log.w(TAG, "Fragment change: hide (cleanup) " + fragment);
-                    getFragmentManager().beginTransaction().hide(fragment).commit();
+            if (!isCurrentFragment && (!isPreviousFragment || !isBackInProgress)
+                    && fragment != null && fragment.isAdded() && !fragment.isHidden()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    // clear any transition so it disappears immediately
+                    fragment.setExitTransition(null);
                 }
+                Log.w(TAG, "Fragment change: hide (cleanup) " + fragment);
+                getFragmentManager().beginTransaction().hide(fragment).commit();
             }
             // clean up any current fragment that somehow isn't shown
-            if (isCurrentFragment && fragment != null && fragment.isAdded()
-                    && fragment.isHidden()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    // clear any transition so it appears immediately
-                    fragment.setEnterTransition(null);
+            if (isCurrentFragment && fragment != null) {
+                if (fragment.isAdded() && fragment.isHidden()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        // clear any transition so it appears immediately
+                        fragment.setEnterTransition(null);
+                    }
+                    Log.w(TAG, "Fragment change: show (cleanup) " + fragment);
+                    getFragmentManager().beginTransaction().show(fragment).commit();
+                } else {
+                    View view = fragment.getView();
+                    if (view != null && view.getVisibility() != View.VISIBLE) {
+                        view.post(() -> {
+                            Log.w(TAG, "Fragment change: set visible (cleanup) " + fragment);
+                            view.setVisibility(View.VISIBLE);
+                        });
+                    }
                 }
-                Log.w(TAG, "Fragment change: show (cleanup) " + fragment);
-                getFragmentManager().beginTransaction().show(fragment).commit();
             }
             fragmentTag = getPreviousFragmentTag(fragmentTag);
             index++;
