@@ -32,6 +32,8 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.transition.TransitionManager;
 import android.util.Log;
 import android.view.Gravity;
@@ -219,8 +221,29 @@ public class BackHandler {
     }
 
     public boolean isPredictiveBackEnabled() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && mBackCallback instanceof OnBackCallbackWithAnimation;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                || !(mBackCallback instanceof OnBackCallbackWithAnimation)) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // although predictive back animations were added for apps (OnBackCallbackWithAnimation)
+            // in Android 14, the system predictive back animations on Android 13 and 14 were hidden
+            // behind a dev option setting. we should respect this setting because it's weird to
+            // show the predictive back animation between fragments and on popups when the animation
+            // isn't shown between activities. this setting seems to at least internally exist after
+            // Android 14, but it doesn't seem to be respected in Android 15 and beyond (predictive
+            // back is always enabled), so we'll only check this for Android 14 to match.
+            try {
+                // based on com.android.settings.development.BackAnimationPreferenceController (AOSP
+                // Settings app)
+                int enableBackAnimation = Settings.Global.getInt(mContext.getContentResolver(),
+                        "enable_back_animation");
+                return enableBackAnimation == 1;
+            } catch (SettingNotFoundException e) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void navigateBack(boolean skipShowingPrevious, Runnable onNavigateBack) {
@@ -307,7 +330,9 @@ public class BackHandler {
 
         @Override
         protected void prepBack(boolean skipShowingPrevious, Runnable onReady) {
-            mAnimatingView = mBackNavigationManager.getAnimatingView();
+            mAnimatingView = isPredictiveBackEnabled()
+                    ? mBackNavigationManager.getAnimatingView()
+                    : null;
             mPredictiveBackMargin =
                     mContext.getResources().getDimensionPixelSize(R.dimen.predictive_back_margin);
             if (mAnimatingView == null || !shouldManageContentBehind()) {
