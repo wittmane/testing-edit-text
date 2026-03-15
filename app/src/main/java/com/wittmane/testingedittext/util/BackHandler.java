@@ -591,15 +591,33 @@ public class BackHandler {
 
     @RequiresApi(api = Build.VERSION_CODES.S)
     private static ShapeDrawable createRoundedDrawable(View view, int color) {
-        WindowInsets insets = view.getRootWindowInsets();
-        RoundedCorner topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
-        RoundedCorner topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
-        RoundedCorner bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
-        RoundedCorner bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
-        int topRightRadius = topRight != null ? topRight.getRadius() : 0;
-        int topLeftRadius = topLeft != null ? topLeft.getRadius() : 0;
-        int bottomRightRadius = bottomRight != null ? bottomRight.getRadius() : 0;
-        int bottomLeftRadius = bottomLeft != null ? bottomLeft.getRadius() : 0;
+        int topRightRadius;
+        int topLeftRadius;
+        int bottomRightRadius;
+        int bottomLeftRadius;
+        if (EdgeToEdgeUtils.isEdgeToEdgeEnforced()) {
+            WindowInsets insets = view.getRootWindowInsets();
+            RoundedCorner topLeft =
+                    insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT);
+            RoundedCorner topRight =
+                    insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT);
+            RoundedCorner bottomLeft =
+                    insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
+            RoundedCorner bottomRight =
+                    insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
+            topRightRadius = topRight != null ? topRight.getRadius() : 0;
+            topLeftRadius = topLeft != null ? topLeft.getRadius() : 0;
+            bottomRightRadius = bottomRight != null ? bottomRight.getRadius() : 0;
+            bottomLeftRadius = bottomLeft != null ? bottomLeft.getRadius() : 0;
+        } else {
+            // without edge-to-edge, the activity won't be flush with the top/bottom of the device,
+            // so rounding the corners to match the device doesn't make sense since the round edge
+            // won't start at the device edge. it will be inset some and just look weird.
+            topRightRadius = 0;
+            topLeftRadius = 0;
+            bottomRightRadius = 0;
+            bottomLeftRadius = 0;
+        }
         RoundRectShape rectShape = new RoundRectShape(new float[] {
                 topLeftRadius, topLeftRadius,
                 topRightRadius, topRightRadius,
