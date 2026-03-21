@@ -322,6 +322,7 @@ public class BackHandler {
         private Drawable mOriginalBackground;
         private boolean mOriginalClipToOutline;
         private LinearLayout mDarkOverlay;
+        private boolean mIsBackProgressed = false;
 
         @Override
         public void onBackStarted(@NonNull BackEvent backEvent) {
@@ -370,6 +371,9 @@ public class BackHandler {
         public void onBackProgressed(@NonNull BackEvent backEvent) {
             if (mAnimatingView == null) {
                 return;
+            }
+            if (backEvent.getProgress() > 0f) {
+                mIsBackProgressed = true;
             }
 
             float progress = mGestureInterpolator.getInterpolation(backEvent.getProgress());
@@ -443,6 +447,7 @@ public class BackHandler {
         @Override
         public void onBackCancelled() {
             mInitialTouchY = -1f;
+            mIsBackProgressed = false;
             if (mAnimatingView == null) {
                 return;
             }
@@ -493,10 +498,11 @@ public class BackHandler {
 
             if (!isTransientAction && shouldManageContentBehind()) {
                 // unhide if it isn't already
-                mBackNavigationManager.showPreviousContent(false, navigateBack);
+                mBackNavigationManager.showPreviousContent(mIsBackProgressed, navigateBack);
             } else {
                 navigateBack.run();
             }
+            mIsBackProgressed = false;
             mAnimatingView = null;
             mOriginalBackground = null;
         }
