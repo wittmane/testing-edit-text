@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,18 @@
 
 package com.wittmane.testingedittext.settings.preferences;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.os.Build;
+import android.os.Bundle;
 import android.preference.ListPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.wittmane.testingedittext.util.BackHandler;
 import com.wittmane.testingedittext.util.PreferenceSummaryManager;
 
 /**
@@ -48,6 +52,15 @@ public class EnhancedListPreference extends ListPreference {
             if (entryValues != null && entryValues.length > 0) {
                 setDefaultValue(entryValues[0]);
             }
+        }
+    }
+
+    @Override
+    protected void showDialog(Bundle state) {
+        super.showDialog(state);
+        Dialog dialog = getDialog();
+        if (dialog != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            BackHandler.setUpPredictiveBack(dialog);
         }
     }
 
