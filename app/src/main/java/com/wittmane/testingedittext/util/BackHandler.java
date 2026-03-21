@@ -360,9 +360,10 @@ public class BackHandler {
                 return;
             }
 
-            addDarkOverlay();
-
-            mBackNavigationManager.showPreviousContent(onReady == null, onReady);
+            mBackNavigationManager.showPreviousContent(onReady == null, () -> {
+                addDarkOverlay();
+                run(onReady);
+            });
         }
 
         @Override
