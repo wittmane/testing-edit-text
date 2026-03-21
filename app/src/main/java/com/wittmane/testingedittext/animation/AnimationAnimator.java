@@ -97,7 +97,7 @@ public class AnimationAnimator extends Animator {
     }
 
     /* package */ AnimationAnimator(View view, Context context, int animationResId,
-                             boolean endAnimationOnPause) {
+                                    boolean endAnimationOnPause) {
         this(view, () -> AnimationUtils.loadAnimation(context, animationResId),
                 endAnimationOnPause);
     }
@@ -107,7 +107,7 @@ public class AnimationAnimator extends Animator {
     }
 
     /* package */ AnimationAnimator(View view, Supplier<Animation> animationCreator,
-                             boolean endAnimationOnPause) {
+                                    boolean endAnimationOnPause) {
         mView = view;
         mAnimationCreator = animationCreator;
         mEndAnimationOnPause = endAnimationOnPause;

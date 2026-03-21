@@ -235,8 +235,8 @@ public class EnhancedAnimationSet extends AnimationSet {
             // cancel before the framework calls it because without this, we wouldn't send the
             // animation end event (since super manages that for us and relies on mStarted)
             getTransformation(mMostRecentActiveTime > 0
-                    ? mMostRecentActiveTime
-                    : mAnimationSetStartTime,
+                            ? mMostRecentActiveTime
+                            : mAnimationSetStartTime,
                     new Transformation());
         }
         resume();

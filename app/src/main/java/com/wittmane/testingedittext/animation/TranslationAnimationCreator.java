@@ -22,10 +22,13 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.TimeInterpolator;
 import android.graphics.Path;
+import android.os.Build;
 import android.transition.Transition;
 import android.transition.Transition.TransitionListener;
 import android.transition.TransitionValues;
 import android.view.View;
+
+import androidx.annotation.RequiresApi;
 
 import com.wittmane.testingedittext.R;
 
@@ -52,6 +55,7 @@ class TranslationAnimationCreator {
      * @return An animator that moves from (startX, startY) to (endX, endY) unless there was
      * a previous interruption, in which case it moves from the current position to (endX, endY).
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     static Animator createAnimation(View view, TransitionValues values, int viewPosX, int viewPosY,
                                     float startX, float startY, float endX, float endY,
                                     TimeInterpolator interpolator, Transition transition) {

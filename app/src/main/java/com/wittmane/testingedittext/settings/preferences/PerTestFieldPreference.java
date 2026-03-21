@@ -95,7 +95,7 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
     }
 
     protected static String getDescription(String baseDisplay, String details,
-                                         Context context) {
+                                           Context context) {
         List<String> detailsList;
         if (details != null) {
             detailsList = new ArrayList<>();
@@ -107,7 +107,7 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
     }
 
     protected static String getDescription(String baseDisplay, List<String> details,
-                                         Context context) {
+                                           Context context) {
         String valueSummary;
         if (details == null || details.size() == 0) {
             if (TextUtils.isEmpty(baseDisplay)) {

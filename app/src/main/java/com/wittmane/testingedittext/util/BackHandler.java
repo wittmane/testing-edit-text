@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@
 package com.wittmane.testingedittext.util;
 
 import static com.wittmane.testingedittext.util.DrawableUtils.DRAWABLE_LEVEL_MAX;
+import static com.wittmane.testingedittext.util.RunnableUtils.run;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -62,7 +63,6 @@ import com.wittmane.testingedittext.function.Supplier;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-
 
 public class BackHandler {
     private static final String TAG = BackHandler.class.getSimpleName();
@@ -151,16 +151,14 @@ public class BackHandler {
 
     public void setUp() {
         updateBackCallbackRegistrationState();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && mFragmentManager != null) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && mFragmentManager != null) {
             mFragmentManager.addOnBackStackChangedListener(
                     this::updateBackCallbackRegistrationState);
         }
     }
 
     public void tearDown() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && mFragmentManager != null) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && mFragmentManager != null) {
             mFragmentManager.removeOnBackStackChangedListener(
                     this::updateBackCallbackRegistrationState);
         }
@@ -252,8 +250,8 @@ public class BackHandler {
 
     public boolean isPredictiveBackInProgress() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                    && mBackCallback instanceof OnBackCallbackWithAnimation
-                    && ((OnBackCallbackWithAnimation) mBackCallback).isInProgress();
+                && mBackCallback instanceof OnBackCallbackWithAnimation
+                && ((OnBackCallbackWithAnimation) mBackCallback).isInProgress();
     }
 
     public interface BackNavigationManager {
@@ -280,9 +278,7 @@ public class BackHandler {
             // handle any setup for the back action/animation (such as unhiding the previous
             // fragment). then immediately trigger the back invoked handling (such as removing the
             // current fragment).
-            prepBack(skipShowingPrevious,
-                    () -> invokeBack(skipShowingPrevious, onNavigateBack));
-
+            prepBack(skipShowingPrevious, () -> invokeBack(skipShowingPrevious, onNavigateBack));
         }
 
         protected void prepBack(boolean skipShowingPrevious, Runnable onReady) {
@@ -461,27 +457,29 @@ public class BackHandler {
                 return;
             }
 
+            hidePreviousContent();
+
+            removeDarkOverlay(true);
+
+            mAnimatingView = null;
+            mOriginalBackground = null;
+        }
+
+        private void hidePreviousContent() {
             // wait until the fragment finishes visibly getting removed to replace the current
             // fragment's background (likely with nothing) to avoid a flash of the previous fragment
-            // overlapping. since this transition is behind the current fragment, just transition
-            // immediately.
+            // overlapping
             View animatingView = mAnimatingView;
             Drawable originalBackground = mOriginalBackground;
             boolean originalClipToOutline = mOriginalClipToOutline;
-            Runnable resetBackground = () -> {
+            mBackNavigationManager.hidePreviousContent(() -> {
                 if (animatingView.getBackground() != originalBackground) {
                     animatingView.setBackground(originalBackground);
                 }
                 if (animatingView.getClipToOutline() != originalClipToOutline) {
                     animatingView.setClipToOutline(originalClipToOutline);
                 }
-            };
-            mBackNavigationManager.hidePreviousContent(resetBackground);
-
-            removeDarkOverlay(true);
-
-            mAnimatingView = null;
-            mOriginalBackground = null;
+            });
         }
 
         @Override
@@ -662,11 +660,5 @@ public class BackHandler {
         shapeDrawable.getPaint().setAntiAlias(true);
         shapeDrawable.getPaint().setFlags(Paint.ANTI_ALIAS_FLAG);
         return shapeDrawable;
-    }
-
-    private static void run(Runnable runnable) {
-        if (runnable != null) {
-            runnable.run();
-        }
     }
 }

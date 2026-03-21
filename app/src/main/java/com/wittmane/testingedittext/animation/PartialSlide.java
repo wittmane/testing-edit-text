@@ -19,7 +19,11 @@ package com.wittmane.testingedittext.animation;
 import android.animation.Animator;
 import android.animation.TimeInterpolator;
 import androidx.annotation.IntDef;
+import androidx.annotation.RequiresApi;
+
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Build;
 import android.transition.SidePropagation;
 import android.transition.TransitionValues;
 import android.transition.Visibility;
@@ -46,6 +50,7 @@ import java.lang.annotation.RetentionPolicy;
  * limited as described in {@link Visibility#onDisappear(android.view.ViewGroup,
  * TransitionValues, int, TransitionValues, int)}.
  */
+@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class PartialSlide extends Visibility {
     private static final TimeInterpolator sDecelerate = new DecelerateInterpolator();
     private static final TimeInterpolator sAccelerate = new AccelerateInterpolator();
@@ -55,6 +60,7 @@ public class PartialSlide extends Visibility {
     private float mDistanceValue = 0;
     private @UnitFlag int mDistanceUnit = FRACTION;
 
+    @SuppressLint("RtlHardcoded")
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({Gravity.LEFT, Gravity.TOP, Gravity.RIGHT, Gravity.BOTTOM, Gravity.START, Gravity.END})
     public @interface GravityFlag {}
@@ -191,6 +197,7 @@ public class PartialSlide extends Visibility {
      *                  {@link android.view.Gravity#RIGHT}, {@link android.view.Gravity#BOTTOM},
      *                  {@link android.view.Gravity#START}, {@link android.view.Gravity#END}.
      */
+    @SuppressLint("RtlHardcoded")
     public void setSlideEdge(@GravityFlag int slideEdge) {
         switch (slideEdge) {
             case Gravity.LEFT:

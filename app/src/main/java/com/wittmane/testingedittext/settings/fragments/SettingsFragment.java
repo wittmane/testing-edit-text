@@ -16,6 +16,8 @@
 
 package com.wittmane.testingedittext.settings.fragments;
 
+import static com.wittmane.testingedittext.util.RunnableUtils.run;
+
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -173,9 +175,7 @@ public abstract class SettingsFragment extends PreferenceFragment {
         } else {
             // this shouldn't ever happen
             getFragmentManager().popBackStack();
-            if (onNavigateBack != null) {
-                onNavigateBack.run();
-            }
+            run(onNavigateBack);
         }
     }
 
@@ -192,9 +192,7 @@ public abstract class SettingsFragment extends PreferenceFragment {
         } else if (activity instanceof OnPreferenceStartFragmentCallback) {
             // this shouldn't ever happen
             ((OnPreferenceStartFragmentCallback) activity).onPreferenceStartFragment(this, pref);
-            if (onNavigateForward != null) {
-                onNavigateForward.run();
-            }
+            run(onNavigateForward);
         } else {
             // this shouldn't ever happen
             Log.e(TAG, "Unexpected activity for launching a preference fragment: " + activity);

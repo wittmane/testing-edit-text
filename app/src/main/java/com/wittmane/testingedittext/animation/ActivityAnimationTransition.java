@@ -58,8 +58,8 @@ public class ActivityAnimationTransition extends Visibility {
     public Animator onAppear(ViewGroup sceneRoot, View view,
                              TransitionValues startValues, TransitionValues endValues) {
         return createAnimator(view, mIsActivityStackTop
-                ? android.R.attr.activityOpenEnterAnimation
-                : android.R.attr.activityCloseEnterAnimation,
+                        ? android.R.attr.activityOpenEnterAnimation
+                        : android.R.attr.activityCloseEnterAnimation,
                 true);
     }
 
@@ -67,8 +67,8 @@ public class ActivityAnimationTransition extends Visibility {
     public Animator onDisappear(ViewGroup sceneRoot, View view,
                                 TransitionValues startValues, TransitionValues endValues) {
         return createAnimator(view, mIsActivityStackTop
-                ? android.R.attr.activityCloseExitAnimation
-                : android.R.attr.activityOpenExitAnimation,
+                        ? android.R.attr.activityCloseExitAnimation
+                        : android.R.attr.activityOpenExitAnimation,
                 false);
     }
 

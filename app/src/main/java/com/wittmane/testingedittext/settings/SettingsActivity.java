@@ -19,6 +19,7 @@ package com.wittmane.testingedittext.settings;
 
 import static com.wittmane.testingedittext.settings.fragments.PerTestFieldSettingsFragment.FIELD_INDEX_BUNDLE_KEY;
 import static com.wittmane.testingedittext.settings.fragments.PerTestGroupSettingsFragment.GROUP_INDEX_BUNDLE_KEY;
+import static com.wittmane.testingedittext.util.RunnableUtils.run;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
@@ -296,9 +297,7 @@ public class SettingsActivity extends PreferenceActivity
 
     private void showFragment(Fragment fragment, Runnable chainedAction) {
         if (!fragment.isHidden()) {
-            if (chainedAction != null) {
-                chainedAction.run();
-            }
+            run(chainedAction);
             return;
         }
         if (LOG_FRAGMENT_CHANGES) {
@@ -317,9 +316,7 @@ public class SettingsActivity extends PreferenceActivity
     private void hideFragment(Fragment fragment, Runnable chainedAction,
                               boolean allowPendedAction) {
         if (fragment.isHidden()) {
-            if (chainedAction != null) {
-                chainedAction.run();
-            }
+            run(chainedAction);
             return;
         }
         if (LOG_FRAGMENT_CHANGES) {
@@ -378,8 +375,8 @@ public class SettingsActivity extends PreferenceActivity
         } else {
             transaction.commit();
         }
-        if (transition == null && chainedAction != null) {
-            chainedAction.run();
+        if (transition == null) {
+            run(chainedAction);
         }
     }
 
@@ -415,6 +412,7 @@ public class SettingsActivity extends PreferenceActivity
         if (TextUtils.isEmpty(mCurrentFragmentTag)) {
             prefix = FRAGMENT_TAG_PREFIX;
         } else {
+            // prefix the tag with the parent fragment's tag so we can easily look up the parent
             prefix = mCurrentFragmentTag + FRAGMENT_TAG_DIVIDER;
         }
         FragmentManager fragmentManager = getFragmentManager();
@@ -469,6 +467,8 @@ public class SettingsActivity extends PreferenceActivity
             // no previous fragment
             return null;
         }
+        // since the tags are created by appending an identifier to the parent's tag, we can just
+        // strip off the current fragment's identifier to get the parent's tag
         return currentFragmentTag.substring(0, lastDivider);
     }
 
@@ -547,72 +547,72 @@ public class SettingsActivity extends PreferenceActivity
                             ? getPreviousFragment(currentFragment)
                             : null;
             setCloseEnterTransition(previousFragment, isShowingForPredictiveBack);
-            Consumer<Runnable> showPrevious = null;
             if (previousFragment != null && previousFragment.isHidden()) {
                 mPreviousFragment = previousFragment;
-                showPrevious = (chainedAction) -> {
-                    // note that for some reason on Nougat only, showing the fragment doesn't
-                    // trigger the enter transition. the transition based on the stock emulator is
-                    // basically just to appear, so most, if not all, devices probably won't look
-                    // significantly different from having it without a transition even if we could
-                    // figure out a workaround. also, this is behind the current fragment, so that
-                    // makes it even less visible. this seems to just be a framework bug in a single
-                    // old version of android, so it's probably not worth putting in more time to
-                    // trying to find the core issue and seeing if there is any workaround we can do
-                    // (which there very well may not be).
-                    // possibly related to this, on Nougat if the fragment is getting added before a
-                    // previous exit transition to remove that fragment completes, the fragment will
-                    // stay invisible when the exit transition ends. theoretically, a solution could
-                    // be forcing the transitions to end before trying to re-show the fragment, but
-                    // on Nougat and earlier, TransitionManager#endTransitions simply called
-                    // Transition#end, which doesn't result in Animator#end getting called, so at
-                    // least in the case of AnimationAnimator, the animation will keep running as if
-                    // it wasn't stopped because it wasn't notified. this issue seems to have been
-                    // fixed by TransitionManager#endTransitions changing to call
-                    // Transition#forceToEnd starting in Nougat MR1. again, since the quick
-                    // navigation to cause this issue is an edge case and it only applies to a
-                    // single version, we'll just let this be and rely on #cleanUpFragmentState to
-                    // handle fixing the visibility since a more immediate handling probably would
-                    // be messy.
-                    showFragment(previousFragment, chainedAction);
-                };
-            }
-            if (showPrevious != null) {
-                showPrevious.accept(onReady);
-            } else if (onReady != null) {
-                onReady.run();
+                // note that for some reason on Nougat only, showing the fragment doesn't trigger
+                // the enter transition. the transition based on the stock emulator is basically
+                // just to appear, so most, if not all, devices probably won't look significantly
+                // different from having it without a transition even if we could figure out a
+                // workaround. also, this is behind the current fragment, so that makes it even less
+                // visible. this seems to just be a framework bug in a single old version of
+                // android, so it's probably not worth putting in more time to trying to find the
+                // core issue and seeing if there is any workaround we can do (which there very well
+                // may not be).
+                // possibly related to this, on Nougat if the fragment is getting added before a
+                // previous exit transition to remove that fragment completes, the fragment will
+                // stay invisible when the exit transition ends. theoretically, a solution could be
+                // forcing the transitions to end before trying to re-show the fragment, but on
+                // Nougat and earlier, TransitionManager#endTransitions simply called
+                // Transition#end, which doesn't result in Animator#end getting called, so at least
+                // in the case of AnimationAnimator, the animation will keep running as if it wasn't
+                // stopped because it wasn't notified. this issue seems to have been fixed by
+                // TransitionManager#endTransitions changing to call Transition#forceToEnd starting
+                // in Nougat MR1. again, since the quick navigation to cause this issue is an edge
+                // case and it only applies to a single version, we'll just let this be and rely on
+                // #cleanUpFragmentState to handle fixing the visibility since a more immediate
+                // handling probably would be messy.
+                showFragment(previousFragment, onReady);
+            } else {
+                run(onReady);
             }
         }
 
         @Override
         public void hidePreviousContent(Runnable onHidden) {
             if (mPreviousFragment == null) {
-                onHidden.run();
+                run(onHidden);
                 return;
             }
-            // since this transition is behind the current fragment, just transition immediately.
-            // this transition is only really needed for the callback to know when it's safe to
-            // replace the background of the current fragment. setting duration to 1, rather than 0
-            // in case anything handles 0 differently. 1 ms is effectively instantly, and depending
-            // on how it's actually implemented 0 ms still may have some delay for asynchronous
-            // handling and effectively be the same.
-            Transition exitTransition = new Fade(Fade.MODE_OUT);
-            exitTransition.setDuration(1);
-            exitTransition.addListener(new PartialTransitionListener() {
-                @Override
-                public void onTransitionEnd(Transition transition) {
-                    if (onHidden != null) {
-                        onHidden.run();
+            Runnable chainedAction;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                // since this transition is behind the current fragment, just transition
+                // immediately. this transition is only really needed for the callback to know when
+                // it's safe to replace the background of the current fragment. setting duration to
+                // 1, rather than 0 in case anything handles 0 differently. 1 ms is effectively
+                // instantly, and depending on how it's actually implemented 0 ms still may have
+                // some delay for asynchronous handling and effectively be the same.
+                Transition exitTransition = new Fade(Fade.MODE_OUT);
+                exitTransition.setDuration(1);
+                exitTransition.addListener(new PartialTransitionListener() {
+                    @Override
+                    public void onTransitionEnd(Transition transition) {
+                        run(onHidden);
                     }
-                }
-            });
-            mPreviousFragment.setExitTransition(exitTransition);
+                });
+                mPreviousFragment.setExitTransition(exitTransition);
+                chainedAction = null;
+            } else {
+                chainedAction = onHidden;
+            }
 
-            hideFragment(mPreviousFragment, null, false);
+            hideFragment(mPreviousFragment, chainedAction, false);
         }
 
         @Override
         public long getExitTransitionDuration() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                return -1;
+            }
             Fragment currentFragment = getCurrentFragment();
             Transition currentFragmentTransition = currentFragment != null
                     ? currentFragment.getReturnTransition()

@@ -704,12 +704,12 @@ public class PreferenceSummaryManager {
             }
 
             return sum(getDescriptionSummary
-                    ? (mDescriptionSummaryShownRowsCharCounts != null
-                            ? mDescriptionSummaryShownRowsCharCounts
-                            : mDescriptionSummaryMaxRowsCharCounts)
-                    : (mValueSummaryShownRowsCharCounts != null
-                            ? mValueSummaryShownRowsCharCounts
-                            : mValueSummaryMaxRowsCharCounts),
+                            ? (mDescriptionSummaryShownRowsCharCounts != null
+                                    ? mDescriptionSummaryShownRowsCharCounts
+                                    : mDescriptionSummaryMaxRowsCharCounts)
+                            : (mValueSummaryShownRowsCharCounts != null
+                                    ? mValueSummaryShownRowsCharCounts
+                                    : mValueSummaryMaxRowsCharCounts),
                     summaryAllowedLines);
         }
     }
@@ -942,8 +942,8 @@ public class PreferenceSummaryManager {
     }
 
     private static int getEllipsisLength(CharSequence summaryPart, int currentPart, int partCount,
-                                          int partTextPosition, CharSequence lineDisplayedText,
-                                          int ellipsisStart, int ellipsisCount) {
+                                         int partTextPosition, CharSequence lineDisplayedText,
+                                         int ellipsisStart, int ellipsisCount) {
         int postEllipsisStart = partTextPosition + ellipsisCount;
         int nextNewLineInSummaryPart = summaryPart.toString().indexOf('\n', postEllipsisStart);
         // this displayed line will only go as far as the next new line or the extent of
@@ -1016,7 +1016,7 @@ public class PreferenceSummaryManager {
     }
 
     private static int[][] segregateSummaryPartLineCounts(int[] visibleLineCharCounts,
-                                                   int[] summaryPartVisibleLineCounts) {
+                                                          int[] summaryPartVisibleLineCounts) {
         int summaryPartCount = summaryPartVisibleLineCounts.length;
         int[][] populatedSummaryPartsVisibleRowCharCounts = new int[summaryPartCount][];
         int rowIndex = 0;
