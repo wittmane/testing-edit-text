@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,24 +18,21 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
 import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName;
+import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.showWarningConfirmationDialog;
 
-import android.app.ActionBar;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.preference.PreferenceFragment;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.wittmane.testingedittext.R;
@@ -48,7 +45,7 @@ import com.wittmane.testingedittext.settings.JsonManager;
 import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
-import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.AlertDialogBuilder;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -83,18 +80,40 @@ public class MainSettingsFragment extends SettingsFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference_screen_main);
         setHasOptionsMenu(true);
+
+        refreshTestFieldsPref();
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onRedisplay() {
+        refreshTestFieldsPref();
+        super.onRedisplay();
+    }
+
+    private void refreshTestFieldsPref() {
+        Preference pref = findPreference("pref_screen_test_field_group_list");
+        if (Settings.getTestFieldGroupCount() == 1) {
+            pref.setFragment(null);
+            pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    openGroupPreference(MainSettingsFragment.this, 0);
+                    return true;
+                }
+            });
+        } else {
+            pref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
+            pref.setOnPreferenceClickListener(null);
+        }
+    }
+
+    @Override
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.settings, menu);
-
-        ActionBar actionBar = getActivity().getActionBar();
-        IconUtils.matchMenuIconColor(mView, menu, actionBar);
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_import_settings) {
             ImportExportSourceDialog.promptImport(getActivity(), rawJsonString -> {
@@ -112,7 +131,7 @@ public class MainSettingsFragment extends SettingsFragment {
         } else if (itemId == R.id.action_export_settings) {
             promptExportSettings();
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 
     @Override
@@ -146,12 +165,12 @@ public class MainSettingsFragment extends SettingsFragment {
     }
 
     private void showErrorDialog(int titleId, String message) {
-        IconUtils.matchIconColor(new AlertDialog.Builder(getActivity())
+        new AlertDialogBuilder(getActivity())
                 .setTitle(titleId)
                 .setMessage(message)
                 .setIcon(R.drawable.ic_warning_white_24)
                 .setPositiveButton(android.R.string.ok, null)
-                .show());
+                .show();
     }
 
     private void processSettingsImportFile(Uri uri) {

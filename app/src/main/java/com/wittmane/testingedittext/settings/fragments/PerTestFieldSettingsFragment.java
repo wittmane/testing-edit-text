@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,6 +23,9 @@ import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.util.Log;
+import android.view.View;
+
+import androidx.annotation.Nullable;
 
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
@@ -57,7 +60,7 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
                         && (fieldIndex < 0
                                 || fieldIndex >= Settings.getTestFieldCount(groupIndex)))) {
             Log.e(TAG, "Invalid index: group=" + groupIndex + ", field=" + fieldIndex);
-            getFragmentManager().popBackStack();
+            navigateBack();
         }
 
         // in case there are any preferences with a key matching the prefix specified in the
@@ -82,9 +85,8 @@ public abstract class PerTestFieldSettingsFragment extends PerTestGroupSettingsF
     }
 
     @Override
-    public void onActivityCreated(final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         registerPreferencesChangedListener(getFieldId());
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package com.wittmane.testingedittext.util;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.os.Build;
 import android.util.TypedValue;
 
@@ -32,6 +33,21 @@ public class ResourceUtils {
         int resId = typedArray.getResourceId(0, RESOURCES_ID_NULL);
         typedArray.recycle();
         return resId;
+    }
+
+    public static int getResourceId(int styleable, int attr, Context context) {
+        TypedArray typedArray =
+                context.getTheme().obtainStyledAttributes(styleable, new int[] { attr });
+        int resId = typedArray.getResourceId(0, RESOURCES_ID_NULL);
+        typedArray.recycle();
+        return resId;
+    }
+
+    public static int getColor(int attr, Context context) {
+        TypedArray typedArray = context.getTheme().obtainStyledAttributes(new int[] { attr });
+        int color = typedArray.getColor(0, Color.TRANSPARENT);
+        typedArray.recycle();
+        return color;
     }
 
     public static int getDimensionPixels(int attr, Context context) {

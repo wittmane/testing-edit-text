@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -39,6 +39,7 @@ import com.wittmane.testingedittext.json.JsonObject;
 import com.wittmane.testingedittext.settings.JsonManager.FieldTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.GroupTransferInfo;
 import com.wittmane.testingedittext.settings.JsonManager.ImportFileInfo;
+import com.wittmane.testingedittext.util.BackHandler;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.IterableUtils;
 
@@ -317,6 +318,8 @@ public class ImportExportContentDialog extends AlertDialog {
         otherSettingsCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             updateAcceptButtonState();
         });
+
+        BackHandler.setUpPredictiveBack(this);
     }
 
     private static ArrayAdapter<SpinnerEntry> buildFieldOptions(Context context, boolean isImport) {

@@ -115,4 +115,10 @@
     <dimen name="edittext_underline_background_padding_negation_material">-3.99dp</dimen>
     <dimen name="edittext_underline_background_padding_material">4dp</dimen>
 
+    <!-- (EW) from
+         https://github.com/android/animation-samples/blob/main/Motion/app/src/main/res/values/dimens.xml
+         which likely is just matching the suggestion from
+         https://developer.android.com/design/ui/mobile/guides/patterns/predictive-back#motion-specs -->
+    <dimen name="predictive_back_margin">8dp</dimen>
+
 </resources>

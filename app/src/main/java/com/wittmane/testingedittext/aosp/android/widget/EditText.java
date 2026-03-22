@@ -58,7 +58,7 @@ import com.wittmane.testingedittext.aosp.android.view.translation.ViewTranslatio
 import com.wittmane.testingedittext.aosp.android.view.textservice.SpellCheckerSubtypeExtension;
 import com.wittmane.testingedittext.settings.DefaultEditTextSettings;
 import com.wittmane.testingedittext.settings.EditorSettings;
-import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.DrawableUtils;
 import com.wittmane.testingedittext.util.ViewUtils;
 import com.wittmane.testingedittext.wrapper.Flags;
 import com.wittmane.testingedittext.wrapper.Insets;
@@ -12909,7 +12909,7 @@ public class EditText extends ViewExtension implements ViewTreeObserver.OnPreDra
 
     // (EW) wrapper to get a drawable on any version
     private Drawable getDrawable(int res) {
-        return IconUtils.getDrawable(getContext(), res);
+        return DrawableUtils.getDrawable(getContext(), res);
     }
 
     // (EW) since View's version of this is hidden, we need a replacement. View called

@@ -48,20 +48,20 @@ public abstract class PerTestGroupSettingsFragment extends SettingsFragment {
                     index = Integer.parseInt(groupIndex);
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "Failed to parse the index: " + e.getMessage());
-                    getFragmentManager().popBackStack();
+                    navigateBack();
                     // this value doesn't really matter
                     return baseIndex;
                 }
                 if (index < 0 || index >= length) {
                     Log.e(TAG, "Invalid index: " + index);
-                    getFragmentManager().popBackStack();
+                    navigateBack();
                 }
             } else {
                 index = baseIndex;
             }
         } else {
             Log.e(TAG, "No bundle for the index");
-            getFragmentManager().popBackStack();
+            navigateBack();
             // this value doesn't really matter
             return baseIndex;
         }

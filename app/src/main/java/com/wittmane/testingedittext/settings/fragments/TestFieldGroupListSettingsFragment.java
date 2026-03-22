@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,12 +21,8 @@ import static com.wittmane.testingedittext.settings.Settings.getGroupDisplayName
 import static com.wittmane.testingedittext.settings.Settings.getTestFieldId;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupSettingsFragment.ARE_GROUPS_USED_BUNDLE_KEY;
 
-import android.app.ActionBar;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -44,7 +40,7 @@ import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
 import com.wittmane.testingedittext.settings.Settings.FieldIdGroup;
 import com.wittmane.testingedittext.settings.preferences.PerTestGroupPreference;
-import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.AlertDialogBuilder;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableGroupedListAdapter;
 
@@ -74,39 +70,13 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
         mView = super.onCreateView(inflater, container, savedInstanceState);
-
-        if (!mUseGroups) {
-            if (Settings.getTestFieldGroupCount() == 1) {
-                // since there is only a single group and the user hasn't interacted with any groups
-                // since first opening this fragment, there isn't much value in showing a preference
-                // screen to show the single group
-                if (mAutoLaunchedOnlyGroup) {
-                    // we just backed out of the group preference that we auto-launched, so we go to
-                    // the previous fragment to continue skipping the unnecessary groups setting
-                    getFragmentManager().popBackStack();
-                } else {
-                    // jump directly into the only group
-                    mAutoLaunchedOnlyGroup = true;
-                    IndividualTestFieldGroupPreference pref =
-                            new IndividualTestFieldGroupPreference(getActivity(), 0);
-                    pref.setAreGroupsUsed(false);
-                    ((OnPreferenceStartFragmentCallback)getActivity()).onPreferenceStartFragment(
-                            this, pref);
-                }
-            } else {
-                mUseGroups = true;
-            }
-        }
-
+        buildContent();
         return mView;
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        if (mUseGroups) {
-            buildContent();
-        }
+    protected void onRedisplay() {
+        buildContent();
     }
 
     @Override
@@ -117,31 +87,34 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field_group_list, menu);
-
-        ActionBar actionBar = getActivity().getActionBar();
-        IconUtils.matchMenuIconColor(mView, menu, actionBar);
 
         if (Settings.getTestFieldGroupCount() < 2) {
             menu.removeItem(R.id.action_reorder_groups);
         }
     }
 
-    static void openGroupPreference(PreferenceFragment currentFragment, int groupIndex) {
-        Preference newPref = new IndividualTestFieldGroupPreference(currentFragment.getActivity(),
-                groupIndex);
-        // launch sub setting screen for the new field group preference
-        launchPrefFragment(currentFragment, newPref);
+    /* package */ static void openGroupPreference(SettingsFragment currentFragment,
+                                                  int groupIndex) {
+        openGroupPreference(currentFragment, groupIndex, false);
     }
 
-    static void launchPrefFragment(PreferenceFragment currentFragment, Preference pref) {
-        ((OnPreferenceStartFragmentCallback)currentFragment.getActivity())
-                .onPreferenceStartFragment(currentFragment, pref);
+    /* package */ static void openGroupPreference(SettingsFragment currentFragment, int groupIndex,
+                                                  boolean allowPendedAction) {
+        IndividualTestFieldGroupPreference pref = new IndividualTestFieldGroupPreference(
+                currentFragment.getLatestActivity(), groupIndex);
+        if (!(currentFragment instanceof TestFieldGroupListSettingsFragment)
+                && groupIndex == 0 && Settings.getTestFieldGroupCount() == 1) {
+            pref.setAreGroupsUsed(false);
+        }
+        // launch sub setting screen for the new field group preference
+        currentFragment.launchPrefFragment(pref, null, allowPendedAction);
     }
+
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_add_group) {
             // add a preference for a new group
@@ -151,7 +124,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         } else if (itemId == R.id.action_reorder_groups) {
             showReorderGroupsDialog();
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 
     private void showReorderGroupsDialog() {
@@ -200,7 +173,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
                 (buttonView, isChecked) -> adapter.expandGroups(isChecked));
         layout.addView(checkBox);
 
-        new AlertDialog.Builder(getActivity())
+        new AlertDialogBuilder(getActivity())
                 .setTitle(R.string.reorder_groups)
                 .setView(layout)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
@@ -218,7 +191,6 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
                     buildContent();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .create()
                 .show();
     }
 
@@ -240,7 +212,7 @@ public class TestFieldGroupListSettingsFragment extends SettingsFragment {
         }
     }
 
-    static class FieldEntry {
+    /* package */ static class FieldEntry {
         private final int mFieldId;
         private final String mDisplayName;
 

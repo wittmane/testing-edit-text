@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -35,6 +35,7 @@ import android.widget.Toast;
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.function.Consumer;
 import com.wittmane.testingedittext.text.NonEditable.NonEditableFactory;
+import com.wittmane.testingedittext.util.BackHandler;
 
 public class ImportExportSourceDialog extends AlertDialog {
     private static final String TAG = ImportExportSourceDialog.class.getSimpleName();
@@ -140,6 +141,8 @@ public class ImportExportSourceDialog extends AlertDialog {
             LinearLayout screenSourceContent = findViewById(R.id.screenSourceContent);
             screenSourceContent.setVisibility(View.GONE);
         }
+
+        BackHandler.setUpPredictiveBack(this);
     }
 
     private ClipboardManager getClipboardManager() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -704,12 +704,12 @@ public class PreferenceSummaryManager {
             }
 
             return sum(getDescriptionSummary
-                    ? (mDescriptionSummaryShownRowsCharCounts != null
-                            ? mDescriptionSummaryShownRowsCharCounts
-                            : mDescriptionSummaryMaxRowsCharCounts)
-                    : (mValueSummaryShownRowsCharCounts != null
-                            ? mValueSummaryShownRowsCharCounts
-                            : mValueSummaryMaxRowsCharCounts),
+                            ? (mDescriptionSummaryShownRowsCharCounts != null
+                                    ? mDescriptionSummaryShownRowsCharCounts
+                                    : mDescriptionSummaryMaxRowsCharCounts)
+                            : (mValueSummaryShownRowsCharCounts != null
+                                    ? mValueSummaryShownRowsCharCounts
+                                    : mValueSummaryMaxRowsCharCounts),
                     summaryAllowedLines);
         }
     }
@@ -942,8 +942,8 @@ public class PreferenceSummaryManager {
     }
 
     private static int getEllipsisLength(CharSequence summaryPart, int currentPart, int partCount,
-                                          int partTextPosition, CharSequence lineDisplayedText,
-                                          int ellipsisStart, int ellipsisCount) {
+                                         int partTextPosition, CharSequence lineDisplayedText,
+                                         int ellipsisStart, int ellipsisCount) {
         int postEllipsisStart = partTextPosition + ellipsisCount;
         int nextNewLineInSummaryPart = summaryPart.toString().indexOf('\n', postEllipsisStart);
         // this displayed line will only go as far as the next new line or the extent of
@@ -1016,7 +1016,7 @@ public class PreferenceSummaryManager {
     }
 
     private static int[][] segregateSummaryPartLineCounts(int[] visibleLineCharCounts,
-                                                   int[] summaryPartVisibleLineCounts) {
+                                                          int[] summaryPartVisibleLineCounts) {
         int summaryPartCount = summaryPartVisibleLineCounts.length;
         int[][] populatedSummaryPartsVisibleRowCharCounts = new int[summaryPartCount][];
         int rowIndex = 0;
@@ -1044,8 +1044,7 @@ public class PreferenceSummaryManager {
             longClickListener = new OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
-                    // Create the object of AlertDialog Builder class
-                    AlertDialog dialog = new AlertDialog.Builder(mPref.getContext())
+                    new AlertDialogBuilder(mPref.getContext())
                             .setTitle(mPref.getTitle())
                             .setMessage(getFullSummary())
                             .setPositiveButton(android.R.string.ok,
@@ -1054,8 +1053,7 @@ public class PreferenceSummaryManager {
                                         public void onClick(DialogInterface dialog, int which) {
                                         }
                                     })
-                            .create();
-                    dialog.show();
+                            .show();
 
                     return true;
                 }

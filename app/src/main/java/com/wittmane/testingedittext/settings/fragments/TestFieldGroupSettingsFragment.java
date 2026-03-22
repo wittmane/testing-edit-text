@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,11 +18,8 @@ package com.wittmane.testingedittext.settings.fragments;
 
 import static com.wittmane.testingedittext.settings.PreferenceKeys.*;
 import static com.wittmane.testingedittext.settings.Settings.getFieldDisplayName;
-import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.launchPrefFragment;
 import static com.wittmane.testingedittext.settings.fragments.TestFieldGroupListSettingsFragment.openGroupPreference;
 
-import android.app.ActionBar;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -47,7 +44,7 @@ import com.wittmane.testingedittext.settings.preferences.ImeActionPreference;
 import com.wittmane.testingedittext.settings.preferences.ImeOptionsPreference;
 import com.wittmane.testingedittext.settings.preferences.InputTypePreference;
 import com.wittmane.testingedittext.settings.preferences.TextDialogPreference;
-import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.AlertDialogBuilder;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.widget.DraggableListAdapter;
 
@@ -78,21 +75,18 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
         mView = super.onCreateView(inflater, container, savedInstanceState);
+        buildContent();
         return mView;
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    protected void onRedisplay() {
         buildContent();
     }
 
     @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+    protected void onCreateOptionsMenuInternal(final Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.test_field_list, menu);
-
-        ActionBar actionBar = getActivity().getActionBar();
-        IconUtils.matchMenuIconColor(mView, menu, actionBar);
 
         if (mAreGroupsUsed) {
             menu.removeItem(R.id.action_add_group);
@@ -100,23 +94,29 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             menu.removeItem(R.id.action_remove_group);
         }
 
-        if (Settings.getTestFieldCount(getGroupIndex()) < 2) {
+        if (getGroupIndex() >= Settings.getTestFieldGroupCount()
+                || Settings.getTestFieldCount(getGroupIndex()) < 2) {
             menu.removeItem(R.id.action_reorder_fields);
         }
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    protected boolean onOptionsItemSelectedInternal(final MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.action_add_group) {
             // add a preference for a new group
             Settings.addTestFieldGroup();
 
-            // exit this group before opening the new group so backing out of the new group goes to
-            // the group list, rather than this other group
-            getFragmentManager().popBackStackImmediate();
-
-            openGroupPreference(this, Settings.getTestFieldGroupCount() - 1);
+            // exit this group and add the group list to the back stack (since that was skipped due
+            // to having a single group) before opening the new group so backing out of the new
+            // group goes to the group list, rather than this other group
+            navigateBack(true, () -> {
+                Preference groupListPref = new Preference(getActivity());
+                groupListPref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
+                launchPrefFragment(groupListPref, () -> {
+                    openGroupPreference(this, Settings.getTestFieldGroupCount() - 1, true);
+                }, true);
+            });
         } else if (itemId == R.id.action_add_field) {
             int groupIndex = getGroupIndex();
             // add a preference for a new field
@@ -125,7 +125,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
             Preference newPref = new IndividualTestFieldPreference(getActivity(),
                     groupIndex, Settings.getTestFieldCount(groupIndex) - 1);
             // launch sub setting screen for the new field preference
-            launchPrefFragment(this, newPref);
+            launchPrefFragment(newPref);
         } else if (itemId == R.id.action_reorder_fields) {
             showReorderFieldsDialog();
         } else if (itemId == R.id.action_remove_group) {
@@ -133,11 +133,11 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                     () -> {
                         // remove the group and go back to the field list
                         Settings.removeTestFieldGroup(getGroupIndex());
-                        getFragmentManager().popBackStackImmediate();
+                        navigateBack();
                     }, getActivity());
 
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelectedInternal(item);
     }
 
     private void showReorderFieldsDialog() {
@@ -157,7 +157,7 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
         }
         listView.setAdapter(adapter);
 
-        new AlertDialog.Builder(getActivity())
+        new AlertDialogBuilder(getActivity())
                 .setTitle(R.string.reorder_fields)
                 .setView(listView)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
@@ -169,7 +169,6 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
                     buildContent();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .create()
                 .show();
     }
 
@@ -180,13 +179,13 @@ public class TestFieldGroupSettingsFragment extends PerTestGroupSettingsFragment
 
     static void showWarningConfirmationDialog(int titleId, String message, Runnable onConfirm,
                                               Context context) {
-        IconUtils.matchIconColor(new AlertDialog.Builder(context)
+        new AlertDialogBuilder(context)
                 .setTitle(titleId)
                 .setMessage(message)
                 .setIcon(R.drawable.ic_warning_white_24)
                 .setPositiveButton(android.R.string.yes, (dialog, which) -> onConfirm.run())
                 .setNegativeButton(android.R.string.no, null)
-                .show());
+                .show();
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 
 import com.wittmane.testingedittext.R;
+import com.wittmane.testingedittext.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,12 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
     }
 
     @Override
+    protected boolean isIndexValid() {
+        return super.isIndexValid() && mFieldIndex >= 0
+                && mFieldIndex < Settings.getTestFieldCount(getGroupIndex());
+    }
+
+    @Override
     public Bundle getExtras() {
         Bundle extras = super.getExtras();
         if (mFieldIndex != BASE_FIELD_INDEX) {
@@ -88,7 +95,7 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
     }
 
     protected static String getDescription(String baseDisplay, String details,
-                                         Context context) {
+                                           Context context) {
         List<String> detailsList;
         if (details != null) {
             detailsList = new ArrayList<>();
@@ -100,7 +107,7 @@ public abstract class PerTestFieldPreference extends PerTestGroupPreference {
     }
 
     protected static String getDescription(String baseDisplay, List<String> details,
-                                         Context context) {
+                                           Context context) {
         String valueSummary;
         if (details == null || details.size() == 0) {
             if (TextUtils.isEmpty(baseDisplay)) {

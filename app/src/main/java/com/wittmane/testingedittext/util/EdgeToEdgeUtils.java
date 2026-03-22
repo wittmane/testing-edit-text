@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Eli Wittman
+ * Copyright (C) 2025-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,10 +76,15 @@ public class EdgeToEdgeUtils {
         }
     }
 
+    public static boolean isEdgeToEdgeEnforced() {
+        // edge-to-edge is only enforced starting in Android 15
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
+    }
+
     public static void addInsetHandling(Activity activity, boolean left, boolean top,
                                         boolean right, boolean bottom) {
         // edge-to-edge is only enforced starting in Android 15
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        if (isEdgeToEdgeEnforced()) {
             View contentView = activity.findViewById(android.R.id.content);
             if (!(contentView instanceof ViewGroup)) {
                 // I don't think this can happen
@@ -147,8 +152,7 @@ public class EdgeToEdgeUtils {
 
     public static void addInsetHandling(Activity activity, View view, boolean left, boolean top,
                                         boolean right, boolean bottom) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            // edge-to-edge is only enforced starting in Android 15
+        if (!isEdgeToEdgeEnforced()) {
             return;
         }
         synchronized (mParentViewInfo) {
@@ -171,8 +175,7 @@ public class EdgeToEdgeUtils {
     }
 
     public static void removeInsetHandling(Activity activity) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            // edge-to-edge is only enforced starting in Android 15
+        if (!isEdgeToEdgeEnforced()) {
             return;
         }
         View contentView = activity.findViewById(android.R.id.content);
@@ -182,7 +185,7 @@ public class EdgeToEdgeUtils {
     }
 
     public static void removeInsetHandling(Activity activity, View view) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        if (isEdgeToEdgeEnforced()) {
             // edge-to-edge is only enforced starting in Android 15
             return;
         }
@@ -195,7 +198,7 @@ public class EdgeToEdgeUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @RequiresApi(api = Build.VERSION_CODES.R)
     private static void applyWindowInsets(@NonNull final View parentView,
                                           @NonNull final ParentViewInfo parentViewInfo,
                                           @NonNull final WindowInsets insets) {
@@ -226,7 +229,7 @@ public class EdgeToEdgeUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @RequiresApi(api = Build.VERSION_CODES.R)
     private static Rect updatePaddingForInsets(View view, InsetEdgeHandleInfo viewInfo,
                                                WindowInsets insets, WindowInsets lastInsets,
                                                Rect lastBasePadding) {

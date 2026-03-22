@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,12 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.wittmane.testingedittext.settings.Settings;
 
 /**
  * Preference to link to a test field group specific settings screen.
@@ -61,7 +64,11 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = super.onCreateView(parent);
-        updateDisplayText();
+        // skip trying to update the display text if the group hasn't been set yet or if the group
+        // doesn't exist anymore (probably from some stale pended call)
+        if (isIndexValid()) {
+            updateDisplayText();
+        }
         return view;
     }
 
@@ -76,6 +83,10 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
         return mGroupIndex;
     }
 
+    protected boolean isIndexValid() {
+        return mGroupIndex >= 0 && mGroupIndex < Settings.getTestFieldGroupCount();
+    }
+
     @Override
     public Bundle getExtras() {
         Bundle extras = super.getExtras();
@@ -83,6 +94,14 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
             extras.putString(GROUP_INDEX_BUNDLE_KEY, "" + getGroupIndex());
         }
         return extras;
+    }
+
+    @Override
+    protected void onAttachedToHierarchy(PreferenceManager preferenceManager) {
+        super.onAttachedToHierarchy(preferenceManager);
+        if (getGroupIndex() >= 0) {
+            updateDisplayText();
+        }
     }
 
     protected abstract void updateDisplayText();
