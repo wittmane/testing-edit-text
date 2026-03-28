@@ -61,17 +61,6 @@ public abstract class PerTestGroupPreference extends LongTextPreference {
         super(context, attrs, defStyleAttr, defStyleRes);
     }
 
-    @Override
-    protected View onCreateView(ViewGroup parent) {
-        View view = super.onCreateView(parent);
-        // skip trying to update the display text if the group hasn't been set yet or if the group
-        // doesn't exist anymore (probably from some stale pended call)
-        if (isIndexValid()) {
-            updateDisplayText();
-        }
-        return view;
-    }
-
     protected void setGroupIndex(int groupIndex) {
         if (mGroupIndex == groupIndex) {
             return;

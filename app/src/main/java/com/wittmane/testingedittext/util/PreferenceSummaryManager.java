@@ -16,8 +16,8 @@
 
 package com.wittmane.testingedittext.util;
 
-import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.os.SystemClock;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
@@ -72,6 +72,9 @@ public class PreferenceSummaryManager {
     private CharSequence mDescriptionSummaryOn;
     private CharSequence mDescriptionSummaryOff;
     private CharSequence mValueSummary;
+
+    private int mSameTextUpdateCount = 0;
+    private long mFirstMatchingTextUpdateMillis;
 
     private View mView;
     private TextView mTitleTextView;
@@ -143,8 +146,34 @@ public class PreferenceSummaryManager {
             // this value was already set, so nothing needs to be done
             return;
         }
+        // not all CharSequence classes override Object#equals (such as StringBuilder), so there is
+        // a chance that these are equivalent but not the same object. check if at least the text is
+        // the same. we don't want to continue updating the summary to the same thing as this can
+        // cause infinite loops of measuring the text that freezes the UI. although there may be
+        // some other details (like spans) that may be legitimately changing, that's unlikely to
+        // change frequently. if this happens more than 5 times in less than 2 seconds, we'll assume
+        // this is the same content and we're just in a loop and skip updating/remeasuring the
+        // summary.
+        if (TextUtils.equals(mDescriptionSummary, summary)) {
+            if (mFirstMatchingTextUpdateMillis > 0
+                    && SystemClock.elapsedRealtime() - mFirstMatchingTextUpdateMillis > 2000) {
+                // reset the count since it's been long enough that this may be from something else
+                mSameTextUpdateCount = 0;
+            }
+            if (mSameTextUpdateCount == 0) {
+                mFirstMatchingTextUpdateMillis = SystemClock.elapsedRealtime();
+            }
+            mSameTextUpdateCount++;
+        } else {
+            mSameTextUpdateCount = 0;
+        }
         mDescriptionSummary = summary;
-        mEllipsisManager.updateSummary();
+        if (mSameTextUpdateCount <= 5) {
+            mEllipsisManager.updateSummary();
+        } else {
+            Log.w(TAG, "Skipping updating the summary because the summary was set to the same text "
+                    + mSameTextUpdateCount + " times.");
+        }
     }
 
     /**
