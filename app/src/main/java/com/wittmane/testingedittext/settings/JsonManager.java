@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1292,8 +1292,14 @@ public abstract class JsonManager {
             List<Integer> groupIds = new ArrayList<>();
             List<Integer> fieldIds = new ArrayList<>();
             if (!replaceFields) {
-                groupIds.addAll(instance.getGroupIds());
-                fieldIds.addAll(instance.getFieldIds());
+                int groupCount = Settings.getTestFieldGroupCount();
+                for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+                    groupIds.add(Settings.getTestGroupId(groupIndex));
+                    int fieldCount = Settings.getTestFieldCount(groupIndex);
+                    for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+                        fieldIds.add(Settings.getTestFieldId(groupIndex, fieldIndex));
+                    }
+                }
             }
             if (jsonObject.has(GROUPS_JSON_PROP)) {
                 JsonArray groupsJsonArray = jsonObject.getJsonArray(GROUPS_JSON_PROP);

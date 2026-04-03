@@ -671,11 +671,11 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         }
     }
 
-    /* package */ Set<Integer> getGroupIds() {
+    private Set<Integer> getGroupIds() {
         return mTestGroups.keySet();
     }
 
-    /* package */ Set<Integer> getFieldIds() {
+    private Set<Integer> getFieldIds() {
         return mTestFields.keySet();
     }
 
