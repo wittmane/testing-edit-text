@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -460,11 +460,13 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
         // delete any groups that are getting removed
         for (int groupId : removedGroupIds) {
             removeTestGroupPrefs(editor, groupId);
+            settings.mTestGroups.remove(groupId);
         }
 
         // delete any fields that are getting removed
         for (int fieldId : removedFieldIds) {
             removeTestFieldPrefs(editor, fieldId);
+            settings.mTestFields.remove(fieldId);
         }
 
         // load the default values for any new groups
