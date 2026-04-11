@@ -860,7 +860,8 @@ public abstract class JsonManager {
             throws JSONException {
         // just need to try getting the data for basic types to ensure the right data type is set
         boolean value = jsonObject.getBoolean(jsonPropName);
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setBoolean);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setBoolean,
+                PreferenceReader::getPrefDefaultBoolean);
     }
 
     private static Consumer<String> validateInt(JsonObject jsonObject, String jsonPropName,
@@ -954,14 +955,16 @@ public abstract class JsonManager {
                 value = constrainedIntData;
             }
         }
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setInt);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setInt,
+                PreferenceReader::getPrefDefaultInt);
     }
 
     private static Consumer<String> validateLong(JsonObject jsonObject, String jsonPropName,
                                                  String prefKeyOrPrefix)
             throws JSONException {
         long value = jsonObject.getLong(jsonPropName);
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setLong);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setLong,
+                PreferenceReader::getPrefDefaultLong);
     }
 
     private static Consumer<String> validateFloat(JsonObject jsonObject, String jsonPropName,
@@ -979,7 +982,8 @@ public abstract class JsonManager {
             }
             return null;
         }
-        return preferenceSetter(prefKeyOrPrefix, (float) value, SharedPreferenceManager::setFloat);
+        return preferenceSetter(prefKeyOrPrefix, (float) value, SharedPreferenceManager::setFloat,
+                PreferenceReader::getPrefDefaultFloat);
     }
 
     private static Consumer<String> validateString(JsonObject jsonObject, String jsonPropName,
@@ -1047,14 +1051,16 @@ public abstract class JsonManager {
                     namesMap.put(prefKeyOrPrefix, value);
             }
         }
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setString);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setString,
+                PreferenceReader::getPrefDefaultString);
     }
 
     private static Consumer<String> validateSpanned(JsonObject jsonObject, String jsonPropName,
                                                     String prefKeyOrPrefix)
             throws JSONException {
         Spanned value = jsonObject.getSpanned(jsonPropName);
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setSpanned);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setSpanned,
+                PreferenceReader::getPrefDefaultSpanned);
     }
 
     private static Consumer<String> validateCharSequence(JsonObject jsonObject, String jsonPropName,
@@ -1077,21 +1083,24 @@ public abstract class JsonManager {
                     namesMap.put(prefKeyOrPrefix, value == null ? null : value.toString());
             }
         }
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setCharSequence);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setCharSequence,
+                PreferenceReader::getPrefDefaultCharSequence);
     }
 
     private static Consumer<String> validateIntArray(JsonObject jsonObject, String jsonPropName,
                                                      String prefKeyOrPrefix)
             throws JSONException {
         int[] value = jsonObject.getIntArray(jsonPropName);
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setIntArray);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setIntArray,
+                PreferenceReader::getPrefDefaultIntArray);
     }
 
     private static Consumer<String> validateStringArray(JsonObject jsonObject, String jsonPropName,
                                                         String prefKeyOrPrefix)
             throws JSONException {
         String[] value = jsonObject.getStringArray(jsonPropName);
-        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setStringArray);
+        return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setStringArray,
+                PreferenceReader::getPrefDefaultStringArray);
     }
 
     private static Consumer<String> validateIntRange(JsonObject jsonObject, String jsonPropName,
@@ -1205,14 +1214,15 @@ public abstract class JsonManager {
     }
 
     private static <T> Consumer<String> preferenceSetter(String prefKeyOrPrefix, T value,
-            TriConsumer<SharedPreferenceManager, String, T> setPref) {
+            TriConsumer<SharedPreferenceManager, String, T> setPref,
+            Function<String, T> getPrefDefault) {
         return (prefKey) -> {
             if (prefKey == null || !prefKey.startsWith(prefKeyOrPrefix)) {
                 Log.e(TAG, "Unexpected preference key " + prefKey
                         + ". It should start with " + prefKeyOrPrefix);
                 return;
             }
-            Spanned defaultValue = PreferenceReader.getPrefDefaultSpanned(prefKeyOrPrefix);
+            T defaultValue = getPrefDefault.apply(prefKeyOrPrefix);
             if (IMPORT_DEFAULT_PREFS_VALUES
                     || !SharedPreferenceManager.equals(value, defaultValue)) {
                 SharedPreferenceManager prefs = Settings.getInstance().getPrefManager();
