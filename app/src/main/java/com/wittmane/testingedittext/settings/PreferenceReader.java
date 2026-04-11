@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -301,9 +301,10 @@ import java.util.Locale;
                 return "IME_ACTION_UNSPECIFIED";
             case PREF_THEME:
                 return THEME_SYSTEM_DEFAULT;
+            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
+                return "INVISIBLE";
             case PREF_INPUT_TYPE_TEXT_FLAG_MULTI_LINE_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_CAP_PREFIX:
-            case PREF_NULL_INPUT_TYPE_COMPOSING_TEXT_BEHAVIOR_PREFIX:
                 return "";
             case PREF_TEST_GROUP_NAME_PREFIX:
             case PREF_IME_ACTION_LABEL_PREFIX:
