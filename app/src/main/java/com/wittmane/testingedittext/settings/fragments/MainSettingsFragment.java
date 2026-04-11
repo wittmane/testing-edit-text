@@ -92,19 +92,17 @@ public class MainSettingsFragment extends SettingsFragment {
 
     private void refreshTestFieldsPref() {
         Preference pref = findPreference("pref_screen_test_field_group_list");
-        if (Settings.getTestFieldGroupCount() == 1) {
-            pref.setFragment(null);
-            pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference preference) {
+        pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+                if (Settings.getTestFieldGroupCount() == 1) {
                     openGroupPreference(MainSettingsFragment.this, 0);
-                    return true;
+                } else {
+                    launchPrefFragment(pref);
                 }
-            });
-        } else {
-            pref.setFragment(TestFieldGroupListSettingsFragment.class.getName());
-            pref.setOnPreferenceClickListener(null);
-        }
+                return true;
+            }
+        });
     }
 
     @Override
