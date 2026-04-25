@@ -155,6 +155,8 @@ public class PreferenceKeys {
     //#endregion
 
     //#region test field
+    public static final String PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX =
+            "pref_key_float_hint_as_label";
     public static final String PREF_IME_LABEL_TEXT_PREFIX =
             "pref_key_label_text";
     public static final String PREF_IME_DEFAULT_TEXT_PREFIX =
@@ -316,6 +318,7 @@ public class PreferenceKeys {
     };
 
     public static final String[] TEST_FIELD_PREF_KEY_PREFIXES = new String[] {
+            PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX,
             PREF_IME_LABEL_TEXT_PREFIX,
             PREF_IME_DEFAULT_TEXT_PREFIX,
             PREF_IME_HINT_TEXT_PREFIX,

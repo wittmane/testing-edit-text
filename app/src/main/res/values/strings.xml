@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022-2025 Eli Wittman
+<!-- Copyright (C) 2022-2026 Eli Wittman
      Copyright 2006, The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -380,9 +380,11 @@
     <string name="locale_country">Country</string>
     <string name="locale_variant">Variant</string>
 
+    <string name="float_hint_as_label">Float the hint text as a label when populated</string>
     <string name="label_text">Label</string>
     <string name="default_text">Default text</string>
     <string name="hint_text">Hint text</string>
+    <string name="hint_and_label_text">Hint/label text</string>
 
     <string name="uses_app_level_defaults">Uses app level defaults</string>
     <string name="overrides_app_level_defaults">Overrides defaults</string>

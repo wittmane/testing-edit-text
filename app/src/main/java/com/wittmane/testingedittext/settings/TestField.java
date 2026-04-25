@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Eli Wittman
+ * Copyright (C) 2024-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import java.util.Locale;
     public boolean mAllowUndo;
     public Locale[] mTextLocales;
     public Locale[] mImeHintLocales;
+    public boolean mFloatHintAsLabel;
     public CharSequence mLabelText;
     public CharSequence mDefaultText;
     public CharSequence mHintText;

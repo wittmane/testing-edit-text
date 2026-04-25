@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -32,6 +32,8 @@ import android.view.ViewGroup;
 
 import com.wittmane.testingedittext.R;
 import com.wittmane.testingedittext.settings.Settings;
+import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager;
+import com.wittmane.testingedittext.settings.SwitchPreferenceDependencyManager.OnPreferencesChangedListener;
 import com.wittmane.testingedittext.settings.preferences.LocaleEntryListPreference;
 
 public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
@@ -56,6 +58,24 @@ public class TestFieldSettingsFragment extends PerTestFieldSettingsFragment {
                             getPrefKey(PREF_TEXT_LOCALES_PREFIX));
             textLocalesPref.setMaxEntries(1);
         }
+
+        new SwitchPreferenceDependencyManager(new String[]{
+                getPrefKey(PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX)
+        }, this, new OnPreferencesChangedListener() {
+            @Override
+            public void onPreferencesChanged(boolean[] prefsChecked) {
+                boolean floatHintAsLabel = prefsChecked[0];
+                Preference labelPref = findPreference(getPrefKey(PREF_IME_LABEL_TEXT_PREFIX));
+                Preference hintPref = findPreference(getPrefKey(PREF_IME_HINT_TEXT_PREFIX));
+                if (floatHintAsLabel) {
+                    labelPref.setEnabled(false);
+                    hintPref.setTitle(R.string.hint_and_label_text);
+                } else {
+                    labelPref.setEnabled(true);
+                    hintPref.setTitle(R.string.hint_text);
+                }
+            }
+        });
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Eli Wittman
+ * Copyright (C) 2022-2026 Eli Wittman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -31,6 +31,7 @@ import android.text.InputFilter;
 import android.text.InputType;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -41,6 +42,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.view.ViewGroup.MarginLayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -61,6 +63,7 @@ import com.wittmane.testingedittext.settings.Settings.TestFieldSettings;
 import com.wittmane.testingedittext.settings.SettingsActivity;
 import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.util.IconUtils;
+import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.util.SpanUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -109,6 +112,9 @@ public class MainActivity extends ThemedActivity
         private final EditTextProxy mCustomEditText;
         private final ImageButton mQuickSettingsButton;
         private final LinearLayout mLayout;
+        private final MarginLayoutParams mTextFieldWrapperLayoutParams;
+        private boolean mFloatHintAsLabel;
+        private final int mEditTextPaddingTop;
         public TestField(int id, Context context) {
             mId = id;
 
@@ -118,12 +124,14 @@ public class MainActivity extends ThemedActivity
                     LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
             mLabel = new TextView(context);
+            mLabel.setVisibility(View.GONE);
             mLayout.addView(mLabel);
 
             LinearLayout textFieldWrapperLayout = new LinearLayout(context);
             textFieldWrapperLayout.setOrientation(LinearLayout.HORIZONTAL);
-            textFieldWrapperLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+            mTextFieldWrapperLayoutParams = new LinearLayout.LayoutParams(
+                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+            textFieldWrapperLayout.setLayoutParams(mTextFieldWrapperLayoutParams);
             mLayout.addView(textFieldWrapperLayout);
 
             mFrameworkEditText = addEditText(context, textFieldWrapperLayout,
@@ -132,6 +140,36 @@ public class MainActivity extends ThemedActivity
             mCustomEditText = addEditText(context, textFieldWrapperLayout,
                     com.wittmane.testingedittext.aosp.android.widget.EditText::new,
                     EditTextProxy::new);
+
+            mEditTextPaddingTop = Math.min(mFrameworkEditText.getView().getPaddingTop(),
+                    mCustomEditText.getView().getPaddingTop())
+                    + textFieldWrapperLayout.getPaddingTop();
+
+            mFrameworkEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    updateLabelVisibility();
+                }
+
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            });
+
+            mCustomEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    updateLabelVisibility();
+                }
+
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            });
 
             mQuickSettingsButton = addImageButton(context, textFieldWrapperLayout,
                     R.drawable.ic_tune_white_24, R.string.edit_field_settings);
@@ -144,6 +182,52 @@ public class MainActivity extends ThemedActivity
                 intent.putExtra(FIELD_ID_BUNDLE_KEY, id);
                 context.startActivity(intent);
             });
+        }
+
+        private boolean isFrameworkEditTextVisible() {
+            View frameworkView = mFrameworkEditText.getView();
+            return frameworkView.getVisibility() == View.VISIBLE
+                    && ((ViewGroup) frameworkView.getParent()).getVisibility() == View.VISIBLE;
+        }
+
+        private boolean updateLabelVisibility() {
+            boolean visible;
+            if (TextUtils.isEmpty(mLabel.getText())) {
+                // don't show the label if there isn't any text for it
+                visible = false;
+            } else if (mFloatHintAsLabel
+                    && (!isFrameworkEditTextVisible()
+                            || TextUtils.isEmpty(mFrameworkEditText.getText()))
+                    && TextUtils.isEmpty(mCustomEditText.getText())) {
+                // don't show the label if both fields are blank (the hint handles indicating what
+                // the field is). if the reference framework field isn't shown, only consider the
+                // single visible field.
+                visible = false;
+            } else {
+                visible = true;
+            }
+            int visibility = visible ? View.VISIBLE : View.GONE;
+            if (mLabel.getVisibility() != visibility) {
+                mLabel.setVisibility(visibility);
+
+                int marginTop;
+                if (visible) {
+                    // set the text field wrapper margin to negate most of the top padding of the
+                    // edit text and wrapper to make the label much closer for better visual
+                    // association and to minimize layout shifting when the label appears and
+                    // disappears. we're not just removing the padding to avoid messing with how the
+                    // quick settings button is oriented with the line. this just shifts everything
+                    // in the row to be nearly flush against the label.
+                    int minGap = (int) ResourceUtils.dpToPx(2, mLabel.getContext());
+                    marginTop = Math.min(0, minGap - mEditTextPaddingTop);
+                } else {
+                    marginTop = 0;
+                }
+                mTextFieldWrapperLayoutParams.topMargin = marginTop;
+
+                return true;
+            }
+            return false;
         }
 
         private static <TEditText extends View> EditTextProxy addEditText(
@@ -518,13 +602,14 @@ public class MainActivity extends ThemedActivity
 
             TestFieldSettings fieldSettings = Settings.getTestFieldSettings(groupIndex, fieldIndex);
 
-            CharSequence labelText = fieldSettings.getLabelText();
-            testField.mLabel.setText(labelText);
-            testField.mLabel.setVisibility(TextUtils.isEmpty(labelText) ? View.GONE : View.VISIBLE);
+            testField.mLabel.setText(fieldSettings.getLabelText());
+            testField.mFloatHintAsLabel = fieldSettings.shouldFloatHintAsLabel();
 
             updateField(testField.mFrameworkEditText, groupIndex, fieldIndex);
             ((ViewGroup)testField.mFrameworkEditText.getView().getParent())
                     .setVisibility(showReferenceEditText ? View.VISIBLE : View.GONE);
+
+            testField.updateLabelVisibility();
 
             updateField(testField.mCustomEditText, groupIndex, fieldIndex);
 
@@ -1231,6 +1316,14 @@ public class MainActivity extends ThemedActivity
             return mFrameworkEditText != null
                     ? mFrameworkEditText.requestFocus()
                     : mCustomEditText.requestFocus();
+        }
+
+        public void addTextChangedListener(TextWatcher watcher) {
+            if (mFrameworkEditText != null) {
+                mFrameworkEditText.addTextChangedListener(watcher);
+            } else {
+                mCustomEditText.addTextChangedListener(watcher);
+            }
         }
     }
 }

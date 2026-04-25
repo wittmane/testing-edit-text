@@ -1079,7 +1079,14 @@ public class Settings implements SharedPreferences.OnSharedPreferenceChangeListe
             return Settings.getField(mGroupIndex, mFieldIndex);
         }
 
+        public boolean shouldFloatHintAsLabel() {
+            return getField().mFloatHintAsLabel;
+        }
+
         public CharSequence getLabelText() {
+            if (shouldFloatHintAsLabel()) {
+                return getHintText();
+            }
             return getField().mLabelText;
         }
 

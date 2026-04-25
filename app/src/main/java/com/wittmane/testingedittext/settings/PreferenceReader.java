@@ -102,6 +102,7 @@ import java.util.Locale;
             case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
             case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
             case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
+            case PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
@@ -212,6 +213,7 @@ import java.util.Locale;
             case PREF_SKIP_GETSELECTEDTEXT_PREFIX:
             case PREF_SKIP_SETCOMPOSINGREGION_PREFIX:
             case PREF_OVERRIDE_SYSTEM_BEHAVIOR_SIMULATION_PREFIX:
+            case PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_COMPLETE_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_AUTO_CORRECT_PREFIX:
             case PREF_INPUT_TYPE_TEXT_FLAG_NO_SUGGESTIONS_PREFIX:
@@ -817,6 +819,7 @@ import java.util.Locale;
         // all would just read all of them multiple times. leaving them commented out here for
         // visibility.
         final String[] testFieldPrefKeyPrefixes = new String[]{
+                PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX,
                 PREF_IME_LABEL_TEXT_PREFIX,
                 PREF_IME_DEFAULT_TEXT_PREFIX,
                 PREF_IME_HINT_TEXT_PREFIX,
@@ -876,6 +879,9 @@ import java.util.Locale;
         }
         int fieldId = testField.mId;
         switch (prefKey.getStem()) {
+            case PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX:
+                testField.mFloatHintAsLabel = readBoolean(prefKey);
+                break;
             case PREF_IME_LABEL_TEXT_PREFIX:
                 testField.mLabelText = readCharSequence(prefKey);
                 break;

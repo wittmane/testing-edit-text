@@ -680,7 +680,7 @@ public abstract class JsonManager {
                                              int groupIndex, Context context,
                                              GroupTransferInfo groupInfo)
             throws JSONException {
-        Map<String, String> namesMap = new HashMap<>();
+        NameInfo nameInfo = new NameInfo();
         List<FieldTransferInfo> fields = new ArrayList<>();
 
         UnusedPropertyTracker props = new UnusedPropertyTracker(groupJsonObject);
@@ -702,7 +702,7 @@ public abstract class JsonManager {
             if (props.contains(jsonProp)) {
                 if (!testGroupPrefKeyPrefix.equals(PREF_TEST_FIELD_IDS_PREFIX)) {
                     validatePropValue(groupJsonObject, jsonProp, testGroupPrefKeyPrefix, info,
-                            context, namesMap);
+                            context, nameInfo);
                 }
             }
         }
@@ -712,7 +712,7 @@ public abstract class JsonManager {
         }
 
         groupInfo.setFields(fields);
-        String name = getName(namesMap, new String[] { PREF_TEST_GROUP_NAME_PREFIX });
+        String name = getName(nameInfo.mNamesMap, new String[] { PREF_TEST_GROUP_NAME_PREFIX });
         groupInfo.setName(name != null
                 ? name
                 : context.getString(R.string.test_group_default_name, groupIndex + 1));
@@ -722,7 +722,7 @@ public abstract class JsonManager {
     private static boolean validateFieldJson(JsonObject fieldJsonObject, ImportFileInfo info,
                                              int fieldIndex, Context context,
                                              FieldTransferInfo fieldInfo) {
-        Map<String, String> namesMap = new HashMap<>();
+        NameInfo nameInfo = new NameInfo();
 
         UnusedPropertyTracker props = new UnusedPropertyTracker(fieldJsonObject);
 
@@ -730,7 +730,7 @@ public abstract class JsonManager {
             String jsonProp = prefKeyPrefixToJsonName(testFieldPrefKeyPrefix);
             if (props.contains(jsonProp)) {
                 validatePropValue(fieldJsonObject, jsonProp, testFieldPrefKeyPrefix, info, context,
-                        namesMap);
+                        nameInfo);
             }
         }
 
@@ -746,11 +746,20 @@ public abstract class JsonManager {
             info.mUnexpectedProps.add(fieldJsonObject.fullPath(prop));
         }
 
-        String name = getName(namesMap, new String[] {
-                PREF_IME_LABEL_TEXT_PREFIX,
-                PREF_IME_DEFAULT_TEXT_PREFIX,
-                PREF_IME_HINT_TEXT_PREFIX
-        });
+        boolean floatHintAsLabel = nameInfo.mFloatHintAsLabel == null
+                ? PreferenceReader.getPrefDefaultBoolean(PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX)
+                : nameInfo.mFloatHintAsLabel;
+        String name = getName(nameInfo.mNamesMap,
+                floatHintAsLabel
+                        ? new String[] {
+                                PREF_IME_HINT_TEXT_PREFIX,
+                                PREF_IME_DEFAULT_TEXT_PREFIX
+                        }
+                        : new String[] {
+                                PREF_IME_LABEL_TEXT_PREFIX,
+                                PREF_IME_DEFAULT_TEXT_PREFIX,
+                                PREF_IME_HINT_TEXT_PREFIX
+                        });
         fieldInfo.setName(name != null
                 ? name
                 : context.getString(R.string.test_field_default_name, fieldIndex + 1));
@@ -789,6 +798,11 @@ public abstract class JsonManager {
         }
         return null;
     }
+
+    private static class NameInfo {
+        public final Map<String, String> mNamesMap = new HashMap<>();
+        public Boolean mFloatHintAsLabel;
+    }
     //#endregion
 
     //#region validate/load specific values
@@ -808,12 +822,12 @@ public abstract class JsonManager {
                                                       String prefKeyOrPrefix,
                                                       @Nullable ImportFileInfo info,
                                                       @NonNull Context context,
-                                                      @Nullable Map<String, String> namesMap) {
+                                                      @Nullable NameInfo nameInfo) {
         int dataType = PreferenceReader.prefDataType(prefKeyOrPrefix);
         try {
             switch (dataType) {
                 case PreferenceReader.TYPE_BOOLEAN:
-                    return validateBoolean(jsonObject, jsonPropName, prefKeyOrPrefix);
+                    return validateBoolean(jsonObject, jsonPropName, prefKeyOrPrefix, nameInfo);
                 case PreferenceReader.TYPE_INT:
                     return validateInt(jsonObject, jsonPropName, prefKeyOrPrefix, info, context);
                 case PreferenceReader.TYPE_LONG:
@@ -822,12 +836,12 @@ public abstract class JsonManager {
                     return validateFloat(jsonObject, jsonPropName, prefKeyOrPrefix, info, context);
                 case PreferenceReader.TYPE_STRING:
                     return validateString(jsonObject, jsonPropName, prefKeyOrPrefix, info, context,
-                            namesMap);
+                            nameInfo);
                 case PreferenceReader.TYPE_SPANNED:
                     return validateSpanned(jsonObject, jsonPropName, prefKeyOrPrefix);
                 case PreferenceReader.TYPE_CHAR_SEQUENCE:
                     return validateCharSequence(jsonObject, jsonPropName, prefKeyOrPrefix,
-                            namesMap);
+                            nameInfo);
                 case PreferenceReader.TYPE_INT_ARRAY:
                     return validateIntArray(jsonObject, jsonPropName, prefKeyOrPrefix);
                 case PreferenceReader.TYPE_STRING_ARRAY:
@@ -856,10 +870,14 @@ public abstract class JsonManager {
     }
 
     private static Consumer<String> validateBoolean(JsonObject jsonObject, String jsonPropName,
-                                                    String prefKeyOrPrefix)
+                                                    String prefKeyOrPrefix,
+                                                    @Nullable NameInfo nameInfo)
             throws JSONException {
         // just need to try getting the data for basic types to ensure the right data type is set
         boolean value = jsonObject.getBoolean(jsonPropName);
+        if (nameInfo != null && prefKeyOrPrefix.equals(PREF_IME_FLOAT_HINT_AS_LABEL_PREFIX)) {
+            nameInfo.mFloatHintAsLabel = value;
+        }
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setBoolean,
                 PreferenceReader::getPrefDefaultBoolean);
     }
@@ -990,7 +1008,7 @@ public abstract class JsonManager {
                                                    String prefKeyOrPrefix,
                                                    @Nullable ImportFileInfo info,
                                                    @NonNull Context context,
-                                                   @Nullable Map<String, String> namesMap)
+                                                   @Nullable NameInfo nameInfo)
             throws JSONException {
         String value = jsonObject.getString(jsonPropName);
         String[] allowedStringValues;
@@ -1045,10 +1063,10 @@ public abstract class JsonManager {
             }
             return null;
         }
-        if (namesMap != null) {
+        if (nameInfo != null) {
             switch (prefKeyOrPrefix) {
                 case PREF_TEST_GROUP_NAME_PREFIX:
-                    namesMap.put(prefKeyOrPrefix, value);
+                    nameInfo.mNamesMap.put(prefKeyOrPrefix, value);
             }
         }
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setString,
@@ -1065,7 +1083,7 @@ public abstract class JsonManager {
 
     private static Consumer<String> validateCharSequence(JsonObject jsonObject, String jsonPropName,
                                                          String prefKeyOrPrefix,
-                                                         @Nullable Map<String, String> namesMap)
+                                                         @Nullable NameInfo nameInfo)
             throws JSONException {
         CharSequence value;
         if (jsonObject.isNull(jsonPropName)) {
@@ -1075,12 +1093,13 @@ public abstract class JsonManager {
         } else {
             value = jsonObject.getSpanned(jsonPropName);
         }
-        if (namesMap != null) {
+        if (nameInfo != null) {
             switch (prefKeyOrPrefix) {
                 case PREF_IME_LABEL_TEXT_PREFIX:
                 case PREF_IME_DEFAULT_TEXT_PREFIX:
                 case PREF_IME_HINT_TEXT_PREFIX:
-                    namesMap.put(prefKeyOrPrefix, value == null ? null : value.toString());
+                    nameInfo.mNamesMap.put(prefKeyOrPrefix,
+                            value == null ? null : value.toString());
             }
         }
         return preferenceSetter(prefKeyOrPrefix, value, SharedPreferenceManager::setCharSequence,
