@@ -162,9 +162,8 @@ public class SettingsActivity extends PreferenceActivity
             }
             startFragment(f, null, null, false);
         }
-        // handle the insets excluding the bottom to support showing the preference list behind the
-        // navigation bar
-        EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
+
+        EdgeToEdgeUtils.addInsetHandling(this);
 
         mBackHandler.setUp();
         getFragmentManager().addOnBackStackChangedListener(this);

@@ -291,9 +291,8 @@ public class MainActivity extends ThemedActivity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        // handle the insets excluding the bottom to support showing the tab's contents behind the
-        // navigation bar
-        EdgeToEdgeUtils.addInsetHandling(this, true, true, true, false);
+
+        EdgeToEdgeUtils.addInsetHandling(this);
 
         final TabHost tabHost = findViewById(R.id.tabHost);
         tabHost.setup();

@@ -56,15 +56,11 @@ public class EdgeToEdgeUtils {
         }
     }
 
-    private static class ParentViewInfo extends InsetEdgeHandleInfo {
+    private static class ParentViewInfo {
         @Nullable
         private WindowInsets mLastInsets;
         private final Map<View, Rect> mImmediateChildViewBasePadding = new HashMap<>();
         private final Map<View, AdditionalViewInfo> mAdditionalViewInfo = new HashMap<>();
-        public ParentViewInfo(boolean handleLeft, boolean handleTop,
-                              boolean handleRight, boolean handleBottom) {
-            super(handleLeft, handleTop, handleRight, handleBottom);
-        }
     }
 
     private static class AdditionalViewInfo extends InsetEdgeHandleInfo {
@@ -81,8 +77,7 @@ public class EdgeToEdgeUtils {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
     }
 
-    public static void addInsetHandling(Activity activity, boolean left, boolean top,
-                                        boolean right, boolean bottom) {
+    public static void addInsetHandling(Activity activity) {
         // edge-to-edge is only enforced starting in Android 15
         if (isEdgeToEdgeEnforced()) {
             View contentView = activity.findViewById(android.R.id.content);
@@ -99,7 +94,7 @@ public class EdgeToEdgeUtils {
             }
 
             synchronized (mParentViewInfo) {
-                mParentViewInfo.put(contentView, new ParentViewInfo(left, top, right, bottom));
+                mParentViewInfo.put(contentView, new ParentViewInfo());
             }
 
             contentView.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
@@ -161,15 +156,15 @@ public class EdgeToEdgeUtils {
             if (parentViewInfo == null) {
                 return;
             }
-            // only add handling if the top level parent didn't already handle it to avoid double
-            // padding
-            parentViewInfo.mAdditionalViewInfo.put(view, new AdditionalViewInfo(
-                    left && !parentViewInfo.mHandleLeft,
-                    top && !parentViewInfo.mHandleTop,
-                    right && !parentViewInfo.mHandleRight,
-                    bottom && !parentViewInfo.mHandleBottom));
             if (parentViewInfo.mLastInsets != null) {
-                applyWindowInsets(parent, parentViewInfo, parentViewInfo.mLastInsets);
+                // ensure the base padding is updated
+                updatePaddingForInsets(parent, parentViewInfo, null, true);
+            }
+            parentViewInfo.mAdditionalViewInfo.put(view,
+                    new AdditionalViewInfo(left, top, right, bottom));
+            if (parentViewInfo.mLastInsets != null) {
+                // re-apply the inset padding due to the additional view change
+                updatePaddingForInsets(parent, parentViewInfo, parentViewInfo.mLastInsets, false);
             }
         }
     }
@@ -202,6 +197,54 @@ public class EdgeToEdgeUtils {
     private static void applyWindowInsets(@NonNull final View parentView,
                                           @NonNull final ParentViewInfo parentViewInfo,
                                           @NonNull final WindowInsets insets) {
+        updatePaddingForInsets(parentView, parentViewInfo, insets, true);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    private static void updatePaddingForInsets(@NonNull final View parentView,
+                                               @NonNull final ParentViewInfo parentViewInfo,
+                                               final WindowInsets insets,
+                                               boolean updateBasePadding) {
+        // the parent should handle all of the edges not handled by any children
+        boolean additionalViewHandlesLeft = false;
+        boolean additionalViewHandlesTop = false;
+        boolean additionalViewHandlesRight = false;
+        boolean additionalViewHandlesBottom = false;
+        for (View additionalView : parentViewInfo.mAdditionalViewInfo.keySet()) {
+            if (additionalView.getParent() == parentView) {
+                // we'll be applying padding to the direct children of parentView, so ignore this
+                // now to avoid potentially conflicting application/tracking of padding
+                continue;
+            }
+            AdditionalViewInfo additionalViewInfo =
+                    parentViewInfo.mAdditionalViewInfo.get(additionalView);
+            if (additionalViewInfo == null) {
+                continue;
+            }
+            if (additionalViewInfo.mHandleLeft) {
+                additionalViewHandlesLeft = true;
+            }
+            if (additionalViewInfo.mHandleTop) {
+                additionalViewHandlesTop = true;
+            }
+            if (additionalViewInfo.mHandleRight) {
+                additionalViewHandlesRight = true;
+            }
+            if (additionalViewInfo.mHandleBottom) {
+                additionalViewHandlesBottom = true;
+            }
+
+            if (updateBasePadding || additionalViewInfo.mBasePadding == null) {
+                additionalViewInfo.mBasePadding = getBasePadding(additionalView,
+                        additionalViewInfo.mBasePadding, parentViewInfo.mLastInsets,
+                        additionalViewInfo, true);
+            }
+            if (insets != null) {
+                setPaddingForInsets(additionalView, additionalViewInfo.mBasePadding, insets,
+                        additionalViewInfo, true);
+            }
+        }
+
         for (int i = 0; i < ((ViewGroup) parentView).getChildCount(); i++) {
             // since this view is android.R.id.content, it should be a FrameLayout to fill the full
             // screen, and multiple children will just be stacked on each other (last one is the
@@ -211,68 +254,103 @@ public class EdgeToEdgeUtils {
                 continue;
             }
 
+            InsetEdgeHandleInfo insetEdgeHandleInfo = new InsetEdgeHandleInfo(
+                    !additionalViewHandlesLeft, !additionalViewHandlesTop,
+                    !additionalViewHandlesRight, !additionalViewHandlesBottom);
             Rect basePadding = parentViewInfo.mImmediateChildViewBasePadding.get(child);
-            basePadding = updatePaddingForInsets(child, parentViewInfo, insets,
-                    parentViewInfo.mLastInsets, basePadding);
-            parentViewInfo.mImmediateChildViewBasePadding.put(child, basePadding);
-        }
-
-        for (View extra : parentViewInfo.mAdditionalViewInfo.keySet()) {
-            AdditionalViewInfo specificViewInfo = parentViewInfo.mAdditionalViewInfo.get(extra);
-            if (specificViewInfo == null) {
-                continue;
+            if (updateBasePadding || basePadding == null) {
+                basePadding = getBasePadding(child, basePadding, parentViewInfo.mLastInsets,
+                        insetEdgeHandleInfo, false);
+                parentViewInfo.mImmediateChildViewBasePadding.put(child, basePadding);
             }
-            Rect basePadding = specificViewInfo.mBasePadding;
-            basePadding = updatePaddingForInsets(extra, specificViewInfo, insets,
-                    parentViewInfo.mLastInsets, basePadding);
-            specificViewInfo.mBasePadding = basePadding;
+            if (insets != null) {
+                setPaddingForInsets(child, basePadding, insets, insetEdgeHandleInfo, false);
+            }
         }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.R)
-    private static Rect updatePaddingForInsets(View view, InsetEdgeHandleInfo viewInfo,
-                                               WindowInsets insets, WindowInsets lastInsets,
-                                               Rect lastBasePadding) {
-        Insets systemBarsInsets = insets.getInsets(WindowInsets.Type.systemBars());
-
+    private static Rect getBasePadding(View view, Rect lastBasePadding, WindowInsets lastInsets,
+                                       InsetEdgeHandleInfo viewInfo, boolean isAdditionalView) {
         Rect basePadding = lastBasePadding;
         Rect padding = getPadding(view);
         if (basePadding != null && lastInsets != null) {
             Insets lastSystemBarsInsets =
                     lastInsets.getInsets(WindowInsets.Type.systemBars());
+            Insets lastImeInsets =
+                    lastInsets.getInsets(WindowInsets.Type.ime());
             // update the last tracked padding in case they changed from something else since we
             // last updated the insets
-            if (viewInfo.mHandleLeft) {
-                basePadding.left = padding.left - lastSystemBarsInsets.left;
-            }
-            if (viewInfo.mHandleTop) {
-                basePadding.top = padding.top - lastSystemBarsInsets.top;
-            }
-            if (viewInfo.mHandleRight) {
-                basePadding.right = padding.right - lastSystemBarsInsets.right;
-            }
-            if (viewInfo.mHandleBottom) {
-                basePadding.right = padding.bottom - lastSystemBarsInsets.bottom;
-            }
+            basePadding.left = getBasePaddingValue(lastSystemBarsInsets.left, lastImeInsets.left,
+                    padding.left, isAdditionalView, viewInfo.mHandleLeft);
+            basePadding.top = getBasePaddingValue(lastSystemBarsInsets.top, lastImeInsets.top,
+                    padding.top, isAdditionalView, viewInfo.mHandleTop);
+            basePadding.right = getBasePaddingValue(lastSystemBarsInsets.right, lastImeInsets.right,
+                    padding.right, isAdditionalView, viewInfo.mHandleRight);
+            basePadding.bottom = getBasePaddingValue(lastSystemBarsInsets.bottom,
+                    lastImeInsets.bottom, padding.bottom, isAdditionalView, viewInfo.mHandleBottom);
         } else {
             basePadding = new Rect(padding);
         }
 
-        if (viewInfo.mHandleLeft) {
-            padding.left = basePadding.left + systemBarsInsets.left;
-        }
-        if (viewInfo.mHandleTop) {
-            padding.top = basePadding.top + systemBarsInsets.top;
-        }
-        if (viewInfo.mHandleRight) {
-            padding.right = basePadding.right + systemBarsInsets.right;
-        }
-        if (viewInfo.mHandleBottom) {
-            padding.bottom = basePadding.bottom + systemBarsInsets.bottom;
-        }
-        setPadding(view, padding);
-
         return basePadding;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    private static void setPaddingForInsets(View view, Rect basePadding, WindowInsets insets,
+                                            InsetEdgeHandleInfo viewInfo,
+                                            boolean isAdditionalView) {
+        Insets systemBarsInsets = insets.getInsets(WindowInsets.Type.systemBars());
+        Insets imeInsets = insets.getInsets(WindowInsets.Type.ime());
+
+        Rect padding = new Rect();
+        padding.left = getNewPaddingValue(systemBarsInsets.left, imeInsets.left, basePadding.left,
+                isAdditionalView, viewInfo.mHandleLeft);
+        padding.top = getNewPaddingValue(systemBarsInsets.top, imeInsets.top, basePadding.top,
+                isAdditionalView, viewInfo.mHandleTop);
+        padding.right = getNewPaddingValue(systemBarsInsets.right, imeInsets.right,
+                basePadding.right, isAdditionalView, viewInfo.mHandleRight);
+        padding.bottom = getNewPaddingValue(systemBarsInsets.bottom, imeInsets.bottom,
+                basePadding.bottom, isAdditionalView, viewInfo.mHandleBottom);
+        setPadding(view, padding);
+    }
+
+    private static int getBasePaddingValue(int lastSystemBarsInsets, int lastImeInsets, int padding,
+                                           boolean isAdditionalView, boolean isHandling) {
+        int basePadding;
+        if (lastImeInsets > 0) {
+            // insets are forced on the parent (and only on the parent) once the IME covers the edge
+            // since none of the activity content should draw behind the IME
+            if (!isAdditionalView) {
+                basePadding = padding - lastSystemBarsInsets;
+            } else {
+                basePadding = padding;
+            }
+        } else if (isHandling) {
+            basePadding = padding - lastSystemBarsInsets;
+        } else {
+            basePadding = padding;
+        }
+        return basePadding;
+    }
+
+    private static int getNewPaddingValue(int systemBarsInsets, int imeInsets, int basePadding,
+                                          boolean isAdditionalView, boolean isHandling) {
+        int padding;
+        if (imeInsets > 0) {
+            // force the insets on the parent (and only on the parent) once the IME covers the edge
+            // since none of the activity content should draw behind the IME
+            if (!isAdditionalView) {
+                padding = basePadding + systemBarsInsets;
+            } else {
+                padding = basePadding;
+            }
+        } else if (isHandling) {
+            padding = basePadding + systemBarsInsets;
+        } else {
+            padding = basePadding;
+        }
+        return padding;
     }
 
     private static Rect getPadding(View view) {
