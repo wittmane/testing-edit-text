@@ -49,7 +49,6 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TabHost;
 import android.widget.TabHost.TabContentFactory;
-import android.widget.TabWidget;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -65,6 +64,7 @@ import com.wittmane.testingedittext.util.EdgeToEdgeUtils;
 import com.wittmane.testingedittext.util.IconUtils;
 import com.wittmane.testingedittext.util.ResourceUtils;
 import com.wittmane.testingedittext.util.SpanUtils;
+import com.wittmane.testingedittext.widget.ActionBarTabHost;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -471,8 +471,7 @@ public class MainActivity extends ThemedActivity
             return;
         }
 
-        final TabHost tabHost = findViewById(R.id.tabHost);
-        final TabWidget tabs = findViewById(android.R.id.tabs);
+        final ActionBarTabHost tabHost = findViewById(R.id.tabHost);
         int testFieldGroupCount = Settings.getTestFieldGroupCount();
         int tabCount = USE_DEBUG_SCREEN ? testFieldGroupCount + 1 : testFieldGroupCount;
 
@@ -494,7 +493,7 @@ public class MainActivity extends ThemedActivity
             setTabs(tabHost);
         }
 
-        tabs.setVisibility(mGroups.length < 2 ? View.GONE : View.VISIBLE);
+        tabHost.setTabWidgetVisible(mGroups.length > 1);
 
         if (mCurrentTabIndex >= testFieldGroupCount) {
             return;
