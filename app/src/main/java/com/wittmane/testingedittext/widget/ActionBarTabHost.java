@@ -138,11 +138,14 @@ public class ActionBarTabHost extends TabHost {
         mActionBar.setDisplayShowTitleEnabled(false);
         mActionBar.setDisplayShowHomeEnabled(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Toolbar toolbar = (Toolbar) mTabWidgetOrWrapper.getParent();
-            mActionBarContentInsetLeft = toolbar.getContentInsetLeft();
-            mActionBarContentInsetRight = toolbar.getContentInsetRight();
-            // remove left margin
-            toolbar.setContentInsetsAbsolute(0, 0);
+            ViewParent newParent = mTabWidgetOrWrapper.getParent();
+            if (newParent instanceof Toolbar) {
+                Toolbar toolbar = (Toolbar) newParent;
+                mActionBarContentInsetLeft = toolbar.getContentInsetLeft();
+                mActionBarContentInsetRight = toolbar.getContentInsetRight();
+                // remove left margin
+                toolbar.setContentInsetsAbsolute(0, 0);
+            }
         }
 
         // listen to layout changes to make sure there is enough space to keep the tabs in the
