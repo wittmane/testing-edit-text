@@ -31,10 +31,11 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <HorizontalScrollView
+            <com.wittmane.testingedittext.widget.EnhancedHorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fadeScrollbars="false">
+                android:requiresFadingEdge="horizontal"
+                android:fadingEdgeLength="10dp">
 
                 <TabWidget
                     android:id="@android:id/tabs"
@@ -45,7 +46,7 @@
                     android:dividerPadding="5dip"
                     android:measureWithLargestChild="false" />
 
-            </HorizontalScrollView>
+            </com.wittmane.testingedittext.widget.EnhancedHorizontalScrollView>
 
             <FrameLayout
                 android:id="@android:id/tabcontent"
