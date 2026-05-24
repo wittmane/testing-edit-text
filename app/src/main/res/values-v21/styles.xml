@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2025 Eli Wittman
+<!-- Copyright (C) 2022-2026 Eli Wittman
      Copyright (C) 2014 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,12 +39,9 @@
         <item name="android:textSize">14sp</item>
     </style>
 
-    <style name="Widget.Tab" parent="android:Widget.Material.Tab">
-    </style>
-
-    <!-- (EW) from styles_material (Widget.Material.TabText) (versions 21 (Lollipop) through at
-         least 35 (Android 15))-->
-    <style name="Widget.TabText" parent="android:Widget.Material.ActionBar.TabText">
+    <!-- (EW) from styles_material (Widget.Material.TabText (private)) (versions 21 (Lollipop)
+         through at least 35 (Android 15))-->
+    <style name="Widget.Material.TabText" parent="android:Widget.Material.ActionBar.TabText">
         <item name="android:maxWidth">180dip</item>
     </style>
 

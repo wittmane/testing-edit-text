@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2025 Eli Wittman
+<!-- Copyright (C) 2022-2026 Eli Wittman
      Copyright (C) 2006 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
+
+        <item name="tabStyle">@android:style/Widget.Holo.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Holo.TabText</item>
     </style>
 
     <style name="Theme.DeviceDefault.Light" parent="@android:style/Theme.DeviceDefault.Light">
@@ -49,6 +52,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
+
+        <item name="tabStyle">@android:style/Widget.Holo.Light.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Holo.TabText</item>
     </style>
 
     <style name="Theme.Holo" parent="@android:style/Theme.Holo">
@@ -74,6 +80,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
+
+        <item name="tabStyle">@android:style/Widget.Holo.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Holo.TabText</item>
     </style>
 
     <style name="Theme.Holo.Light" parent="@android:style/Theme.Holo.Light">
@@ -97,5 +106,8 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_holo</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_holo</item>
+
+        <item name="tabStyle">@android:style/Widget.Holo.Light.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Holo.TabText</item>
     </style>
 </resources>

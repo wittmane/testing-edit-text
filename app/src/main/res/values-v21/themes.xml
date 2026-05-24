@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2022-2025 Eli Wittman
+<!-- Copyright (C) 2022-2026 Eli Wittman
      Copyright (C) 2014 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,6 +32,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
+
+        <item name="tabStyle">@android:style/Widget.Material.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Material.TabText</item>
     </style>
     <style name="Theme.DeviceDefault" parent="Theme.DeviceDefault.v21">
     </style>
@@ -70,6 +73,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
+
+        <item name="tabStyle">@android:style/Widget.Material.Light.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Material.TabText</item>
     </style>
     <style name="Theme.DeviceDefault.Light" parent="Theme.DeviceDefault.Light.v21">
     </style>
@@ -99,6 +105,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
+
+        <item name="tabStyle">@android:style/Widget.Material.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Material.TabText</item>
     </style>
     <style name="Theme.Material" parent="Theme.Material.v21">
     </style>
@@ -123,6 +132,9 @@
         <item name="checkboxIconPaddingNegation">@dimen/checkbox_icon_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPaddingNegation">@dimen/edittext_underline_background_padding_negation_material</item>
         <item name="edittextUnderlineBackgroundPadding">@dimen/edittext_underline_background_padding_material</item>
+
+        <item name="tabStyle">@android:style/Widget.Material.Light.Tab</item>
+        <item name="tabTextStyle">@style/Widget.Material.TabText</item>
     </style>
     <style name="Theme.Material.Light" parent="Theme.Material.Light.v21">
     </style>
